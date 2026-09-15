@@ -86,4 +86,6 @@ defineOptions({
     .ai-scenarios-layout {
         align-items: start;
         grid-template-columns: 286px minmax(0, 1fr) 330px;
-  
+    }
+}
+</style>
