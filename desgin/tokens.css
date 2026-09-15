@@ -1,0 +1,330 @@
+/* ============================================================
+   Guesvia — design tokens
+   resources/css/tokens.css
+   Import before Tailwind: @import './tokens.css';
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=Caveat:wght@500;700&family=Cairo:wght@400;600&display=swap');
+
+:root {
+    /* ---------- Brand blue ---------- */
+    --c-brand-50: #eff5ff;
+    --c-brand-100: #dbe8ff;
+    --c-brand-200: #bdd5ff;
+    --c-brand-300: #8fb7ff;
+    --c-brand-400: #5a92ff;
+    --c-brand-500: #2b6cff;
+    --c-brand-600: #0b5cff; /* primary actions, bars, active states */
+    --c-brand-700: #1249c9; /* headings, wordmark, hover */
+    --c-brand-800: #0f3a9e;
+    --c-brand-900: #0c2e7a;
+
+    /* ---------- Semantic ---------- */
+    --c-success: #2fbe7a;
+    --c-success-tint: #e7f8f0;
+    --c-success-text: #1b7f4f;
+
+    --c-warning: #f5a623;
+    --c-warning-tint: #fef3e2;
+    --c-warning-text: #8a5a06;
+
+    --c-danger: #ef4444;
+    --c-danger-tint: #fdecec;
+    --c-danger-text: #b42318;
+
+    --c-ai: #8b6bf7;
+    --c-ai-tint: #f1ecfe;
+
+    --c-teal: #17b8c6;
+    --c-teal-tint: #e4f7fa;
+
+    --c-gold: #f9c338;
+    --c-gold-tint: #fef6dc;
+
+    --c-excel: #1e8e5a;
+    --c-excel-tint: #e6f5ee;
+
+    /* ---------- Surfaces & text ---------- */
+    --c-bg: #f4f9fe;
+    --c-bg-alt: #eff7fd;
+    --c-surface: #ffffff;
+    --c-border: #e4edf8;
+    --c-border-strong: #cbdcf0;
+    --c-text: #12233d;
+    --c-text-muted: #64748b;
+    --c-text-faint: #94a3b8;
+
+    /* ---------- Gradients ---------- */
+    --grad-page: linear-gradient(180deg, #f7fbff 0%, #eaf3fd 100%);
+    --grad-brand: linear-gradient(135deg, #0b5cff 0%, #1249c9 100%);
+    --grad-header: linear-gradient(
+        90deg,
+        #ffffff 55%,
+        rgba(255, 255, 255, 0) 100%
+    );
+
+    /* ---------- Typography ---------- */
+    --font-heading: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-script: 'Caveat', cursive;
+    --font-arabic: 'Cairo', 'Tajawal', sans-serif;
+
+    --fs-display: 2.125rem; /* 34 */
+    --fs-h1: 1.75rem; /* 28 */
+    --fs-h2: 1.25rem; /* 20 */
+    --fs-h3: 1rem; /* 16 */
+    --fs-stat: 1.875rem; /* 30 */
+    --fs-body: 0.875rem; /* 14 */
+    --fs-sm: 0.8125rem; /* 13 */
+    --fs-label: 0.75rem; /* 12 */
+
+    /* ---------- Radius ---------- */
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+    --r-pill: 999px;
+
+    /* ---------- Elevation ---------- */
+    --shadow-card:
+        0 1px 2px rgba(18, 35, 61, 0.04), 0 4px 16px rgba(11, 92, 255, 0.06);
+    --shadow-hover:
+        0 4px 8px rgba(18, 35, 61, 0.06), 0 12px 28px rgba(11, 92, 255, 0.1);
+    --shadow-pop: 0 12px 40px rgba(18, 35, 61, 0.16);
+    --shadow-btn: 0 2px 8px rgba(11, 92, 255, 0.28);
+    --ring-focus: 0 0 0 3px rgba(11, 92, 255, 0.15);
+
+    /* ---------- Layout ---------- */
+    --sidebar-w: 200px;
+    --topbar-h: 72px;
+    --bottomnav-h: 64px;
+    --content-max: 1400px;
+
+    /* ---------- Motion ---------- */
+    --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --t-fast: 120ms;
+    --t-base: 220ms;
+    --t-slow: 700ms;
+}
+
+/* ---------- Base ---------- */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    color: var(--c-text);
+    background: var(--grad-page);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+    font-family: var(--font-heading);
+    color: var(--c-brand-700);
+    line-height: 1.25;
+}
+
+h1 {
+    font-size: var(--fs-h1);
+    font-weight: 700;
+}
+h2 {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+}
+h3 {
+    font-size: var(--fs-h3);
+    font-weight: 600;
+}
+
+.script {
+    font-family: var(--font-script);
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--c-brand-700);
+}
+
+/* Arabic content (Show Meaning panels, Arabic UI mode) */
+[lang='ar'],
+.ar {
+    font-family: var(--font-arabic);
+    direction: rtl;
+    line-height: 1.9;
+}
+
+/* ---------- Reusable primitives ---------- */
+.g-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-card);
+    padding: 1.25rem;
+}
+.g-card--hover {
+    transition:
+        transform var(--t-fast) var(--ease-out),
+        box-shadow var(--t-fast) var(--ease-out);
+}
+.g-card--hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.g-chip {
+    /* coloured icon square on stat cards */
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-xl);
+    display: grid;
+    place-items: center;
+    flex: none;
+}
+
+.g-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 24px;
+    padding: 0 0.625rem;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-label);
+    font-weight: 600;
+}
+
+.g-input {
+    height: 40px;
+    width: 100%;
+    padding: 0 0.75rem;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    font: 400 var(--fs-body)/1.4 var(--font-body);
+    color: var(--c-text);
+    transition:
+        border-color var(--t-fast),
+        box-shadow var(--t-fast);
+}
+.g-input::placeholder {
+    color: var(--c-text-faint);
+}
+.g-input:focus {
+    outline: none;
+    border-color: var(--c-brand-600);
+    box-shadow: var(--ring-focus);
+}
+
+.g-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding: 0 1rem;
+    border-radius: var(--r-md);
+    font: 600 var(--fs-body)/1 var(--font-heading);
+    cursor: pointer;
+    transition:
+        background var(--t-fast),
+        transform var(--t-fast),
+        box-shadow var(--t-fast);
+}
+.g-btn:active {
+    transform: scale(0.97);
+}
+.g-btn--primary {
+    background: var(--c-brand-600);
+    color: #fff;
+    box-shadow: var(--shadow-btn);
+}
+.g-btn--primary:hover {
+    background: var(--c-brand-700);
+}
+.g-btn--secondary {
+    background: #fff;
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+}
+.g-btn--secondary:hover {
+    border-color: var(--c-brand-300);
+    color: var(--c-brand-600);
+}
+.g-btn--outline {
+    background: #fff;
+    color: var(--c-brand-600);
+    border: 1px solid var(--c-brand-600);
+}
+.g-btn--success {
+    background: var(--c-excel);
+    color: #fff;
+}
+.g-btn--danger {
+    background: #fff;
+    color: var(--c-danger);
+    border: 1px solid var(--c-danger);
+}
+
+/* Decorative layers never intercept clicks */
+.g-decor {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ---------- Motion helpers ---------- */
+@keyframes g-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes g-shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-6px);
+    }
+    75% {
+        transform: translateX(6px);
+    }
+}
+@keyframes g-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(11, 92, 255, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(11, 92, 255, 0);
+    }
+}
+
+.g-enter {
+    animation: g-fade-up var(--t-base) var(--ease-out) both;
+}
+.g-shake {
+    animation: g-shake 260ms var(--ease-out);
+}
+.g-pulse {
+    animation: g-pulse 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -1,0 +1,134 @@
+<script setup lang="ts">
+import {
+    Bot,
+    ChartNoAxesColumnIncreasing,
+    CircleCheck,
+    ClipboardCheck,
+    Star,
+    Users,
+} from '@lucide/vue';
+import type { Component, HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+import type { ReportMetric, ReportMetricKey } from '@/types';
+
+type Props = {
+    stats: ReportMetric[];
+    class?: HTMLAttributes['class'];
+};
+
+const props = defineProps<Props>();
+
+type MetricLook = {
+    icon: Component;
+    chipClass: string;
+    iconClass: string;
+    valueClass: string;
+};
+
+const looks: Record<ReportMetricKey, MetricLook> = {
+    totalEmployees: {
+        icon: Users,
+        chipClass: 'bg-brand-100 text-brand-600',
+        iconClass: 'fill-current stroke-[1.8]',
+        valueClass: 'text-brand-800',
+    },
+    activeAccounts: {
+        icon: CircleCheck,
+        chipClass: 'bg-success-tint text-success',
+        iconClass:
+            'size-[25px] [&>circle]:fill-current [&>path]:stroke-surface',
+        valueClass: 'text-success-text',
+    },
+    completedPretest: {
+        icon: ClipboardCheck,
+        chipClass: 'bg-ai/14 text-ai',
+        iconClass:
+            'fill-current [&>path:last-child]:fill-none [&>path:last-child]:stroke-surface',
+        valueClass: 'text-ai',
+    },
+    completedPosttest: {
+        icon: ChartNoAxesColumnIncreasing,
+        chipClass: 'bg-warning-tint text-warning',
+        iconClass: 'stroke-[3.2]',
+        valueClass: 'text-warning-text',
+    },
+    completedAiScenarios: {
+        icon: Bot,
+        chipClass: 'bg-danger-tint text-danger',
+        iconClass:
+            'fill-current [&>path:first-child]:fill-none [&>path:nth-last-child(-n+2)]:stroke-surface',
+        valueClass: 'text-danger-text',
+    },
+    completedLessons: {
+        icon: Star,
+        chipClass: 'bg-gold-tint text-gold',
+        iconClass: 'fill-current stroke-[1.8]',
+        valueClass: 'text-warning-text',
+    },
+};
+</script>
+
+<template>
+    <ul
+        role="list"
+        aria-label="Reports summary"
+        tabindex="0"
+        :class="
+            cn(
+                '-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 pb-1',
+                'focus-visible:ring-brand-600/40 focus-visible:ring-2 focus-visible:outline-none',
+                'md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0',
+                'xl:grid-cols-6',
+                props.class,
+            )
+        "
+    >
+        <li
+            v-for="stat in stats"
+            :key="stat.key"
+            class="min-w-[170px] shrink-0 snap-start md:min-w-0"
+        >
+            <article
+                class="border-line bg-surface shadow-card flex h-full items-start gap-3 rounded-lg border px-3 pt-[11px] pb-[10px]"
+            >
+                <div
+                    :class="
+                        cn(
+                            'mt-px grid size-12 shrink-0 place-items-center rounded-full',
+                            looks[stat.key].chipClass,
+                        )
+                    "
+                >
+                    <component
+                        :is="looks[stat.key].icon"
+                        aria-hidden="true"
+                        :class="cn('size-[23px]', looks[stat.key].iconClass)"
+                    />
+                </div>
+
+                <div class="min-w-0 flex-1">
+                    <p
+                        :class="
+                            cn(
+                                'font-heading text-[24px] leading-[1.05] font-bold tracking-[-0.02em]',
+                                looks[stat.key].valueClass,
+                            )
+                        "
+                    >
+                        {{ stat.value }}
+                    </p>
+                    <p
+                        class="text-brand-900 mt-[5px] text-[11.5px] leading-[1.15rem] font-medium"
+                    >
+                        {{ stat.label }}
+                    </p>
+                    <p
+                        class="text-ink-slate mt-[1px] text-[11.5px] leading-[1.05rem]"
+                    >
+                        {{ stat.detail }}
+                    </p>
+                </div>
+            </article>
+        </li>
+    </ul>
+</template>

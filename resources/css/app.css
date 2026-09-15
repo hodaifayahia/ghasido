@@ -1,0 +1,456 @@
+/* ============================================================================
+   STRICT RULE: DESIGN FIDELITY (AGENTS.md section 0). Binds every agent:
+   Claude Code, Codex, Copilot, Cursor, humans.
+
+   1. The approved mockups in desginphotos/ are the specification. Every screen
+      matches its mockup exactly (layout, spacing, sizes, colours, type, icons,
+      images, copy) at 1280x853, and never overflows, clips or scrolls at
+      smaller sizes (check 1240x698 and 390x844). Approximations are defects.
+   2. The @theme tokens in this file are the ONLY colours, fonts, radii,
+      shadows and easings allowed. No hex literals in components, no Tailwind
+      built-in palette classes.
+   3. NEVER change the value of an existing token. A mockup colour without a
+      token: sample it from the image, add a named token with a comment naming
+      the mockup, and report it to the user.
+   4. The shared chrome (sidebar, topbar, logo, page header, script accent,
+      solid icons) is client-approved and locked. Do not restyle it unless the
+      user explicitly asks.
+   5. Verify against the mockup in a browser before calling UI work done.
+   ============================================================================ */
+
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================================
+   Guesvia — English training for hotel staff
+   Design tokens translated from desgin/10-design-system.md + desgin/tokens.css
+   into Tailwind v4 CSS-first syntax. There is NO tailwind.config.js and none
+   must be created; desgin/tailwind.config.js is a Tailwind v3 artefact.
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   shadcn-vue semantic layer.
+   `inline` means utilities resolve the value rather than the variable, which is
+   what lets the `.dark` block below re-point them. The raw values live in
+   `:root` / `.dark` and are remapped to Guesvia colours.
+   ---------------------------------------------------------------------------- */
+@theme inline {
+    --font-sans:
+        Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar-background);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ----------------------------------------------------------------------------
+   Guesvia tokens.
+   A plain `@theme` (not `inline`) so every token is ALSO emitted into :root and
+   is usable as var(--color-brand-300) in hand-written CSS and SVG stroke/fill
+   (hand-rolled donuts, bar charts, palm-island.svg).
+   ---------------------------------------------------------------------------- */
+@theme {
+    /* --- Brand blue: the only action colour ------------------------------- */
+    --color-brand-50: #eff5ff;
+    --color-brand-100: #dbe8ff;
+    --color-brand-200: #bdd5ff;
+    --color-brand-300: #8fb7ff;
+    --color-brand-400: #5a92ff;
+    --color-brand-500: #2b6cff;
+    --color-brand-600: #0b5cff; /* filled buttons, bars, active states */
+    --color-brand-700: #1249c9; /* headings, wordmark, big numbers, hover */
+    --color-brand-800: #0f3a9e;
+    --color-brand-900: #0c2e7a;
+
+    /* --- Semantic: base / tint (chip + pill bg) / text (pill label) -------- */
+    --color-success: #2fbe7a;
+    --color-success-tint: #e7f8f0;
+    --color-success-text: #1b7f4f;
+    --color-warning: #f5a623;
+    --color-warning-tint: #fef3e2;
+    --color-warning-text: #8a5a06;
+    --color-danger: #ef4444;
+    --color-danger-tint: #fdecec;
+    --color-danger-text: #b42318;
+    --color-ai: #8b6bf7;
+    --color-ai-tint: #f1ecfe;
+    --color-gold: #f9c338;
+    --color-gold-tint: #fef6dc;
+    --color-excel: #1e8e5a;
+    --color-excel-tint: #e6f5ee;
+
+    /* The design system calls this "Teal". Named `aqua` because Tailwind ships
+       a built-in teal-* scale and `bg-teal` next to `bg-teal-500` is a trap. */
+    --color-aqua: #17b8c6;
+    --color-aqua-tint: #e4f7fa;
+
+    /* Sampled from the Admin Dashboard mockup
+       (desginphotos/photo_2026-09-15_18-13-24.jpg) and absent from desgin/:
+       `azure` is the in-progress sky blue (donut "In Progress", department
+       bars, Started Training chip); `sunset` is the orange-red Average
+       Progress figure. Named to avoid Tailwind's built-in sky and orange
+       scales. */
+    --color-azure: #33a0fe;
+    --color-azure-tint: #d9ecff;
+    --color-sunset: #ee5f14;
+    /* Header and sidebar ink from the same approved mockup: the page title is
+       a deep royal indigo, nav labels / greeting / language code a softer
+       indigo, and the subtitle / role line a blue-slate. */
+    --color-ink-royal: #110da8;
+    --color-ink-indigo: #2a2890;
+    --color-ink-slate: #737ba9;
+
+    /* --- Surfaces & ink --------------------------------------------------- */
+    --color-app: #f4f9fe;
+    --color-app-alt: #eff7fd;
+    --color-surface: #ffffff;
+    --color-line: #e4edf8;
+    --color-line-strong: #cbdcf0;
+    --color-ink: #12233d;
+    --color-ink-muted: #64748b;
+    --color-ink-faint: #94a3b8;
+
+    /* --- One-off neutrals measured in desgin/11-components.md -------------- */
+    --color-tint-header: #f6f9fd; /* table header row */
+    --color-tint-track: #e9f0f8; /* progress-bar track */
+    --color-tint-donut: #edf2f9; /* donut track */
+    --color-tint-grid: #eef3f9; /* chart gridlines, guest dialogue bubble */
+    --color-tint-step: #e2e9f3; /* upcoming step circle */
+    --color-tint-note: #fff8e1; /* sticky note */
+
+    /* --- Gradients -> bg-grad-page / bg-grad-brand / bg-grad-header -------- */
+    --background-image-grad-page: linear-gradient(
+        180deg,
+        #f7fbff 0%,
+        #eaf3fd 100%
+    );
+    --background-image-grad-brand: linear-gradient(
+        135deg,
+        #0b5cff 0%,
+        #1249c9 100%
+    );
+    --background-image-grad-header: linear-gradient(
+        90deg,
+        #ffffff 55%,
+        rgb(255 255 255 / 0) 100%
+    );
+
+    /* --- Families (registered in vite.config.ts via bunny()) --------------- */
+    --font-heading: Poppins, ui-sans-serif, system-ui, sans-serif;
+    --font-script: Caveat, cursive;
+    --font-arabic: Cairo, Tajawal, ui-sans-serif, sans-serif;
+
+    /* --- Type scale ------------------------------------------------------- */
+    --text-display: 2.125rem;
+    --text-display--line-height: 1.2;
+    --text-display--font-weight: 700;
+    --text-h1: 1.75rem;
+    --text-h1--line-height: 1.25;
+    --text-h1--font-weight: 700;
+    --text-h2: 1.25rem;
+    --text-h2--line-height: 1.3;
+    --text-h2--font-weight: 600;
+    --text-h3: 1rem;
+    --text-h3--line-height: 1.4;
+    --text-h3--font-weight: 600;
+    --text-stat: 1.875rem;
+    --text-stat--line-height: 1.1;
+    --text-stat--font-weight: 700;
+    --text-body: 0.875rem;
+    --text-body--line-height: 1.6;
+    --text-body-sm: 0.8125rem;
+    --text-body-sm--line-height: 1.5;
+    --text-label: 0.75rem;
+    --text-label--line-height: 1.4;
+    --text-label--font-weight: 600;
+    --text-label--letter-spacing: 0.02em;
+    --text-pill: 0.75rem;
+    --text-pill--line-height: 1;
+    --text-pill--font-weight: 600;
+    --text-script: 1.375rem;
+    --text-script--line-height: 1.2;
+    --text-script--font-weight: 700;
+
+    /* --- Radii (supersede the shadcn calc() ladder) ------------------------ */
+    --radius-sm: 6px; /* inputs, small chips */
+    --radius-md: 10px; /* buttons, nav items, table actions */
+    --radius-lg: 14px; /* cards, panels */
+    --radius-xl: 20px; /* hero blocks, modals, image frames, icon chips */
+    --radius-pill: 999px; /* status pills, avatars, language selector */
+
+    /* --- Elevation: blue-tinted, never grey-black -------------------------- */
+    --shadow-card:
+        0 1px 2px rgb(18 35 61 / 0.04), 0 4px 16px rgb(11 92 255 / 0.06);
+    --shadow-hover:
+        0 4px 8px rgb(18 35 61 / 0.06), 0 12px 28px rgb(11 92 255 / 0.1);
+    --shadow-pop: 0 12px 40px rgb(18 35 61 / 0.16);
+    --shadow-btn: 0 2px 8px rgb(11 92 255 / 0.28);
+
+    /* --- Motion ------------------------------------------------------------
+       `--ease-brand` rather than overriding Tailwind's built-in `--ease-out`,
+       so existing and future shadcn components keep their own easing. */
+    --ease-brand: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+    --animate-fade-up: fade-up 220ms var(--ease-brand) both;
+    --animate-shake: shake 260ms var(--ease-brand);
+    --animate-pulse-ring: pulse-ring 1.4s infinite;
+
+    @keyframes fade-up {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    @keyframes shake {
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+        25% {
+            transform: translateX(-6px);
+        }
+        75% {
+            transform: translateX(6px);
+        }
+    }
+    @keyframes pulse-ring {
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgb(11 92 255 / 0.35);
+        }
+        50% {
+            box-shadow: 0 0 0 10px rgb(11 92 255 / 0);
+        }
+    }
+
+    /* --- Layout ----------------------------------------------------------- */
+    --spacing-sidebar: 200px;
+    --spacing-rail: 72px;
+    --spacing-topbar: 72px;
+    --spacing-bottomnav: 64px;
+    --container-content: 1400px;
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  Guesvia: the fallback is the brand line colour, not neutral grey — cards,
+  tables and inputs all use a light-blue hairline (desgin/10-design-system.md).
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-line, currentColor);
+    }
+}
+
+@layer utilities {
+    body,
+    html {
+        --font-sans:
+            'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+            'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+}
+
+/* ----------------------------------------------------------------------------
+   shadcn raw values, remapped to Guesvia.
+   Every generated resources/js/components/ui/* primitive inherits the brand
+   from here — never restyle a vendored component per page.
+   ---------------------------------------------------------------------------- */
+:root {
+    --background: #f4f9fe; /* app bg: very light blue, never pure grey */
+    --foreground: #12233d;
+    --card: #ffffff;
+    --card-foreground: #12233d;
+    --popover: #ffffff;
+    --popover-foreground: #12233d;
+    --primary: #0b5cff; /* every filled button */
+    --primary-foreground: #ffffff;
+    --secondary: #eff5ff; /* soft brand chip */
+    --secondary-foreground: #1249c9;
+    --muted: #eff7fd; /* section bands, table zebra */
+    --muted-foreground: #64748b;
+    --accent: #eff5ff; /* hover + active nav pill */
+    --accent-foreground: #0b5cff;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #e4edf8;
+    --input: #e4edf8;
+    --ring: #0b5cff; /* brand focus ring */
+    --chart-1: #0b5cff;
+    --chart-2: #5a92ff;
+    --chart-3: #8b6bf7;
+    --chart-4: #17b8c6;
+    --chart-5: #f5a623;
+    --radius: 0.875rem; /* 14px — ui/sonner reads this directly */
+    --sidebar-background: #ffffff;
+    --sidebar-foreground: #12233d;
+    --sidebar-primary: #0b5cff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #eff5ff; /* active nav item */
+    --sidebar-accent-foreground: #0b5cff;
+    --sidebar-border: #e4edf8;
+    --sidebar-ring: #0b5cff;
+    --sidebar: #ffffff; /* declared by the starter; unused but kept in sync */
+}
+
+/*
+  Guesvia ships light-only: desgin/ defines no dark palette and system/ states
+  no dark-mode requirement. The appearance switcher and this block are kept so
+  a user who already chose dark still gets a coherent auth/settings UI.
+  Do not add `dark:` utilities to new Guesvia components — raise it as a client
+  decision first (a dark brand ramp and dark photo/gradient treatments are
+  needed before dark mode is real).
+*/
+.dark {
+    --background: hsl(0 0% 3.9%);
+    --foreground: hsl(0 0% 98%);
+    --card: hsl(0 0% 3.9%);
+    --card-foreground: hsl(0 0% 98%);
+    --popover: hsl(0 0% 3.9%);
+    --popover-foreground: hsl(0 0% 98%);
+    --primary: hsl(0 0% 98%);
+    --primary-foreground: hsl(0 0% 9%);
+    --secondary: hsl(0 0% 14.9%);
+    --secondary-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 16.08%);
+    --muted-foreground: hsl(0 0% 63.9%);
+    --accent: hsl(0 0% 14.9%);
+    --accent-foreground: hsl(0 0% 98%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 14.9%);
+    --input: hsl(0 0% 14.9%);
+    --ring: hsl(0 0% 83.1%);
+    --chart-1: hsl(220 70% 50%);
+    --chart-2: hsl(160 60% 45%);
+    --chart-3: hsl(30 80% 55%);
+    --chart-4: hsl(280 65% 60%);
+    --chart-5: hsl(340 75% 55%);
+    --sidebar-background: hsl(0 0% 7%);
+    --sidebar-foreground: hsl(0 0% 95.9%);
+    --sidebar-primary: hsl(360, 100%, 100%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(0 0% 15.9%);
+    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-border: hsl(0 0% 15.9%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --sidebar: hsl(240 5.9% 10%);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        background-image: var(--background-image-grad-page);
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Headings are ALWAYS brand blue, never black (desgin/10-design-system.md
+       §10.2). Poppins, not the Inter body face. */
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: var(--font-heading);
+        color: var(--color-brand-700);
+        line-height: 1.25;
+    }
+
+    /* Guesvia is light-only, but the starter's dark mode has to stay legible
+       for anyone who already chose it — brand-700 on near-black fails contrast.
+       A `text-*` utility still overrides both (utilities sit in a later layer). */
+    .dark h1,
+    .dark h2,
+    .dark h3,
+    .dark h4 {
+        color: var(--color-foreground);
+    }
+
+    /* Arabic only ever appears inside a Show Meaning panel (CTRL-01, CTRL-02)
+       and must shape correctly while the surrounding UI is LTR (I18N-03). */
+    [lang='ar'] {
+        font-family: var(--font-arabic);
+        line-height: 1.9;
+    }
+}
+
+/* The dark page background is painted by resources/views/app.blade.php before
+   this stylesheet loads; keep the two in sync. */
+.dark body {
+    background-image: none;
+}
+
+/* Honour prefers-reduced-motion (desgin/10-design-system.md §10.4).
+   Prefer `motion-reduce:` variants on individual elements; this is the net. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
