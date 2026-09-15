@@ -51,8 +51,6 @@ defineOptions({
                 href: reportsExportRoute(),
             },
         ],
-        topbarTaglineText:
-            'Real Learning. Real Progress. Brighter Guest Experiences.',
     },
 });
 </script>
