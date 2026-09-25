@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Services\Ai;
+
+use App\Enums\AiFeature;
+use RuntimeException;
+
+/**
+ * Thrown by UsageMeter::assertWithinLimits() when a daily AI quota is spent
+ * (AIL-01..AIL-03).
+ *
+ * The message is user facing on purpose: callers render it as a flash error
+ * and leave the rest of the platform usable (AIL-03). Nothing is dispatched
+ * once this is thrown, so no API budget is spent past the limit.
+ */
+final class AiLimitReached extends RuntimeException
+{
+    private function __construct(
+        string $message,
+        public readonly AiFeature $feature,
+        public readonly string $scope,
+        public readonly int $limit,
+    ) {
+        parent::__construct($message);
+    }
+
+    public static function forEmployee(AiFeature $feature, int $limit): self
+    {
+        return new self(
+            __("You have used today's AI practice limit (:limit turns). Your lessons and phrasebook are still open; try the AI guest again tomorrow.", ['limit' => $limit]),
+            $feature,
+            'employee',
+            $limit,
+        );
+    }
+
+    /**
+     * An admin has spent today's content-generation allowance (lessons or
+     * images), checked before anything is queued (AIL-01..03; spec 0004).
+     */
+    public static function forGeneration(AiFeature $feature, int $limit): self
+    {
+        $message = $feature === AiFeature::ImageGenerate
+            ? __("You have used today's AI image limit (:limit images). Existing lessons stay editable; try again tomorrow.", ['limit' => $limit])
+            : __("You have used today's AI lesson limit (:limit lessons). Existing lessons stay editable; try again tomorrow.", ['limit' => $limit]);
+
+        return new self($message, $feature, 'admin', $limit);
+    }
+
+    public static function forHotel(AiFeature $feature, int $limit): self
+    {
+        return new self(
+            __("Your hotel has used today's AI practice limit (:limit turns). Your lessons and phrasebook are still open; try the AI guest again tomorrow.", ['limit' => $limit]),
+            $feature,
+            'hotel',
+            $limit,
+        );
+    }
+
+    public static function forPoints(int $required, int $available): self
+    {
+        return new self(
+            __('You have :available AI points remaining, but this feature needs :required points. Ask your hotel manager to adjust your allocation.', [
+                'available' => $available,
+                'required' => $required,
+            ]),
+            AiFeature::RoleplayTurn,
+            'employee',
+            $required,
+        );
+    }
+}

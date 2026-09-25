@@ -3,248 +3,78 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Departments\StoreDepartmentRequest;
+use App\Http\Requests\Admin\Departments\UpdateDepartmentRequest;
+use App\Models\Department;
+use App\Models\User;
+use App\Services\Departments\DepartmentDirectory;
+use App\Services\Departments\DepartmentService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The Super Admin departments screen (ORG-02, ORG-03, ORG-04, SUB-01,
- * JOURNEY-03, CMS-04, TSTM-05, RP-01, REP-01, ADM-02).
+ * The departments screen (ORG-02, ORG-03, ORG-04, SUB-01, JOURNEY-03,
+ * CMS-04, TSTM-05, RP-01, REP-01, ADM-02; spec 0003 Part D).
  *
- * Departments are not modelled yet, so this page returns sample data shaped
- * to the frontend contract for a UI-first build.
+ * Read → authorize → delegate. No query is written here: the directory
+ * service reads through model methods and the presenter, the form requests
+ * validate, and DepartmentService performs every change with its audit row.
  */
 class DepartmentsController extends Controller
 {
-    public function __invoke(): Response
+    public function index(Request $request, DepartmentDirectory $directory): Response
     {
-        return Inertia::render('admin/Departments', [
-            'stats' => [
-                [
-                    'key' => 'totalDepartments',
-                    'value' => 18,
-                    'label' => __('Total Departments'),
-                ],
-                [
-                    'key' => 'activeDepartments',
-                    'value' => 14,
-                    'label' => __('Active Departments'),
-                ],
-                [
-                    'key' => 'sharedTemplates',
-                    'value' => 6,
-                    'label' => __('Shared Templates'),
-                    'detail' => __('Across multiple hotels'),
-                ],
-                [
-                    'key' => 'assignedEmployees',
-                    'value' => 176,
-                    'label' => __('Assigned Employees'),
-                ],
-                [
-                    'key' => 'contentReady',
-                    'value' => 11,
-                    'label' => __('Content Ready'),
-                    'detail' => __('Lessons, tests and AI aligned'),
-                ],
-            ],
-            'filters' => [
-                'search' => '',
-                'scope' => 'all-scopes',
-                'status' => 'all-statuses',
-                'scopes' => [
-                    ['value' => 'all-scopes', 'label' => __('All Scopes')],
-                    ['value' => 'shared', 'label' => __('Shared Across Hotels')],
-                    ['value' => 'hotel', 'label' => __('Hotel Specific')],
-                ],
-                'statuses' => [
-                    ['value' => 'all-statuses', 'label' => __('All Statuses')],
-                    ['value' => 'active', 'label' => __('Active')],
-                    ['value' => 'review', 'label' => __('In Review')],
-                    ['value' => 'draft', 'label' => __('Draft')],
-                ],
-            ],
-            'departments' => [
-                [
-                    'id' => 1,
-                    'rank' => 1,
-                    'name' => __('Reception'),
-                    'focus' => __('Guest arrival, greeting and check-in language.'),
-                    'scope' => 'shared',
-                    'scopeLabel' => __('Shared Across Hotels'),
-                    'hotelCount' => 6,
-                    'employeeCount' => 41,
-                    'usedSeats' => 41,
-                    'totalSeats' => 46,
-                    'lessonCount' => 8,
-                    'testCount' => 2,
-                    'scenarioCount' => 4,
-                    'status' => 'active',
-                ],
-                [
-                    'id' => 2,
-                    'rank' => 2,
-                    'name' => __('Food Service'),
-                    'focus' => __('Restaurant greetings, orders and service recovery.'),
-                    'scope' => 'shared',
-                    'scopeLabel' => __('Shared Across Hotels'),
-                    'hotelCount' => 5,
-                    'employeeCount' => 38,
-                    'usedSeats' => 38,
-                    'totalSeats' => 40,
-                    'lessonCount' => 7,
-                    'testCount' => 2,
-                    'scenarioCount' => 3,
-                    'status' => 'active',
-                ],
-                [
-                    'id' => 3,
-                    'rank' => 3,
-                    'name' => __('Housekeeping'),
-                    'focus' => __('Room status, service requests and apology language.'),
-                    'scope' => 'shared',
-                    'scopeLabel' => __('Shared Across Hotels'),
-                    'hotelCount' => 5,
-                    'employeeCount' => 29,
-                    'usedSeats' => 29,
-                    'totalSeats' => 34,
-                    'lessonCount' => 6,
-                    'testCount' => 2,
-                    'scenarioCount' => 2,
-                    'status' => 'active',
-                ],
-                [
-                    'id' => 4,
-                    'rank' => 4,
-                    'name' => __('Spa & Wellness'),
-                    'focus' => __('Spa welcome, treatment briefing and product upsell.'),
-                    'scope' => 'hotel',
-                    'scopeLabel' => __('La Gazelle d\'Or only'),
-                    'hotelCount' => 1,
-                    'employeeCount' => 7,
-                    'usedSeats' => 7,
-                    'totalSeats' => 8,
-                    'lessonCount' => 3,
-                    'testCount' => 1,
-                    'scenarioCount' => 2,
-                    'status' => 'review',
-                ],
-                [
-                    'id' => 5,
-                    'rank' => 5,
-                    'name' => __('Kitchen Communication'),
-                    'focus' => __('Back-of-house requests, timing and allergy alerts.'),
-                    'scope' => 'hotel',
-                    'scopeLabel' => __('Hotel El Aurassi only'),
-                    'hotelCount' => 1,
-                    'employeeCount' => 12,
-                    'usedSeats' => 12,
-                    'totalSeats' => 12,
-                    'lessonCount' => 4,
-                    'testCount' => 1,
-                    'scenarioCount' => 1,
-                    'status' => 'draft',
-                ],
-                [
-                    'id' => 6,
-                    'rank' => 6,
-                    'name' => __('Marketing & Events'),
-                    'focus' => __('Event sales, proposals and guest follow-up.'),
-                    'scope' => 'hotel',
-                    'scopeLabel' => __('Oran portfolio'),
-                    'hotelCount' => 2,
-                    'employeeCount' => 9,
-                    'usedSeats' => 9,
-                    'totalSeats' => 10,
-                    'lessonCount' => 2,
-                    'testCount' => 1,
-                    'scenarioCount' => 1,
-                    'status' => 'review',
-                ],
-                [
-                    'id' => 7,
-                    'rank' => 7,
-                    'name' => __('Telephone English'),
-                    'focus' => __('Call handling, message taking and transfer scripts.'),
-                    'scope' => 'shared',
-                    'scopeLabel' => __('Shared Across Hotels'),
-                    'hotelCount' => 4,
-                    'employeeCount' => 15,
-                    'usedSeats' => 15,
-                    'totalSeats' => 18,
-                    'lessonCount' => 4,
-                    'testCount' => 1,
-                    'scenarioCount' => 2,
-                    'status' => 'active',
-                ],
-            ],
-            'pagination' => [
-                'from' => 1,
-                'to' => 7,
-                'total' => 18,
-                'currentPage' => 1,
-                'lastPage' => 3,
-                'pages' => [1, 2, 3],
-            ],
-            'overview' => [
-                'name' => __('Reception'),
-                'scopeLabel' => __('Shared Across Hotels'),
-                'focus' => __('Guest arrival, greeting standards and check-in communication for front desk teams.'),
-                'hotelCount' => 6,
-                'employeeCount' => 41,
-                'lessonCount' => 8,
-                'testCount' => 2,
-                'scenarioCount' => 4,
-                'status' => 'active',
-                'notes' => [
-                    __('Shared template currently powers 6 hotel teams.'),
-                    __('Sheraton Club des Pins has reached its reception seat quota.'),
-                    __('Pre-test and post-test are already paired for this department.'),
-                ],
-                'assignments' => [
-                    [
-                        'hotel' => 'La Gazelle d\'Or',
-                        'manager' => 'Meriem Haddad',
-                        'usedSeats' => 5,
-                        'totalSeats' => 5,
-                        'state' => 'full',
-                    ],
-                    [
-                        'hotel' => __('Hotel El Aurassi'),
-                        'manager' => 'Yacine Merabet',
-                        'usedSeats' => 8,
-                        'totalSeats' => 9,
-                        'state' => 'available',
-                    ],
-                    [
-                        'hotel' => __('Sheraton Club des Pins'),
-                        'manager' => 'Nabila Rahmani',
-                        'usedSeats' => 7,
-                        'totalSeats' => 7,
-                        'state' => 'full',
-                    ],
-                    [
-                        'hotel' => __('Azure Resort & Spa'),
-                        'manager' => 'Sofiane Bensaid',
-                        'usedSeats' => 6,
-                        'totalSeats' => 8,
-                        'state' => 'available',
-                    ],
-                    [
-                        'hotel' => __('Desert Bloom Suites'),
-                        'manager' => 'Imane Belkacem',
-                        'usedSeats' => 9,
-                        'totalSeats' => 8,
-                        'state' => 'over',
-                    ],
-                    [
-                        'hotel' => __('Sunrise Dunes Hotel'),
-                        'manager' => 'Karima Ouali',
-                        'usedSeats' => 6,
-                        'totalSeats' => 9,
-                        'state' => 'available',
-                    ],
-                ],
-            ],
+        // The route already carries permission:departments.view. The policy
+        // check is the authorization proper, so it holds even if the route's
+        // middleware is ever changed (ROLE-01, SEC-01).
+        Gate::authorize('viewAny', Department::class);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return Inertia::render('admin/Departments', $directory->build($request, $user));
+    }
+
+    public function store(StoreDepartmentRequest $request, DepartmentService $departments): RedirectResponse
+    {
+        $department = $departments->create($request->departmentData());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':department was created.', ['department' => $department->name]),
         ]);
+
+        return to_route('departments', ['department' => $department->id]);
+    }
+
+    public function update(UpdateDepartmentRequest $request, Department $department, DepartmentService $departments): RedirectResponse
+    {
+        $departments->update($department, $request->departmentData());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':department was updated.', ['department' => $department->name]),
+        ]);
+
+        return back();
+    }
+
+    public function toggle(Request $request, Department $department, DepartmentService $departments): RedirectResponse
+    {
+        Gate::authorize('toggle', $department);
+
+        $departments->toggle($department);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $department->is_active
+                ? __(':department was restored.', ['department' => $department->name])
+                : __(':department was archived. Its employees and content are kept.', ['department' => $department->name]),
+        ]);
+
+        return back();
     }
 }

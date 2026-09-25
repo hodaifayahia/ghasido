@@ -1,17 +1,39 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronRight, CirclePlus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
+import LessonsAddDialog from '@/components/lessons/LessonsAddDialog.vue';
+import {
+    toggleOpenPatch,
+    visitLessons,
+} from '@/components/lessons/lessonsQuery';
 import { Button } from '@/components/ui/button';
+import { useCan } from '@/composables/useCan';
 import { cn } from '@/lib/utils';
-import type { LessonsTreeCourse, LessonsTreeTone } from '@/types';
+import type {
+    LessonsFilters,
+    LessonsTreeCourse,
+    LessonsTreeTone,
+    LessonsTreeUnit,
+} from '@/types';
 
 type Props = {
     courses: LessonsTreeCourse[];
+    filters: LessonsFilters;
     class?: HTMLAttributes['class'];
 };
 
+type AddMode = 'course' | 'unit' | 'lesson';
+
 const props = defineProps<Props>();
+
+const { can } = useCan();
+const manage = computed(() => can('lessons.manage'));
+
+const addOpen = ref(false);
+const addMode = ref<AddMode>('course');
+const addParentId = ref<number | null>(null);
 
 const toneClass: Record<LessonsTreeTone, string> = {
     brand: 'bg-brand-100 text-brand-700',
@@ -21,6 +43,57 @@ const toneClass: Record<LessonsTreeTone, string> = {
     gold: 'bg-gold-tint text-gold',
     danger: 'bg-danger-tint text-danger',
 };
+
+const treeOnly = ['courses', 'filters'];
+
+/**
+ * Opening a course or unit only changes the `open` list; the editor keeps
+ * showing the active lesson. Selecting a lesson reloads everything that
+ * depends on it.
+ */
+function toggleCourse(course: LessonsTreeCourse): void {
+    visitLessons(
+        toggleOpenPatch(
+            props.filters.open,
+            `c${course.id}`,
+            course.expanded === true,
+        ),
+        { only: treeOnly, replace: true },
+    );
+}
+
+function toggleUnit(unit: LessonsTreeUnit): void {
+    visitLessons(
+        toggleOpenPatch(
+            props.filters.open,
+            `u${unit.id}`,
+            unit.expanded === true,
+        ),
+        { only: treeOnly, replace: true },
+    );
+}
+
+function openLesson(
+    course: LessonsTreeCourse,
+    unit: LessonsTreeUnit,
+    lessonId: number,
+): void {
+    if (String(lessonId) === props.filters.lesson) {
+        return;
+    }
+
+    visitLessons({
+        course: String(course.id),
+        unit: String(unit.id),
+        lesson: String(lessonId),
+    });
+}
+
+function startAdd(mode: AddMode, parentId: number | null = null): void {
+    addMode.value = mode;
+    addParentId.value = parentId;
+    addOpen.value = true;
+}
 </script>
 
 <template>
@@ -32,13 +105,23 @@ const toneClass: Record<LessonsTreeTone, string> = {
     >
         <template #actions>
             <Button
+                v-if="manage"
                 type="button"
-                class="bg-brand-600 hover:bg-brand-700 shadow-btn h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white"
+                data-test="add-course-button"
+                class="bg-brand-600 hover:bg-brand-700 shadow-btn h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white active:scale-[.97]"
+                @click="startAdd('course')"
             >
                 <CirclePlus class="size-4" aria-hidden="true" />
                 Add
             </Button>
         </template>
+
+        <p
+            v-if="courses.length === 0"
+            class="text-ink-slate rounded-md px-1 py-2 text-[12.5px]"
+        >
+            No course in this department yet. Use Add to create the first one.
+        </p>
 
         <div class="space-y-1.5">
             <div
@@ -48,7 +131,10 @@ const toneClass: Record<LessonsTreeTone, string> = {
             >
                 <button
                     type="button"
-                    class="text-brand-900 flex w-full items-center gap-2 rounded-md px-1 py-[3px] text-start text-[12.5px] font-medium"
+                    :aria-expanded="course.expanded === true"
+                    :data-test="`course-${course.id}-toggle`"
+                    class="text-brand-900 hover:bg-brand-50/65 focus-visible:ring-brand-600/15 flex w-full items-center gap-2 rounded-md px-1 py-[3px] text-start text-[12.5px] font-medium focus-visible:ring-3 focus-visible:outline-none"
+                    @click="toggleCourse(course)"
                 >
                     <component
                         :is="course.expanded ? ChevronDown : ChevronRight"
@@ -69,17 +155,20 @@ const toneClass: Record<LessonsTreeTone, string> = {
                 </button>
 
                 <div
-                    v-if="course.expanded && course.units?.length"
+                    v-if="course.expanded"
                     class="border-line ms-[13px] mt-1 border-s ps-3"
                 >
                     <div
-                        v-for="unit in course.units"
+                        v-for="unit in course.units ?? []"
                         :key="unit.id"
                         class="pb-1"
                     >
                         <button
                             type="button"
-                            class="text-brand-900 flex w-full items-center gap-1.5 rounded-md py-[3px] pe-1 text-start text-[12.5px]"
+                            :aria-expanded="unit.expanded === true"
+                            :data-test="`unit-${unit.id}-toggle`"
+                            class="text-brand-900 hover:bg-brand-50/65 focus-visible:ring-brand-600/15 flex w-full items-center gap-1.5 rounded-md py-[3px] pe-1 text-start text-[12.5px] focus-visible:ring-3 focus-visible:outline-none"
+                            @click="toggleUnit(unit)"
                         >
                             <component
                                 :is="unit.expanded ? ChevronDown : ChevronRight"
@@ -97,22 +186,29 @@ const toneClass: Record<LessonsTreeTone, string> = {
                                 v-for="lesson in unit.lessons ?? []"
                                 :key="lesson.id"
                                 type="button"
+                                :aria-current="
+                                    lesson.active ? 'true' : undefined
+                                "
+                                :data-test="`lesson-${lesson.id}-open`"
                                 :class="
                                     cn(
-                                        'flex min-h-8 w-full items-center rounded-md px-3 text-start text-[12.5px] font-medium',
+                                        'focus-visible:ring-brand-600/15 flex min-h-8 w-full items-center rounded-md px-3 text-start text-[12.5px] font-medium focus-visible:ring-3 focus-visible:outline-none',
                                         lesson.active
                                             ? 'bg-brand-100/80 text-brand-800 shadow-card'
                                             : 'text-ink-muted hover:bg-brand-50/65',
                                     )
                                 "
+                                @click="openLesson(course, unit, lesson.id)"
                             >
                                 {{ lesson.title }}
                             </button>
 
                             <button
-                                v-if="unit.addLessonLabel"
+                                v-if="unit.addLessonLabel && manage"
                                 type="button"
-                                class="text-brand-700 hover:bg-brand-50/70 flex min-h-8 w-full items-center rounded-md px-3 text-start text-[12.5px] font-semibold"
+                                :data-test="`unit-${unit.id}-add-lesson`"
+                                class="text-brand-700 hover:bg-brand-50/70 focus-visible:ring-brand-600/15 flex min-h-8 w-full items-center rounded-md px-3 text-start text-[12.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
+                                @click="startAdd('lesson', unit.id)"
                             >
                                 {{ unit.addLessonLabel }}
                             </button>
@@ -121,5 +217,12 @@ const toneClass: Record<LessonsTreeTone, string> = {
                 </div>
             </div>
         </div>
+
+        <LessonsAddDialog
+            v-model:open="addOpen"
+            :mode="addMode"
+            :parent-id="addParentId"
+            :filters="filters"
+        />
     </PanelCard>
 </template>

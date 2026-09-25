@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ArrowRight, CircleAlert, Mail } from '@lucide/vue';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
 import { ref } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatusPill from '@/components/common/StatusPill.vue';
-import { notifyComingSoon } from '@/lib/comingSoon';
+import { employees, messagesReminders } from '@/routes';
 import type { AttentionGroup, AttentionGroupKey } from '@/types';
 
 type Props = {
@@ -29,9 +30,10 @@ function tabLabel(group: AttentionGroup): string {
     return `${group.label} (${group.total})`;
 }
 
-function sendReminder(): void {
-    notifyComingSoon('Send reminder');
-}
+// Reminders are composed and sent from Messages & Reminders (REM-01), so
+// the row action opens that screen; the full lists live on Employees.
+const remindHref = messagesReminders();
+const viewAllHref = employees();
 </script>
 
 <template>
@@ -54,14 +56,13 @@ function sendReminder(): void {
         </template>
 
         <template #actions>
-            <button
-                type="button"
+            <Link
+                :href="viewAllHref"
                 class="text-brand-800 hover:text-brand-600 focus-visible:ring-brand-600/40 -me-0.5 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm px-0.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none md:min-h-0"
-                @click="notifyComingSoon('Needs attention')"
             >
                 View All
                 <ArrowRight class="size-4" aria-hidden="true" />
-            </button>
+            </Link>
         </template>
 
         <TabsRoot v-model="active">
@@ -135,11 +136,10 @@ function sendReminder(): void {
                                     />
                                 </td>
                                 <td class="ps-2">
-                                    <button
-                                        type="button"
+                                    <Link
+                                        :href="remindHref"
                                         class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 inline-flex h-[22px] w-[104px] items-center justify-center gap-1 rounded-sm border px-1 text-[11px] font-medium tracking-tight whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                         :aria-label="`Send reminder to ${employee.name}`"
-                                        @click="sendReminder"
                                     >
                                         <Mail
                                             class="size-3.5 shrink-0"
@@ -147,7 +147,7 @@ function sendReminder(): void {
                                             aria-hidden="true"
                                         />
                                         Send Reminder
-                                    </button>
+                                    </Link>
                                 </td>
                             </tr>
                         </tbody>
@@ -175,15 +175,14 @@ function sendReminder(): void {
                             <span class="sr-only">, last login</span>
                             {{ employee.lastLogin }}
                         </p>
-                        <button
-                            type="button"
+                        <Link
+                            :href="remindHref"
                             class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 mt-2.5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm border text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
                             :aria-label="`Send reminder to ${employee.name}`"
-                            @click="sendReminder"
                         >
                             <Mail class="size-4 shrink-0" aria-hidden="true" />
                             Send Reminder
-                        </button>
+                        </Link>
                     </li>
                 </ul>
             </TabsContent>

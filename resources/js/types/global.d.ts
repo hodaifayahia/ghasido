@@ -1,4 +1,5 @@
-import type { Auth } from '@/types/auth';
+import type { Auth, LearnerJourney, TrainingContext } from '@/types/auth';
+import type { NotificationData } from '@/types/notifications';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -19,7 +20,14 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
-            notifications: { unread: number };
+            notifications: NotificationData;
+            /** Employee role only; null for every other user and for guests. */
+            journey: LearnerJourney | null;
+            /**
+             * A manager's training department switcher; null unless a
+             * manager is on a learner route (client decision 2026-09-23).
+             */
+            trainingContext: TrainingContext | null;
             [key: string]: unknown;
         };
     }

@@ -23,6 +23,9 @@
 @import 'tw-animate-css';
 
 @source '../js';
+/* Blade sources, not only the compiled cache below: the error views must be
+   styled on a clean build, before anything has ever rendered them. */
+@source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -140,6 +143,9 @@
     --color-azure: #33a0fe;
     --color-azure-tint: #d9ecff;
     --color-sunset: #ee5f14;
+    /* Watch & Respond pink, sampled from desginphotos/employ/photo_7 card 5. */
+    --color-blossom: #e5397a;
+    --color-blossom-tint: #fdeaf1;
     /* Header and sidebar ink from the same approved mockup: the page title is
        a deep royal indigo, nav labels / greeting / language code a softer
        indigo, and the subtitle / role line a blue-slate. */
@@ -275,11 +281,38 @@
     }
 
     /* --- Layout ----------------------------------------------------------- */
-    --spacing-sidebar: 200px;
+    --spacing-sidebar: 280px;
     --spacing-rail: 72px;
     --spacing-topbar: 72px;
     --spacing-bottomnav: 64px;
     --container-content: 1400px;
+
+    /* --- Employee area, sampled from desginphotos/employ/ (spec 0003 H) ---
+       Text colours are the median of stroke interiors (the method reproduces
+       ink-royal #110da8 on the approved admin mockup), tints the median of a
+       flat area. None of these exist in desgin/. */
+    /* photo_1 step title "1. Situation (Intro)" and the card title */
+    --color-ink-night: #0d103f;
+    /* photo_20 "Let's start with a short Pre-test" and "Good to know" */
+    --color-ink-cobalt: #0c0b7a;
+    /* photo_20 intro paragraphs and fact labels */
+    --color-ink-dusk: #3f4677;
+    /* photo_1 lesson intro, objective rows, quote, lesson top-nav labels */
+    --color-ink-graphite: #40475f;
+    /* photo_1 upcoming step labels in the tracker band */
+    --color-ink-steel: #8f98a3;
+    /* photo_1 / photo_20 upcoming step circle fill */
+    --color-step-idle: #9aa7bd;
+    /* photo_1 / photo_20 step connector line */
+    --color-tint-connector: #d0d8e4;
+    /* photo_1 quote box in the Situation card */
+    --color-tint-quote: #e5f2fd;
+    /* photo_20 "Remember!" heart chip and title */
+    --color-crimson: #e51a42;
+    --color-crimson-text: #b93858;
+    /* photo_1 quote box: the mockup sets the quote in an italic serif face
+       that the design system does not define. */
+    --font-quote: Georgia, 'Times New Roman', serif;
 }
 
 /*

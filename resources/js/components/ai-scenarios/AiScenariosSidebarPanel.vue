@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CircleQuestionMark, Clock, Eye, Send, Sparkles } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import type { AiScenarioPreview, AiScenarioSettings } from '@/types';
+import type {
+    AiScenarioFocusArea,
+    AiScenarioPreview,
+    AiScenarioSavePayload,
+    AiScenarioSettings,
+} from '@/types';
 
 type Props = {
     preview: AiScenarioPreview;
@@ -25,8 +30,36 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const emit = defineEmits<{
+    preview: [];
+    save: [settings: AiScenarioSavePayload['settings']];
+    update: [settings: AiScenarioSavePayload['settings']];
+}>();
+
 const attempts = ref(props.settings.attempts);
 const feedbackStyle = ref(props.settings.feedbackStyle);
+const focusAreas = ref<AiScenarioFocusArea[]>(
+    props.settings.focusAreas.map((area) => ({ ...area })),
+);
+const allowHints = ref(props.settings.allowHints);
+const showSuggestions = ref(props.settings.showSuggestions);
+const tags = ref([...props.settings.tags]);
+const previewMessage = ref('');
+const addingTag = ref(false);
+const newTag = ref('');
+
+watch(
+    () => props.settings,
+    (settings) => {
+        attempts.value = settings.attempts;
+        feedbackStyle.value = settings.feedbackStyle;
+        focusAreas.value = settings.focusAreas.map((area) => ({ ...area }));
+        allowHints.value = settings.allowHints;
+        showSuggestions.value = settings.showSuggestions;
+        tags.value = [...settings.tags];
+    },
+    { deep: true },
+);
 
 function onSelect(
     target: 'attempts' | 'feedbackStyle',
@@ -43,6 +76,41 @@ function onSelect(
 
     feedbackStyle.value = value;
 }
+
+function toggleFocusArea(
+    index: number,
+    value: boolean | 'indeterminate',
+): void {
+    if (value === 'indeterminate') return;
+    focusAreas.value[index].checked = value;
+}
+
+function addTag(): void {
+    const tag = newTag.value.trim();
+    if (tag === '') return;
+
+    if (!tags.value.includes(tag)) {
+        tags.value.push(tag);
+    }
+
+    newTag.value = '';
+    addingTag.value = false;
+}
+
+function removeTag(tag: string): void {
+    tags.value = tags.value.filter((item) => item !== tag);
+}
+
+function settingsPayload(): AiScenarioSavePayload['settings'] {
+    return {
+        attempts_allowed: Number(attempts.value),
+        feedback_style: feedbackStyle.value,
+        focus_areas: focusAreas.value.map((area) => ({ ...area })),
+        allow_hints: allowHints.value,
+        show_suggestions: showSuggestions.value,
+        tags: [...tags.value],
+    };
+}
 </script>
 
 <template>
@@ -58,6 +126,7 @@ function onSelect(
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                    @click="emit('preview')"
                 >
                     <Clock class="size-3.5" aria-hidden="true" />
                     Test Scenario
@@ -111,14 +180,17 @@ function onSelect(
                 class="border-line bg-surface mt-3 flex items-center gap-2 rounded-md border px-3 py-2"
             >
                 <Input
-                    :default-value="''"
+                    v-model="previewMessage"
                     :placeholder="preview.placeholder"
                     class="h-auto border-0 bg-transparent px-0 py-0 text-[12.5px] shadow-none focus-visible:ring-0"
+                    @keyup.enter="emit('preview')"
                 />
                 <button
                     type="button"
-                    class="text-brand-600 hover:bg-brand-50 rounded-pill inline-flex size-8 shrink-0 items-center justify-center"
+                    class="text-brand-600 hover:bg-brand-50 rounded-pill inline-flex size-8 shrink-0 items-center justify-center disabled:opacity-40"
                     aria-label="Send preview message"
+                    :disabled="previewMessage.trim() === ''"
+                    @click="emit('preview')"
                 >
                     <Send class="size-4" aria-hidden="true" />
                 </button>
@@ -132,7 +204,7 @@ function onSelect(
                 Scenario Settings
             </h2>
 
-            <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-2">
+            <div class="mt-3 grid gap-3 md:grid-cols-[repeat(2,minmax(0,1fr))]">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
                         Number of Attempts
@@ -142,7 +214,7 @@ function onSelect(
                         @update:model-value="onSelect('attempts', $event)"
                     >
                         <SelectTrigger
-                            class="border-line text-ink bg-surface h-10 rounded-md px-3 text-[12.5px] shadow-none"
+                            class="border-line text-ink bg-surface h-10 w-full min-w-0 rounded-md px-3 text-[12.5px] shadow-none"
                         >
                             <SelectValue />
                         </SelectTrigger>
@@ -168,7 +240,7 @@ function onSelect(
                         @update:model-value="onSelect('feedbackStyle', $event)"
                     >
                         <SelectTrigger
-                            class="border-line text-ink bg-surface h-10 rounded-md px-3 text-[12.5px] shadow-none"
+                            class="border-line text-ink bg-surface h-10 w-full min-w-0 rounded-md px-3 text-[12.5px] shadow-none"
                         >
                             <SelectValue />
                         </SelectTrigger>
@@ -192,11 +264,14 @@ function onSelect(
                 </h3>
                 <div class="mt-2 grid gap-2 sm:grid-cols-2">
                     <label
-                        v-for="area in settings.focusAreas"
+                        v-for="(area, index) in focusAreas"
                         :key="area.label"
                         class="text-brand-900 flex items-center gap-2 rounded-md py-0.5 text-[12px] leading-4.5"
                     >
-                        <Checkbox :model-value="area.checked" />
+                        <Checkbox
+                            :model-value="area.checked"
+                            @update:model-value="toggleFocusArea(index, $event)"
+                        />
                         <span>{{ area.label }}</span>
                     </label>
                 </div>
@@ -206,14 +281,15 @@ function onSelect(
                 <button
                     type="button"
                     class="flex items-center justify-between gap-3 text-start"
-                    :aria-pressed="settings.allowHints"
+                    :aria-pressed="allowHints"
+                    @click="allowHints = !allowHints"
                 >
                     <span class="flex items-center gap-2">
                         <span
                             :class="
                                 cn(
                                     'rounded-pill relative inline-flex h-6 w-11 shrink-0 transition-colors duration-150',
-                                    settings.allowHints
+                                    allowHints
                                         ? 'bg-brand-600'
                                         : 'bg-line-strong',
                                 )
@@ -223,7 +299,7 @@ function onSelect(
                                 :class="
                                     cn(
                                         'rounded-pill absolute top-1 size-4 bg-white transition-transform duration-150',
-                                        settings.allowHints
+                                        allowHints
                                             ? 'translate-x-6'
                                             : 'translate-x-1',
                                     )
@@ -243,14 +319,15 @@ function onSelect(
                 <button
                     type="button"
                     class="flex items-center justify-between gap-3 text-start"
-                    :aria-pressed="settings.showSuggestions"
+                    :aria-pressed="showSuggestions"
+                    @click="showSuggestions = !showSuggestions"
                 >
                     <span class="flex items-center gap-2">
                         <span
                             :class="
                                 cn(
                                     'rounded-pill relative inline-flex h-6 w-11 shrink-0 transition-colors duration-150',
-                                    settings.showSuggestions
+                                    showSuggestions
                                         ? 'bg-brand-600'
                                         : 'bg-line-strong',
                                 )
@@ -260,7 +337,7 @@ function onSelect(
                                 :class="
                                     cn(
                                         'rounded-pill absolute top-1 size-4 bg-white transition-transform duration-150',
-                                        settings.showSuggestions
+                                        showSuggestions
                                             ? 'translate-x-6'
                                             : 'translate-x-1',
                                     )
@@ -283,19 +360,39 @@ function onSelect(
                     Tags (Keywords)
                 </h3>
                 <div class="mt-2 flex flex-wrap gap-2">
-                    <span
-                        v-for="tag in settings.tags"
+                    <button
+                        v-for="tag in tags"
                         :key="tag"
+                        type="button"
+                        :aria-label="`Remove ${tag}`"
+                        @click="removeTag(tag)"
                         class="rounded-pill bg-brand-50 text-brand-700 inline-flex min-h-7 items-center px-2.5 text-[11px] font-medium"
                     >
                         {{ tag }}
-                    </span>
+                    </button>
                     <button
                         type="button"
                         class="border-line text-brand-700 hover:bg-brand-50 inline-flex min-h-7 items-center rounded-md border px-2.5 text-[11px] font-semibold"
+                        @click="addingTag = !addingTag"
                     >
                         + Add Tag
                     </button>
+                </div>
+                <div v-if="addingTag" class="mt-2 flex gap-2">
+                    <Input
+                        v-model="newTag"
+                        autofocus
+                        placeholder="e.g. check-in"
+                        class="border-line h-8 text-xs"
+                        @keyup.enter="addTag"
+                    />
+                    <Button
+                        type="button"
+                        class="bg-brand-600 hover:bg-brand-700 h-8 px-3 text-xs font-semibold text-white"
+                        @click="addTag"
+                    >
+                        Add
+                    </Button>
                 </div>
             </div>
 
@@ -304,6 +401,7 @@ function onSelect(
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                    @click="emit('preview')"
                 >
                     <Eye class="size-3.5" aria-hidden="true" />
                     Preview
@@ -312,12 +410,14 @@ function onSelect(
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                    @click="emit('save', settingsPayload())"
                 >
                     Save as Draft
                 </Button>
                 <Button
                     type="button"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-3 text-[12px] font-semibold text-white"
+                    @click="emit('update', settingsPayload())"
                 >
                     Update Scenario
                 </Button>

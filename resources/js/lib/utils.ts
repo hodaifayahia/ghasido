@@ -24,7 +24,7 @@ const twMerge = extendTailwindMerge({
                 'pill',
                 'script',
             ],
-            font: ['heading', 'script', 'arabic'],
+            font: ['heading', 'script', 'arabic', 'quote'],
             radius: ['pill'],
             shadow: ['card', 'hover', 'pop', 'btn'],
         },

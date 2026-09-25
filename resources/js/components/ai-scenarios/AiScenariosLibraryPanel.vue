@@ -6,7 +6,7 @@ import {
     Search,
 } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
 import { Input } from '@/components/ui/input';
@@ -27,9 +27,30 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const emit = defineEmits<{
+    open: [id: string];
+}>();
+
 const search = ref(props.library.search);
 const department = ref(props.library.department);
 const status = ref(props.library.status);
+const currentPage = ref(props.library.currentPage || 1);
+const pageSize = 6;
+
+watch(
+    () => props.library,
+    (library) => {
+        search.value = library.search;
+        department.value = library.department;
+        status.value = library.status;
+        currentPage.value = library.currentPage || 1;
+    },
+    { deep: true },
+);
+
+watch([search, department, status], () => {
+    currentPage.value = 1;
+});
 
 const statusTone: Record<AiScenarioStatus, string> = {
     published: 'bg-success-tint text-success-text',
@@ -50,6 +71,57 @@ function onSelect(
     }
 
     status.value = value;
+}
+
+const filteredScenarios = computed(() => {
+    const term = search.value.trim().toLocaleLowerCase();
+    const departmentLabel =
+        props.library.departments
+            .find((option) => option.value === department.value)
+            ?.label.toLocaleLowerCase() ?? '';
+
+    return props.library.scenarios.filter((scenario) => {
+        const searchable =
+            `${scenario.title} ${scenario.department} ${scenario.level}`.toLocaleLowerCase();
+
+        return (
+            (term === '' || searchable.includes(term)) &&
+            (department.value === 'all-departments' ||
+                scenario.department.toLocaleLowerCase() === departmentLabel) &&
+            (status.value === 'all-statuses' ||
+                scenario.status === status.value)
+        );
+    });
+});
+
+const pageCount = computed(() =>
+    Math.max(1, Math.ceil(filteredScenarios.value.length / pageSize)),
+);
+
+const visibleScenarios = computed(() => {
+    const page = Math.min(currentPage.value, pageCount.value);
+    const start = (page - 1) * pageSize;
+
+    return filteredScenarios.value.slice(start, start + pageSize);
+});
+
+const visiblePages = computed(() =>
+    Array.from({ length: pageCount.value }, (_, index) => index + 1),
+);
+
+const showing = computed(() => {
+    const total = filteredScenarios.value.length;
+    if (total === 0) return 'No scenarios found';
+
+    const page = Math.min(currentPage.value, pageCount.value);
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
+
+    return `Showing ${start}-${end} of ${total} scenarios`;
+});
+
+function goToPage(page: number): void {
+    currentPage.value = Math.min(Math.max(page, 1), pageCount.value);
 }
 </script>
 
@@ -133,9 +205,13 @@ function onSelect(
             class="divide-line border-line/70 bg-surface mt-3 divide-y rounded-lg border"
         >
             <article
-                v-for="scenario in library.scenarios"
+                v-for="scenario in visibleScenarios"
                 :key="scenario.id"
-                class="hover:bg-brand-50/35 flex items-start gap-3 px-3 py-2 transition-colors duration-150"
+                class="hover:bg-brand-50/35 flex cursor-pointer items-start gap-3 px-3 py-2 transition-colors duration-150"
+                role="button"
+                tabindex="0"
+                @click="emit('open', scenario.id)"
+                @keydown.enter="emit('open', scenario.id)"
             >
                 <LessonsMockupCrop
                     :crop="scenario.crop"
@@ -181,6 +257,7 @@ function onSelect(
                         type="button"
                         class="text-ink-faint hover:bg-brand-50 inline-flex size-6 items-center justify-center rounded-md"
                         :aria-label="`More actions for ${scenario.title}`"
+                        @click.stop="emit('open', scenario.id)"
                     >
                         <EllipsisVertical class="size-4" aria-hidden="true" />
                     </button>
@@ -191,28 +268,37 @@ function onSelect(
         <div
             class="text-ink-slate mt-3 flex items-center justify-between gap-3 text-[11.5px]"
         >
-            <p>{{ library.showing }}</p>
+            <p>{{ showing }}</p>
 
-            <nav aria-label="Scenario pages" class="flex items-center gap-1.5">
+            <nav
+                v-if="pageCount > 1"
+                aria-label="Scenario pages"
+                class="flex items-center gap-1.5"
+            >
                 <button
                     type="button"
                     class="text-brand-700 hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
+                    :disabled="currentPage === 1"
+                    aria-label="Previous scenario page"
+                    @click="goToPage(currentPage - 1)"
                 >
                     <ChevronLeft class="size-4" aria-hidden="true" />
                 </button>
 
                 <button
-                    v-for="page in library.pages"
+                    v-for="page in visiblePages"
                     :key="page"
                     type="button"
                     :class="
                         cn(
                             'inline-flex size-7 items-center justify-center rounded-md text-[11.5px] font-semibold',
-                            page === library.currentPage
+                            page === currentPage
                                 ? 'bg-brand-600 shadow-btn text-white'
                                 : 'text-brand-700 hover:bg-brand-50',
                         )
                     "
+                    :aria-current="page === currentPage ? 'page' : undefined"
+                    @click="goToPage(page)"
                 >
                     {{ page }}
                 </button>
@@ -220,6 +306,9 @@ function onSelect(
                 <button
                     type="button"
                     class="text-brand-700 hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
+                    :disabled="currentPage === pageCount"
+                    aria-label="Next scenario page"
+                    @click="goToPage(currentPage + 1)"
                 >
                     <ChevronRight class="size-4" aria-hidden="true" />
                 </button>

@@ -1,0 +1,68 @@
+{
+    "base": "http://127.0.0.1:8090",
+    "out": "public/tutorial/lesson-builder",
+    "sessions": [
+        {
+            "login": "harness@guesvia.test",
+            "password": "password",
+            "jobs": [
+                {
+                    "name": "01-lesson-directory",
+                    "path": "/lessons-content",
+                    "size": [1280, 853],
+                    "wait": 800
+                },
+                {
+                    "name": "02-create-lesson",
+                    "path": "/lessons-content/create",
+                    "size": [1280, 853],
+                    "wait": 800
+                },
+                {
+                    "name": "03-lesson-editor",
+                    "path": "/lessons/1/edit",
+                    "size": [1280, 853],
+                    "wait": 800
+                },
+                {
+                    "name": "04-vocabulary-block",
+                    "path": "/lessons/1/edit",
+                    "size": [1280, 853],
+                    "steps": [
+                        { "click": "[data-tour=\"vocabulary-edit\"]" },
+                        { "wait": 700 }
+                    ]
+                },
+                {
+                    "name": "05-add-word",
+                    "path": "/lessons/1/edit",
+                    "size": [1280, 853],
+                    "steps": [
+                        { "click": "[data-tour=\"vocabulary-edit\"]" },
+                        { "wait": 500 },
+                        { "click": "[data-tour=\"add-lexicon-item\"]" },
+                        { "wait": 700 }
+                    ]
+                },
+                {
+                    "name": "06-dialogue-audio",
+                    "path": "/lessons/1/edit",
+                    "size": [1280, 853],
+                    "steps": [
+                        { "click": "[data-tour=\"dialogue-edit\"]" },
+                        { "wait": 700 }
+                    ]
+                },
+                {
+                    "name": "07-lesson-preview",
+                    "path": "/lessons/1/edit",
+                    "size": [1280, 853],
+                    "steps": [
+                        { "click": "[data-test=\"lessons-tab-preview\"]" },
+                        { "wait": 700 }
+                    ]
+                }
+            ]
+        }
+    ]
+}

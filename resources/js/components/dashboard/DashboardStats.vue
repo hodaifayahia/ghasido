@@ -8,7 +8,6 @@ import {
     UserGroup,
 } from '@lucide/vue';
 import type { LucideIcon, LucideProps } from '@lucide/vue';
-import { useMediaQuery } from '@vueuse/core';
 import type { HTMLAttributes } from 'vue';
 import StatCard from '@/components/common/StatCard.vue';
 import type { StatTone } from '@/components/common/StatCard.vue';
@@ -77,33 +76,22 @@ const look: Record<DashboardStatKey, StatLook> = {
         iconProps: { size: 24, strokeWidth: 5 },
     },
 };
-
-// Below md the row scrolls sideways, bleeding into the page's 16px gutter
-// (pages/Dashboard.vue px-4), so it must be reachable by keyboard.
-const scrolls = useMediaQuery('(max-width: 767px)');
 </script>
 
 <template>
     <ul
         role="list"
         aria-label="Key figures"
-        :tabindex="scrolls ? 0 : undefined"
         :class="
             cn(
-                '-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 pt-0.5 pb-3',
-                'focus-visible:ring-brand-600/40 focus-visible:ring-2 focus-visible:outline-none',
-                'md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:p-0',
-                'xl:grid-cols-[157fr_164fr_162fr_166fr_178fr_171fr]',
+                'grid min-w-0 grid-cols-2 gap-2 pt-0.5 pb-3',
+                'md:grid-cols-3 md:p-0',
+                '2xl:grid-cols-[157fr_164fr_162fr_166fr_178fr_171fr]',
                 props.class,
             )
         "
     >
-        <!-- xl: min-w-auto lets a card grow past its share rather than wrap. -->
-        <li
-            v-for="stat in stats"
-            :key="stat.key"
-            class="min-w-[168px] shrink-0 snap-start md:min-w-0 xl:min-w-auto"
-        >
+        <li v-for="stat in stats" :key="stat.key" class="min-w-0">
             <StatCard
                 :value="stat.value"
                 :unit="stat.unit"

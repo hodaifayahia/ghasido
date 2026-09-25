@@ -4,15 +4,17 @@ import {
     Bot,
     ChevronLeft,
     ChevronRight,
-    EllipsisVertical,
     Eye,
     Pencil,
     RotateCcw,
     Search,
 } from '@lucide/vue';
+import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
+import DepartmentRowActions from '@/components/departments/DepartmentRowActions.vue';
+import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,13 +24,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
 import type {
     DepartmentFilters,
     DepartmentPagination,
     DepartmentQuotaState,
     DepartmentRecord,
+    DepartmentRowAction,
     DepartmentScope,
     DepartmentStatus,
 } from '@/types';
@@ -37,13 +39,62 @@ type Props = {
     filters: DepartmentFilters;
     departments: DepartmentRecord[];
     pagination: DepartmentPagination;
+    /** True while a partial reload is in flight, for the skeleton rows. */
+    loading?: boolean;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { loading: false });
+
+export type DepartmentFilterValues = {
+    search: string;
+    scope: string;
+    status: string;
+};
+
+const emit = defineEmits<{
+    /** Search or a filter changed: the caller reloads page 1. */
+    filter: [values: DepartmentFilterValues];
+    page: [page: number];
+    action: [action: DepartmentRowAction, department: DepartmentRecord];
+}>();
+
+const { can } = useCan();
+const canManage = can('departments.manage');
 
 const search = ref(props.filters.search);
 const scope = ref(props.filters.scope);
 const status = ref(props.filters.status);
+
+// The server is the source of truth for the filters; keep the controls in
+// step when it answers (a Reset, a back button, a shared link).
+watch(
+    () => props.filters,
+    (filters) => {
+        search.value = filters.search;
+        scope.value = filters.scope;
+        status.value = filters.status;
+    },
+    { deep: true },
+);
+
+function current(): DepartmentFilterValues {
+    return {
+        search: search.value,
+        scope: scope.value,
+        status: status.value,
+    };
+}
+
+// Debounced so a keystroke does not repaint the page.
+watchDebounced(
+    search,
+    (value) => {
+        if (value !== props.filters.search) {
+            emit('filter', current());
+        }
+    },
+    { debounce: 300 },
+);
 
 const statusText: Record<DepartmentStatus, string> = {
     active: 'Active',
@@ -57,6 +108,8 @@ const statusTone: Record<DepartmentStatus, string> = {
     draft: 'bg-brand-100/70 text-brand-700',
 };
 
+const archivedTone = 'bg-tint-grid text-ink-muted';
+
 const scopeTone: Record<DepartmentScope, string> = {
     shared: 'bg-brand-100/65 text-brand-700',
     hotel: 'bg-ai/12 text-ai',
@@ -68,6 +121,14 @@ const quotaTone: Record<DepartmentQuotaState, 'brand' | 'warning'> = {
     over: 'warning',
 };
 
+function pillText(department: DepartmentRecord): string {
+    return department.isActive ? statusText[department.status] : 'Archived';
+}
+
+function pillTone(department: DepartmentRecord): string {
+    return department.isActive ? statusTone[department.status] : archivedTone;
+}
+
 function onSelect(target: 'scope' | 'status', value: AcceptableValue): void {
     if (typeof value !== 'string') {
         return;
@@ -75,16 +136,18 @@ function onSelect(target: 'scope' | 'status', value: AcceptableValue): void {
 
     if (target === 'scope') {
         scope.value = value;
-        return;
+    } else {
+        status.value = value;
     }
 
-    status.value = value;
+    emit('filter', current());
 }
 
 function resetFilters(): void {
-    search.value = props.filters.search;
-    scope.value = props.filters.scope;
-    status.value = props.filters.status;
+    search.value = '';
+    scope.value = 'all-scopes';
+    status.value = 'all-statuses';
+    emit('filter', current());
 }
 
 function seatPercent(department: DepartmentRecord): number {
@@ -115,6 +178,11 @@ function hotelsLabel(department: DepartmentRecord): string {
         ? '1 hotel'
         : `${department.hotelCount} hotels`;
 }
+
+const iconButton =
+    'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
+
+const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
 </script>
 
 <template>
@@ -132,6 +200,8 @@ function hotelsLabel(department: DepartmentRecord): string {
                     v-model="search"
                     type="search"
                     placeholder="Search by department, focus or scope..."
+                    aria-label="Search departments"
+                    data-test="departments-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
@@ -142,6 +212,8 @@ function hotelsLabel(department: DepartmentRecord): string {
                     @update:model-value="onSelect('scope', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by scope"
+                        data-test="departments-scope-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -163,6 +235,8 @@ function hotelsLabel(department: DepartmentRecord): string {
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by status"
+                        data-test="departments-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -183,6 +257,7 @@ function hotelsLabel(department: DepartmentRecord): string {
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-9 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
+                    data-test="reset-department-filters-button"
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
@@ -191,7 +266,10 @@ function hotelsLabel(department: DepartmentRecord): string {
             </div>
         </div>
 
-        <div class="border-line/80 mt-2.5 overflow-hidden rounded-lg border">
+        <div
+            class="border-line/80 mt-2.5 overflow-hidden rounded-lg border"
+            :aria-busy="loading || undefined"
+        >
             <div class="hidden overflow-x-auto md:block">
                 <table
                     class="min-w-full table-fixed border-collapse text-start"
@@ -231,8 +309,56 @@ function hotelsLabel(department: DepartmentRecord): string {
                         </tr>
                     </thead>
                     <tbody class="bg-surface text-ink text-[12.5px]">
+                        <template v-if="loading && departments.length === 0">
+                            <tr
+                                v-for="row in skeletonRows"
+                                :key="row"
+                                class="border-line/80 border-t"
+                            >
+                                <td
+                                    v-for="cell in 10"
+                                    :key="cell"
+                                    class="px-2 py-[11px]"
+                                >
+                                    <div
+                                        class="bg-tint-track h-3.5 animate-pulse rounded-sm motion-reduce:animate-none"
+                                    />
+                                </td>
+                            </tr>
+                        </template>
+
+                        <tr
+                            v-else-if="departments.length === 0"
+                            class="border-line/80 border-t"
+                        >
+                            <td colspan="10" class="px-4 py-10 text-center">
+                                <p
+                                    class="font-heading text-brand-900 text-[14px] font-semibold"
+                                >
+                                    No departments match these filters
+                                </p>
+                                <p class="text-ink-slate mt-1 text-[12.5px]">
+                                    Try another search, or clear the filters to
+                                    see the whole catalogue.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-brand-700 hover:bg-brand-50 mt-3 h-9 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
+                                    @click="resetFilters"
+                                >
+                                    <RotateCcw
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    Clear filters
+                                </Button>
+                            </td>
+                        </tr>
+
                         <tr
                             v-for="department in departments"
+                            v-else
                             :key="department.id"
                             class="border-line/80 hover:bg-brand-50/35 border-t"
                         >
@@ -325,23 +451,22 @@ function hotelsLabel(department: DepartmentRecord): string {
                                     :class="
                                         cn(
                                             'rounded-pill inline-flex min-h-5 min-w-[90px] items-center justify-center px-2 text-[10.5px] font-semibold whitespace-nowrap',
-                                            statusTone[department.status],
+                                            pillTone(department),
                                         )
                                     "
                                 >
-                                    {{ statusText[department.status] }}
+                                    {{ pillText(department) }}
                                 </span>
                             </td>
                             <td class="px-2 py-[7px] align-middle">
                                 <div class="flex items-center gap-1.5">
                                     <button
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`View ${department.name}`"
+                                        :data-test="`department-${department.id}-view-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${department.name} details`,
-                                            )
+                                            emit('action', 'view', department)
                                         "
                                     >
                                         <Eye
@@ -350,13 +475,13 @@ function hotelsLabel(department: DepartmentRecord): string {
                                         />
                                     </button>
                                     <button
+                                        v-if="canManage"
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`Edit ${department.name}`"
+                                        :data-test="`department-${department.id}-edit-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${department.name} settings`,
-                                            )
+                                            emit('action', 'edit', department)
                                         "
                                     >
                                         <Pencil
@@ -366,11 +491,14 @@ function hotelsLabel(department: DepartmentRecord): string {
                                     </button>
                                     <button
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`Manage ${department.name} content`"
+                                        :data-test="`department-${department.id}-content-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${department.name} content`,
+                                            emit(
+                                                'action',
+                                                'content',
+                                                department,
                                             )
                                         "
                                     >
@@ -379,21 +507,13 @@ function hotelsLabel(department: DepartmentRecord): string {
                                             aria-hidden="true"
                                         />
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
-                                        :aria-label="`More actions for ${department.name}`"
-                                        @click="
-                                            notifyComingSoon(
-                                                `${department.name} actions`,
-                                            )
+                                    <DepartmentRowActions
+                                        :department="department"
+                                        size="table"
+                                        @select="
+                                            emit('action', $event, department)
                                         "
-                                    >
-                                        <EllipsisVertical
-                                            class="size-3"
-                                            aria-hidden="true"
-                                        />
-                                    </button>
+                                    />
                                 </div>
                             </td>
                         </tr>
@@ -402,6 +522,28 @@ function hotelsLabel(department: DepartmentRecord): string {
             </div>
 
             <ul class="divide-line divide-y md:hidden">
+                <li
+                    v-if="departments.length === 0"
+                    class="bg-surface px-4 py-10 text-center"
+                >
+                    <p
+                        class="font-heading text-brand-900 text-[15px] font-semibold"
+                    >
+                        No departments match these filters
+                    </p>
+                    <p class="text-ink-slate mt-1 text-[13px]">
+                        Try another search, or clear the filters.
+                    </p>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 mt-3 h-10 gap-1.5 rounded-md px-3 text-[13px] font-semibold shadow-none"
+                        @click="resetFilters"
+                    >
+                        <RotateCcw class="size-3.5" aria-hidden="true" />
+                        Clear filters
+                    </Button>
+                </li>
                 <li
                     v-for="department in departments"
                     :key="department.id"
@@ -424,11 +566,11 @@ function hotelsLabel(department: DepartmentRecord): string {
                             :class="
                                 cn(
                                     'rounded-pill inline-flex min-h-6 items-center justify-center px-2.5 text-[11px] font-semibold',
-                                    statusTone[department.status],
+                                    pillTone(department),
                                 )
                             "
                         >
-                            {{ statusText[department.status] }}
+                            {{ pillText(department) }}
                         </span>
                     </div>
 
@@ -497,43 +639,26 @@ function hotelsLabel(department: DepartmentRecord): string {
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
+                                :class="cn(iconButton, 'size-9')"
                                 :aria-label="`View ${department.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${department.name} details`,
-                                    )
-                                "
+                                @click="emit('action', 'view', department)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
                             </button>
                             <button
+                                v-if="canManage"
                                 type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
+                                :class="cn(iconButton, 'size-9')"
                                 :aria-label="`Edit ${department.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${department.name} settings`,
-                                    )
-                                "
+                                @click="emit('action', 'edit', department)"
                             >
                                 <Pencil class="size-4" aria-hidden="true" />
                             </button>
-                            <button
-                                type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
-                                :aria-label="`More actions for ${department.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${department.name} actions`,
-                                    )
-                                "
-                            >
-                                <EllipsisVertical
-                                    class="size-4"
-                                    aria-hidden="true"
-                                />
-                            </button>
+                            <DepartmentRowActions
+                                :department="department"
+                                size="card"
+                                @select="emit('action', $event, department)"
+                            />
                         </div>
                     </div>
                 </li>
@@ -554,7 +679,9 @@ function hotelsLabel(department: DepartmentRecord): string {
             >
                 <button
                     type="button"
-                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2"
+                    :disabled="pagination.currentPage <= 1"
+                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+                    @click="emit('page', pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
                     Previous
@@ -570,6 +697,9 @@ function hotelsLabel(department: DepartmentRecord): string {
                     <button
                         v-else
                         type="button"
+                        :aria-current="
+                            page === pagination.currentPage ? 'page' : undefined
+                        "
                         :class="
                             cn(
                                 'inline-flex min-h-8 min-w-8 items-center justify-center rounded-md px-2 text-[12px] font-semibold',
@@ -578,6 +708,7 @@ function hotelsLabel(department: DepartmentRecord): string {
                                     : 'text-brand-700 hover:bg-brand-50',
                             )
                         "
+                        @click="emit('page', page)"
                     >
                         {{ page }}
                     </button>
@@ -585,7 +716,9 @@ function hotelsLabel(department: DepartmentRecord): string {
 
                 <button
                     type="button"
-                    class="text-brand-700 hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2"
+                    :disabled="pagination.currentPage >= pagination.lastPage"
+                    class="text-brand-700 hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+                    @click="emit('page', pagination.currentPage + 1)"
                 >
                     Next
                     <ChevronRight class="size-3.5" aria-hidden="true" />

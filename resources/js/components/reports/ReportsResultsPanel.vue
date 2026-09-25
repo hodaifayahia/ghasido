@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import {
+    Check,
     ChevronLeft,
     ChevronRight,
+    Clock,
     Download,
-    EllipsisVertical,
     FileSpreadsheet,
     FileText,
+    Lock,
+    MessageSquareText,
+    Minus,
     Search,
+    TrendingDown,
+    TrendingUp,
+    X,
 } from '@lucide/vue';
+import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Component, HTMLAttributes } from 'vue';
+import ReportsRowActions from '@/components/reports/ReportsRowActions.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -21,40 +30,111 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
 import type {
+    ReportDataset,
+    ReportDatasetKey,
     ReportEmployeeRow,
     ReportExportAction,
     ReportExportActionTone,
+    ReportExportFormat,
     ReportPagination,
+    ReportResults,
+    ReportRoleplayRow,
+    ReportRoleplayStatus,
+    ReportRowAction,
+    ReportRowStatus,
     ReportsTab,
     ReportsTabKey,
-    ReportRowStatus,
 } from '@/types';
 
 type Props = {
     tabs: ReportsTab[];
     activeTab: ReportsTabKey;
-    rows: ReportEmployeeRow[];
+    results: ReportResults;
     pagination: ReportPagination;
     search: string;
-    includeDetailedAnswers: boolean;
     exportActions: ReportExportAction[];
+    datasets: ReportDataset[];
+    canViewTranscripts: boolean;
+    canExport: boolean;
+    /** True while a partial reload is in flight, for the skeleton rows. */
+    loading?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { loading: false });
 
-const activeTab = ref<ReportsTabKey>(props.activeTab);
+/** "Include detailed answers": the Employee Results export becomes the answers dataset (REP-06). */
+const includeDetailedAnswers = defineModel<boolean>('includeDetailedAnswers', {
+    required: true,
+});
+
+const emit = defineEmits<{
+    tab: [tab: ReportsTabKey];
+    search: [value: string];
+    page: [page: number];
+    perPage: [perPage: number];
+    action: [action: ReportRowAction, row: ReportEmployeeRow];
+    transcript: [row: ReportRoleplayRow];
+    export: [format: ReportExportFormat];
+    download: [dataset: ReportDatasetKey, format: ReportExportFormat];
+}>();
+
 const search = ref(props.search);
 const perPage = ref(String(props.pagination.currentPerPage));
+
+// The server is the source of truth; keep the controls in step when it
+// answers (a tab switch, a reset, the back button, a shared link).
+watch(
+    () => props.search,
+    (value) => {
+        search.value = value;
+    },
+);
+watch(
+    () => props.pagination.currentPerPage,
+    (value) => {
+        perPage.value = String(value);
+    },
+);
+
+// Debounced so a keystroke does not repaint the page.
+watchDebounced(
+    search,
+    (value) => {
+        if (value !== props.search) {
+            emit('search', value);
+        }
+    },
+    { debounce: 300 },
+);
+
+function onPerPageSelect(value: AcceptableValue): void {
+    if (typeof value !== 'string') {
+        return;
+    }
+
+    perPage.value = value;
+    emit('perPage', Number(value));
+}
+
+function onIncludeChange(value: boolean | 'indeterminate'): void {
+    includeDetailedAnswers.value = value === true;
+}
 
 const statusTone: Record<ReportRowStatus, string> = {
     active: 'bg-success-tint text-success-text',
     in_progress: 'bg-warning-tint text-warning-text',
     inactive: 'bg-danger-tint text-danger-text',
     completed: 'bg-brand-100/70 text-brand-700',
+};
+
+const roleplayTone: Record<ReportRoleplayStatus, string> = {
+    completed: 'bg-success-tint text-success-text',
+    evaluating: 'bg-warning-tint text-warning-text',
+    in_progress: 'bg-brand-100/70 text-brand-700',
+    abandoned: 'bg-danger-tint text-danger-text',
 };
 
 const exportTone: Record<ReportExportActionTone, string> = {
@@ -69,11 +149,99 @@ const exportIcon: Record<ReportExportActionTone, Component> = {
     danger: Download,
 };
 
-function onPerPageSelect(value: AcceptableValue): void {
-    if (typeof value === 'string') {
-        perPage.value = value;
+const downloadFormats: Array<{
+    format: ReportExportFormat;
+    label: string;
+    tone: ReportExportActionTone;
+}> = [
+    { format: 'xlsx', label: 'Excel', tone: 'excel' },
+    { format: 'csv', label: 'CSV', tone: 'brand' },
+    { format: 'pdf', label: 'PDF', tone: 'danger' },
+];
+
+const unitLabel = computed<string>(() => {
+    switch (props.activeTab) {
+        case 'detailedAnswers':
+            return 'answers';
+        case 'roleplayLogs':
+            return 'attempts';
+        case 'lessonProgress':
+            return 'completions';
+        case 'comparison':
+            return 'rows';
+        default:
+            return 'employees';
     }
+});
+
+const columnCount = computed<number>(() => {
+    switch (props.activeTab) {
+        case 'detailedAnswers':
+            return 9;
+        case 'roleplayLogs':
+            return 9;
+        case 'lessonProgress':
+            return 6;
+        case 'comparison':
+            return 7;
+        default:
+            return 11;
+    }
+});
+
+const showsTable = computed(() => props.activeTab !== 'downloadCenter');
+const isEmpty = computed(() => props.results.rows.length === 0);
+
+function rank(index: number): number {
+    return props.pagination.from + index;
 }
+
+function formatDuration(ms: number | null): string {
+    if (ms === null) {
+        return '—';
+    }
+
+    const seconds = Math.round(ms / 1000);
+
+    return seconds < 60
+        ? `${seconds}s`
+        : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+function formatScore(score: number | null, max: number | null): string {
+    if (score === null) {
+        return '—';
+    }
+
+    return max === null ? String(score) : `${score} / ${max}`;
+}
+
+function percentLabel(value: number | null): string {
+    return value === null ? '—' : `${value}%`;
+}
+
+function deltaIcon(delta: number | null): Component {
+    if (delta === null || delta === 0) {
+        return Minus;
+    }
+
+    return delta > 0 ? TrendingUp : TrendingDown;
+}
+
+function deltaClass(delta: number | null): string {
+    if (delta === null || delta === 0) {
+        return 'text-ink-muted';
+    }
+
+    return delta > 0 ? 'text-success-text' : 'text-danger-text';
+}
+
+const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
+
+const headCell = 'px-2 py-2 text-start';
+const bodyCell = 'text-ink-muted px-2 py-[7px] align-middle';
+const pill =
+    'rounded-pill inline-flex min-h-5 items-center justify-center px-2 text-[10.5px] font-semibold whitespace-nowrap';
 </script>
 
 <template>
@@ -84,15 +252,23 @@ function onPerPageSelect(value: AcceptableValue): void {
                 props.class,
             )
         "
+        :aria-busy="loading || undefined"
     >
         <div
             class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
         >
-            <div class="flex min-w-0 gap-2 overflow-x-auto pb-1 xl:pb-0">
+            <div
+                class="flex min-w-0 gap-2 overflow-x-auto pb-1 xl:pb-0"
+                role="tablist"
+                aria-label="Report tabs"
+            >
                 <button
                     v-for="tab in tabs"
                     :key="tab.key"
                     type="button"
+                    role="tab"
+                    :aria-selected="activeTab === tab.key"
+                    :data-test="`reports-tab-${tab.key}`"
                     :class="
                         cn(
                             'inline-flex h-8 shrink-0 items-center rounded-md border px-3 text-[11.5px] font-semibold whitespace-nowrap transition-colors duration-150',
@@ -101,13 +277,13 @@ function onPerPageSelect(value: AcceptableValue): void {
                                 : 'border-line bg-brand-50/45 text-brand-700 hover:bg-brand-100/70',
                         )
                     "
-                    @click="activeTab = tab.key"
+                    @click="emit('tab', tab.key)"
                 >
                     {{ tab.label }}
                 </button>
             </div>
 
-            <div class="relative min-w-0 xl:w-[290px]">
+            <div v-if="showsTable" class="relative min-w-0 xl:w-[290px]">
                 <Search
                     aria-hidden="true"
                     class="text-ink-faint absolute start-3 top-1/2 size-4 -translate-y-1/2"
@@ -116,22 +292,98 @@ function onPerPageSelect(value: AcceptableValue): void {
                     v-model="search"
                     type="search"
                     placeholder="Search by name, department..."
+                    aria-label="Search results"
+                    data-test="reports-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
         </div>
 
-        <div class="border-line/80 mt-3 overflow-hidden rounded-lg border">
+        <!-- Download Center: the export buttons per dataset (REP-03..08). -->
+        <div
+            v-if="results.tab === 'downloadCenter'"
+            class="mt-3 grid gap-2 md:grid-cols-2"
+            data-test="reports-download-center"
+        >
+            <article
+                v-for="dataset in datasets"
+                :key="dataset.key"
+                class="border-line/80 bg-surface flex flex-col gap-3 rounded-lg border p-4"
+            >
+                <div class="flex items-start gap-3">
+                    <div
+                        :class="
+                            cn(
+                                'grid size-10 shrink-0 place-items-center rounded-xl',
+                                dataset.anonymised
+                                    ? 'bg-ai-tint text-ai'
+                                    : 'bg-brand-100 text-brand-600',
+                            )
+                        "
+                    >
+                        <component
+                            :is="dataset.anonymised ? Lock : FileSpreadsheet"
+                            class="size-5"
+                            aria-hidden="true"
+                        />
+                    </div>
+                    <div class="min-w-0">
+                        <h3
+                            class="font-heading text-brand-900 text-[13.5px] font-semibold"
+                        >
+                            {{ dataset.label }}
+                        </h3>
+                        <p class="text-ink-slate mt-0.5 text-[12px] leading-4">
+                            {{ dataset.description }}
+                        </p>
+                    </div>
+                </div>
+                <div v-if="canExport" class="flex flex-wrap gap-2">
+                    <button
+                        v-for="entry in downloadFormats"
+                        :key="entry.format"
+                        type="button"
+                        :data-test="`download-${dataset.key}-${entry.format}-button`"
+                        :class="
+                            cn(
+                                'bg-surface inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold transition-colors duration-150',
+                                exportTone[entry.tone],
+                            )
+                        "
+                        @click="emit('download', dataset.key, entry.format)"
+                    >
+                        <component
+                            :is="exportIcon[entry.tone]"
+                            class="size-3.5"
+                            aria-hidden="true"
+                        />
+                        {{ entry.label }}
+                    </button>
+                </div>
+                <p v-else class="text-ink-slate text-[12px]">
+                    Exporting requires the reports.export permission.
+                </p>
+            </article>
+        </div>
+
+        <div
+            v-else
+            class="border-line/80 mt-3 overflow-hidden rounded-lg border"
+        >
             <div class="hidden overflow-x-auto md:block">
                 <table
                     class="min-w-full table-fixed border-collapse text-start"
                 >
                     <thead class="bg-tint-header">
                         <tr
+                            v-if="results.tab === 'employeeResults'"
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
                             <th class="w-9 py-2 ps-3 pe-2 text-start">
-                                <Checkbox :model-value="false" />
+                                <Checkbox
+                                    :model-value="false"
+                                    aria-label="Select all"
+                                />
                             </th>
                             <th class="w-10 px-2 py-2 text-start">#</th>
                             <th class="w-[162px] px-2 py-2 text-start">
@@ -162,205 +414,819 @@ function onPerPageSelect(value: AcceptableValue): void {
                                 Actions
                             </th>
                         </tr>
-                    </thead>
-                    <tbody class="bg-surface text-ink text-[12px]">
                         <tr
-                            v-for="row in rows"
-                            :key="row.id"
-                            class="border-line/80 hover:bg-brand-50/35 border-t"
+                            v-else-if="results.tab === 'detailedAnswers'"
+                            class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
-                            <td class="py-[7px] ps-3 pe-2 align-middle">
-                                <Checkbox :model-value="false" />
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
+                            <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
+                            <th :class="cn(headCell, 'w-[130px]')">Employee</th>
+                            <th :class="cn(headCell, 'w-[120px]')">
+                                Test / Lesson
+                            </th>
+                            <th :class="cn(headCell, 'w-[90px]')">Skill</th>
+                            <th :class="headCell">Question</th>
+                            <th :class="headCell">Answer</th>
+                            <th :class="cn(headCell, 'w-[96px]')">Result</th>
+                            <th :class="cn(headCell, 'w-[70px]')">Time</th>
+                            <th :class="cn(headCell, 'w-[112px]')">
+                                Submitted
+                            </th>
+                        </tr>
+                        <tr
+                            v-else-if="results.tab === 'roleplayLogs'"
+                            class="text-brand-900 text-[12px] leading-4 font-semibold"
+                        >
+                            <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
+                            <th :class="cn(headCell, 'w-[140px]')">Employee</th>
+                            <th :class="cn(headCell, 'w-[130px]')">Scenario</th>
+                            <th :class="cn(headCell, 'w-[62px]')">Attempt</th>
+                            <th :class="cn(headCell, 'w-[92px]')">Status</th>
+                            <th :class="cn(headCell, 'w-[64px]')">Overall</th>
+                            <th :class="headCell">Criteria</th>
+                            <th :class="cn(headCell, 'w-[112px]')">Started</th>
+                            <th :class="cn(headCell, 'w-[124px]')">
+                                Transcript
+                            </th>
+                        </tr>
+                        <tr
+                            v-else-if="results.tab === 'lessonProgress'"
+                            class="text-brand-900 text-[12px] leading-4 font-semibold"
+                        >
+                            <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
+                            <th :class="cn(headCell, 'w-[170px]')">Employee</th>
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                Department
+                            </th>
+                            <th :class="headCell">Course</th>
+                            <th :class="headCell">Lesson</th>
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                Completed
+                            </th>
+                        </tr>
+                        <tr
+                            v-else
+                            class="text-brand-900 text-[12px] leading-4 font-semibold"
+                        >
+                            <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
+                            <th :class="cn(headCell, 'w-[170px]')">Employee</th>
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                Department
+                            </th>
+                            <th :class="headCell">Skill</th>
+                            <th :class="cn(headCell, 'w-[120px]')">Pre-test</th>
+                            <th :class="cn(headCell, 'w-[120px]')">
+                                Post-test
+                            </th>
+                            <th :class="cn(headCell, 'w-[96px]')">Change</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="bg-surface text-ink text-[12px]">
+                        <template v-if="loading && isEmpty">
+                            <tr
+                                v-for="row in skeletonRows"
+                                :key="row"
+                                class="border-line/80 border-t"
                             >
-                                {{ row.rank }}
+                                <td
+                                    v-for="cell in columnCount"
+                                    :key="cell"
+                                    class="px-2 py-[11px]"
+                                >
+                                    <div
+                                        class="bg-tint-track h-3.5 animate-pulse rounded-sm motion-reduce:animate-none"
+                                    />
+                                </td>
+                            </tr>
+                        </template>
+
+                        <tr v-else-if="isEmpty" class="border-line/80 border-t">
+                            <td
+                                :colspan="columnCount"
+                                class="px-4 py-10 text-center"
+                            >
+                                <p
+                                    class="font-heading text-brand-900 text-[14px] font-semibold"
+                                >
+                                    No {{ unitLabel }} match these filters
+                                </p>
+                                <p class="text-ink-slate mt-1 text-[12.5px]">
+                                    Try another search, a wider date range, or
+                                    reset the filters.
+                                </p>
                             </td>
-                            <td class="px-2 py-[7px] align-middle">
-                                <div class="flex items-center gap-2.5">
-                                    <Avatar class="size-6.5">
-                                        <AvatarFallback
-                                            class="bg-brand-100 font-heading text-brand-700 text-[10px] font-semibold"
+                        </tr>
+
+                        <template v-else-if="results.tab === 'employeeResults'">
+                            <tr
+                                v-for="(row, index) in results.rows"
+                                :key="row.id"
+                                class="border-line/80 hover:bg-brand-50/35 border-t"
+                                :data-test="`report-row-${row.id}`"
+                            >
+                                <td class="py-[7px] ps-3 pe-2 align-middle">
+                                    <Checkbox
+                                        :model-value="false"
+                                        :aria-label="`Select ${row.name}`"
+                                    />
+                                </td>
+                                <td :class="bodyCell">{{ rank(index) }}</td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <div class="flex items-center gap-2.5">
+                                        <Avatar class="size-6.5">
+                                            <AvatarFallback
+                                                class="bg-brand-100 font-heading text-brand-700 text-[10px] font-semibold"
+                                            >
+                                                {{ row.initials }}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span
+                                            class="text-brand-900 truncate font-medium"
                                         >
-                                            {{ row.initials }}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                            {{ row.name }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td :class="bodyCell">{{ row.department }}</td>
+                                <td :class="bodyCell">
+                                    {{ row.preScore ?? '—' }}
+                                </td>
+                                <td :class="bodyCell">
+                                    {{ row.postScore ?? '—' }}
+                                </td>
+                                <td :class="bodyCell">
+                                    {{ row.lessonsCompleted }} /
+                                    {{ row.lessonsTotal }}
+                                </td>
+                                <td :class="bodyCell">
+                                    {{ row.scenariosCompleted }} /
+                                    {{ row.scenariosTotal }}
+                                </td>
+                                <td :class="bodyCell">
+                                    {{ row.lastActivity }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
                                     <span
-                                        class="text-brand-900 truncate font-medium"
+                                        :class="
+                                            cn(
+                                                pill,
+                                                'min-w-[88px]',
+                                                statusTone[row.status],
+                                            )
+                                        "
                                     >
-                                        {{ row.name }}
+                                        {{ row.statusLabel }}
                                     </span>
-                                </div>
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <div class="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-8 min-w-[92px] items-center justify-center rounded-md border px-3 text-[11.5px] font-semibold"
+                                            :aria-label="`View details for ${row.name}`"
+                                            :data-test="`report-${row.id}-details-button`"
+                                            @click="
+                                                emit('action', 'details', row)
+                                            "
+                                        >
+                                            View Details
+                                        </button>
+                                        <ReportsRowActions
+                                            :row="row"
+                                            :can-export="canExport"
+                                            @select="
+                                                emit('action', $event, row)
+                                            "
+                                        />
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template v-else-if="results.tab === 'detailedAnswers'">
+                            <tr
+                                v-for="(row, index) in results.rows"
+                                :key="row.id"
+                                class="border-line/80 hover:bg-brand-50/35 border-t"
+                                :data-test="`report-answer-${row.id}`"
                             >
-                                {{ row.department }}
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
+                                <td
+                                    class="text-ink-muted py-[7px] ps-3 pe-2 align-middle"
+                                >
+                                    {{ rank(index) }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        class="text-brand-900 block truncate font-medium"
+                                    >
+                                        {{ row.employee }}
+                                    </span>
+                                    <span
+                                        class="text-ink-slate block truncate text-[11px]"
+                                    >
+                                        {{ row.department }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">
+                                    <span class="block truncate">{{
+                                        row.context
+                                    }}</span>
+                                </td>
+                                <td :class="bodyCell">{{ row.skill }}</td>
+                                <td :class="bodyCell">
+                                    <span
+                                        class="line-clamp-2"
+                                        :title="row.question"
+                                    >
+                                        {{ row.question }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">
+                                    <span
+                                        class="text-ink line-clamp-2"
+                                        :title="row.answer"
+                                    >
+                                        {{ row.answer }}
+                                    </span>
+                                    <audio
+                                        v-if="row.audioUrl !== null"
+                                        controls
+                                        preload="none"
+                                        :src="row.audioUrl"
+                                        class="mt-1 h-8 w-full max-w-[200px]"
+                                        :data-test="`report-answer-${row.id}-audio`"
+                                    />
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        :class="
+                                            cn(
+                                                'inline-flex items-center gap-1 text-[11.5px] font-semibold',
+                                                row.isCorrect === null
+                                                    ? 'text-ink-muted'
+                                                    : row.isCorrect
+                                                      ? 'text-success-text'
+                                                      : 'text-danger-text',
+                                            )
+                                        "
+                                    >
+                                        <component
+                                            :is="
+                                                row.isCorrect === null
+                                                    ? Clock
+                                                    : row.isCorrect
+                                                      ? Check
+                                                      : X
+                                            "
+                                            class="size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />
+                                        {{
+                                            row.isCorrect === null
+                                                ? 'Pending'
+                                                : row.isCorrect
+                                                  ? 'Correct'
+                                                  : 'Incorrect'
+                                        }}
+                                    </span>
+                                    <span
+                                        class="text-ink-slate block text-[11px]"
+                                    >
+                                        {{
+                                            formatScore(row.score, row.maxScore)
+                                        }}
+                                        <template v-if="row.overridden"
+                                            >· overridden</template
+                                        >
+                                        · v{{ row.version }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">
+                                    {{ formatDuration(row.timeTakenMs) }}
+                                </td>
+                                <td :class="cn(bodyCell, 'text-[11.5px]')">
+                                    {{ row.submittedAt }}
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template v-else-if="results.tab === 'roleplayLogs'">
+                            <tr
+                                v-for="(row, index) in results.rows"
+                                :key="row.id"
+                                class="border-line/80 hover:bg-brand-50/35 border-t"
+                                :data-test="`report-roleplay-${row.id}`"
                             >
-                                {{ row.preScore }}
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
-                            >
-                                {{ row.postScore }}
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
-                            >
-                                {{ row.lessonsCompleted }} /
-                                {{ row.lessonsTotal }}
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
-                            >
-                                {{ row.scenariosCompleted }} /
-                                {{ row.scenariosTotal }}
-                            </td>
-                            <td
-                                class="text-ink-muted px-2 py-[7px] align-middle"
-                            >
-                                {{ row.lastActivity }}
-                            </td>
-                            <td class="px-2 py-[7px] align-middle">
-                                <span
+                                <td
+                                    class="text-ink-muted py-[7px] ps-3 pe-2 align-middle"
+                                >
+                                    {{ rank(index) }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        class="text-brand-900 block truncate font-medium"
+                                    >
+                                        {{ row.employee }}
+                                    </span>
+                                    <span
+                                        class="text-ink-slate block truncate text-[11px]"
+                                    >
+                                        {{ row.department }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">
+                                    <span class="block truncate">{{
+                                        row.scenario
+                                    }}</span>
+                                </td>
+                                <td :class="bodyCell">{{ row.attemptNo }}</td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        :class="
+                                            cn(pill, roleplayTone[row.status])
+                                        "
+                                    >
+                                        {{ row.statusLabel }}
+                                    </span>
+                                </td>
+                                <td
                                     :class="
-                                        cn(
-                                            'rounded-pill inline-flex min-h-5 min-w-[88px] items-center justify-center px-2 text-[10.5px] font-semibold whitespace-nowrap',
-                                            statusTone[row.status],
-                                        )
+                                        cn(bodyCell, 'text-ai font-semibold')
                                     "
                                 >
-                                    {{ row.statusLabel }}
-                                </span>
-                            </td>
-                            <td class="px-2 py-[7px] align-middle">
-                                <div class="flex items-center gap-1.5">
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-8 min-w-[92px] items-center justify-center rounded-md border px-3 text-[11.5px] font-semibold"
-                                        :aria-label="`View details for ${row.name}`"
-                                        @click="
-                                            notifyComingSoon(
-                                                `${row.name} details`,
-                                            )
-                                        "
+                                    {{ row.overallScore ?? '—' }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <ul class="flex flex-wrap gap-1">
+                                        <li
+                                            v-for="criterion in row.criteria"
+                                            :key="criterion.key"
+                                            class="bg-ai-tint text-ai rounded-pill px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap"
+                                            :title="criterion.label"
+                                        >
+                                            {{ criterion.label.slice(0, 4) }}
+                                            {{ criterion.score ?? '—' }}
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td :class="cn(bodyCell, 'text-[11.5px]')">
+                                    {{ row.startedAt }}
+                                    <span
+                                        class="text-ink-slate block text-[11px]"
                                     >
-                                        View Details
-                                    </button>
+                                        {{ formatDuration(row.durationMs) }} ·
+                                        {{ row.turns }} turns
+                                    </span>
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
                                     <button
-                                        type="button"
-                                        class="text-ink-faint hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
-                                        :aria-label="`More actions for ${row.name}`"
-                                        @click="
-                                            notifyComingSoon(
-                                                `${row.name} actions`,
-                                            )
+                                        v-if="
+                                            canViewTranscripts &&
+                                            row.transcript !== null
                                         "
+                                        type="button"
+                                        class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-8 items-center justify-center gap-1.5 rounded-md border px-3 text-[11.5px] font-semibold"
+                                        :data-test="`report-roleplay-${row.id}-transcript-button`"
+                                        @click="emit('transcript', row)"
                                     >
-                                        <EllipsisVertical
+                                        <MessageSquareText
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
+                                        View transcript
                                     </button>
-                                </div>
-                            </td>
-                        </tr>
+                                    <span
+                                        v-else
+                                        class="text-ink-slate inline-flex items-center gap-1 text-[11px]"
+                                        title="Full transcripts are available to the Super Admin only"
+                                    >
+                                        <Lock
+                                            class="size-3"
+                                            aria-hidden="true"
+                                        />
+                                        Scores only
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template v-else-if="results.tab === 'lessonProgress'">
+                            <tr
+                                v-for="(row, index) in results.rows"
+                                :key="row.id"
+                                class="border-line/80 hover:bg-brand-50/35 border-t"
+                                :data-test="`report-lesson-${row.id}`"
+                            >
+                                <td
+                                    class="text-ink-muted py-[7px] ps-3 pe-2 align-middle"
+                                >
+                                    {{ rank(index) }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        class="text-brand-900 block truncate font-medium"
+                                    >
+                                        {{ row.employee }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">{{ row.department }}</td>
+                                <td :class="bodyCell">
+                                    <span class="block truncate">{{
+                                        row.course
+                                    }}</span>
+                                </td>
+                                <td :class="bodyCell">
+                                    <span class="block truncate">{{
+                                        row.lesson
+                                    }}</span>
+                                </td>
+                                <td :class="cn(bodyCell, 'text-[11.5px]')">
+                                    <span
+                                        class="text-success-text inline-flex items-center gap-1 font-semibold"
+                                    >
+                                        <Check
+                                            class="size-3.5"
+                                            aria-hidden="true"
+                                        />
+                                        {{ row.completedAt }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template v-else-if="results.tab === 'comparison'">
+                            <tr
+                                v-for="(row, index) in results.rows"
+                                :key="row.id"
+                                class="border-line/80 hover:bg-brand-50/35 border-t"
+                                :data-test="`report-comparison-${row.id}`"
+                            >
+                                <td
+                                    class="text-ink-muted py-[7px] ps-3 pe-2 align-middle"
+                                >
+                                    {{ rank(index) }}
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        class="text-brand-900 block truncate font-medium"
+                                    >
+                                        {{ row.employee }}
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">{{ row.department }}</td>
+                                <td :class="bodyCell">{{ row.skill }}</td>
+                                <td :class="bodyCell">
+                                    <span class="text-azure font-semibold">
+                                        {{ percentLabel(row.prePercent) }}
+                                    </span>
+                                    <span
+                                        v-if="row.preTotal !== null"
+                                        class="text-ink-slate text-[11px]"
+                                    >
+                                        ({{ row.preCorrect }} /
+                                        {{ row.preTotal }})
+                                    </span>
+                                </td>
+                                <td :class="bodyCell">
+                                    <span class="text-brand-700 font-semibold">
+                                        {{ percentLabel(row.postPercent) }}
+                                    </span>
+                                    <span
+                                        v-if="row.postTotal !== null"
+                                        class="text-ink-slate text-[11px]"
+                                    >
+                                        ({{ row.postCorrect }} /
+                                        {{ row.postTotal }})
+                                    </span>
+                                </td>
+                                <td class="px-2 py-[7px] align-middle">
+                                    <span
+                                        :class="
+                                            cn(
+                                                'inline-flex items-center gap-1 text-[11.5px] font-semibold',
+                                                deltaClass(row.delta),
+                                            )
+                                        "
+                                    >
+                                        <component
+                                            :is="deltaIcon(row.delta)"
+                                            class="size-3.5"
+                                            aria-hidden="true"
+                                        />
+                                        {{
+                                            row.delta === null
+                                                ? '—'
+                                                : `${row.delta > 0 ? '+' : ''}${row.delta} pts`
+                                        }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
 
+            <!-- Below md every table becomes stacked cards (RESP-01). -->
             <ul class="divide-line divide-y md:hidden">
-                <li v-for="row in rows" :key="row.id" class="bg-surface p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex min-w-0 items-center gap-2.5">
-                            <Avatar class="size-8">
-                                <AvatarFallback
-                                    class="bg-brand-100 font-heading text-brand-700 text-[11px] font-semibold"
+                <li
+                    v-if="isEmpty && !loading"
+                    class="bg-surface p-6 text-center"
+                >
+                    <p
+                        class="font-heading text-brand-900 text-[14px] font-semibold"
+                    >
+                        No {{ unitLabel }} match these filters
+                    </p>
+                </li>
+
+                <template v-else-if="results.tab === 'employeeResults'">
+                    <li
+                        v-for="row in results.rows"
+                        :key="row.id"
+                        class="bg-surface p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-2.5">
+                                <Avatar class="size-8">
+                                    <AvatarFallback
+                                        class="bg-brand-100 font-heading text-brand-700 text-[11px] font-semibold"
+                                    >
+                                        {{ row.initials }}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div class="min-w-0">
+                                    <p
+                                        class="font-heading text-brand-800 truncate text-[15px] font-semibold"
+                                    >
+                                        {{ row.name }}
+                                    </p>
+                                    <p class="text-ink-muted text-[13px]">
+                                        {{ row.department }}
+                                    </p>
+                                </div>
+                            </div>
+                            <ReportsRowActions
+                                :row="row"
+                                :can-export="canExport"
+                                size="card"
+                                @select="emit('action', $event, row)"
+                            />
+                        </div>
+
+                        <div
+                            class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
+                        >
+                            <p>
+                                <span class="text-brand-900 font-medium"
+                                    >Pre/Post:</span
                                 >
-                                    {{ row.initials }}
-                                </AvatarFallback>
-                            </Avatar>
+                                {{ row.preScore ?? '—' }} /
+                                {{ row.postScore ?? '—' }}
+                            </p>
+                            <p>
+                                <span class="text-brand-900 font-medium"
+                                    >Lessons:</span
+                                >
+                                {{ row.lessonsCompleted }} /
+                                {{ row.lessonsTotal }}
+                            </p>
+                            <p>
+                                <span class="text-brand-900 font-medium"
+                                    >AI Scenarios:</span
+                                >
+                                {{ row.scenariosCompleted }} /
+                                {{ row.scenariosTotal }}
+                            </p>
+                            <p>
+                                <span class="text-brand-900 font-medium"
+                                    >Last Activity:</span
+                                >
+                                {{ row.lastActivity }}
+                            </p>
+                        </div>
+
+                        <div
+                            class="mt-3 flex items-center justify-between gap-3"
+                        >
+                            <span
+                                :class="
+                                    cn(
+                                        'rounded-pill inline-flex min-h-6 items-center px-2.5 text-[11px] font-semibold',
+                                        statusTone[row.status],
+                                    )
+                                "
+                            >
+                                {{ row.statusLabel }}
+                            </span>
+                            <button
+                                type="button"
+                                class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-9 items-center justify-center rounded-md border px-3 text-[12px] font-semibold"
+                                :aria-label="`View details for ${row.name}`"
+                                @click="emit('action', 'details', row)"
+                            >
+                                View Details
+                            </button>
+                        </div>
+                    </li>
+                </template>
+
+                <template v-else-if="results.tab === 'detailedAnswers'">
+                    <li
+                        v-for="row in results.rows"
+                        :key="row.id"
+                        class="bg-surface p-4"
+                    >
+                        <p
+                            class="font-heading text-brand-800 text-[14px] font-semibold"
+                        >
+                            {{ row.employee }}
+                            <span
+                                class="text-ink-slate font-sans text-[12px] font-normal"
+                            >
+                                · {{ row.context }} · {{ row.skill }}
+                            </span>
+                        </p>
+                        <p class="text-ink-muted mt-2 text-[13px] leading-5">
+                            {{ row.question }}
+                        </p>
+                        <p
+                            class="text-ink mt-1 text-[13px] leading-5 font-medium"
+                        >
+                            {{ row.answer }}
+                        </p>
+                        <audio
+                            v-if="row.audioUrl !== null"
+                            controls
+                            preload="none"
+                            :src="row.audioUrl"
+                            class="mt-2 h-10 w-full"
+                        />
+                        <p class="text-ink-slate mt-2 text-[12px]">
+                            {{
+                                row.isCorrect === null
+                                    ? 'Pending'
+                                    : row.isCorrect
+                                      ? 'Correct'
+                                      : 'Incorrect'
+                            }}
+                            · {{ formatScore(row.score, row.maxScore) }} ·
+                            {{ formatDuration(row.timeTakenMs) }} · v{{
+                                row.version
+                            }}
+                            ·
+                            {{ row.submittedAt }}
+                        </p>
+                    </li>
+                </template>
+
+                <template v-else-if="results.tab === 'roleplayLogs'">
+                    <li
+                        v-for="row in results.rows"
+                        :key="row.id"
+                        class="bg-surface p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <p
-                                    class="font-heading text-brand-800 truncate text-[15px] font-semibold"
+                                    class="font-heading text-brand-800 truncate text-[14px] font-semibold"
                                 >
-                                    {{ row.name }}
+                                    {{ row.employee }}
                                 </p>
                                 <p class="text-ink-muted text-[13px]">
-                                    {{ row.department }}
+                                    {{ row.scenario }} · attempt
+                                    {{ row.attemptNo }}
                                 </p>
                             </div>
+                            <span
+                                :class="
+                                    cn(
+                                        pill,
+                                        'min-h-6',
+                                        roleplayTone[row.status],
+                                    )
+                                "
+                            >
+                                {{ row.statusLabel }}
+                            </span>
                         </div>
-                        <Checkbox :model-value="false" />
-                    </div>
+                        <ul class="mt-2 flex flex-wrap gap-1">
+                            <li
+                                class="bg-brand-100/70 text-brand-700 rounded-pill px-2 py-0.5 text-[11px] font-semibold"
+                            >
+                                Overall {{ row.overallScore ?? '—' }}
+                            </li>
+                            <li
+                                v-for="criterion in row.criteria"
+                                :key="criterion.key"
+                                class="bg-ai-tint text-ai rounded-pill px-2 py-0.5 text-[11px] font-semibold"
+                            >
+                                {{ criterion.label }}
+                                {{ criterion.score ?? '—' }}
+                            </li>
+                        </ul>
+                        <div
+                            class="mt-3 flex items-center justify-between gap-3"
+                        >
+                            <span class="text-ink-slate text-[12px]">
+                                {{ row.startedAt }} ·
+                                {{ formatDuration(row.durationMs) }}
+                            </span>
+                            <button
+                                v-if="
+                                    canViewTranscripts &&
+                                    row.transcript !== null
+                                "
+                                type="button"
+                                class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold"
+                                @click="emit('transcript', row)"
+                            >
+                                <MessageSquareText
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />
+                                Transcript
+                            </button>
+                        </div>
+                    </li>
+                </template>
 
-                    <div
-                        class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
+                <template v-else-if="results.tab === 'lessonProgress'">
+                    <li
+                        v-for="row in results.rows"
+                        :key="row.id"
+                        class="bg-surface p-4"
                     >
-                        <p>
-                            <span class="text-brand-900 font-medium"
-                                >Pre/Post:</span
+                        <p
+                            class="font-heading text-brand-800 text-[14px] font-semibold"
+                        >
+                            {{ row.employee }}
+                            <span
+                                class="text-ink-slate font-sans text-[12px] font-normal"
                             >
-                            {{ row.preScore }} / {{ row.postScore }}
+                                · {{ row.department }}
+                            </span>
                         </p>
-                        <p>
-                            <span class="text-brand-900 font-medium"
-                                >Lessons:</span
-                            >
-                            {{ row.lessonsCompleted }} / {{ row.lessonsTotal }}
+                        <p class="text-ink-muted mt-1 text-[13px]">
+                            {{ row.course }} · {{ row.lesson }}
                         </p>
-                        <p>
-                            <span class="text-brand-900 font-medium"
-                                >AI Scenarios:</span
-                            >
-                            {{ row.scenariosCompleted }} /
-                            {{ row.scenariosTotal }}
+                        <p
+                            class="text-success-text mt-2 inline-flex items-center gap-1 text-[12px] font-semibold"
+                        >
+                            <Check class="size-3.5" aria-hidden="true" />
+                            {{ row.completedAt }}
                         </p>
-                        <p>
-                            <span class="text-brand-900 font-medium"
-                                >Last Activity:</span
-                            >
-                            {{ row.lastActivity }}
-                        </p>
-                    </div>
+                    </li>
+                </template>
 
-                    <div class="mt-3 flex items-center justify-between gap-3">
-                        <span
-                            :class="
-                                cn(
-                                    'rounded-pill inline-flex min-h-6 items-center px-2.5 text-[11px] font-semibold',
-                                    statusTone[row.status],
-                                )
-                            "
+                <template v-else-if="results.tab === 'comparison'">
+                    <li
+                        v-for="row in results.rows"
+                        :key="row.id"
+                        class="bg-surface p-4"
+                    >
+                        <p
+                            class="font-heading text-brand-800 text-[14px] font-semibold"
                         >
-                            {{ row.statusLabel }}
-                        </span>
-                        <button
-                            type="button"
-                            class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-9 items-center justify-center rounded-md border px-3 text-[12px] font-semibold"
-                            :aria-label="`View details for ${row.name}`"
-                            @click="notifyComingSoon(`${row.name} details`)"
-                        >
-                            View Details
-                        </button>
-                    </div>
-                </li>
+                            {{ row.employee }}
+                            <span
+                                class="text-ink-slate font-sans text-[12px] font-normal"
+                            >
+                                · {{ row.skill }}
+                            </span>
+                        </p>
+                        <p class="text-ink-muted mt-2 text-[13px]">
+                            Pre {{ percentLabel(row.prePercent) }} → Post
+                            {{ percentLabel(row.postPercent) }}
+                            <span
+                                :class="
+                                    cn('font-semibold', deltaClass(row.delta))
+                                "
+                            >
+                                ({{
+                                    row.delta === null
+                                        ? '—'
+                                        : `${row.delta > 0 ? '+' : ''}${row.delta} pts`
+                                }})
+                            </span>
+                        </p>
+                    </li>
+                </template>
             </ul>
         </div>
 
         <div
+            v-if="showsTable"
             class="mt-3 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
         >
             <div
                 class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between xl:flex-1"
             >
-                <p class="text-ink-muted text-[12.5px] leading-5">
+                <p
+                    class="text-ink-muted text-[12.5px] leading-5"
+                    data-test="reports-showing"
+                >
                     Showing {{ pagination.from }}-{{ pagination.to }} of
-                    {{ pagination.total }} employees
+                    {{ pagination.total }} {{ unitLabel }}
                 </p>
 
                 <nav
@@ -369,14 +1235,18 @@ function onPerPageSelect(value: AcceptableValue): void {
                 >
                     <button
                         type="button"
-                        class="text-brand-700 hover:bg-brand-50 inline-flex size-8 items-center justify-center rounded-md"
+                        class="text-brand-700 hover:bg-brand-50 inline-flex size-8 items-center justify-center rounded-md disabled:opacity-40"
+                        :disabled="pagination.currentPage <= 1"
+                        aria-label="Previous page"
+                        data-test="reports-previous-page"
+                        @click="emit('page', pagination.currentPage - 1)"
                     >
                         <ChevronLeft class="size-4" aria-hidden="true" />
                     </button>
 
                     <template
-                        v-for="page in pagination.pages"
-                        :key="String(page)"
+                        v-for="(page, index) in pagination.pages"
+                        :key="`${String(page)}-${index}`"
                     >
                         <span
                             v-if="page === 'ellipsis'"
@@ -387,6 +1257,12 @@ function onPerPageSelect(value: AcceptableValue): void {
                         <button
                             v-else
                             type="button"
+                            :aria-current="
+                                page === pagination.currentPage
+                                    ? 'page'
+                                    : undefined
+                            "
+                            :data-test="`reports-page-${page}`"
                             :class="
                                 cn(
                                     'inline-flex size-8 items-center justify-center rounded-md text-[12px] font-semibold',
@@ -395,6 +1271,7 @@ function onPerPageSelect(value: AcceptableValue): void {
                                         : 'text-brand-700 hover:bg-brand-50',
                                 )
                             "
+                            @click="emit('page', page)"
                         >
                             {{ page }}
                         </button>
@@ -402,7 +1279,13 @@ function onPerPageSelect(value: AcceptableValue): void {
 
                     <button
                         type="button"
-                        class="text-brand-700 hover:bg-brand-50 inline-flex size-8 items-center justify-center rounded-md"
+                        class="text-brand-700 hover:bg-brand-50 inline-flex size-8 items-center justify-center rounded-md disabled:opacity-40"
+                        :disabled="
+                            pagination.currentPage >= pagination.lastPage
+                        "
+                        aria-label="Next page"
+                        data-test="reports-next-page"
+                        @click="emit('page', pagination.currentPage + 1)"
                     >
                         <ChevronRight class="size-4" aria-hidden="true" />
                     </button>
@@ -416,6 +1299,8 @@ function onPerPageSelect(value: AcceptableValue): void {
                     @update:model-value="onPerPageSelect"
                 >
                     <SelectTrigger
+                        aria-label="Rows per page"
+                        data-test="reports-per-page"
                         class="border-line bg-surface h-8 w-[72px] rounded-md px-3 text-[12px] shadow-none"
                     >
                         <SelectValue />
@@ -435,6 +1320,7 @@ function onPerPageSelect(value: AcceptableValue): void {
         </div>
 
         <div
+            v-if="canExport"
             class="mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
         >
             <div
@@ -447,13 +1333,14 @@ function onPerPageSelect(value: AcceptableValue): void {
                     v-for="action in exportActions"
                     :key="action.id"
                     type="button"
+                    :data-test="`export-${action.id}-button`"
                     :class="
                         cn(
                             'bg-surface inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-4 text-[12.5px] font-semibold transition-colors duration-150',
                             exportTone[action.tone],
                         )
                     "
-                    @click="notifyComingSoon(action.label)"
+                    @click="emit('export', action.id)"
                 >
                     <component
                         :is="exportIcon[action.tone]"
@@ -467,7 +1354,11 @@ function onPerPageSelect(value: AcceptableValue): void {
             <label
                 class="text-brand-900 flex items-center gap-2 rounded-md text-[12.5px]"
             >
-                <Checkbox :model-value="includeDetailedAnswers" />
+                <Checkbox
+                    :model-value="includeDetailedAnswers"
+                    data-test="include-detailed-answers-checkbox"
+                    @update:model-value="onIncludeChange"
+                />
                 <span>Include detailed answers</span>
             </label>
         </div>

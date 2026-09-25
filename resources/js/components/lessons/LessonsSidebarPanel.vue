@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import {
     Bot,
     ClipboardCheck,
@@ -14,11 +15,15 @@ import {
     Upload,
     Video,
 } from '@lucide/vue';
+import { useDebounceFn } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Component, HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
-import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
+import { BLOCK_DRAG_TYPE } from '@/components/lessons/lessonsBlocks';
+import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
+import { visitLessons } from '@/components/lessons/lessonsQuery';
+import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,25 +33,45 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useCan } from '@/composables/useCan';
 import { cn } from '@/lib/utils';
+import { store as storeBlock } from '@/routes/blocks';
 import type {
     LessonBlockIcon,
     LessonBlockTone,
     LessonBuilderBlock,
+    LessonLibraryImage,
     LessonsImageLibrary,
 } from '@/types';
 
 type Props = {
     blocks: LessonBuilderBlock[];
     library: LessonsImageLibrary;
+    lessonId: number | null;
     class?: HTMLAttributes['class'];
 };
 
 const props = defineProps<Props>();
 
-const activeLibraryTab = ref(props.library.activeTab);
-const selectedCategory = ref(props.library.category);
+const emit = defineEmits<{
+    /** An image chosen from the library or the picker (sets the lesson cover). */
+    pick: [image: LessonLibraryImage];
+}>();
+
+const { can } = useCan();
+const manage = computed(() => can('lessons.manage'));
+
 const search = ref(props.library.search);
+const uploadOpen = ref(false);
+const pickerOpen = ref(false);
+const adding = ref<string | null>(null);
+
+watch(
+    () => props.library.search,
+    (value) => {
+        search.value = value;
+    },
+);
 
 const blockTone: Record<LessonBlockTone, string> = {
     brand: 'bg-brand-100 text-brand-700',
@@ -74,14 +99,86 @@ const blockIcons: Record<LessonBlockIcon, Component | null> = {
     note: StickyNote,
 };
 
-const filteredImages = computed(() => props.library.images);
-
-function onCategorySelect(value: AcceptableValue): void {
-    if (typeof value !== 'string') {
+/**
+ * Click adds a block of the tile's type to the end of the lesson (before
+ * the closing step); dragging the tile onto the Lesson Blocks list inserts
+ * it at the drop position (BLD-02, BLD-03).
+ */
+function addBlock(block: LessonBuilderBlock): void {
+    if (
+        block.type === null ||
+        props.lessonId === null ||
+        !manage.value ||
+        adding.value !== null
+    ) {
         return;
     }
 
-    selectedCategory.value = value;
+    adding.value = block.id;
+    router.post(
+        storeBlock.url(props.lessonId),
+        { type: block.type, title: block.id === 'quiz' ? block.label : null },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => {
+                adding.value = null;
+            },
+        },
+    );
+}
+
+function onDragStart(event: DragEvent, block: LessonBuilderBlock): void {
+    if (block.type === null || event.dataTransfer === null) {
+        return;
+    }
+
+    event.dataTransfer.setData(BLOCK_DRAG_TYPE, block.type);
+    event.dataTransfer.setData('text/plain', block.label);
+    event.dataTransfer.effectAllowed = 'copy';
+}
+
+function tileTitle(block: LessonBuilderBlock): string | undefined {
+    return block.type === null ? 'Not available yet' : undefined;
+}
+
+// Library filters live in the query string; only the library prop reloads.
+const libraryOnly = { only: ['library'], replace: true };
+
+function onLibraryTab(key: string): void {
+    if (key !== props.library.activeTab) {
+        visitLessons({ lib: key }, libraryOnly);
+    }
+}
+
+function onCategory(value: AcceptableValue): void {
+    if (typeof value === 'string' && value !== props.library.category) {
+        visitLessons({ libCategory: value }, libraryOnly);
+    }
+}
+
+const onSearch = useDebounceFn(() => {
+    if (search.value !== props.library.search) {
+        visitLessons({ libSearch: search.value }, libraryOnly);
+    }
+}, 300);
+
+function onUploaded(): void {
+    // Uploads are stored in My Images. Switch there immediately so the new
+    // file is visible and pickable instead of silently refreshing the current
+    // Guesvia Library tab (MED-01, MED-02).
+    visitLessons(
+        {
+            lib: 'my-images',
+            libSearch: null,
+            libCategory: 'all-categories',
+        },
+        libraryOnly,
+    );
+}
+
+function onChoose(image: LessonLibraryImage): void {
+    emit('pick', image);
 }
 </script>
 
@@ -102,7 +199,18 @@ function onCategorySelect(value: AcceptableValue): void {
                     v-for="block in blocks"
                     :key="block.id"
                     type="button"
-                    class="border-line hover:bg-brand-50/60 bg-surface flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-md border px-2 py-2 text-center transition-colors duration-150"
+                    :draggable="
+                        block.type !== null && manage && lessonId !== null
+                    "
+                    :disabled="
+                        block.type === null || lessonId === null || !manage
+                    "
+                    :title="tileTitle(block)"
+                    :aria-busy="adding === block.id"
+                    :data-test="`palette-${block.id}`"
+                    class="border-line hover:bg-brand-50/60 bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-md border px-2 py-2 text-center transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    @click="addBlock(block)"
+                    @dragstart="onDragStart($event, block)"
                 >
                     <span
                         :class="
@@ -149,15 +257,18 @@ function onCategorySelect(value: AcceptableValue): void {
                     v-for="tab in library.tabs"
                     :key="tab.key"
                     type="button"
+                    :aria-pressed="library.activeTab === tab.key"
+                    :data-test="`library-tab-${tab.key}`"
                     :class="
                         cn(
                             'inline-flex h-8 items-center justify-center rounded-md border px-2 text-[10.5px] font-semibold transition-colors duration-150',
-                            activeLibraryTab === tab.key
+                            'focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none',
+                            library.activeTab === tab.key
                                 ? 'border-brand-600 bg-brand-600 shadow-btn text-white'
                                 : 'border-line bg-brand-50/45 text-brand-700 hover:bg-brand-100/70',
                         )
                     "
-                    @click="activeLibraryTab = tab.key"
+                    @click="onLibraryTab(tab.key)"
                 >
                     {{ tab.label }}
                 </button>
@@ -173,15 +284,19 @@ function onCategorySelect(value: AcceptableValue): void {
                         v-model="search"
                         type="search"
                         placeholder="Search images..."
+                        aria-label="Search images"
+                        data-test="library-search-input"
                         class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-8 pe-3 text-[12px] shadow-none"
+                        @input="onSearch"
                     />
                 </div>
 
                 <Select
-                    :model-value="selectedCategory"
-                    @update:model-value="onCategorySelect"
+                    :model-value="library.category"
+                    @update:model-value="onCategory"
                 >
                     <SelectTrigger
+                        aria-label="Category"
                         class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[12px] shadow-none"
                     >
                         <SelectValue />
@@ -199,17 +314,29 @@ function onCategorySelect(value: AcceptableValue): void {
                 </Select>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <p
+                v-if="library.images.length === 0"
+                class="text-ink-slate border-line rounded-md border border-dashed px-3 py-4 text-center text-[11.5px]"
+            >
+                No image here yet. Upload one or open another tab.
+            </p>
+
+            <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button
-                    v-for="image in filteredImages"
+                    v-for="image in library.images"
                     :key="image.id"
                     type="button"
-                    class="flex min-w-0 flex-col items-start gap-1.5 rounded-md"
+                    :title="manage ? 'Use as the lesson cover' : image.label"
+                    :data-test="`library-image-${image.id}`"
+                    class="focus-visible:ring-brand-600/15 flex min-w-0 flex-col items-start gap-1.5 rounded-md focus-visible:ring-3 focus-visible:outline-none"
+                    @click="onChoose(image)"
                 >
-                    <LessonsMockupCrop
-                        :crop="image.crop"
-                        :alt="image.label"
-                        class="border-line w-full rounded-md border"
+                    <img
+                        :src="image.thumbUrl ?? image.url"
+                        :alt="image.alt ?? image.label"
+                        loading="lazy"
+                        decoding="async"
+                        class="border-line bg-brand-50 aspect-[67/47] w-full rounded-md border object-cover"
                     />
                     <span
                         class="text-ink-muted block w-full truncate text-start text-[10.5px]"
@@ -222,7 +349,10 @@ function onCategorySelect(value: AcceptableValue): void {
             <div class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px]">
                 <button
                     type="button"
-                    class="border-line hover:bg-brand-50/55 bg-surface flex min-h-[72px] flex-col items-center justify-center rounded-md border border-dashed px-3 py-3 transition-colors duration-150"
+                    :disabled="!manage"
+                    data-test="upload-image-button"
+                    class="border-line hover:bg-brand-50/55 bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 flex min-h-[72px] flex-col items-center justify-center rounded-md border border-dashed px-3 py-3 transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none disabled:opacity-60"
+                    @click="uploadOpen = true"
                 >
                     <Upload
                         class="text-brand-600 mb-1 size-5"
@@ -239,11 +369,22 @@ function onCategorySelect(value: AcceptableValue): void {
                 <Button
                     type="button"
                     variant="outline"
+                    data-test="browse-images-button"
                     class="border-line text-brand-700 hover:bg-brand-50 h-auto min-h-[72px] rounded-md px-3 text-[12px] font-semibold shadow-none"
+                    @click="pickerOpen = true"
                 >
                     Browse Images
                 </Button>
             </div>
         </PanelCard>
+
+        <LessonsUploadDialog v-model:open="uploadOpen" @uploaded="onUploaded" />
+        <LessonsMediaPicker
+            v-model:open="pickerOpen"
+            :tabs="library.tabs"
+            :categories="library.categories"
+            :initial-tab="library.activeTab"
+            @choose="onChoose"
+        />
     </div>
 </template>

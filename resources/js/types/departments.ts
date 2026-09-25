@@ -38,6 +38,8 @@ export type DepartmentRecord = {
     focus: string;
     scope: DepartmentScope;
     scopeLabel: string;
+    /** The owning hotel; null for the shared catalogue (ORG-04). */
+    hotelId: number | null;
     hotelCount: number;
     employeeCount: number;
     usedSeats: number;
@@ -46,6 +48,8 @@ export type DepartmentRecord = {
     testCount: number;
     scenarioCount: number;
     status: DepartmentStatus;
+    /** False once archived: switched off, nothing deleted (DATA-10). */
+    isActive: boolean;
 };
 
 export type DepartmentPagination = {
@@ -58,6 +62,7 @@ export type DepartmentPagination = {
 };
 
 export type DepartmentHotelAssignment = {
+    hotelId: number;
     hotel: string;
     manager: string;
     usedSeats: number;
@@ -65,16 +70,15 @@ export type DepartmentHotelAssignment = {
     state: DepartmentQuotaState;
 };
 
-export type DepartmentOverview = {
-    name: string;
-    scopeLabel: string;
-    focus: string;
-    hotelCount: number;
-    employeeCount: number;
-    lessonCount: number;
-    testCount: number;
-    scenarioCount: number;
-    status: DepartmentStatus;
+export type DepartmentOverview = DepartmentRecord & {
     notes: string[];
     assignments: DepartmentHotelAssignment[];
 };
+
+/** What a row's buttons and overflow menu can ask the page to do. */
+export type DepartmentRowAction =
+    | 'view'
+    | 'edit'
+    | 'content'
+    | 'archive'
+    | 'restore';

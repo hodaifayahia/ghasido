@@ -9,7 +9,10 @@ const { breadcrumbs = [], topbarTaglineSrc } = defineProps<{
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs" :topbar-tagline-src="topbarTaglineSrc">
+    <AppLayout
+        :breadcrumbs="breadcrumbs"
+        :topbar-tagline-src="topbarTaglineSrc"
+    >
         <slot />
     </AppLayout>
 </template>

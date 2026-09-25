@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// LOCKED: client-approved chrome matched to desginphotos/ (AGENTS.md §0).
-// Change only when the user explicitly asks; verify against the mockup.
+// Shared “Better Communication, Brighter Careers” accent requested for the
+// dashboard page headers, using the client's transparent brand artwork.
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 
@@ -12,17 +12,14 @@ const props = defineProps<Props>();
 </script>
 
 <template>
-    <!-- The client's "Better Communication Brighter Careers" handwriting
-         (desgin/assets/better-communication-original.png), with each line
-         laid out as the approved mockup draws it. Decoration only: never
-         announced, never hit-tested, hidden below md. Offsets place it at
-         x 1124 / y 87 on the 1280px mockup, anchored to the header's end. -->
+    <!-- The supplied “Better Communication, Brighter Careers” lettering is
+         the shared dashboard page-header accent. -->
     <img
-        src="/decor/better-communication-header.png"
+        src="/decor/better-communication.png"
         alt=""
         aria-hidden="true"
-        width="408"
-        height="253"
+        width="612"
+        height="272"
         draggable="false"
         :class="
             cn(

@@ -7,7 +7,6 @@ import {
     FileText,
     FolderOpen,
 } from '@lucide/vue';
-import { ref } from 'vue';
 import type { Component, HTMLAttributes } from 'vue';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,13 +14,22 @@ import type { AiScenarioTab, AiScenarioTabKey } from '@/types';
 
 type Props = {
     tabs: AiScenarioTab[];
-    activeTab: AiScenarioTabKey;
+    showTabs?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    showTabs: true,
+});
 
-const currentTab = ref<AiScenarioTabKey>(props.activeTab);
+const emit = defineEmits<{
+    create: [];
+    select: [tab: AiScenarioTabKey];
+}>();
+
+const activeTab = defineModel<AiScenarioTabKey>('activeTab', {
+    required: true,
+});
 
 const tabIcons: Record<AiScenarioTabKey, Component> = {
     scenarios: BookOpen,
@@ -36,25 +44,32 @@ const tabIcons: Record<AiScenarioTabKey, Component> = {
     <div
         :class="
             cn(
-                'flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between',
+                'flex flex-col gap-2 xl:flex-row xl:items-center',
+                props.showTabs
+                    ? 'xl:justify-between'
+                    : 'items-end xl:justify-end',
                 props.class,
             )
         "
     >
-        <div class="flex min-w-0 gap-2 overflow-x-auto pb-1 xl:pb-0">
+        <div
+            v-if="props.showTabs"
+            class="flex min-w-0 gap-2 overflow-x-auto pb-1 xl:pb-0"
+        >
             <button
                 v-for="tab in tabs"
                 :key="tab.key"
                 type="button"
+                :aria-pressed="activeTab === tab.key"
                 :class="
                     cn(
                         'inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-[12.5px] font-semibold whitespace-nowrap transition-colors duration-150',
-                        currentTab === tab.key
+                        activeTab === tab.key
                             ? 'border-brand-600 bg-brand-600 shadow-btn text-white'
                             : 'border-line bg-brand-50/55 text-brand-700 hover:bg-brand-100/70',
                     )
                 "
-                @click="currentTab = tab.key"
+                @click="emit('select', tab.key)"
             >
                 <component :is="tabIcons[tab.key]" class="size-4 shrink-0" />
                 {{ tab.label }}
@@ -64,6 +79,7 @@ const tabIcons: Record<AiScenarioTabKey, Component> = {
         <Button
             type="button"
             class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 self-end rounded-md px-4 text-[12.5px] font-semibold text-white xl:self-auto"
+            @click="emit('create')"
         >
             <CirclePlus class="size-4" aria-hidden="true" />
             Create New Scenario

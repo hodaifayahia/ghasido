@@ -25,6 +25,55 @@ services:
             - mysql
             - redis
             - mailpit
+    queue:
+        build:
+            context: './vendor/laravel/sail/runtimes/8.5'
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: 'sail-8.5/app'
+        restart: unless-stopped
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        # Interactive work first (role-play replies, evaluations, drafts), then
+        # lesson/test generation. Bulk audio and images run in queue-media, so
+        # a media backlog can never block a reply (App\Support\Queues).
+        command: php artisan queue:work database --queue=interactive,default --sleep=1 --tries=3 --timeout=900
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            SUPERVISOR_PHP_USER: root
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - redis
+    queue-media:
+        image: 'sail-8.5/app'
+        restart: unless-stopped
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        command: php artisan queue:work database --queue=media --sleep=1 --tries=3 --timeout=900
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            SUPERVISOR_PHP_USER: root
+            XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+            XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+            IGNITION_LOCAL_SITES_PATH: '${PWD}'
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - redis
+            - queue
     mysql:
         image: 'mysql:8.4'
         ports:

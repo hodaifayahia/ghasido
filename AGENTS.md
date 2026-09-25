@@ -65,23 +65,26 @@ Change none of these without an explicit user request.
 | File                            | Screen                                                                | Status                                                       |
 | ------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `photo_2026-09-15_18-13-24.jpg` | Admin Dashboard — `/dashboard`, `pages/Dashboard.vue`                 | Built. Header + sidebar **approved and locked** (2026-09-15) |
-| `photo_2026-09-15_18-11-40.jpg` | Manage Employees                                                      | Not built                                                    |
-| `photo_2026-09-15_18-11-28.jpg` | Lessons & Content (`photo_2026-09-15_17-53-24.jpg` is the same image) | Not built                                                    |
-| `photo_2026-09-15_18-11-10.jpg` | AI Role-play Scenarios                                                | Not built                                                    |
+| `photo_2026-09-15_18-11-40.jpg` | Manage Employees                                                      | Built: `/employees`, `pages/admin/Employees.vue`             |
+| `photo_2026-09-15_18-11-28.jpg` | Lessons & Content (`photo_2026-09-15_17-53-24.jpg` is the same image) | Built: `/lessons-content`, `pages/admin/LessonsContent.vue`  |
+| `photo_2026-09-15_18-11-10.jpg` | AI Role-play Scenarios                                                | Built: `/ai-scenarios`, `pages/admin/AiScenarios.vue`        |
 | `photo_2026-09-15_18-11-15.jpg` | Pre-test & Post-test                                                  | Not built                                                    |
-| `photo_2026-09-15_18-11-20.jpg` | Reports & Export                                                      | Not built                                                    |
+| `photo_2026-09-15_18-11-20.jpg` | Reports & Export                                                      | Built: `/reports-export`, `pages/admin/ReportsExport.vue`    |
+
+Hotels (`/hotels`), Departments (`/departments`) and Messages & Reminders (`/messages-reminders`) are also built under `pages/admin/`, but no mockup for them is in this folder. Ask the client for theirs before changing their layout further.
 
 The client's other screens (manager dashboard, employee journey, test runner…) are not in the repo yet — ask for the mockup before building any of them; do not invent their look.
 
 ### 0.6 Asset map
 
-| Public file                                                                                                                     | From (`desgin/assets/`)               | Used by                                                                       |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------- |
-| `/brand/guesvia-mark.png`, `/brand/guesvia-wordmark.png`, `/brand/guesvia-tagline.png`                                          | `guesvia-logo-original.png`           | `AppLogo` (full lockup = the three pieces; collapsed rail/mobile = mark only) |
-| `/brand/guesvia-logo.png`                                                                                                       | `guesvia-logo-original.png`           | Full lockup as one image, for surfaces outside the app shell                  |
-| `/decor/palm-island-tagline.png`                                                                                                | `palm-island-tagline-original.png`    | Sidebar footer                                                                |
-| `/decor/better-communication-header.png` (lines laid out as the dashboard mockup draws them), `/decor/better-communication.png` | `better-communication-original.png`   | `ScriptAccent`                                                                |
-| _(not processed yet)_                                                                                                           | `script-real-situations-original.png` | Topbar centre tagline in the Lessons & Content mockup                         |
+| Public file                                                                                                                     | From (`desgin/assets/`)                                     | Used by                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/brand/guesvia-mark.png`, `/brand/guesvia-wordmark.png`, `/brand/guesvia-tagline.png`                                          | `guesvia-logo-original.png`                                 | `AppLogo` (full lockup = the three pieces; collapsed rail/mobile = mark only)                                                                                                                           |
+| `/brand/guesvia-logo.png`                                                                                                       | `guesvia-logo-original.png`                                 | Full lockup as one image, for surfaces outside the app shell                                                                                                                                            |
+| `/decor/palm-island-tagline.png`                                                                                                | `palm-island-tagline-original.png`                          | Sidebar footer                                                                                                                                                                                          |
+| `/decor/better-communication-header.png` (lines laid out as the dashboard mockup draws them), `/decor/better-communication.png` | `better-communication-original.png`                         | `ScriptAccent`                                                                                                                                                                                          |
+| `/decor/script-real-situations.png`                                                                                             | `script-real-situations-original.png`                       | Topbar centre tagline in the Lessons & Content mockup (`AppTopbar`)                                                                                                                                     |
+| `/decor/ai-scenarios-mockup.jpg`, `/decor/lessons-content-mockup.jpg`, `/decor/reports-export-mockup.jpg`                       | _none: copies of the mockup screenshots in `desginphotos/`_ | Cropped into the AI Scenarios, Lessons & Content and Reports & Export screens. Not client originals, so they break §0.2 rule 6 and show bits of mockup interface; replace them with the client's photos |
 
 ---
 
@@ -214,7 +217,7 @@ Situation → Vocabulary → Useful Expressions → Listen & Repeat → Dialogue
 
 ## 2. Stack reality — read before copying anything from the spec folders
 
-The repo today is the **Laravel Vue starter kit**. Only auth and settings exist. Every domain model, controller, policy, page and migration is yours to create.
+The repo started as the **Laravel Vue starter kit**. Besides auth and settings it now has the Admin Dashboard and seven admin screens, built UI first: their controllers return hardcoded sample data. No domain model, policy or domain migration exists yet; those are yours to create.
 
 `desgin/14-laravel-vue-setup.md` §14.1 describes a **different project** and is historical — skip it. Take component _names_ from §14.2 and nothing else.
 
@@ -230,7 +233,7 @@ The repo today is the **Laravel Vue starter kit**. Only auth and settings exist.
 | `@tailwindcss/forms`, `@tailwindcss/typography`                                                                      | Not installed                                                                                                                              | Style inputs with token utilities (`desgin/11-components.md` §11.4).                                                              |
 | `chart.js`, `vue-chartjs`, `vuedraggable`                                                                            | Not installed                                                                                                                              | Hand-roll the donut and bar chart as inline SVG. Drag-and-drop: native pointer events first; propose a library before installing. |
 | `spatie/laravel-permission`, `maatwebsite/excel`, `barryvdh/laravel-dompdf`, `intervention/image`, `laravel/horizon` | None installed                                                                                                                             | Three fixed roles fit a `role` enum + Policies. CSV export can be a streamed response. **Ask before adding any of these.**        |
-| Google-Fonts `@import` in `tokens.css`                                                                               | Fonts load via `bunny(...)` in `vite.config.ts` — Instrument Sans only today                                                               | Add the four families to the `fonts: [bunny(…)]` array. No CDN `<link>`, no CSS `@import`.                                        |
+| Google-Fonts `@import` in `tokens.css`                                                                               | Fonts load via `bunny(...)` in `vite.config.ts`: Inter, Poppins, Caveat, Cairo                                                             | Keep all four in the `fonts: [bunny(…)]` array. No CDN `<link>`, no CSS `@import`.                                                |
 | Light-only palette                                                                                                   | Starter ships a **working dark mode** (`HandleAppearance`, `appearance` cookie, `useAppearance`, `AppearanceTabs`, `@custom-variant dark`) | See §3 Dark mode — open decision. Do not rip the plumbing out.                                                                    |
 | The mockups                                                                                                          | UX-08 called them a reference, not pixels                                                                                                  | **Superseded (client decision 2026-09-15): the mockups in `desginphotos/` are the pixel-exact specification — follow §0.**        |
 
@@ -286,8 +289,9 @@ Append this **immediately after** the existing `@theme inline { … }` block in 
     --color-danger-text: #b42318;
     --color-ai: #8b6bf7;
     --color-ai-tint: #f1ecfe;
-    --color-teal: #17b8c6;
-    --color-teal-tint: #e4f7fa;
+    /* The design system calls this "Teal"; named `aqua` so it never sits next to Tailwind's built in teal scale (§0.2 rule 3) */
+    --color-aqua: #17b8c6;
+    --color-aqua-tint: #e4f7fa;
     --color-gold: #f9c338;
     --color-gold-tint: #fef6dc;
     --color-excel: #1e8e5a;
@@ -416,7 +420,8 @@ Append this **immediately after** the existing `@theme inline { … }` block in 
 ```
 
 - **Gradients belong in `--background-image-*`, not plain `:root` vars** — `bg-grad-brand` compiles to `background-image: var(--background-image-grad-brand)`; a plain var would force `bg-[image:var(--grad-brand)]` at every call site. A plain `@theme` (not `@theme inline`) also emits every token into `:root`, so `var(--color-brand-300)` is usable for SVG `stroke`/`fill` in hand-rolled donuts, charts and inline SVG icons.
-- `tint-header` = table header row, `tint-track` = progress-bar track (donut track is `#edf2f9`), `tint-grid` = chart gridlines + guest dialogue bubble, `tint-step` = upcoming step circle, `tint-note` = sticky note. These are measured in `11-components.md` but missing from `tokens.css` — tokenise them, never inline the hex.
+- The live block in `resources/css/app.css` is the source of truth and holds more than this listing: `azure` / `azure-tint`, `sunset`, `tint-donut`, and the three ink tokens sampled from the approved dashboard (`ink-royal`, `ink-indigo`, `ink-slate`, §0.4).
+- `tint-header` = table header row, `tint-track` = progress-bar track, `tint-donut` = donut track (`#edf2f9`), `tint-grid` = chart gridlines + guest dialogue bubble, `tint-step` = upcoming step circle, `tint-note` = sticky note. These are measured in `11-components.md` but missing from `tokens.css` — tokenise them, never inline the hex.
 - **Never use the same suffix in both `--color-*` and `--text-*`.** With `--color-body` and `--text-body` both defined, `text-body` compiles to `color:` only and the font-size is silently dropped.
 - `--ease-out` overrides Tailwind's default easing app-wide. Four starter files use `ease-out` (`components/TextLink.vue`, `pages/settings/Profile.vue`, `pages/auth/TwoFactorChallenge.vue` ×2) and will pick up the Guesvia curve; `ui/` uses only `ease-linear`/`ease-in-out` and is unaffected. Accept that, or name it `--ease-brand` and leave `ease-out` alone.
 - `10-design-system.md` gives Success as `#2FBE7A` "(sampled `#3DC07A`)" and AI as `#8B6BF7` "(sampled `#9670FB`)". Use the primary values — `tokens.css`, `tailwind.config.js` and the master prompt in `13-design-prompts.md` all agree on them; the sampled variants appear nowhere else.
@@ -446,7 +451,7 @@ Also in `app.css`:
 - Delete `--radius-lg/md/sm: calc(var(--radius) …)` from `@theme inline` — the Guesvia ladder replaces them (6/10/14, not shadcn's −2px steps). The later `@theme` wins either way, but dead lines invite confusion.
 - Set `--font-sans: Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', …` in `@theme inline` **and** update the duplicate `--font-sans` inside `@layer utilities { body, html }` — that one overrides the theme on the body, so missing it leaves body text on Instrument Sans.
 - `@layer base` sets `body { @apply bg-background text-foreground; }`. Add `background-image: var(--background-image-grad-page); background-attachment: fixed;` for the page gradient.
-- The v3-compat rule in `@layer base` sets the default border colour to `var(--color-gray-200, currentColor)`; change it to `var(--color-line, currentColor)`. In `resources/js/app.ts` change `progress: { color: '#4B5563' }` to `'#0B5CFF'`.
+- The v3-compat rule in `@layer base` sets the default border colour to `var(--color-line, currentColor)`, and `resources/js/app.ts` sets `progress: { color: '#0B5CFF' }`. Keep both.
 - `:root` currently uses `hsl(…)`. Hex is equally valid in v4 (the `/opacity` modifier works on both), but keep one notation per token — never `hsl(#0B5CFF)`. Leave the `.dark` block alone (see Dark mode).
 
 ### Colour usage law
@@ -461,7 +466,7 @@ Also in `app.css`:
 | `warning` / `-tint` / `-text` | In-progress + Draft pills, average-progress stat, attention chips                                                                               | a button fill                                    |
 | `danger` / `-tint` / `-text`  | Not-started/Inactive pills, notification dot, "Needs Attention" header, **outline-only** destructive buttons (`Export PDF Report`, `Remove`)    | a filled button                                  |
 | `ai` `#8B6BF7`                | AI role-play charts, AI + pre-test icon chips, AI accents                                                                                       | a button fill                                    |
-| `teal` `#17B8C6`              | "Completed Lessons" chip, secondary chart series                                                                                                | a button fill                                    |
+| `aqua` `#17B8C6` ("Teal")     | "Completed Lessons" chip, secondary chart series                                                                                                | a button fill                                    |
 | `gold` `#F9C338`              | trophy, certificate, ⭐ phrasebook icon                                                                                                         | a button fill                                    |
 | `excel` `#1E8E5A`             | **the only non-brand filled button**: "Export to Excel"                                                                                         | anything else                                    |
 | `app` / `app-alt`             | page bg, section bands, table zebra                                                                                                             | card bg                                          |
@@ -490,7 +495,7 @@ Hard prohibitions: no purple, teal, amber or gold **fills** on buttons — those
 - **Page titles use `PageHeader`** (Poppins Bold 28px, −0.02em, `text-ink-royal`) with its Inter 16px `text-ink-slate` subtitle — the approved values in §0.4; never black. Card titles come from `PanelCard`.
 - **Employee learning content runs one step larger** than admin chrome: 16px body, 18–20px for vocabulary, expressions and dialogue lines; question prompts 18px, answer options 15–16px (LESSON-06, ACC-01).
 - Arabic blocks: `<p class="font-arabic leading-[1.9]" dir="rtl" lang="ar">` — and only inside Show Meaning (CTRL-01, CTRL-02, I18N-03).
-- **The fonts are not installed.** `vite.config.ts` loads `bunny('Instrument Sans', { weights: [400, 500, 600] })`. Replace that single entry; do **not** add a Google-Fonts `@import` to CSS.
+- **The four families load through `bunny(...)` in `vite.config.ts`**, with the weights and subsets below. Do **not** add a Google Fonts `@import` to CSS.
 
 ```ts
 fonts: [
@@ -530,7 +535,7 @@ fonts: [
 | Audio playing                 | `animate-pulse-ring` on the speaker button                                                      |
 | Loading                       | skeleton shimmer (`ui/skeleton`), never a blank card                                            |
 
-There is currently **no** `prefers-reduced-motion` handling anywhere in `resources/` — you must add it. Put `motion-reduce:animate-none motion-reduce:transition-none` on animated elements **and** add the global `@media (prefers-reduced-motion: reduce)` guard from `desgin/tokens.css` to `app.css`. `tw-animate-css` is installed and imported — use its `animate-in` / `fade-in` / `slide-in-from-*` utilities before writing new keyframes; anything custom goes next to `--animate-*` in `@theme`.
+`app.css` carries the global `@media (prefers-reduced-motion: reduce)` guard (ported from `desgin/tokens.css`). Still put `motion-reduce:animate-none motion-reduce:transition-none` on every animated element. `tw-animate-css` is installed and imported — use its `animate-in` / `fade-in` / `slide-in-from-*` utilities before writing new keyframes; anything custom goes next to `--animate-*` in `@theme`.
 
 ### Layout grid and breakpoints
 
@@ -671,7 +676,8 @@ resources/js/
                      proposed: admin/ manager/ employee/  (see note)
 ```
 
-- Everything under `components/shell|common|data|learning|test|roleplay|builder`, the `planned:` composables, the four new layouts and the `admin|manager|employee` page trees **do not exist yet** — this is the target shape, not the current one.
+- The tree is the target shape. Built so far: part of `shell/`, `common/` and `data/`, plus `icons/` (solid SVGs, §0.2 rule 5) and `pages/admin/`. Still to come: `learning/`, `test/`, `roleplay/`, `builder/`, the `planned:` composables, the four new layouts and the `manager/` and `employee/` page trees.
+- Pieces used by only one screen live in a folder named after that screen, with the screen name as the file prefix: `components/{dashboard,hotels,departments,employees,lessons,ai-scenarios,messages,reports}/` (e.g. `ai-scenarios/AiScenariosEditorPanel.vue`).
 - Page names are referenced lowercase from PHP, matching the existing `Inertia::render('settings/Profile')` / `Route::inertia('settings/appearance', 'settings/Appearance')`: e.g. `Inertia::render('employee/lesson/Show', [...])`.
 - The flat components are the real shell — **adapt them in place, never fork a parallel copy.** `AppSidebar.vue` gets role-aware nav lists, `AppLogo` renders the client's logo pieces from `public/brand/`, and page titles come from `shell/PageHeader.vue` (§0.4). Delete `PlaceholderPattern.vue` once real content replaces the starter dashboard.
 
@@ -733,7 +739,7 @@ Some shadcn-vue primitives pull extra npm packages (reportedly `carousel`→embl
 - Icons from `@lucide/vue` (`import { Users } from '@lucide/vue';`). `desgin/11-components.md` 11.9 and `12-assets.md` say `lucide-vue-next` — **wrong for this repo.** Spec sizing: 20px default, 22px in chips, 18px in tables, 1.75px stroke. The starter sizes icons with classes (`class="h-4 w-4"`); either that or `:size`/`:stroke-width` props is acceptable, but be consistent within a component.
 - Emit with `defineEmits<{ … }>()`; no `v-model` on a prop you did not declare.
 
-**Blocker to fix before writing any branded component.** The stock `cn()` uses plain `twMerge`, which does not know the Guesvia tokens and _silently drops classes_: `cn('text-stat', 'text-ink')` yields `text-ink` (both are parsed as text-colour), and `cn('shadow-sm', 'shadow-card')` keeps both. Register the custom scales in `resources/js/lib/utils.ts` (verified against tailwind-merge 3.7.0):
+**`cn()` knows the Guesvia tokens; keep it that way.** Plain `twMerge` does not know them and _silently drops classes_: `cn('text-stat', 'text-ink')` yields `text-ink` (both are parsed as text-colour), and `cn('shadow-sm', 'shadow-card')` keeps both. `resources/js/lib/utils.ts` registers the custom scales (verified against tailwind-merge 3.7.0); add any new text, font, radius or shadow token there too:
 
 ```ts
 import { extendTailwindMerge } from 'tailwind-merge';
@@ -741,7 +747,18 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
     extend: {
         theme: {
-            text: ['display', 'h1', 'h2', 'h3', 'stat'],
+            text: [
+                'display',
+                'h1',
+                'h2',
+                'h3',
+                'stat',
+                'body',
+                'body-sm',
+                'label',
+                'pill',
+                'script',
+            ],
             radius: ['pill'],
             shadow: ['card', 'hover', 'pop', 'btn'],
             font: ['heading', 'script', 'arabic'],
@@ -758,7 +775,7 @@ import type { HTMLAttributes } from 'vue';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'ai' | 'teal';
+type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'ai' | 'aqua';
 
 type Props = {
     value: string | number;
@@ -776,7 +793,7 @@ const chip: Record<Tone, string> = {
     warning: 'bg-warning-tint text-warning',
     danger: 'bg-danger-tint text-danger',
     ai: 'bg-ai-tint text-ai',
-    teal: 'bg-teal-tint text-teal',
+    aqua: 'bg-aqua-tint text-aqua',
 };
 
 const subTone: Record<Tone, string> = {
@@ -785,7 +802,7 @@ const subTone: Record<Tone, string> = {
     warning: 'text-warning',
     danger: 'text-danger',
     ai: 'text-ai',
-    teal: 'text-teal',
+    aqua: 'text-aqua',
 };
 </script>
 
@@ -825,8 +842,8 @@ What this encodes, and what it depends on:
 
 - `Card` ships `flex flex-col gap-6 rounded-xl border py-6 shadow-sm`. `flex-row`, `p-5` and `rounded-lg` override through `cn()`/`tailwind-merge` (verified); `rounded-lg` is **required** — without it you inherit `rounded-xl`, and the spec card is 14px, not 20px (10.3). `shadow-card` only beats `shadow-sm` once the `extendTailwindMerge` fix above is in place.
 - `size-11` = 44px icon chip, `min-h-24` = 96px minimum, `p-5` = 20px padding, `gap-4` = 16px, `duration-150` + `-translate-y-0.5` = the 150ms/2px hover lift (10.3, 10.4, 11.2).
-- `brand-*`, `ink`, `ink-muted`, `success-tint`, `shadow-card`, `shadow-hover`, `font-heading` and `text-stat` **do not exist yet** and are named to match `desgin/tailwind.config.js`. That file is a Tailwind v3 artifact and must be **translated** into the `@theme` block of `resources/css/app.css`, never copied: `colors.brand.600` → `--color-brand-600`, `colors.ink.muted` → `--color-ink-muted`, `fontSize.stat` → `--text-stat` + `--text-stat--line-height` + `--text-stat--font-weight`, `boxShadow.card` → `--shadow-card`, `borderRadius.lg` → `--radius-lg`, `fontFamily.heading` → `--font-heading`. If the design-token section of this file picks different names, rename these classes to match.
-- `app.css` today declares only `--radius-sm/md/lg` (from `--radius: 0.5rem`) and no `--radius-xl`, so `rounded-lg` is 8px and `rounded-xl` is Tailwind's default 12px. The spec needs 14px and 20px. Remap the radius scale in `@theme`; do **not** paper over it with `rounded-[14px]` in components.
+- `brand-*`, `ink`, `ink-muted`, `success-tint`, `shadow-card`, `shadow-hover`, `font-heading` and `text-stat` come from the `@theme` block of `resources/css/app.css`, a translation (never a copy) of the Tailwind v3 `desgin/tailwind.config.js`: `colors.brand.600` → `--color-brand-600`, `colors.ink.muted` → `--color-ink-muted`, `fontSize.stat` → `--text-stat` + `--text-stat--line-height` + `--text-stat--font-weight`, `boxShadow.card` → `--shadow-card`, `borderRadius.lg` → `--radius-lg`, `fontFamily.heading` → `--font-heading`.
+- `app.css` defines the Guesvia radius ladder, so `rounded-lg` is 14px and `rounded-xl` is 20px. Never paper over a radius with `rounded-[14px]` in components.
 
 ### Naming
 
@@ -839,7 +856,7 @@ What this encodes, and what it depends on:
 
 | Pattern       | Contract                                                                                                                                                                                                                                        |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StatCard`    | `#icon` slot for the lucide component; `tone` picks chip + sub-line colour (11.2: employees→brand, active/completed→success, pre-test→ai, post-test→warning, lessons→teal, inactive→danger). A mini `Donut` may be slotted into `#icon` instead |
+| `StatCard`    | `#icon` slot for the lucide component; `tone` picks chip + sub-line colour (11.2: employees→brand, active/completed→success, pre-test→ai, post-test→warning, lessons→aqua, inactive→danger). A mini `Donut` may be slotted into `#icon` instead |
 | `PanelCard`   | `title` prop + `#header` (overrides the title row), `#actions` (the "View All →" link), default slot, `#footer`                                                                                                                                 |
 | `DataTable`   | `columns` + `rows` props, `#cell-<key>` scoped slots, `#actions` per row, and a **mandatory** `#mobile-card` scoped slot — below `md` the table becomes stacked cards, never a horizontally scrolling table (11.3, RESP-01)                     |
 | `ShowMeaning` | `arabic`, `explanation`, `example`; collapsed by default (CTRL-01, CTRL-02), rendered `lang="ar" dir="rtl"` (I18N-03), and **never rendered inside the test runner** (CTRL-04, TEST-03)                                                         |
@@ -872,7 +889,7 @@ What this encodes, and what it depends on:
         return EmployeeLayout;
     ```
     Order matters — `employee/test/` must precede `employee/`. `TestLayout.vue` is a stripped shell with no sidebar and no bottom tabs, so a learner cannot wander out of a running, timed test (TEST-03, TIME-05).
-- **`auth.user.role` does not exist yet.** Shared Inertia props today are `name`, `auth.user`, `sidebarOpen`, and `resources/js/types/auth.ts` has no `role` field (the `[key: string]: unknown` index signature will type-check `auth.user.role` as `unknown` — do not rely on that). Before writing role-aware nav: add the column in a migration, expose it from `HandleInertiaRequests::share`, and add it to the `User` type.
+- **`auth.user.role` does not exist yet.** Shared Inertia props today are `name`, `auth.user`, `sidebarOpen` and `notifications.unread`, and `resources/js/types/auth.ts` has no `role` field (the `[key: string]: unknown` index signature will type-check `auth.user.role` as `unknown` — do not rely on that). Before writing role-aware nav: add the column in a migration, expose it from `HandleInertiaRequests::share`, and add it to the `User` type.
 - Role visibility in the nav is cosmetic. Every route is still authorised server-side by policy (ROLE-01, ROLE-02, SEC-01).
 
 ---
@@ -914,7 +931,7 @@ layout: (name) => {
 - To add an area: import the layout at the top of `app.ts` and insert `case name.startsWith('employee/'): return EmployeeLayout;` **before** `default`. Nested persistent layouts are an array, outermost first.
 - Admin and manager pages stay on `AppLayout` unless the nav genuinely differs; the mobile-first employee shell (bottom nav, RESP-01) does need its own layout.
 - `<Toaster />` (from `@/components/ui/sonner`) is mounted **only** in `layouts/app/AppSidebarLayout.vue` and `layouts/app/AppHeaderLayout.vue`. Any new shell (employee, test-taking) must render `<Toaster />` itself or flash toasts silently vanish.
-- `app.ts` also sets `progress: { color: '#4B5563' }` — switch it to brand-600 `#0B5CFF` (`desgin/10-design-system.md` §10.1) when the palette lands.
+- `app.ts` also sets `progress: { color: '#0B5CFF' }`, the brand-600 value (`desgin/10-design-system.md` §10.1).
 - Active-nav state: `useCurrentUrl().isCurrentOrParentUrl(href)`. Href → string: `toUrl(href)` from `@/lib/utils`; class merging: `cn()` from the same file.
 
 Pages pass props to their persistent layout through `defineOptions({ layout: { ... } })` — `breadcrumbs` for `AppLayout`, `title` / `description` for `AuthLayout` (see `pages/auth/ResetPassword.vue`):
@@ -1000,7 +1017,7 @@ import { Label } from '@/components/ui/label';
 
 ### Shared props
 
-`HandleInertiaRequests::share()` exposes only `name`, `auth.user` and `sidebarOpen`. Guesvia must add: `auth.user.role` (ROLE-01), `hotel` (id, name, days remaining — SUB-07), `department` (ORG-03), `locale` + `dir` (I18N-02), and small feature flags (AI limit reached AIL-03, pre-test gate JOURNEY-01). Keep them small — they ship on every response.
+`HandleInertiaRequests::share()` exposes `name`, `auth.user`, `sidebarOpen` and `notifications.unread` (the topbar bell count, hardcoded to 3 until a notifications table exists). Guesvia must add: `auth.user.role` (ROLE-01), `hotel` (id, name, days remaining — SUB-07), `department` (ORG-03), `locale` + `dir` (I18N-02), and small feature flags (AI limit reached AIL-03, pre-test gate JOURNEY-01). Keep them small — they ship on every response.
 
 Every new shared prop goes into the `sharedPageProps` block of the `declare module '@inertiajs/core'` augmentation in `resources/js/types/global.d.ts` (that is what types `usePage()`), with its shape in `resources/js/types/`. `User` already carries an `[key: string]: unknown` index signature, so a new field must be declared explicitly to be type-safe. Consume it the existing way:
 
@@ -1055,7 +1072,7 @@ Planned; none exist yet. Names normalised from `desgin/14-laravel-vue-setup.md` 
 - `vite.config.ts` sets `transformAssetUrls: { base: null, includeAbsolute: false }`, so template URLs are **not** rewritten. Reference public files by root-relative path — `<img src="/decor/palm-island-tagline.png" alt="" />` — and `import` an asset in `<script setup>` only when you want it hashed into the bundle.
 - CMS-uploaded media (`desgin/12-assets.md` §12.4 proposes `storage/app/public/content/{type}/{yyyy}/{mm}/`) is referenced by the URL the server sends in props; never concatenate `/storage/...` in Vue. Whether a `public` disk plus `storage:link` gets configured is still open — `FILESYSTEM_DISK` is `local` today.
 - Icons: `import { LayoutDashboard } from '@lucide/vue';`. `desgin/12-assets.md` §12.1, `11-components.md` §11.9 and `13-design-prompts.md` all say to install `lucide-vue-next` — **ignore that**; it is not installed and must not be. The §11.9 mapping still applies, but several ids were renamed in `@lucide/vue` v1 — use the canonical table in §3 (`bar-chart-3` → `ChartColumn`, `building-2` → `BuildingComplex`, `help-circle` → `CircleQuestionMark`). Type nav icons as `LucideIcon` from `@lucide/vue` (see `types/navigation.ts`).
-- Fonts today: Instrument Sans only, via `bunny('Instrument Sans', { weights: [400, 500, 600] })` inside the `laravel()` plugin. Poppins, Inter, Caveat and Cairo are **not** installed. Add them to that `fonts: [bunny(...)]` array — not with a `<link>` tag — **and** register Tailwind v4 tokens in the `@theme inline` block of `resources/css/app.css`, then update the `@layer utilities { body, html { --font-sans: … } }` override that currently pins Instrument Sans:
+- Fonts: Inter, Poppins, Caveat and Cairo (with the `arabic` subset) load through the `fonts: [bunny(...)]` array inside the `laravel()` plugin, never a `<link>` tag. `resources/css/app.css` maps them to Tailwind families, and its `@layer utilities { body, html { --font-sans: … } }` override is set to Inter.
 
 The font tokens themselves are defined once, in the `@theme` block in §3 — `--font-heading` (Poppins), `--font-script` (Caveat), `--font-arabic` (Cairo), plus `--font-sans` (Inter) in `@theme inline`. Do not declare a second, rival set here; there is **no `tailwind.config.js` in this repo** and `desgin/tailwind.config.js` must be translated into `@theme` CSS, never copied.
 
@@ -1065,7 +1082,7 @@ The font tokens themselves are defined once, in the `@theme` block in §3 — `-
 
 ### Starting point
 
-Everything under `app/` today is the Laravel Vue starter kit. Guesvia is greenfield on top of it.
+`app/` is the Laravel Vue starter kit plus `DashboardController` and seven invokable `Admin\*Controller` classes (`routes/admin.php`) that serve hardcoded sample data to the admin screens. The domain layer is greenfield on top of it.
 
 | Exists                                                                                                                              | Where                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -1075,7 +1092,7 @@ Everything under `app/` today is the Laravel Vue starter kit. Guesvia is greenfi
 | Shared validation traits                                                                                                            | `app/Concerns/PasswordValidationRules.php`, `app/Concerns/ProfileValidationRules.php`                  |
 | `users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `passkeys`, 2FA columns | `database/migrations/` — that is the complete list                                                     |
 
-Absent — build all of it: hotels, departments, courses, lessons, blocks, activities, tests, AI scenarios, attempts, phrasebook, certificates, media, reminders, AI usage, audit log, and every policy, controller and page for them. There is no `app/Enums`, `app/Policies`, `app/Jobs`, `app/Services` or `app/Contracts`; create them as needed.
+Absent — build all of it: hotels, departments, courses, lessons, blocks, activities, tests, AI scenarios, attempts, phrasebook, certificates, media, reminders, AI usage, audit log, and every policy for them. The admin controllers and pages that exist still need real queries in place of their sample arrays, and the manager and employee controllers and pages are all to build. There is no `app/Enums`, `app/Policies`, `app/Jobs`, `app/Services` or `app/Contracts`; create them as needed.
 
 Stack facts that override the spec folders: **Laravel 13 (v13.31.0 installed), PHP `^8.3`, Fortify — not Laravel 11, not Sanctum, not Breeze.** `desgin/README.md` and `desgin/13-design-prompts.md` assume "Laravel 11"; `desgin/14-laravel-vue-setup.md` 14.1 tells you to `composer require laravel/sanctum` and recommends `spatie/laravel-permission`, `maatwebsite/excel`, `barryvdh/laravel-dompdf`, `intervention/image` and `laravel/horizon`. **None of those are installed.** Propose any package before adding it.
 
@@ -1395,14 +1412,14 @@ defineProps<{ correct: boolean }>();
 </template>
 ```
 
-- `text-success` / `text-danger` / `font-arabic` and the focus-ring token do **not** exist yet — `resources/css/app.css` still ships the stock shadcn "neutral" palette. They must be added as `--color-success`, `--color-danger`, `--font-arabic` inside the `@theme` block by the design-system work; use exactly the names that section defines.
+- `text-success`, `text-danger` and `font-arabic` come from the `@theme` block in `resources/css/app.css` (§3). There is no separate focus ring token; build the ring from `brand-600` utilities as described below.
 - Icons: `@lucide/vue` (`import { Check, X, Mic, Volume2, Turtle, Languages } from '@lucide/vue';`). `desgin/11-components.md` 11.9 **and** `desgin/12-assets.md` 12.1 both tell you to install `lucide-vue-next` — **wrong for this repo, do not install it**. The icon-name mapping in 11.9 is still correct (verified: `Check`, `X`, `Mic`, `Volume2`, `Turtle`, `Languages` all export from `@lucide/vue`).
 - Employee learning content runs one step up: 16px body, 18–20px vocabulary and dialogue lines (`desgin/10-design-system.md` 10.2; rationale ACC-01).
 - Audio controls get large thumb-friendly targets specifically, beyond the 44px floor (ACC-03, CTRL-06).
 - Alt text: ACC-05 requires it on instructional images; MED-07 and `desgin/12-assets.md` 12.4 require an alt-text field on **every** upload — enforce `required` on the alt field server-side in the FormRequest. Decorative SVGs get `alt=""` + `aria-hidden="true"`.
 - Provide audio for **instructions**, not only content, wherever the admin generated it (ACC-04). Instruction strips carry the same 🔊 / 🐢 controls.
 - Visible keyboard focus everywhere: border `brand-600` + ring `0 0 0 3px rgba(11,92,255,.15)` (`desgin/11-components.md` 11.4; `--ring-focus` in `desgin/tokens.css` — that file is plain Tailwind-v3-era CSS and is **not** imported by the build, so translate the value into `@theme`, do not `@import` it). Use `focus-visible:` utilities; never `outline-none` without a replacement ring.
-- Arabic inside Show Meaning must render correctly while the surrounding UI is LTR (I18N-03): wrap the Arabic node in `<span dir="rtl" lang="ar" class="font-arabic">`, never rely on page direction. Cairo (fallback Tajawal) is the Arabic family and is **not installed** — `vite.config.ts` currently loads only `bunny('Instrument Sans', ...)`.
+- Arabic inside Show Meaning must render correctly while the surrounding UI is LTR (I18N-03): wrap the Arabic node in `<span dir="rtl" lang="ar" class="font-arabic">`, never rely on page direction. Cairo (fallback Tajawal) is the Arabic family; `vite.config.ts` loads it with the `arabic` subset.
 - Show Meaning is off by default and toggleable (CTRL-01, CTRL-02), and **disabled during Pre-test and Post-test** (CTRL-04, TEST-03).
 
 ### Performance (PERF-01..PERF-04)
@@ -1493,7 +1510,7 @@ public function test_employee_cannot_open_another_hotels_lesson()
 - [ ] Progress/answers persisted server-side on submit, idempotently, with retry on connection loss (PROG-03, PROG-04)
 - [ ] Show Meaning off by default, toggleable, disabled inside tests (CTRL-01, CTRL-02, CTRL-04)
 - [ ] Correct/incorrect conveyed by icon + text, not colour alone (ACC-02)
-- [ ] Motion gated on `motion-safe:` / `motion-reduce:` variants — reduced motion drops to opacity-only fades (`desgin/10-design-system.md` 10.4). These variants are built into Tailwind v4 and already used in `resources/js/pages/Welcome.vue`; no global reduced-motion rule exists in `resources/css/app.css`, so gate per utility.
+- [ ] Motion gated on `motion-safe:` / `motion-reduce:` variants — reduced motion drops to opacity-only fades (`desgin/10-design-system.md` 10.4). These variants are built into Tailwind v4 and already used in `resources/js/pages/Welcome.vue`. `resources/css/app.css` also has a global reduced motion guard; still gate each animated element per utility.
 - [ ] Keyboard focus visible on every control using the brand focus ring
 - [ ] Every image has meaningful `alt`, or `alt="" aria-hidden="true"` if decorative
 - [ ] Arabic inside Show Meaning carries `dir="rtl" lang="ar"` and the Arabic font
@@ -1621,7 +1638,7 @@ public function test_employee_cannot_open_a_lesson_from_another_hotel()
 2. **Check `desgin/11-components.md`** before inventing UI — every mockup component is measured there. If nothing fits, say so explicitly when you create a new one.
 3. **Reuse in order:** shadcn `ui/` primitive → existing Guesvia component → new component.
 4. **Server side first:** migration + model (+ factory) → Policy scoped on `hotel_id`/`department_id` (ROLE-02) → FormRequest (shared rules go in an `app/Concerns/*ValidationRules.php` trait) → controller in `app/Http/Controllers/**` → routes. `bootstrap/app.php` registers only `routes/web.php` and `routes/console.php`; `routes/settings.php` is `require`d from `web.php`, so **a new route file must be `require`d there too**. There is no `routes/api.php` (though `withExceptions` already renders JSON for `api/*`) — adding one means registering it. Then the **feature test, including the cross-tenant 403**.
-5. **Then the page.** `Inertia::render('employee/Lesson', [...])` with a lowercase path segment; route helpers from `@/routes/<group>`, form actions from `@/actions/App/Http/Controllers/…`; submit with the Inertia v3 `<Form v-bind="Controller.method.form()" v-slot="{ errors, processing }">`; breadcrumbs via `defineOptions({ layout: { breadcrumbs: [...] } })`; flash with `Inertia::flash('toast', ['type' => 'success', 'message' => __('…')])` (picked up by `resources/js/lib/flashToast.ts`). Shared props available today are only `name`, `auth.user`, `sidebarOpen`.
+5. **Then the page.** `Inertia::render('employee/Lesson', [...])` with a lowercase path segment; route helpers from `@/routes/<group>`, form actions from `@/actions/App/Http/Controllers/…`; submit with the Inertia v3 `<Form v-bind="Controller.method.form()" v-slot="{ errors, processing }">`; breadcrumbs via `defineOptions({ layout: { breadcrumbs: [...] } })`; flash with `Inertia::flash('toast', ['type' => 'success', 'message' => __('…')])` (picked up by `resources/js/lib/flashToast.ts`). Shared props available today are only `name`, `auth.user`, `sidebarOpen` and `notifications.unread`.
 6. **Verify at 390px** — no horizontal scroll, tap targets ≥44px, tables collapsed to cards (RESP-01, ACC-03, `desgin/11-components.md` 11.10). Then check dark mode still renders.
 7. **Run `composer ci:check`** and fix everything.
 8. **Report which requirement IDs are satisfied**, and which parts are not.
@@ -1707,3 +1724,13 @@ Never hard-code an answer to any of these; make it configuration and flag it.
 - **PhD cohort** — is the mandatory-email rule cohort-only or platform-wide (AUTH-05).
 - **Phasing** — which features the first usable study version must include.
 - **Mockups** — six admin screens are in `desginphotos/` (index §0.5); ask for the remaining client screens (manager, employee, test runner…) before building them (8.1 #18).
+
+---
+
+## Build approach
+
+<TBD, set by /scope>
+
+## Specs
+
+Build specs are stored in `docs/specs/` as `docs/specs/NNNN-title.md` and written by `/architect`. The feature scope lives in `docs/scope/` and is written by `/scope`. Cite the requirement IDs from `system/` inside both.

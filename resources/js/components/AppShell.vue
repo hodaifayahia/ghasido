@@ -18,7 +18,8 @@ const isOpen = usePage().props.sidebarOpen;
     <div v-if="variant === 'header'" class="flex min-h-screen w-full flex-col">
         <slot />
     </div>
-    <!-- 200px sidebar / 72px collapsed icon rail — desgin/10-design-system.md
+    <!-- 280px sidebar / 72px collapsed icon rail — the expanded width is
+         configured by the Guesvia shell token in app.css.
          §10.5. shadcn defaults are 16rem/3rem; override here rather than in the
          vendored components/ui/sidebar files. -->
     <SidebarProvider

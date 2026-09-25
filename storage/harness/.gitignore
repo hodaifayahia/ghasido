@@ -1,0 +1,6 @@
+*
+!.gitignore
+!serve.sh
+!shoot.mjs
+!compare.py
+!README.md

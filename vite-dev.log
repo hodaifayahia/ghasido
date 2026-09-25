@@ -1,0 +1,8 @@
+
+> dev
+> vp dev
+
+Inertia SSR dev endpoint: /__inertia_ssr
+6:10:20 AM [vite+] vite.config.ts changed, restarting server...
+Inertia SSR dev endpoint: /__inertia_ssr
+Killed

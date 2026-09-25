@@ -1,24 +1,29 @@
 <?php
 
-use App\Http\Controllers\Admin\HotelsController;
-use App\Http\Controllers\Admin\AiScenariosController;
-use App\Http\Controllers\Admin\DepartmentsController;
-use App\Http\Controllers\Admin\EmployeesController;
-use App\Http\Controllers\Admin\LessonsContentController;
-use App\Http\Controllers\Admin\MessagesRemindersController;
-use App\Http\Controllers\Admin\ReportsExportController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('hotels', HotelsController::class)->name('hotels');
-    Route::get('departments', DepartmentsController::class)->name('departments');
-    Route::get('ai-scenarios', AiScenariosController::class)
-        ->name('ai-scenarios');
-    Route::get('employees', EmployeesController::class)->name('employees');
-    Route::get('lessons-content', LessonsContentController::class)
-        ->name('lessons-content');
-    Route::get('messages-reminders', MessagesRemindersController::class)
-        ->name('messages-reminders');
-    Route::get('reports-export', ReportsExportController::class)
-        ->name('reports-export');
+/*
+ * Every admin screen is guarded by the capability it needs, on the server
+ * (ROLE-01, SEC-01, spec 0001). Lacking it is a 403, never a redirect and
+ * never a 404, so a blocked user can tell a boundary from a broken link.
+ *
+ * The middleware argument comes from App\Enums\Permission, never a bare
+ * string, so a typo fails static analysis instead of surfacing as a silent
+ * 403 (spec 0001, invariant 5).
+ *
+ * One file per screen (spec 0003, Part D): each screen's routes live in
+ * routes/admin/<screen>.php so the screens can be built independently.
+ */
+Route::middleware('auth')->group(function () {
+    require __DIR__.'/admin/hotels.php';
+    require __DIR__.'/admin/subscriptions.php';
+    require __DIR__.'/admin/departments.php';
+    require __DIR__.'/admin/employees.php';
+    require __DIR__.'/admin/lessons.php';
+    require __DIR__.'/admin/ai-scenarios.php';
+    require __DIR__.'/admin/tests.php';
+    require __DIR__.'/admin/tts.php';
+    require __DIR__.'/admin/messages.php';
+    require __DIR__.'/admin/reports.php';
+    require __DIR__.'/admin/roles.php';
 });

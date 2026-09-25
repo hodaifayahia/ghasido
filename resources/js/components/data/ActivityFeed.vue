@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     BookOpen,
@@ -10,8 +11,8 @@ import {
 } from '@lucide/vue';
 import type { Component, HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
+import { reportsExport } from '@/routes';
 import type { ActivityType, RecentActivity } from '@/types';
 
 type Props = {
@@ -85,17 +86,17 @@ function detailParts(details: string): string[] {
         </template>
 
         <template #actions>
-            <button
-                type="button"
+            <!-- The full activity log lives on Reports & Export (REP-01). -->
+            <Link
+                :href="reportsExport()"
                 class="text-brand-800 ease-brand hover:text-brand-600 focus-visible:ring-brand-600/40 -me-1 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm px-1 text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none md:min-h-7"
-                @click="notifyComingSoon('Recent activity')"
             >
                 View All
                 <ArrowRight
                     class="size-3.5 rtl:-scale-x-100"
                     aria-hidden="true"
                 />
-            </button>
+            </Link>
         </template>
 
         <!-- md and up: the mockup's four-column table -->

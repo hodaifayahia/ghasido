@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Http\Requests\Admin\Tests;
+
+use App\Enums\Permission;
+use App\Enums\ResultsVisibility;
+use App\Enums\TestType;
+use App\Models\Test;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+/**
+ * Save the editable assessment settings (TEST-04, TSTM-02).
+ */
+class UpdateTestRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        $test = $this->route('test');
+
+        return $test instanceof Test && ($this->user()?->can(Permission::TestsManage->value) ?? false);
+    }
+
+    /**
+     * @return array<string, list<mixed>>
+     */
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:120'],
+            'type' => ['required', Rule::enum(TestType::class)],
+            'department_id' => ['required', 'integer', Rule::exists('departments', 'id')],
+            'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
+            'description' => ['nullable', 'string', 'max:300'],
+            'time_limit_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
+            'question_count' => ['nullable', 'integer', 'min:0', 'max:500'],
+            'shuffle_questions' => ['sometimes', 'boolean'],
+            'shuffle_options' => ['sometimes', 'boolean'],
+            'single_attempt' => ['sometimes', 'boolean'],
+            'results_visibility' => ['required', Rule::enum(ResultsVisibility::class)],
+            'show_answers' => ['sometimes', 'boolean'],
+            'motivational_message' => ['sometimes', 'boolean'],
+            'pass_mark' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'status' => ['sometimes', Rule::in(['draft', 'published'])],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function testData(): array
+    {
+        $validated = $this->validated();
+        $minutes = $validated['time_limit_minutes'] ?? null;
+
+        $validated['type'] = TestType::from((string) $validated['type']);
+        $validated['department_id'] = (int) $validated['department_id'];
+        $validated['hotel_id'] = $this->filled('hotel_id') ? (int) $validated['hotel_id'] : null;
+        $validated['title'] = trim((string) $validated['title']);
+        $validated['time_limit_seconds'] = $minutes === null || (int) $minutes === 0 ? null : (int) $minutes * 60;
+        $validated['intro'] = [
+            'description' => trim((string) ($validated['description'] ?? '')),
+        ];
+
+        $validated['settings'] = [
+            'time_limit_seconds' => $validated['time_limit_seconds'],
+            'shuffle_questions' => (bool) ($validated['shuffle_questions'] ?? false),
+            'shuffle_options' => (bool) ($validated['shuffle_options'] ?? false),
+            'single_attempt' => (bool) ($validated['single_attempt'] ?? false),
+            'results_visibility' => (string) $validated['results_visibility'],
+            'show_answers' => (bool) ($validated['show_answers'] ?? false),
+            'motivational_message' => (bool) ($validated['motivational_message'] ?? false),
+            'pass_score' => $validated['pass_mark'] === null ? null : (float) $validated['pass_mark'],
+            'on_timeout' => 'submit',
+        ];
+
+        unset(
+            $validated['description'],
+            $validated['time_limit_minutes'],
+            $validated['question_count'],
+            $validated['shuffle_questions'],
+            $validated['shuffle_options'],
+            $validated['single_attempt'],
+            $validated['results_visibility'],
+            $validated['show_answers'],
+            $validated['motivational_message'],
+            $validated['pass_mark'],
+            $validated['time_limit_seconds'],
+        );
+
+        return $validated;
+    }
+}

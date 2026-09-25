@@ -16,7 +16,11 @@ class HandleAppearance
      */
     public function handle(Request $request, Closure $next): Response
     {
-        View::share('appearance', $request->cookie('appearance') ?? 'system');
+        // Guesvia has a light-only design system (AGENTS.md §3), so the app
+        // must not follow the OS dark preference. Default to light; the
+        // appearance toggle still honours an explicit dark choice on the
+        // starter's auth/settings screens.
+        View::share('appearance', $request->cookie('appearance') ?? 'light');
 
         return $next($request);
     }

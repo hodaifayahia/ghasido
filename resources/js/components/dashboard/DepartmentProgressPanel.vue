@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ArrowRight } from '@lucide/vue';
 import { computed } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
 import type { ProgressTone } from '@/components/data/ProgressBar.vue';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
+import { reportsExport } from '@/routes';
 import type { DepartmentProgress } from '@/types';
 
 type Props = {
@@ -37,10 +38,10 @@ function toneFor(percent: number): ProgressTone {
         body-class="mt-0"
     >
         <template #actions>
-            <button
-                type="button"
+            <!-- The per-department figures live on Reports & Export. -->
+            <Link
+                :href="reportsExport()"
                 class="text-brand-700 hover:text-brand-600 focus-visible:ring-brand-600/40 relative -mx-1 mb-1 inline-flex shrink-0 items-center gap-1 rounded-sm px-1 text-[12px] font-medium tracking-tight transition-colors before:absolute before:-inset-x-2 before:-inset-y-3 focus-visible:ring-2 focus-visible:outline-none md:before:hidden"
-                @click="notifyComingSoon('Department progress')"
             >
                 View Details
                 <ArrowRight
@@ -48,7 +49,7 @@ function toneFor(percent: number): ProgressTone {
                     :stroke-width="2.25"
                     aria-hidden="true"
                 />
-            </button>
+            </Link>
         </template>
 
         <ul class="grid grid-cols-[max-content_minmax(0,1fr)_auto]">

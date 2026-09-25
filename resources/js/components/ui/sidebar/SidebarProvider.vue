@@ -2,7 +2,7 @@
 import type { HTMLAttributes, Ref } from "vue"
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core"
 import { TooltipProvider } from "reka-ui"
-import { computed, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { provideSidebarContext, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./utils"
 
@@ -19,7 +19,17 @@ const emits = defineEmits<{
   "update:open": [open: boolean]
 }>()
 
-const isMobile = useMediaQuery("(max-width: 768px)")
+const mediaIsMobile = useMediaQuery("(max-width: 768px)")
+const hydrated = ref(false)
+
+// The server has no viewport. Keep the desktop branch during hydration so a
+// phone does not produce a Vue hydration mismatch, then switch to the mobile
+// sheet on mount. The CSS remains mobile-first while the client settles.
+onMounted(() => {
+  hydrated.value = true
+})
+
+const isMobile = computed(() => hydrated.value && mediaIsMobile.value)
 const openMobile = ref(false)
 
 const open = useVModel(props, "open", emits, {

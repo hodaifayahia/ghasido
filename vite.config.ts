@@ -6,6 +6,9 @@ import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
+const vitePort = Number(process.env.VITE_PORT ?? 5173);
+const vitePublicHost = '127.0.0.1';
+
 export default defineConfig({
     plugins: lazyPlugins(() => [
         laravel({
@@ -43,6 +46,17 @@ export default defineConfig({
         }),
     ]),
     server: {
+        // The server binds inside Sail, while the browser reaches it through
+        // the published Windows loopback port. `localhost` resolves to `::1`
+        // on some Windows setups, and WSL can accept then drop those IPv6
+        // requests. Advertise an IPv4 loopback origin instead.
+        host: '0.0.0.0',
+        port: vitePort,
+        strictPort: true,
+        origin: `http://${vitePublicHost}:${vitePort}`,
+        hmr: {
+            host: vitePublicHost,
+        },
         watch: {
             ignored: [
                 '**/.agents/**',

@@ -2,16 +2,26 @@
 import {
     ChevronLeft,
     ChevronRight,
-    EllipsisVertical,
     Eye,
     Pencil,
     RotateCcw,
     Search,
     Users,
 } from '@lucide/vue';
+import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
+import HotelRowActions from '@/components/hotels/HotelRowActions.vue';
+import {
+    capacityText,
+    capacityTone,
+    progressTone,
+    seatPercent,
+    statusText,
+    statusTone,
+} from '@/components/hotels/hotelStatus';
+import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,59 +31,75 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
 import type {
-    HotelCapacityState,
-    HotelContractStatus,
     HotelFilters,
     HotelPagination,
     HotelRecord,
+    HotelRowAction,
 } from '@/types';
 
 type Props = {
     filters: HotelFilters;
     hotels: HotelRecord[];
     pagination: HotelPagination;
+    /** True while a partial reload is in flight, for the skeleton rows. */
+    loading?: boolean;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { loading: false });
+
+export type HotelFilterValues = {
+    search: string;
+    status: string;
+    capacity: string;
+};
+
+const emit = defineEmits<{
+    /** Search or a filter changed: the caller reloads page 1 (AC-11). */
+    filter: [values: HotelFilterValues];
+    page: [page: number];
+    action: [action: HotelRowAction, hotel: HotelRecord];
+}>();
+
+const { can } = useCan();
+const canManage = can('hotels.manage');
 
 const search = ref(props.filters.search);
 const status = ref(props.filters.status);
 const capacity = ref(props.filters.capacity);
 
-const statusText: Record<HotelContractStatus, string> = {
-    active: 'Active',
-    expiring: 'Expiring Soon',
-    paused: 'Paused',
-    ended: 'Ended',
-};
+// The server is the source of truth for the filters; keep the controls in
+// step when it answers (a Reset, a back button, a shared link).
+watch(
+    () => props.filters,
+    (filters) => {
+        search.value = filters.search;
+        status.value = filters.status;
+        capacity.value = filters.capacity;
+    },
+    { deep: true },
+);
 
-const statusTone: Record<HotelContractStatus, string> = {
-    active: 'bg-success-tint text-success-text',
-    expiring: 'bg-warning-tint text-warning-text',
-    paused: 'bg-brand-100/70 text-brand-700',
-    ended: 'bg-danger-tint text-danger-text',
-};
+function current(): HotelFilterValues {
+    return {
+        search: search.value,
+        status: status.value,
+        capacity: capacity.value,
+    };
+}
 
-const capacityText: Record<HotelCapacityState, string> = {
-    available: 'Seats Available',
-    full: 'At Capacity',
-    over: 'Over Quota',
-};
-
-const capacityTone: Record<HotelCapacityState, string> = {
-    available: 'bg-brand-100/65 text-brand-700',
-    full: 'bg-warning-tint text-warning-text',
-    over: 'bg-danger-tint text-danger-text',
-};
-
-const progressTone: Record<HotelCapacityState, 'brand' | 'warning'> = {
-    available: 'brand',
-    full: 'warning',
-    over: 'warning',
-};
+// Debounced so a keystroke does not repaint the page (AC-11, directory
+// child, Watch out for).
+watchDebounced(
+    search,
+    (value) => {
+        if (value !== props.filters.search) {
+            emit('filter', current());
+        }
+    },
+    { debounce: 300 },
+);
 
 function onSelect(target: 'status' | 'capacity', value: AcceptableValue): void {
     if (typeof value !== 'string') {
@@ -82,27 +108,18 @@ function onSelect(target: 'status' | 'capacity', value: AcceptableValue): void {
 
     if (target === 'status') {
         status.value = value;
-        return;
+    } else {
+        capacity.value = value;
     }
 
-    capacity.value = value;
+    emit('filter', current());
 }
 
 function resetFilters(): void {
-    search.value = props.filters.search;
-    status.value = props.filters.status;
-    capacity.value = props.filters.capacity;
-}
-
-function seatPercent(hotel: HotelRecord): number {
-    if (hotel.totalSeats === 0) {
-        return 0;
-    }
-
-    return Math.min(
-        100,
-        Math.round((hotel.usedSeats / hotel.totalSeats) * 100),
-    );
+    search.value = '';
+    status.value = 'all-statuses';
+    capacity.value = 'all-capacities';
+    emit('filter', current());
 }
 
 function daysLabel(hotel: HotelRecord): string {
@@ -114,8 +131,17 @@ function daysLabel(hotel: HotelRecord): string {
         return 'Ended';
     }
 
-    return `${hotel.daysRemaining ?? 0} days`;
+    if (hotel.daysRemaining === null) {
+        return '—';
+    }
+
+    return `${hotel.daysRemaining} days`;
 }
+
+const iconButton =
+    'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
+
+const skeletonRows = [0, 1, 2, 3, 4, 5];
 </script>
 
 <template>
@@ -133,6 +159,8 @@ function daysLabel(hotel: HotelRecord): string {
                     v-model="search"
                     type="search"
                     placeholder="Search by hotel, manager or city..."
+                    aria-label="Search hotels"
+                    data-test="hotels-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
@@ -143,6 +171,8 @@ function daysLabel(hotel: HotelRecord): string {
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by status"
+                        data-test="hotels-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -164,6 +194,8 @@ function daysLabel(hotel: HotelRecord): string {
                     @update:model-value="onSelect('capacity', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by seat state"
+                        data-test="hotels-capacity-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -184,6 +216,7 @@ function daysLabel(hotel: HotelRecord): string {
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-9 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
+                    data-test="reset-hotel-filters-button"
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
@@ -192,7 +225,10 @@ function daysLabel(hotel: HotelRecord): string {
             </div>
         </div>
 
-        <div class="border-line/80 mt-2.5 overflow-hidden rounded-lg border">
+        <div
+            class="border-line/80 mt-2.5 overflow-hidden rounded-lg border"
+            :aria-busy="loading || undefined"
+        >
             <div class="hidden overflow-x-auto md:block">
                 <table
                     class="min-w-full table-fixed border-collapse text-start"
@@ -230,8 +266,56 @@ function daysLabel(hotel: HotelRecord): string {
                         </tr>
                     </thead>
                     <tbody class="bg-surface text-ink text-[12.5px]">
+                        <template v-if="loading && hotels.length === 0">
+                            <tr
+                                v-for="row in skeletonRows"
+                                :key="row"
+                                class="border-line/80 border-t"
+                            >
+                                <td
+                                    v-for="cell in 10"
+                                    :key="cell"
+                                    class="px-2 py-[11px]"
+                                >
+                                    <div
+                                        class="bg-tint-track h-3.5 animate-pulse rounded-sm motion-reduce:animate-none"
+                                    />
+                                </td>
+                            </tr>
+                        </template>
+
+                        <tr
+                            v-else-if="hotels.length === 0"
+                            class="border-line/80 border-t"
+                        >
+                            <td colspan="10" class="px-4 py-10 text-center">
+                                <p
+                                    class="font-heading text-brand-900 text-[14px] font-semibold"
+                                >
+                                    No hotels match these filters
+                                </p>
+                                <p class="text-ink-slate mt-1 text-[12.5px]">
+                                    Try another search, or clear the filters to
+                                    see the whole portfolio.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-brand-700 hover:bg-brand-50 mt-3 h-9 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
+                                    @click="resetFilters"
+                                >
+                                    <RotateCcw
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    Clear filters
+                                </Button>
+                            </td>
+                        </tr>
+
                         <tr
                             v-for="hotelItem in hotels"
+                            v-else
                             :key="hotelItem.id"
                             class="border-line/80 hover:bg-brand-50/35 border-t"
                         >
@@ -285,7 +369,12 @@ function daysLabel(hotel: HotelRecord): string {
                                         }}
                                     </span>
                                     <ProgressBar
-                                        :value="seatPercent(hotelItem)"
+                                        :value="
+                                            seatPercent(
+                                                hotelItem.usedSeats,
+                                                hotelItem.totalSeats,
+                                            )
+                                        "
                                         :tone="
                                             progressTone[
                                                 hotelItem.capacityState
@@ -322,12 +411,11 @@ function daysLabel(hotel: HotelRecord): string {
                                 <div class="flex items-center gap-1.5">
                                     <button
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`View ${hotelItem.name}`"
+                                        :data-test="`hotel-${hotelItem.id}-view-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${hotelItem.name} details`,
-                                            )
+                                            emit('action', 'view', hotelItem)
                                         "
                                     >
                                         <Eye
@@ -336,13 +424,16 @@ function daysLabel(hotel: HotelRecord): string {
                                         />
                                     </button>
                                     <button
+                                        v-if="
+                                            canManage &&
+                                            hotelItem.accessState !== 'archived'
+                                        "
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`Edit ${hotelItem.name}`"
+                                        :data-test="`hotel-${hotelItem.id}-edit-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${hotelItem.name} settings`,
-                                            )
+                                            emit('action', 'edit', hotelItem)
                                         "
                                     >
                                         <Pencil
@@ -351,13 +442,16 @@ function daysLabel(hotel: HotelRecord): string {
                                         />
                                     </button>
                                     <button
+                                        v-if="
+                                            canManage &&
+                                            hotelItem.accessState !== 'archived'
+                                        "
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`Manage seats for ${hotelItem.name}`"
+                                        :data-test="`hotel-${hotelItem.id}-seats-button`"
                                         @click="
-                                            notifyComingSoon(
-                                                `${hotelItem.name} seat quotas`,
-                                            )
+                                            emit('action', 'seats', hotelItem)
                                         "
                                     >
                                         <Users
@@ -365,21 +459,13 @@ function daysLabel(hotel: HotelRecord): string {
                                             aria-hidden="true"
                                         />
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
-                                        :aria-label="`More actions for ${hotelItem.name}`"
-                                        @click="
-                                            notifyComingSoon(
-                                                `${hotelItem.name} actions`,
-                                            )
+                                    <HotelRowActions
+                                        :hotel="hotelItem"
+                                        size="table"
+                                        @select="
+                                            emit('action', $event, hotelItem)
                                         "
-                                    >
-                                        <EllipsisVertical
-                                            class="size-3"
-                                            aria-hidden="true"
-                                        />
-                                    </button>
+                                    />
                                 </div>
                             </td>
                         </tr>
@@ -388,6 +474,28 @@ function daysLabel(hotel: HotelRecord): string {
             </div>
 
             <ul class="divide-line divide-y md:hidden">
+                <li
+                    v-if="hotels.length === 0"
+                    class="bg-surface px-4 py-10 text-center"
+                >
+                    <p
+                        class="font-heading text-brand-900 text-[15px] font-semibold"
+                    >
+                        No hotels match these filters
+                    </p>
+                    <p class="text-ink-slate mt-1 text-[13px]">
+                        Try another search, or clear the filters.
+                    </p>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 mt-3 h-10 gap-1.5 rounded-md px-3 text-[13px] font-semibold shadow-none"
+                        @click="resetFilters"
+                    >
+                        <RotateCcw class="size-3.5" aria-hidden="true" />
+                        Clear filters
+                    </Button>
+                </li>
                 <li
                     v-for="hotelItem in hotels"
                     :key="hotelItem.id"
@@ -452,7 +560,12 @@ function daysLabel(hotel: HotelRecord): string {
                             {{ hotelItem.usedSeats }}/{{ hotelItem.totalSeats }}
                         </span>
                         <ProgressBar
-                            :value="seatPercent(hotelItem)"
+                            :value="
+                                seatPercent(
+                                    hotelItem.usedSeats,
+                                    hotelItem.totalSeats,
+                                )
+                            "
                             :tone="progressTone[hotelItem.capacityState]"
                             :label="`${hotelItem.name} seats used`"
                             class="h-2 flex-1"
@@ -474,43 +587,29 @@ function daysLabel(hotel: HotelRecord): string {
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
+                                :class="cn(iconButton, 'size-9')"
                                 :aria-label="`View ${hotelItem.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${hotelItem.name} details`,
-                                    )
-                                "
+                                @click="emit('action', 'view', hotelItem)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
                             </button>
                             <button
-                                type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
-                                :aria-label="`Edit ${hotelItem.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${hotelItem.name} settings`,
-                                    )
+                                v-if="
+                                    canManage &&
+                                    hotelItem.accessState !== 'archived'
                                 "
+                                type="button"
+                                :class="cn(iconButton, 'size-9')"
+                                :aria-label="`Edit ${hotelItem.name}`"
+                                @click="emit('action', 'edit', hotelItem)"
                             >
                                 <Pencil class="size-4" aria-hidden="true" />
                             </button>
-                            <button
-                                type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
-                                :aria-label="`More actions for ${hotelItem.name}`"
-                                @click="
-                                    notifyComingSoon(
-                                        `${hotelItem.name} actions`,
-                                    )
-                                "
-                            >
-                                <EllipsisVertical
-                                    class="size-4"
-                                    aria-hidden="true"
-                                />
-                            </button>
+                            <HotelRowActions
+                                :hotel="hotelItem"
+                                size="card"
+                                @select="emit('action', $event, hotelItem)"
+                            />
                         </div>
                     </div>
                 </li>
@@ -531,7 +630,9 @@ function daysLabel(hotel: HotelRecord): string {
             >
                 <button
                     type="button"
-                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2"
+                    :disabled="pagination.currentPage <= 1"
+                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
+                    @click="emit('page', pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
                     Previous
@@ -547,6 +648,9 @@ function daysLabel(hotel: HotelRecord): string {
                     <button
                         v-else
                         type="button"
+                        :aria-current="
+                            page === pagination.currentPage ? 'page' : undefined
+                        "
                         :class="
                             cn(
                                 'inline-flex size-8 items-center justify-center rounded-md border text-[12.5px] font-semibold',
@@ -555,6 +659,7 @@ function daysLabel(hotel: HotelRecord): string {
                                     : 'border-line text-brand-800 hover:bg-brand-50 bg-surface',
                             )
                         "
+                        @click="emit('page', page)"
                     >
                         {{ page }}
                     </button>
@@ -562,7 +667,9 @@ function daysLabel(hotel: HotelRecord): string {
 
                 <button
                     type="button"
-                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold"
+                    :disabled="pagination.currentPage >= pagination.lastPage"
+                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    @click="emit('page', pagination.currentPage + 1)"
                 >
                     Next
                     <ChevronRight class="size-3.5" aria-hidden="true" />

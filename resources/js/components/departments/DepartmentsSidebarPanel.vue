@@ -2,7 +2,6 @@
 import {
     BookOpen,
     Bot,
-    Check,
     ClipboardCheck,
     Plus,
     Settings,
@@ -14,8 +13,8 @@ import PanelCard from '@/components/common/PanelCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
 import SolidBuildingIcon from '@/components/icons/SolidBuildingIcon.vue';
 import SolidUsersGroupIcon from '@/components/icons/SolidUsersGroupIcon.vue';
+import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
 import type {
     DepartmentOverview,
@@ -24,11 +23,22 @@ import type {
 } from '@/types';
 
 type Props = {
-    overview: DepartmentOverview;
+    /** Null when the directory has no row to show. */
+    overview: DepartmentOverview | null;
     class?: HTMLAttributes['class'];
 };
 
 const props = defineProps<Props>();
+
+/** The Quick Actions panel asks the page to act on the selected row. */
+export type DepartmentQuickAction = 'create' | 'hotels' | 'content' | 'edit';
+
+const emit = defineEmits<{
+    quick: [action: DepartmentQuickAction];
+}>();
+
+const { can } = useCan();
+const canManage = can('departments.manage');
 
 const statusText: Record<DepartmentStatus, string> = {
     active: 'Active',
@@ -60,27 +70,53 @@ const quotaPillTone: Record<DepartmentQuotaState, string> = {
     over: 'bg-danger-tint text-danger-text',
 };
 
-const usedSeats = computed(() =>
-    props.overview.assignments.reduce(
-        (sum, assignment) => sum + assignment.usedSeats,
-        0,
-    ),
-);
+const pillText = computed(() => {
+    const overview = props.overview;
 
-const totalSeats = computed(() =>
-    props.overview.assignments.reduce(
-        (sum, assignment) => sum + assignment.totalSeats,
-        0,
-    ),
-);
+    if (overview === null) {
+        return '';
+    }
+
+    return overview.isActive ? statusText[overview.status] : 'Archived';
+});
+
+const pillTone = computed(() => {
+    const overview = props.overview;
+
+    if (overview === null) {
+        return '';
+    }
+
+    return overview.isActive
+        ? statusTone[overview.status]
+        : 'bg-tint-grid text-ink-muted';
+});
+
+const usedSeats = computed(() => props.overview?.usedSeats ?? 0);
+
+const totalSeats = computed(() => props.overview?.totalSeats ?? 0);
 
 const occupancy = computed(() => {
     if (totalSeats.value === 0) {
         return 0;
     }
 
-    return Math.round((usedSeats.value / totalSeats.value) * 100);
+    return Math.min(
+        100,
+        Math.round((usedSeats.value / totalSeats.value) * 100),
+    );
 });
+
+function assignmentPercent(used: number, total: number): number {
+    if (total === 0) {
+        return 0;
+    }
+
+    return Math.min(100, Math.round((used / total) * 100));
+}
+
+const outlineButton =
+    'border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold shadow-none';
 </script>
 
 <template>
@@ -101,139 +137,180 @@ const occupancy = computed(() => {
                 </div>
             </template>
 
-            <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <p
-                        class="font-heading text-brand-900 text-[17px] leading-6 font-semibold"
-                    >
-                        {{ overview.name }}
-                    </p>
-                    <p class="text-ink-slate mt-0.5 text-[12.5px] leading-5">
-                        {{ overview.scopeLabel }}
-                    </p>
-                </div>
-
-                <span
-                    :class="
-                        cn(
-                            'rounded-pill inline-flex min-h-6 min-w-[90px] items-center justify-center px-2.5 text-[11px] font-semibold whitespace-nowrap',
-                            statusTone[overview.status],
-                        )
-                    "
-                >
-                    {{ statusText[overview.status] }}
-                </span>
-            </div>
-
             <div
-                class="border-brand-100 bg-brand-50/60 text-ink-muted rounded-lg border p-3 text-[12.5px] leading-5"
+                v-if="overview === null"
+                class="border-line/80 rounded-lg border border-dashed px-4 py-8 text-center"
+                data-test="department-overview-empty"
             >
-                {{ overview.focus }}
+                <p
+                    class="font-heading text-brand-900 text-[14px] font-semibold"
+                >
+                    No department selected
+                </p>
+                <p class="text-ink-slate mt-1 text-[12.5px] leading-5">
+                    Nothing matches the current filters. Clear them, or create a
+                    department to see its overview here.
+                </p>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-                <div class="bg-tint-header rounded-md px-3 py-2.5 text-center">
-                    <p
-                        class="font-heading text-brand-800 text-[18px] font-semibold"
-                    >
-                        {{ overview.hotelCount }}
-                    </p>
-                    <p class="text-ink-slate text-[11px] leading-4">Hotels</p>
-                </div>
-                <div class="bg-tint-header rounded-md px-3 py-2.5 text-center">
-                    <p
-                        class="font-heading text-brand-800 text-[18px] font-semibold"
-                    >
-                        {{ overview.employeeCount }}
-                    </p>
-                    <p class="text-ink-slate text-[11px] leading-4">
-                        Employees
-                    </p>
-                </div>
-                <div class="bg-tint-header rounded-md px-3 py-2.5 text-center">
-                    <p
-                        class="font-heading text-brand-800 text-[18px] font-semibold"
-                    >
-                        {{ overview.lessonCount }}
-                    </p>
-                    <p class="text-ink-slate text-[11px] leading-4">Lessons</p>
-                </div>
-                <div class="bg-tint-header rounded-md px-3 py-2.5 text-center">
-                    <p
-                        class="font-heading text-brand-800 text-[18px] font-semibold"
-                    >
-                        {{ overview.scenarioCount }}
-                    </p>
-                    <p class="text-ink-slate text-[11px] leading-4">
-                        AI Scenarios
-                    </p>
-                </div>
-            </div>
-
-            <div class="border-line/80 bg-surface rounded-lg border px-3 py-3">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
+            <template v-else>
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
                         <p
-                            class="font-heading text-brand-800 text-[13px] font-semibold"
+                            class="font-heading text-brand-900 text-[17px] leading-6 font-semibold"
                         >
-                            Seat Coverage
+                            {{ overview.name }}
                         </p>
                         <p
-                            class="text-ink-slate mt-0.5 text-[11.5px] leading-4"
+                            class="text-ink-slate mt-0.5 text-[12.5px] leading-5"
                         >
-                            {{ usedSeats }} / {{ totalSeats }} seats assigned
+                            {{ overview.scopeLabel }}
                         </p>
                     </div>
-                    <span class="text-brand-700 text-[11px] font-semibold">
-                        {{ occupancy }}%
+
+                    <span
+                        :class="
+                            cn(
+                                'rounded-pill inline-flex min-h-6 min-w-[90px] items-center justify-center px-2.5 text-[11px] font-semibold whitespace-nowrap',
+                                pillTone,
+                            )
+                        "
+                    >
+                        {{ pillText }}
                     </span>
                 </div>
-
-                <ProgressBar
-                    :value="occupancy"
-                    tone="brand"
-                    :label="`${overview.name} seat coverage`"
-                    class="mt-3 h-[7px]"
-                />
 
                 <div
-                    class="text-ink-muted mt-2 flex items-center justify-between gap-2 text-[11.5px] leading-4"
+                    class="border-brand-100 bg-brand-50/60 text-ink-muted rounded-lg border p-3 text-[12.5px] leading-5"
                 >
-                    <span class="inline-flex items-center gap-1.5">
-                        <ClipboardCheck
-                            class="text-brand-700 size-3.5"
-                            aria-hidden="true"
-                        />
-                        {{ overview.testCount }} tests
-                    </span>
-                    <span class="inline-flex items-center gap-1.5">
-                        <Bot class="text-ai size-3.5" aria-hidden="true" />
-                        {{ overview.scenarioCount }} AI scenarios
-                    </span>
+                    {{
+                        overview.focus !== ''
+                            ? overview.focus
+                            : 'No focus line yet. Edit the department to describe what its staff practise.'
+                    }}
                 </div>
-            </div>
 
-            <div class="border-brand-100 bg-brand-50/60 rounded-lg border p-3">
-                <p
-                    class="font-heading text-brand-800 text-[13px] font-semibold"
-                >
-                    Key Notes
-                </p>
-                <ul
-                    class="text-ink-muted mt-2 grid gap-1.5 text-[12px] leading-4.5"
-                >
-                    <li
-                        v-for="note in overview.notes"
-                        :key="note"
-                        class="flex items-start gap-2"
+                <div class="grid grid-cols-2 gap-2">
+                    <div
+                        class="bg-tint-header rounded-md px-3 py-2.5 text-center"
                     >
-                        <span
-                            class="bg-brand-600 mt-[5px] size-1.5 shrink-0 rounded-full"
-                        />
-                        <span>{{ note }}</span>
-                    </li>
-                </ul>
-            </div>
+                        <p
+                            class="font-heading text-brand-800 text-[18px] font-semibold"
+                        >
+                            {{ overview.hotelCount }}
+                        </p>
+                        <p class="text-ink-slate text-[11px] leading-4">
+                            Hotels
+                        </p>
+                    </div>
+                    <div
+                        class="bg-tint-header rounded-md px-3 py-2.5 text-center"
+                    >
+                        <p
+                            class="font-heading text-brand-800 text-[18px] font-semibold"
+                        >
+                            {{ overview.employeeCount }}
+                        </p>
+                        <p class="text-ink-slate text-[11px] leading-4">
+                            Employees
+                        </p>
+                    </div>
+                    <div
+                        class="bg-tint-header rounded-md px-3 py-2.5 text-center"
+                    >
+                        <p
+                            class="font-heading text-brand-800 text-[18px] font-semibold"
+                        >
+                            {{ overview.lessonCount }}
+                        </p>
+                        <p class="text-ink-slate text-[11px] leading-4">
+                            Lessons
+                        </p>
+                    </div>
+                    <div
+                        class="bg-tint-header rounded-md px-3 py-2.5 text-center"
+                    >
+                        <p
+                            class="font-heading text-brand-800 text-[18px] font-semibold"
+                        >
+                            {{ overview.scenarioCount }}
+                        </p>
+                        <p class="text-ink-slate text-[11px] leading-4">
+                            AI Scenarios
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    class="border-line/80 bg-surface rounded-lg border px-3 py-3"
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p
+                                class="font-heading text-brand-800 text-[13px] font-semibold"
+                            >
+                                Seat Coverage
+                            </p>
+                            <p
+                                class="text-ink-slate mt-0.5 text-[11.5px] leading-4"
+                            >
+                                {{ usedSeats }} / {{ totalSeats }} seats
+                                assigned
+                            </p>
+                        </div>
+                        <span class="text-brand-700 text-[11px] font-semibold">
+                            {{ occupancy }}%
+                        </span>
+                    </div>
+
+                    <ProgressBar
+                        :value="occupancy"
+                        tone="brand"
+                        :label="`${overview.name} seat coverage`"
+                        class="mt-3 h-[7px]"
+                    />
+
+                    <div
+                        class="text-ink-muted mt-2 flex items-center justify-between gap-2 text-[11.5px] leading-4"
+                    >
+                        <span class="inline-flex items-center gap-1.5">
+                            <ClipboardCheck
+                                class="text-brand-700 size-3.5"
+                                aria-hidden="true"
+                            />
+                            {{ overview.testCount }} tests
+                        </span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <Bot class="text-ai size-3.5" aria-hidden="true" />
+                            {{ overview.scenarioCount }} AI scenarios
+                        </span>
+                    </div>
+                </div>
+
+                <div
+                    class="border-brand-100 bg-brand-50/60 rounded-lg border p-3"
+                >
+                    <p
+                        class="font-heading text-brand-800 text-[13px] font-semibold"
+                    >
+                        Key Notes
+                    </p>
+                    <ul
+                        class="text-ink-muted mt-2 grid gap-1.5 text-[12px] leading-4.5"
+                    >
+                        <li
+                            v-for="note in overview.notes"
+                            :key="note"
+                            class="flex items-start gap-2"
+                        >
+                            <span
+                                class="bg-brand-600 mt-[5px] size-1.5 shrink-0 rounded-full"
+                            />
+                            <span>{{ note }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </template>
         </PanelCard>
 
         <PanelCard
@@ -252,9 +329,21 @@ const occupancy = computed(() => {
                 </div>
             </template>
 
+            <p
+                v-if="overview === null || overview.assignments.length === 0"
+                class="text-ink-slate border-line/80 rounded-md border border-dashed px-3 py-6 text-center text-[12.5px] leading-5"
+                data-test="department-coverage-empty"
+            >
+                {{
+                    overview === null
+                        ? 'Select a department to see which hotels hold seats in it.'
+                        : "No hotel holds seats in this department yet. Allocate them from the hotel's Manage seats dialog."
+                }}
+            </p>
+
             <article
-                v-for="assignment in overview.assignments"
-                :key="assignment.hotel"
+                v-for="assignment in overview?.assignments ?? []"
+                :key="assignment.hotelId"
                 class="border-line/75 bg-surface rounded-md border px-3 py-2.5"
             >
                 <div class="flex items-center justify-between gap-3">
@@ -285,13 +374,9 @@ const occupancy = computed(() => {
                 <div class="mt-2 flex items-center gap-3">
                     <ProgressBar
                         :value="
-                            Math.min(
-                                100,
-                                Math.round(
-                                    (assignment.usedSeats /
-                                        assignment.totalSeats) *
-                                        100,
-                                ),
+                            assignmentPercent(
+                                assignment.usedSeats,
+                                assignment.totalSeats,
                             )
                         "
                         :tone="quotaTone[assignment.state]"
@@ -328,9 +413,11 @@ const occupancy = computed(() => {
 
             <div class="mt-3.5 grid gap-2">
                 <Button
+                    v-if="canManage"
                     type="button"
-                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white"
-                    @click="notifyComingSoon('Create department')"
+                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
+                    data-test="add-department-button"
+                    @click="emit('quick', 'create')"
                 >
                     <Plus class="size-4" aria-hidden="true" />
                     Create Department
@@ -339,8 +426,9 @@ const occupancy = computed(() => {
                 <Button
                     type="button"
                     variant="outline"
-                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
-                    @click="notifyComingSoon('Assign department hotels')"
+                    :class="outlineButton"
+                    data-test="assign-hotels-button"
+                    @click="emit('quick', 'hotels')"
                 >
                     <Users class="size-4" aria-hidden="true" />
                     Assign Hotels
@@ -349,18 +437,23 @@ const occupancy = computed(() => {
                 <Button
                     type="button"
                     variant="outline"
-                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
-                    @click="notifyComingSoon('Configure department content')"
+                    :class="outlineButton"
+                    :disabled="overview === null"
+                    data-test="configure-content-button"
+                    @click="emit('quick', 'content')"
                 >
                     <BookOpen class="size-4" aria-hidden="true" />
                     Configure Content
                 </Button>
 
                 <Button
+                    v-if="canManage"
                     type="button"
                     variant="outline"
-                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 justify-start gap-2 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
-                    @click="notifyComingSoon('Review department settings')"
+                    :class="outlineButton"
+                    :disabled="overview === null"
+                    data-test="review-settings-button"
+                    @click="emit('quick', 'edit')"
                 >
                     <Settings class="size-4" aria-hidden="true" />
                     Review Settings

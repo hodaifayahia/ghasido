@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RotateCcw, Send } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,18 +11,32 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { notifyComingSoon } from '@/lib/comingSoon';
 import { cn } from '@/lib/utils';
-import type { MessageFilters, MessageSelectOption } from '@/types';
+import type {
+    MessageFilterValues,
+    MessageFilters,
+    MessageSelectOption,
+} from '@/types';
 
 type Props = {
     filters: MessageFilters;
+    /** Whether the signed in user may press Send (ReminderPolicy::send). */
+    canSend: boolean;
+    /** How many employees are selected, for the button label. */
+    selectedCount: number;
     class?: HTMLAttributes['class'];
 };
 
 type FilterKey = 'hotel' | 'department' | 'consent' | 'activity';
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+    /** A filter changed: the page reloads the recipients (REM-02). */
+    filter: [values: MessageFilterValues];
+    /** Send Group Reminder: the page opens the send dialog. */
+    send: [];
+}>();
 
 const values = reactive<Record<FilterKey, string>>({
     hotel: props.filters.hotel,
@@ -31,32 +45,68 @@ const values = reactive<Record<FilterKey, string>>({
     activity: props.filters.activity,
 });
 
+// The server is the source of truth for the filters; keep the controls in
+// step when it answers (a Reset, a back button, a shared link).
+watch(
+    () => props.filters,
+    (filters) => {
+        values.hotel = filters.hotel;
+        values.department = filters.department;
+        values.consent = filters.consent;
+        values.activity = filters.activity;
+    },
+    { deep: true },
+);
+
 const filterFields: Array<{
     key: FilterKey;
     label: string;
-    options: MessageSelectOption[];
+    options: () => MessageSelectOption[];
 }> = [
-    { key: 'hotel', label: 'Hotel', options: props.filters.hotels },
+    { key: 'hotel', label: 'Hotel', options: () => props.filters.hotels },
     {
         key: 'department',
         label: 'Department',
-        options: props.filters.departments,
+        options: () => props.filters.departments,
     },
-    { key: 'consent', label: 'Consent', options: props.filters.consents },
-    { key: 'activity', label: 'Activity', options: props.filters.activities },
+    { key: 'consent', label: 'Consent', options: () => props.filters.consents },
+    {
+        key: 'activity',
+        label: 'Activity',
+        options: () => props.filters.activities,
+    },
 ];
 
-function onSelect(target: FilterKey, value: AcceptableValue): void {
-    if (typeof value === 'string') {
-        values[target] = value;
-    }
+function current(): MessageFilterValues {
+    return {
+        hotel: values.hotel,
+        department: values.department,
+        consent: values.consent,
+        activity: values.activity,
+        search: props.filters.search,
+    };
 }
 
+function onSelect(target: FilterKey, value: AcceptableValue): void {
+    if (typeof value !== 'string') {
+        return;
+    }
+
+    values[target] = value;
+    emit('filter', current());
+}
+
+/**
+ * Back to the screen's defaults: every hotel the user may see, every
+ * department, consent granted, inactive employees, no search.
+ */
 function resetFilters(): void {
-    values.hotel = props.filters.hotel;
-    values.department = props.filters.department;
-    values.consent = props.filters.consent;
-    values.activity = props.filters.activity;
+    values.hotel = props.filters.hotels[0]?.value ?? 'all-hotels';
+    values.department = 'all-departments';
+    values.consent = 'consent-granted';
+    values.activity = props.filters.activities[0]?.value ?? 'inactive-5-days';
+
+    emit('filter', { ...current(), search: '' });
 }
 </script>
 
@@ -76,13 +126,15 @@ function resetFilters(): void {
                     @update:model-value="onSelect(field.key, $event)"
                 >
                     <SelectTrigger
+                        :aria-label="`Filter by ${field.label.toLowerCase()}`"
+                        :data-test="`messages-${field.key}-filter`"
                         class="text-ink-indigo h-6 border-0 px-0 py-0 text-[12.5px] font-medium shadow-none focus-visible:ring-0"
                     >
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
-                            v-for="option in field.options"
+                            v-for="option in field.options()"
                             :key="option.value"
                             :value="option.value"
                             class="text-[13px]"
@@ -97,6 +149,7 @@ function resetFilters(): void {
                 type="button"
                 variant="outline"
                 class="border-line text-brand-700 hover:bg-brand-50 shadow-card h-[52px] gap-2 rounded-md px-4 text-[12.5px] font-semibold"
+                data-test="reset-messages-filters-button"
                 @click="resetFilters"
             >
                 <RotateCcw class="size-4" aria-hidden="true" />
@@ -104,14 +157,19 @@ function resetFilters(): void {
             </Button>
         </div>
 
-        <div class="flex justify-end">
+        <div v-if="canSend" class="flex justify-end">
             <Button
                 type="button"
-                class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white"
-                @click="notifyComingSoon('Send group reminder')"
+                class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
+                data-test="send-group-reminder-button"
+                @click="emit('send')"
             >
                 <Send class="size-4" aria-hidden="true" />
-                Send Group Reminder
+                {{
+                    selectedCount > 0
+                        ? `Send Reminder (${selectedCount})`
+                        : 'Send Group Reminder'
+                }}
             </Button>
         </div>
     </div>

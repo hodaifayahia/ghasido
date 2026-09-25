@@ -2,16 +2,23 @@
 import {
     ChevronLeft,
     ChevronRight,
-    EllipsisVertical,
     Eye,
     Mail,
     Pencil,
     RotateCcw,
     Search,
 } from '@lucide/vue';
+import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
+import EmployeeRowMenu from '@/components/employees/EmployeeRowMenu.vue';
+import {
+    progressTone,
+    statusText,
+    statusTone,
+} from '@/components/employees/employeeStatus';
+import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -27,50 +34,75 @@ import type {
     EmployeeFilters,
     EmployeePagination,
     EmployeeRecord,
-    EmployeeStatus,
+    EmployeeRowAction,
 } from '@/types';
 
 type Props = {
     filters: EmployeeFilters;
     employees: EmployeeRecord[];
     pagination: EmployeePagination;
+    /** True while a partial reload is in flight. */
+    loading?: boolean;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { loading: false });
+
+export type EmployeeFilterValues = {
+    search: string;
+    hotel: string;
+    department: string;
+    status: string;
+};
+
+const emit = defineEmits<{
+    /** Search or a filter changed: the caller reloads page 1. */
+    filter: [values: EmployeeFilterValues];
+    page: [page: number];
+    action: [action: EmployeeRowAction, employee: EmployeeRecord];
+}>();
+
+/** The checked rows, shared with the action panels above the table. */
+const selected = defineModel<number[]>('selected', { required: true });
+
+const { can } = useCan();
+const canManage = can('employees.manage');
 
 const search = ref(props.filters.search);
 const hotel = ref(props.filters.hotel);
 const department = ref(props.filters.department);
 const status = ref(props.filters.status);
 
-const selectedRows = ref<Record<number, boolean>>({
-    1: true,
-    2: true,
-});
+// The server is the source of truth for the filters; keep the controls in
+// step when it answers (a Reset, a back button, a shared link).
+watch(
+    () => props.filters,
+    (filters) => {
+        search.value = filters.search;
+        hotel.value = filters.hotel;
+        department.value = filters.department;
+        status.value = filters.status;
+    },
+    { deep: true },
+);
 
-const statusText: Record<EmployeeStatus, string> = {
-    completed: 'Completed',
-    in_progress: 'In Progress',
-    not_started: 'Not Started',
-    inactive: 'Inactive',
-};
+function current(): EmployeeFilterValues {
+    return {
+        search: search.value,
+        hotel: hotel.value,
+        department: department.value,
+        status: status.value,
+    };
+}
 
-const statusTone: Record<EmployeeStatus, string> = {
-    completed: 'bg-success-tint text-success-text',
-    in_progress: 'bg-brand-100/65 text-brand-700',
-    not_started: 'bg-warning-tint text-warning-text',
-    inactive: 'bg-danger-tint text-danger-text',
-};
-
-const progressTone: Record<EmployeeStatus, 'azure' | 'success'> = {
-    completed: 'success',
-    in_progress: 'azure',
-    not_started: 'azure',
-    inactive: 'azure',
-};
-
-const allVisibleSelected = computed(() =>
-    props.employees.every((employee) => selectedRows.value[employee.id]),
+// Debounced so a keystroke does not repaint the page.
+watchDebounced(
+    search,
+    (value) => {
+        if (value !== props.filters.search) {
+            emit('filter', current());
+        }
+    },
+    { debounce: 300 },
 );
 
 function onSelect(
@@ -83,37 +115,75 @@ function onSelect(
 
     if (target === 'hotel') {
         hotel.value = value;
-        return;
-    }
-
-    if (target === 'department') {
+    } else if (target === 'department') {
         department.value = value;
-        return;
+    } else {
+        status.value = value;
     }
 
-    status.value = value;
-}
-
-function toggleAll(checked: boolean | 'indeterminate'): void {
-    const enabled = checked === true;
-
-    selectedRows.value = Object.fromEntries(
-        props.employees.map((employee) => [employee.id, enabled]),
-    );
-}
-
-function setRowSelection(id: number, checked: boolean | 'indeterminate'): void {
-    selectedRows.value = {
-        ...selectedRows.value,
-        [id]: checked === true,
-    };
+    emit('filter', current());
 }
 
 function resetFilters(): void {
-    search.value = props.filters.search;
-    hotel.value = props.filters.hotel;
-    department.value = props.filters.department;
-    status.value = props.filters.status;
+    search.value = '';
+    hotel.value = 'all-hotels';
+    department.value = 'all-departments';
+    status.value = 'all-statuses';
+    emit('filter', current());
+}
+
+// --------------------------------------------------------------- selection
+
+const selectedSet = computed(() => new Set(selected.value));
+
+const allVisibleSelected = computed(
+    () =>
+        props.employees.length > 0 &&
+        props.employees.every((employee) => selectedSet.value.has(employee.id)),
+);
+
+function toggleAll(checked: boolean | 'indeterminate'): void {
+    selected.value =
+        checked === true ? props.employees.map((employee) => employee.id) : [];
+}
+
+function setRowSelection(id: number, checked: boolean | 'indeterminate'): void {
+    const next = new Set(selected.value);
+
+    if (checked === true) {
+        next.add(id);
+    } else {
+        next.delete(id);
+    }
+
+    selected.value = Array.from(next);
+}
+
+// ------------------------------------------------------------------ pager
+
+function goTo(page: number): void {
+    if (
+        page < 1 ||
+        page > props.pagination.lastPage ||
+        page === props.pagination.currentPage
+    ) {
+        return;
+    }
+
+    emit('page', page);
+}
+
+const iconButton =
+    'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45';
+
+function remindTitle(employee: EmployeeRecord): string {
+    if (employee.canRemind) {
+        return `Send reminder to ${employee.name}`;
+    }
+
+    return employee.emailAddress === null
+        ? `${employee.name} has no email address`
+        : `${employee.name} has not consented to reminder emails`;
 }
 </script>
 
@@ -132,6 +202,8 @@ function resetFilters(): void {
                     v-model="search"
                     type="search"
                     placeholder="Search by name, username or email..."
+                    aria-label="Search employees"
+                    data-test="employees-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
@@ -142,6 +214,8 @@ function resetFilters(): void {
                     @update:model-value="onSelect('hotel', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by hotel"
+                        data-test="employees-hotel-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -163,6 +237,8 @@ function resetFilters(): void {
                     @update:model-value="onSelect('department', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by department"
+                        data-test="employees-department-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[156px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -184,6 +260,8 @@ function resetFilters(): void {
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
+                        aria-label="Filter by status"
+                        data-test="employees-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[138px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
                         <SelectValue />
@@ -204,15 +282,21 @@ function resetFilters(): void {
                     type="button"
                     variant="outline"
                     class="border-line text-brand-700 hover:bg-brand-50 h-9 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
+                    data-test="reset-employee-filters-button"
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
                     Reset
                 </Button>
             </div>
+
+            <slot name="actions" />
         </div>
 
-        <div class="border-line/80 mt-2.5 overflow-hidden rounded-lg border">
+        <div
+            class="border-line/80 mt-2.5 overflow-hidden rounded-lg border"
+            :aria-busy="loading || undefined"
+        >
             <div class="overflow-x-auto max-md:hidden">
                 <table
                     class="min-w-full table-fixed border-collapse text-start"
@@ -225,6 +309,7 @@ function resetFilters(): void {
                                 <Checkbox
                                     :model-value="allVisibleSelected"
                                     aria-label="Select all employees"
+                                    data-test="select-all-employees"
                                     @update:model-value="toggleAll"
                                 />
                             </th>
@@ -266,9 +351,7 @@ function resetFilters(): void {
                         >
                             <td class="px-3 py-[6px] text-center align-middle">
                                 <Checkbox
-                                    :model-value="
-                                        Boolean(selectedRows[employee.id])
-                                    "
+                                    :model-value="selectedSet.has(employee.id)"
                                     :aria-label="`Select ${employee.name}`"
                                     @update:model-value="
                                         setRowSelection(employee.id, $event)
@@ -349,45 +432,71 @@ function resetFilters(): void {
                                 <div class="flex items-center gap-1.5">
                                     <button
                                         type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
+                                        :class="cn(iconButton, 'size-6.5')"
                                         :aria-label="`View ${employee.name}`"
+                                        :data-test="`employee-${employee.id}-view-button`"
+                                        @click="
+                                            emit('action', 'view', employee)
+                                        "
                                     >
                                         <Eye
                                             class="size-3"
                                             aria-hidden="true"
                                         />
                                     </button>
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
-                                        :aria-label="`Edit ${employee.name}`"
-                                    >
-                                        <Pencil
-                                            class="size-3"
-                                            aria-hidden="true"
+                                    <template v-if="canManage">
+                                        <button
+                                            type="button"
+                                            :class="cn(iconButton, 'size-6.5')"
+                                            :aria-label="`Edit ${employee.name}`"
+                                            :data-test="`employee-${employee.id}-edit-button`"
+                                            @click="
+                                                emit('action', 'edit', employee)
+                                            "
+                                        >
+                                            <Pencil
+                                                class="size-3"
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            :class="cn(iconButton, 'size-6.5')"
+                                            :aria-label="remindTitle(employee)"
+                                            :title="remindTitle(employee)"
+                                            :disabled="
+                                                !employee.canRemind || loading
+                                            "
+                                            :data-test="`employee-${employee.id}-remind-button`"
+                                            @click="
+                                                emit(
+                                                    'action',
+                                                    'remind',
+                                                    employee,
+                                                )
+                                            "
+                                        >
+                                            <Mail
+                                                class="size-3"
+                                                aria-hidden="true"
+                                            />
+                                        </button>
+                                        <EmployeeRowMenu
+                                            :employee="employee"
+                                            @select="
+                                                emit('action', $event, employee)
+                                            "
                                         />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
-                                        :aria-label="`Email ${employee.name}`"
-                                    >
-                                        <Mail
-                                            class="size-3"
-                                            aria-hidden="true"
-                                        />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 items-center justify-center rounded-md border"
-                                        :aria-label="`More actions for ${employee.name}`"
-                                    >
-                                        <EllipsisVertical
-                                            class="size-3"
-                                            aria-hidden="true"
-                                        />
-                                    </button>
+                                    </template>
                                 </div>
+                            </td>
+                        </tr>
+                        <tr v-if="employees.length === 0">
+                            <td
+                                colspan="11"
+                                class="text-ink-muted px-4 py-8 text-center text-[13px]"
+                            >
+                                No employees match these filters.
                             </td>
                         </tr>
                     </tbody>
@@ -414,8 +523,9 @@ function resetFilters(): void {
                             </p>
                         </div>
                         <Checkbox
-                            :model-value="Boolean(selectedRows[employee.id])"
+                            :model-value="selectedSet.has(employee.id)"
                             :aria-label="`Select ${employee.name}`"
+                            class="size-5"
                             @update:model-value="
                                 setRowSelection(employee.id, $event)
                             "
@@ -478,27 +588,45 @@ function resetFilters(): void {
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
+                                :class="cn(iconButton, 'size-9')"
                                 :aria-label="`View ${employee.name}`"
+                                @click="emit('action', 'view', employee)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
                             </button>
-                            <button
-                                type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
-                                :aria-label="`Edit ${employee.name}`"
-                            >
-                                <Pencil class="size-4" aria-hidden="true" />
-                            </button>
-                            <button
-                                type="button"
-                                class="border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-9 items-center justify-center rounded-md border"
-                                :aria-label="`Email ${employee.name}`"
-                            >
-                                <Mail class="size-4" aria-hidden="true" />
-                            </button>
+                            <template v-if="canManage">
+                                <button
+                                    type="button"
+                                    :class="cn(iconButton, 'size-9')"
+                                    :aria-label="`Edit ${employee.name}`"
+                                    @click="emit('action', 'edit', employee)"
+                                >
+                                    <Pencil class="size-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="cn(iconButton, 'size-9')"
+                                    :aria-label="remindTitle(employee)"
+                                    :title="remindTitle(employee)"
+                                    :disabled="!employee.canRemind || loading"
+                                    @click="emit('action', 'remind', employee)"
+                                >
+                                    <Mail class="size-4" aria-hidden="true" />
+                                </button>
+                                <EmployeeRowMenu
+                                    :employee="employee"
+                                    size="card"
+                                    @select="emit('action', $event, employee)"
+                                />
+                            </template>
                         </div>
                     </div>
+                </li>
+                <li
+                    v-if="employees.length === 0"
+                    class="text-ink-muted bg-surface p-6 text-center text-[13px]"
+                >
+                    No employees match these filters.
                 </li>
             </ul>
         </div>
@@ -517,13 +645,19 @@ function resetFilters(): void {
             >
                 <button
                     type="button"
-                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2"
+                    class="text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="pagination.currentPage <= 1"
+                    data-test="employees-previous-page"
+                    @click="goTo(pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
                     Previous
                 </button>
 
-                <template v-for="page in pagination.pages" :key="String(page)">
+                <template
+                    v-for="(page, index) in pagination.pages"
+                    :key="`${page}-${index}`"
+                >
                     <span
                         v-if="page === 'ellipsis'"
                         class="text-ink-muted inline-flex min-w-8 justify-center px-1"
@@ -541,6 +675,10 @@ function resetFilters(): void {
                                     : 'border-line text-brand-800 hover:bg-brand-50 bg-surface',
                             )
                         "
+                        :aria-current="
+                            page === pagination.currentPage ? 'page' : undefined
+                        "
+                        @click="goTo(page)"
                     >
                         {{ page }}
                     </button>
@@ -548,7 +686,10 @@ function resetFilters(): void {
 
                 <button
                     type="button"
-                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold"
+                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="pagination.currentPage >= pagination.lastPage"
+                    data-test="employees-next-page"
+                    @click="goTo(pagination.currentPage + 1)"
                 >
                     Next
                     <ChevronRight class="size-3.5" aria-hidden="true" />

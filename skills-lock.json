@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "skills": {
+        "configure-nightwatch": {
+            "source": "laravel/agent-skills",
+            "sourceType": "github",
+            "skillPath": "laravel-nightwatch/skills/configure-nightwatch/SKILL.md",
+            "computedHash": "c47f582081a7ec6b9fc4ea72c863fddada67e3d55e2b9b95f979bc536eb9e674"
+        },
+        "deploying-to-cloud": {
+            "source": "laravel/agent-skills",
+            "sourceType": "github",
+            "skillPath": "laravel-cloud/skills/deploying-to-cloud/SKILL.md",
+            "computedHash": "fe035e4ee9e501dcd6a9074ac3806565acffba3beff0d7a86e26756695c76566"
+        },
+        "larastan": {
+            "source": "ohnotnow/agentic-stuff",
+            "sourceType": "github",
+            "skillPath": "skills/larastan/SKILL.md",
+            "computedHash": "9832a394d87d0ce7c82a349da1c389d9d96043d565b6aad1a66cd5a3aa90621c"
+        },
+        "laravel-permission-development": {
+            "source": "spatie/laravel-permission",
+            "sourceType": "github",
+            "skillPath": "resources/boost/skills/laravel-permission-development/SKILL.md",
+            "computedHash": "f2cc58f1f4a638f63be94563411c4b4b8c47945c8866fe5162fc2c96c707d17c"
+        },
+        "starter-kit-upgrade": {
+            "source": "laravel/agent-skills",
+            "sourceType": "github",
+            "skillPath": "laravel/skills/starter-kit-upgrade/SKILL.md",
+            "computedHash": "263cd806eab03b15af59bc6c7b46058425c31e9df4204572f5743ceae28d3a1b"
+        }
+    }
+}

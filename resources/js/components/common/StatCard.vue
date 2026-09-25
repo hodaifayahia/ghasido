@@ -87,7 +87,7 @@ const shown = computed(() =>
             <slot name="icon" />
         </div>
 
-        <div class="flex min-w-0 flex-col xl:whitespace-nowrap">
+        <div class="flex min-w-0 flex-col 2xl:whitespace-nowrap">
             <p
                 :class="
                     cn(

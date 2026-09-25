@@ -160,10 +160,12 @@ return [
     |
     */
 
+    // No self-registration and no email verification: accounts are created
+    // by the Super Admin or a hotel manager, and email is optional contact
+    // data collected at first login, never an identity (AUTH-01, AUTH-02,
+    // AUTH-04; spec 0003 B.1).
     'features' => [
-        Features::registration(),
         Features::resetPasswords(),
-        Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,

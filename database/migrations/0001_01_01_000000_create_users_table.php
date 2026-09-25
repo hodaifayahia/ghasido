@@ -14,7 +14,12 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            // Nullable: an employee signs in by username and may have no email
+            // until first login (AUTH-01, AUTH-04, spec 0003 B.1). Still unique
+            // when present; both SQLite and MySQL let NULL repeat in a unique
+            // index. Edited in place rather than via ->change(), which would
+            // force a table rebuild on SQLite (AGENTS.md §6).
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

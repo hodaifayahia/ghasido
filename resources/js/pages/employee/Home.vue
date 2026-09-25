@@ -1,0 +1,232 @@
+<script setup lang="ts">
+import { Form, Head, Link } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
+import { computed } from 'vue';
+import HomeCard from '@/components/learning/home/HomeCard.vue';
+import HomeGoodToKnowCard from '@/components/learning/home/HomeGoodToKnowCard.vue';
+import HomePhotoCard from '@/components/learning/home/HomePhotoCard.vue';
+import HomeRememberCard from '@/components/learning/home/HomeRememberCard.vue';
+import JourneyStepper from '@/components/learning/JourneyStepper.vue';
+import { lessons } from '@/routes/learn';
+import { start } from '@/routes/learn/tests';
+import type {
+    AttemptInProgress,
+    ContinueLesson,
+    HomeTest,
+    JourneyState,
+    MediaRef,
+    PreTestFactIcon,
+    PreTestIntro,
+} from '@/types';
+
+/*
+ * The employee home (JOURNEY-01, JOURNEY-02, PROG-05; spec 0003 Part E).
+ * Until the Pre-test is submitted the card is its intro (desginphotos/
+ * employ/photo_20); afterwards the same layout says "Continue where you
+ * left off" from the shared journey. Layout at 1280×853: left column 484px
+ * from x 216 (stepper at y 98, card at y 186), right column from x 701 to
+ * x 1268 with the photo at y 76 and the two cards 19px / 11px inside it.
+ */
+type Props = {
+    test: HomeTest | null;
+    attemptInProgress: AttemptInProgress | null;
+    continueLesson: ContinueLesson | null;
+    journey: JourneyState;
+    photo: MediaRef | null;
+};
+
+const props = defineProps<Props>();
+
+const intro = computed((): PreTestIntro => props.test?.intro ?? {});
+const showIntro = computed(
+    () => props.test !== null && !props.journey.preTestSubmitted,
+);
+
+const primaryClass =
+    'bg-brand-600 ease-brand hover:bg-brand-700 focus-visible:ring-brand-600/40 flex h-[50px] w-full items-center justify-center gap-[14px] rounded-lg px-6 text-xl leading-none font-semibold text-white transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none active:scale-[.98] disabled:opacity-70';
+const secondaryClass =
+    'text-brand-600 focus-visible:ring-brand-600/40 inline-flex min-h-11 items-center rounded-sm px-1 text-sm leading-5 font-medium underline md:min-h-0 underline-offset-[3px] focus-visible:ring-2 focus-visible:outline-none';
+
+type Fact = { icon: PreTestFactIcon; label: string; text: string };
+
+const continueFacts = computed((): Fact[] => {
+    const j = props.journey;
+    const facts: Fact[] = [
+        {
+            icon: 'chart',
+            label: 'Your progress',
+            text: `${j.lessonsCompleted} of ${j.lessonsTotal} lessons completed`,
+        },
+    ];
+
+    if (props.continueLesson) {
+        facts.push(
+            {
+                icon: 'list',
+                label: 'Next lesson',
+                text: props.continueLesson.title,
+            },
+            {
+                icon: 'target',
+                label: 'Next step',
+                text: props.continueLesson.stepLabel,
+            },
+        );
+    } else if (j.postTestUnlocked) {
+        facts.push({
+            icon: 'target',
+            label: 'Next step',
+            text: j.certificateAvailable
+                ? 'Your certificate is ready'
+                : 'Take the Post-test',
+        });
+    }
+
+    return facts;
+});
+</script>
+
+<template>
+    <Head title="Home" />
+    <h1 class="sr-only">Home</h1>
+
+    <div
+        class="grid min-w-0 gap-6 ps-4 pe-3 pt-1 pb-6 min-[1100px]:grid-cols-[484px_minmax(0,1fr)] min-[1100px]:gap-px"
+    >
+        <div class="flex min-w-0 flex-col">
+            <JourneyStepper :journey="journey" class="mt-[22px]" />
+
+            <HomeCard
+                v-if="showIntro && test"
+                :eyebrow="intro.eyebrow ?? 'Welcome to Guesvia'"
+                :heading="intro.heading ?? test.title"
+                :paragraphs="intro.paragraphs ?? []"
+                emphasis="not a pass or fail test"
+                :facts="intro.facts ?? []"
+                class="mt-[34px]"
+            >
+                <template #primary>
+                    <Link
+                        v-if="attemptInProgress"
+                        :href="attemptInProgress.url"
+                        :class="primaryClass"
+                        data-test="resume-pretest-link"
+                    >
+                        Resume
+                        {{
+                            test.title.includes('Post')
+                                ? 'Post-test'
+                                : 'Pre-test'
+                        }}
+                        <ArrowRight
+                            class="size-6 stroke-[2.25]"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                    <Form
+                        v-else
+                        v-bind="start.form({ test: test.id })"
+                        v-slot="{ processing }"
+                    >
+                        <button
+                            type="submit"
+                            :disabled="processing"
+                            :class="primaryClass"
+                            data-test="start-pretest-button"
+                        >
+                            {{ intro.primary ?? 'Start Pre-test' }}
+                            <ArrowRight
+                                class="size-6 stroke-[2.25]"
+                                aria-hidden="true"
+                            />
+                        </button>
+                    </Form>
+                </template>
+                <template #secondary>
+                    <Link :href="lessons()" :class="secondaryClass">
+                        {{ intro.secondary ?? "I'll do it later" }}
+                    </Link>
+                </template>
+            </HomeCard>
+
+            <HomeCard
+                v-else
+                eyebrow="Welcome back"
+                heading="Continue where you left off"
+                :paragraphs="[
+                    continueLesson
+                        ? `Your next step is ${continueLesson.stepLabel} in ${continueLesson.title}.`
+                        : journey.certificateAvailable
+                          ? 'You have finished your training. Your certificate is ready to view.'
+                          : journey.postTestUnlocked
+                            ? 'You have finished every lesson. The Post-test is the last step.'
+                            : 'Your lessons are ready whenever you are.',
+                    'Everything you do is saved automatically, so you can stop and come back at any time.',
+                ]"
+                :facts="continueFacts"
+                class="mt-[34px]"
+            >
+                <template #primary>
+                    <Link
+                        v-if="journey.continueUrl"
+                        :href="journey.continueUrl"
+                        :class="primaryClass"
+                        data-test="continue-lesson-link"
+                    >
+                        Continue
+                        <ArrowRight
+                            class="size-6 stroke-[2.25]"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                    <Link
+                        v-else
+                        :href="lessons()"
+                        :class="primaryClass"
+                        data-test="open-lessons-link"
+                    >
+                        My Lessons
+                        <ArrowRight
+                            class="size-6 stroke-[2.25]"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                </template>
+                <template #secondary>
+                    <Link :href="lessons()" :class="secondaryClass">
+                        See all lessons
+                    </Link>
+                </template>
+            </HomeCard>
+        </div>
+
+        <div class="relative flex min-w-0 flex-col">
+            <HomePhotoCard :photo="photo" :quote="intro.script" />
+
+            <HomeGoodToKnowCard
+                v-if="intro.good_to_know?.length"
+                :title="intro.good_to_know_title ?? 'Good to know'"
+                :items="intro.good_to_know"
+                class="mt-[17px] min-[1100px]:ms-[19px] min-[1100px]:me-[11px]"
+            />
+            <HomeRememberCard
+                v-if="intro.remember"
+                :title="intro.remember.title"
+                :text="intro.remember.text"
+                class="mt-3 min-[1100px]:ms-[19px] md:w-[373px]"
+            />
+
+            <!-- The client's "Better Communication Brighter Careers"
+                 handwriting, bottom-right as photo_20 draws it. -->
+            <img
+                src="/decor/better-communication.png"
+                alt=""
+                aria-hidden="true"
+                width="420"
+                height="210"
+                draggable="false"
+                class="pointer-events-none absolute end-[14px] bottom-[30px] hidden w-[148px] -rotate-[14deg] opacity-85 select-none min-[1100px]:block"
+            />
+        </div>
+    </div>
+</template>

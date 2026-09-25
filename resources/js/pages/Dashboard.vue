@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import DashboardStats from '@/components/dashboard/DashboardStats.vue';
 import DepartmentProgressPanel from '@/components/dashboard/DepartmentProgressPanel.vue';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel.vue';
@@ -27,6 +28,10 @@ type Props = {
 
 defineProps<Props>();
 
+const page = usePage();
+const isManager = computed(() => page.props.auth.user?.role === 'manager');
+const isHotelAdmin = computed(() => page.props.auth.user?.role === 'admin');
+
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -44,8 +49,18 @@ defineOptions({
 
     <div class="flex min-w-0 flex-col gap-3 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Admin Dashboard"
-            description="Manage your hotels, staff, content and track progress"
+            :title="
+                isManager
+                    ? 'Hotel Manager Dashboard'
+                    : isHotelAdmin
+                      ? 'Hotel Admin Dashboard'
+                      : 'Admin Dashboard'
+            "
+            :description="
+                isManager || isHotelAdmin
+                    ? 'Manage your employees, follow training progress and keep your team moving.'
+                    : 'Manage your hotels, staff, content and track progress'
+            "
             class="mb-1"
         >
             <template #accent>

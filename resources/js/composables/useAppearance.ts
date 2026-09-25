@@ -67,7 +67,7 @@ const prefersDark = (): boolean => {
 const handleSystemThemeChange = () => {
     const currentAppearance = getStoredAppearance();
 
-    updateTheme(currentAppearance || 'system');
+    updateTheme(currentAppearance || 'light');
 };
 
 export function initializeTheme(): void {
@@ -75,15 +75,17 @@ export function initializeTheme(): void {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
+    // Initialize theme from saved preference or default to light. Guesvia is
+    // a light-only design (AGENTS.md §3), so the app does not follow the OS
+    // dark preference; only an explicit choice switches the theme.
     const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
+    updateTheme(savedAppearance || 'light');
 
     // Set up system theme change listener...
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
-const appearance = ref<Appearance>('system');
+const appearance = ref<Appearance>('light');
 
 export function useAppearance(): UseAppearanceReturn {
     onMounted(() => {

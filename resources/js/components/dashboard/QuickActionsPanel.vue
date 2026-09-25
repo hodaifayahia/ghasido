@@ -13,9 +13,20 @@ import {
     UserPlus,
 } from '@lucide/vue';
 import type { Component, HTMLAttributes } from 'vue';
+import { computed } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
-import { notifyComingSoon } from '@/lib/comingSoon';
+import { useCan } from '@/composables/useCan';
 import { cn } from '@/lib/utils';
+import {
+    aiScenarios,
+    departments,
+    employees,
+    hotels,
+    lessonsContent,
+    messagesReminders,
+    reportsExport,
+    tests,
+} from '@/routes';
 import { edit } from '@/routes/profile';
 
 type Props = {
@@ -23,6 +34,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { can } = useCan();
 
 type QuickAction = {
     label: string;
@@ -39,8 +51,8 @@ type QuickAction = {
     overlayClass?: string;
     /** Size and position of the small "+" on the "add" actions. */
     plusClass?: string;
-    /** Actions with a route navigate; the rest announce "coming soon". */
-    href?: NonNullable<InertiaLinkProps['href']>;
+    href: NonNullable<InertiaLinkProps['href']>;
+    permission?: string;
 };
 
 const actions: QuickAction[] = [
@@ -53,18 +65,21 @@ const actions: QuickAction[] = [
         overlayClass:
             '[&>path]:stroke-surface [&>path:nth-child(n+2):nth-child(-n+3)]:hidden [&>path:nth-child(n+6)]:stroke-[2.8] [&>rect]:hidden',
         plusClass: 'start-[calc(100%-1px)] top-1/2 size-2.5 -translate-y-1/2',
+        href: hotels(),
     },
     {
         label: 'Add Department',
         icon: UserPlus,
         size: 26,
         glyphClass: '[&>circle]:fill-current [&>path]:fill-current',
+        href: departments(),
     },
     {
         label: 'Add Employee',
         icon: UserPlus,
         size: 26,
         glyphClass: '[&>circle]:fill-current [&>path]:fill-current',
+        href: employees(),
     },
     {
         label: 'Create Lesson',
@@ -72,6 +87,7 @@ const actions: QuickAction[] = [
         glyphClass: '[&>path]:fill-current [&>path:first-child]:hidden',
         overlayClass: '[&>path]:stroke-surface [&>path:last-child]:hidden',
         plusClass: 'start-[calc(100%-3px)] -top-1 size-3.5',
+        href: lessonsContent(),
     },
     {
         label: 'Add AI Scenario',
@@ -80,6 +96,7 @@ const actions: QuickAction[] = [
         glyphClass:
             '[&>rect]:fill-current [&>path:nth-child(n+5)]:stroke-surface',
         plusClass: 'start-[calc(100%+1px)] top-[11px] size-2.5',
+        href: aiScenarios(),
     },
     {
         label: 'Manage Tests',
@@ -87,18 +104,22 @@ const actions: QuickAction[] = [
         size: 25,
         glyphClass:
             '[&>path:nth-child(2)]:fill-current [&>path:nth-child(n+3)]:stroke-surface [&>rect]:fill-current',
+        href: tests(),
+        permission: 'tests.view',
     },
     {
         label: 'Send Reminder',
         icon: Mail,
         glyphClass: '[&>path]:hidden [&>rect]:fill-current',
         overlayClass: '[&>path]:stroke-surface [&>rect]:hidden',
+        href: messagesReminders(),
     },
     {
         label: 'View Reports',
         icon: ChartNoAxesColumnIncreasing,
         size: 22,
         strokeWidth: 5.8,
+        href: reportsExport(),
     },
     {
         label: 'System Settings',
@@ -109,11 +130,9 @@ const actions: QuickAction[] = [
     },
 ];
 
-function select(action: QuickAction): void {
-    if (!action.href) {
-        notifyComingSoon(action.label);
-    }
-}
+const visibleActions = computed(() =>
+    actions.filter((action) => !action.permission || can(action.permission)),
+);
 </script>
 
 <template>
@@ -125,14 +144,15 @@ function select(action: QuickAction): void {
         body-class="mt-0.5 grid"
     >
         <ul class="grid grid-cols-3 grid-rows-3 gap-x-[9px] gap-y-2">
-            <li v-for="action in actions" :key="action.label" class="flex">
+            <li
+                v-for="action in visibleActions"
+                :key="action.label"
+                class="flex"
+            >
                 <component
-                    :is="action.href ? Link : 'button'"
-                    v-bind="
-                        action.href ? { href: action.href } : { type: 'button' }
-                    "
+                    :is="Link"
+                    :href="action.href"
                     class="border-line/60 bg-surface text-brand-900 ease-brand hover:border-brand-300 hover:bg-brand-50 hover:shadow-hover focus-visible:border-brand-600 focus-visible:ring-brand-600/15 flex min-h-[59px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[8px] border px-0.5 pt-1 text-center transition duration-200 focus-visible:ring-3 focus-visible:outline-none motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none"
-                    @click="select(action)"
                 >
                     <span
                         class="relative flex h-6 shrink-0 items-center justify-center"
