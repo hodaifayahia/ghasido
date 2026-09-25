@@ -28,6 +28,8 @@ type Props = {
         transcript: Turn[];
         employeeTurns: number;
         minTurns: number;
+        maxTurns: number;
+        atTurnLimit: boolean;
         inputMode: string;
         canEnd: boolean;
     };
@@ -210,6 +212,34 @@ onUnmounted(() => {
             </div>
 
             <div
+                v-if="
+                    attempt.atTurnLimit &&
+                    !attempt.pendingReply &&
+                    attempt.status === 'in_progress'
+                "
+                class="border-line bg-surface shadow-card grid gap-3 rounded-lg border p-4 sm:flex sm:items-center sm:justify-between"
+                data-test="roleplay-turn-limit"
+            >
+                <p class="text-ink text-[14px]">
+                    The guest has wrapped up the conversation.
+                    <span class="text-ink-slate block text-[12.5px]">
+                        You used all {{ attempt.maxTurns }} replies. Well done
+                        for keeping it going.
+                    </span>
+                </p>
+                <button
+                    type="button"
+                    class="bg-brand-600 shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/15 inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md px-5 text-[13px] font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97]"
+                    data-test="roleplay-get-feedback-button"
+                    @click="end"
+                >
+                    <Flag class="size-4" aria-hidden="true" />
+                    Get my feedback
+                </button>
+            </div>
+
+            <div
+                v-else
                 class="border-line bg-surface shadow-card grid gap-3 rounded-lg border p-4"
             >
                 <textarea
@@ -253,8 +283,11 @@ onUnmounted(() => {
                     </button>
                 </div>
                 <p class="text-ink-faint text-[11.5px]">
-                    {{ attempt.employeeTurns }} / {{ attempt.minTurns }} turns
-                    before you can finish.
+                    Reply {{ attempt.employeeTurns }} of
+                    {{ attempt.maxTurns }}
+                    <template v-if="!attempt.canEnd">
+                        · you can finish after {{ attempt.minTurns }}
+                    </template>
                 </p>
             </div>
         </div>

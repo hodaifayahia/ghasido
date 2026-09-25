@@ -29,6 +29,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Policies\LessonPolicy;
 use App\Policies\MediaAssetPolicy;
+use App\Services\Ai\UsageMeter;
 use App\Services\Audio\AudioLibrary;
 use App\Services\Learning\ActivityScorer;
 use Database\Factories\LessonFactory;
@@ -473,7 +474,7 @@ class ContentModelTest extends TestCase
 
         $clip = AudioClip::factory()->slow()->create();
 
-        (new GenerateAudioClip($clip->id))->handle(app(TtsProvider::class));
+        (new GenerateAudioClip($clip->id))->handle(app(TtsProvider::class), app(UsageMeter::class));
 
         $clip->refresh();
         $this->assertSame(GenerationStatus::Done, $clip->status);
@@ -490,7 +491,7 @@ class ContentModelTest extends TestCase
         $this->assertSame('RIFF-bytes-slow', Storage::disk('public')->get($asset->path));
 
         // Running it again is a no-op: one clip, one file, one billed call.
-        (new GenerateAudioClip($clip->id))->handle(app(TtsProvider::class));
+        (new GenerateAudioClip($clip->id))->handle(app(TtsProvider::class), app(UsageMeter::class));
         $this->assertSame(1, MediaAsset::query()->count());
     }
 

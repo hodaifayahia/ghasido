@@ -36,6 +36,7 @@ enum Permission: string
     case ReportsExport = 'reports.export';
     case ReportsExportAnonymised = 'reports.export_anonymised';
     case TranscriptsView = 'transcripts.view';
+    case ScoresOverride = 'scores.override';
     case ProgressReset = 'progress.reset';
     case RolesView = 'roles.view';
     case RolesManage = 'roles.manage';
@@ -83,6 +84,7 @@ enum Permission: string
             self::ReportsExport => 'Export reports',
             self::ReportsExportAnonymised => 'Export anonymised research data',
             self::TranscriptsView => 'View AI transcripts & recordings',
+            self::ScoresOverride => 'Override and re-grade AI scores',
             self::ProgressReset => 'Reset employee progress',
             self::RolesView => 'View roles & permissions',
             self::RolesManage => 'Manage roles & permissions',
@@ -109,6 +111,7 @@ enum Permission: string
             self::MessagesView, self::MessagesManage => 'Messages & Reminders',
             self::ReportsView, self::ReportsExport, self::ReportsExportAnonymised => 'Reports & Export',
             self::TranscriptsView => 'Transcripts & Recordings',
+            self::ScoresOverride => 'Reports & Export',
             self::ProgressReset => 'Employee Progress',
             self::RolesView, self::RolesManage => 'Roles & Permissions',
             self::LandingManage => 'Landing Page',

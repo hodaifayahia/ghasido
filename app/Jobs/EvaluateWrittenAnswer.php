@@ -69,7 +69,10 @@ class EvaluateWrittenAnswer implements ShouldBeUnique, ShouldQueue
 
         $attempt->forceFill(['ai_status' => GenerationStatus::Running])->save();
 
-        $evaluation = $ai->evaluateWriting($item, $answer);
+        // Practice at the learner's level, a test answer on the fixed scale;
+        // the bar used is stored beside the score (spec 0005 §5.2).
+        $level = $attempt->gradingLevel();
+        $evaluation = $ai->evaluateWriting($item, $answer, $level);
 
         $meter->record($attempt->user, AiFeature::WritingEval, $evaluation->usage);
 
@@ -77,9 +80,14 @@ class EvaluateWrittenAnswer implements ShouldBeUnique, ShouldQueue
             'ai_feedback' => $evaluation->toArray(),
             'ai_status' => GenerationStatus::Done,
             'max_score' => $attempt->max_score ?? self::MAX_SCORE,
+            'graded_level' => $level,
         ];
 
-        if (! $attempt->isScoreOverridden()) {
+        // An admin's override stands through a re-grade; the AI's fresh
+        // verdict becomes the recorded original (AIE-05; spec 0005 §2.5).
+        if ($attempt->isScoreOverridden()) {
+            $changes['original_score'] = $evaluation->overallScore();
+        } else {
             $changes['score'] = $evaluation->overallScore();
         }
 

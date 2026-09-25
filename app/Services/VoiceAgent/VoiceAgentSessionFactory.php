@@ -4,7 +4,9 @@ namespace App\Services\VoiceAgent;
 
 use App\Models\AiScenario;
 use App\Models\RoleplayAttempt;
+use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\RoleplayPrompt;
+use App\Services\Owner\ApiKeyring;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -113,10 +115,12 @@ final class VoiceAgentSessionFactory
      */
     private function think(RoleplayAttempt $attempt, AiScenario $scenario, array $values): array
     {
-        $prompt = RoleplayPrompt::forVoice($scenario, (string) $values['prompt']);
+        $prompt = RoleplayPrompt::forVoice($scenario, (string) $values['prompt'], $attempt->user?->english_level);
 
         if ($values['thinkMode'] === 'qwen_proxy') {
-            $qwenModel = config('services.ai.fast_model') ?: config('services.ai.model');
+            // The admin's model choice on Settings → AI models applies to the
+            // call too, not only the .env default (spec 0005 §2.3).
+            $qwenModel = app(AiModelSettings::class)->fastChatModel();
             $token = $this->proxyTokens->issue($attempt, (int) $values['maxCallSeconds'] + 300);
 
             // The endpoint is our own server; no header carries a key. The
@@ -124,7 +128,7 @@ final class VoiceAgentSessionFactory
             return [
                 'provider' => [
                     'type' => 'open_ai',
-                    'model' => is_string($qwenModel) ? $qwenModel : 'qwen',
+                    'model' => $qwenModel !== '' ? $qwenModel : 'qwen',
                     'temperature' => (float) $values['temperature'],
                 ],
                 'endpoint' => [
@@ -152,9 +156,9 @@ final class VoiceAgentSessionFactory
      */
     private function grant(): array
     {
-        $key = config('services.voice_agent.key');
+        $key = app(ApiKeyring::class)->key('services.voice_agent.key');
 
-        if (! is_string($key) || trim($key) === '') {
+        if ($key === '') {
             throw new RuntimeException(__('Voice calls are not configured on the server yet.'));
         }
 

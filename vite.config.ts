@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
+import { defaultAllowedOrigins } from 'vite';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 const vitePort = Number(process.env.VITE_PORT ?? 5173);
@@ -54,6 +55,11 @@ export default defineConfig({
         port: vitePort,
         strictPort: true,
         origin: `http://${vitePublicHost}:${vitePort}`,
+        // laravel-vite-plugin ≥3 reuses `server.origin` as the *only* CORS
+        // origin, so the page at http://localhost (APP_URL) is refused with
+        // "Access-Control-Allow-Origin ... not equal to the supplied origin".
+        // Allow every loopback origin, as Vite does when `origin` is unset.
+        cors: { origin: defaultAllowedOrigins },
         hmr: {
             host: vitePublicHost,
         },

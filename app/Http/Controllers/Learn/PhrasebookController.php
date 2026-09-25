@@ -9,6 +9,8 @@ use App\Models\LexiconItem;
 use App\Models\PhrasebookItem;
 use App\Models\User;
 use App\Services\Learning\PayloadResolver;
+use App\Services\Learning\ProgressService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +28,13 @@ use Inertia\Response;
  */
 class PhrasebookController extends Controller
 {
-    public function __construct(private readonly PayloadResolver $resolver) {}
+    /** Cards in one review session: a few minutes on a phone. */
+    public const DECK_SIZE = 20;
+
+    public function __construct(
+        private readonly PayloadResolver $resolver,
+        private readonly ProgressService $progress,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -39,6 +47,89 @@ class PhrasebookController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        return Inertia::render('employee/Phrasebook', [
+            'items' => $this->entries($items),
+            // Spaced review (spec 0005 §3.4): how many cards are waiting.
+            'review' => [
+                'due' => $user->phrasebookItems()->dueForReview()->count(),
+                'url' => route('learn.phrasebook.review'),
+            ],
+        ]);
+    }
+
+    /**
+     * Review mode (spec 0005 §3.4): today's deck of due cards, the ones the
+     * learner missed first, then the oldest due, then new ones. English and
+     * audio lead; the meaning appears only when the learner asks for it
+     * (CTRL-01, CTRL-02).
+     */
+    public function review(Request $request): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $deck = $user->phrasebookItems()
+            ->dueForReview()
+            ->with(['lexiconItem.image', 'sourceLesson'])
+            ->orderByDesc('lapse_count')
+            ->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('due_at')
+            ->orderBy('id')
+            ->limit(self::DECK_SIZE)
+            ->get();
+
+        return Inertia::render('employee/PhrasebookReview', [
+            'cards' => $this->entries($deck),
+            'totalSaved' => $user->phrasebookItems()->count(),
+        ]);
+    }
+
+    /**
+     * One card answered: "I knew it" or "Practise again" (spec 0005 §3.4).
+     *
+     * `version` is the card's review count as the page received it. The
+     * answer is recorded only when it still matches, so a retried or doubled
+     * request moves the card once, never twice (PROG-04; spec 0005 §5.5); a
+     * request that comes too late answers with the card's current state.
+     */
+    public function recordReview(Request $request, PhrasebookItem $item): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('review', $item);
+
+        $validated = $request->validate([
+            'knew' => ['required', 'boolean'],
+            'version' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $recorded = (int) $validated['version'] === $item->review_count;
+
+        if ($recorded) {
+            $item->recordReview((bool) $validated['knew']);
+            $this->progress->touch($item->user()->firstOrFail());
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'id' => $item->id,
+                'recorded' => $recorded,
+                'version' => $item->review_count,
+                'box' => $item->review_box,
+                'dueAt' => $item->due_at?->toIso8601String(),
+                'needsPractice' => $item->needsPractice(),
+            ]);
+        }
+
+        return back();
+    }
+
+    /**
+     * The card shape the list and the review deck share.
+     *
+     * @param  Collection<int, PhrasebookItem>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function entries(Collection $items): array
+    {
         $texts = $items->flatMap(function (PhrasebookItem $item): array {
             $lexicon = $this->lexiconOf($item);
 
@@ -51,39 +142,43 @@ class PhrasebookController extends Controller
         $audio = $this->resolver->audioForMany($texts);
         $silent = ['normal' => null, 'slow' => null];
 
-        return Inertia::render('employee/Phrasebook', [
-            'items' => $items->map(function (PhrasebookItem $item) use ($audio, $silent): array {
-                $lexicon = $this->lexiconOf($item);
-                $text = $lexicon === null ? (string) $item->custom_text : $lexicon->english_text;
+        return array_values($items->map(function (PhrasebookItem $item) use ($audio, $silent): array {
+            $lexicon = $this->lexiconOf($item);
+            $text = $lexicon === null ? (string) $item->custom_text : $lexicon->english_text;
 
-                return [
-                    'id' => $item->id,
-                    'source' => $lexicon === null ? 'custom' : 'lexicon',
-                    'lexiconItemId' => $lexicon?->id,
-                    'kind' => $lexicon?->kind->value,
-                    'text' => $text,
-                    'ipa' => $lexicon?->ipa,
-                    'image' => $this->resolver->media($lexicon?->image),
-                    'audio' => $audio[$text] ?? $silent,
-                    'example' => $lexicon?->hotel_example,
-                    'exampleAudio' => $lexicon?->hotel_example === null ? null : ($audio[$lexicon->hotel_example] ?? $silent),
-                    'showMeaning' => $lexicon === null ? $item->custom_arabic !== null : $lexicon->allowsShowMeaning(),
-                    'meaning' => $lexicon === null
-                        ? ($item->custom_arabic === null ? null : ['arabic' => $item->custom_arabic, 'explanation' => null, 'exampleArabic' => null])
-                        : ($lexicon->allowsShowMeaning() ? [
-                            'arabic' => $lexicon->arabic_meaning,
-                            'explanation' => $lexicon->simple_explanation,
-                            'exampleArabic' => $lexicon->hotel_example_arabic,
-                        ] : null),
-                    'lesson' => $item->sourceLesson === null ? null : [
-                        'id' => $item->sourceLesson->id,
-                        'title' => $item->sourceLesson->title,
-                    ],
-                    'savedAt' => $item->saved_at->toIso8601String(),
-                    'removeUrl' => route('learn.phrasebook.destroy', ['item' => $item]),
-                ];
-            })->values()->all(),
-        ]);
+            return [
+                'id' => $item->id,
+                'source' => $lexicon === null ? 'custom' : 'lexicon',
+                'lexiconItemId' => $lexicon?->id,
+                'kind' => $lexicon?->kind->value,
+                'text' => $text,
+                'ipa' => $lexicon?->ipa,
+                'image' => $this->resolver->media($lexicon?->image),
+                'audio' => $audio[$text] ?? $silent,
+                'example' => $lexicon?->hotel_example,
+                'exampleAudio' => $lexicon?->hotel_example === null ? null : ($audio[$lexicon->hotel_example] ?? $silent),
+                'showMeaning' => $lexicon === null ? $item->custom_arabic !== null : $lexicon->allowsShowMeaning(),
+                'meaning' => $lexicon === null
+                    ? ($item->custom_arabic === null ? null : ['arabic' => $item->custom_arabic, 'explanation' => null, 'exampleArabic' => null])
+                    : ($lexicon->allowsShowMeaning() ? [
+                        'arabic' => $lexicon->arabic_meaning,
+                        'explanation' => $lexicon->simple_explanation,
+                        'exampleArabic' => $lexicon->hotel_example_arabic,
+                    ] : null),
+                'lesson' => $item->sourceLesson === null ? null : [
+                    'id' => $item->sourceLesson->id,
+                    'title' => $item->sourceLesson->title,
+                ],
+                'savedAt' => $item->saved_at->toIso8601String(),
+                'removeUrl' => route('learn.phrasebook.destroy', ['item' => $item]),
+                // Spaced review state (spec 0005 §3.4).
+                'mastery' => $item->review_box,
+                'masteryMax' => PhrasebookItem::MAX_BOX,
+                'needsPractice' => $item->needsPractice(),
+                'reviewCount' => $item->review_count,
+                'reviewUrl' => route('learn.phrasebook.review.store', ['item' => $item]),
+            ];
+        })->all());
     }
 
     public function store(StorePhrasebookItemRequest $request): JsonResponse|RedirectResponse

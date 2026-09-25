@@ -2,6 +2,7 @@
 
 namespace App\Services\Learning;
 
+use App\Enums\Accent;
 use App\Models\Activity;
 use App\Models\ActivityPlacement;
 use App\Models\ActivityVersion;
@@ -41,13 +42,15 @@ class ActivityPresenter
     /**
      * @return array<string, mixed>
      */
-    public function present(ActivityPlacement $placement, User $user, string $mode = self::MODE_PRACTICE): array
+    public function present(ActivityPlacement $placement, User $user, string $mode = self::MODE_PRACTICE, ?Accent $accent = null): array
     {
         $activity = $placement->activity()->firstOrFail();
         $version = $this->currentVersion($activity);
         $isTest = $mode === self::MODE_TEST;
 
-        $resolvedPayload = $this->resolver->resolve($version->payload);
+        // Lesson practice plays in the lesson's accent (spec 0006 §3); a
+        // test keeps the platform voice.
+        $resolvedPayload = $this->resolver->forAccent($accent)->resolve($version->payload);
         $resolvedItems = $resolvedPayload['items'] ?? [];
         $items = is_array($resolvedItems)
             ? array_values(array_filter($resolvedItems, 'is_array'))

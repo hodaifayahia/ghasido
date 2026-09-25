@@ -59,7 +59,7 @@ class ActivityController extends Controller
                 'url' => $this->navigator->stepUrl($lesson, $block),
                 'activityNumber' => $placement->position,
             ],
-            'activity' => $this->activities->present($placement, $user, ActivityPresenter::MODE_PRACTICE),
+            'activity' => $this->activities->present($placement, $user, ActivityPresenter::MODE_PRACTICE, $lesson->accent),
             'backUrl' => $this->navigator->stepUrl($lesson, $block),
             'answerUrl' => route('learn.lessons.activity.answer', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement]),
             'result' => $result,

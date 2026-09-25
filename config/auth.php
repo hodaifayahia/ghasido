@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Owner;
 use App\Models\User;
 
 return [
@@ -42,6 +43,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // The platform owner's console (spec 0007, D1): a separate guard,
+        // so no app user, the Super Admin included, can reach it.
+        'owner' => [
+            'driver' => 'session',
+            'provider' => 'owners',
+        ],
     ],
 
     /*
@@ -65,6 +73,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'owners' => [
+            'driver' => 'eloquent',
+            'model' => Owner::class,
         ],
 
         // 'users' => [

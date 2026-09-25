@@ -10,6 +10,7 @@ use App\Models\Activity;
 use App\Models\ActivityPlacement;
 use App\Models\Block;
 use App\Models\MediaAsset;
+use App\Models\TestAttempt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -36,7 +37,7 @@ class RecordingUploadTest extends TestCase
     public function test_a_recording_is_stored_on_the_private_disk_and_returned_as_json()
     {
         $learner = $this->learner();
-        $block = Block::factory()->ofType(BlockType::Practice)->create();
+        $block = $this->publishedLesson([BlockType::Practice])->visibleBlocks()->firstOrFail();
 
         $response = $this->actingAs($learner)->postJson(route('learn.recordings.store'), [
             'audio' => UploadedFile::fake()->create('answer.wav', 120, 'audio/wav'),
@@ -86,6 +87,50 @@ class RecordingUploadTest extends TestCase
             'recordable_type' => 'user',
             'recordable_id' => 1,
         ])->assertUnprocessable()->assertJsonValidationErrors(['recordable_type']);
+
+        $this->assertDatabaseCount('media_assets', 0);
+    }
+
+    public function test_a_test_sitting_takes_a_recording_only_from_its_own_learner_while_open()
+    {
+        // The test runner records against the open sitting (TEST-07; spec
+        // 0005 §1.6): before this, it sent id 0 and every upload failed.
+        $learner = $this->learner();
+        $sitting = TestAttempt::factory()->create([
+            'user_id' => $learner->id,
+            'test_id' => $this->publishedPreTest()->id,
+            'submitted_at' => null,
+        ]);
+        $someoneElses = TestAttempt::factory()->create([
+            'user_id' => $this->learner(['username' => 'amine'])->id,
+            'test_id' => $sitting->test_id,
+            'submitted_at' => null,
+        ]);
+
+        $upload = fn (int $id) => $this->actingAs($learner)->postJson(route('learn.recordings.store'), [
+            'audio' => UploadedFile::fake()->create('answer.wav', 50, 'audio/wav'),
+            'recordable_type' => 'test_attempt',
+            'recordable_id' => $id,
+        ]);
+
+        $upload($sitting->id)->assertCreated();
+        $upload($someoneElses->id)->assertJsonValidationErrors('recordable_id');
+
+        $sitting->forceFill(['submitted_at' => now()])->save();
+        $upload($sitting->id)->assertJsonValidationErrors('recordable_id');
+
+        $this->assertDatabaseCount('voice_recordings', 1);
+    }
+
+    public function test_a_block_the_learner_cannot_reach_is_refused()
+    {
+        $foreign = Block::factory()->ofType(BlockType::Practice)->create();
+
+        $this->actingAs($this->learner())->postJson(route('learn.recordings.store'), [
+            'audio' => UploadedFile::fake()->create('answer.wav', 50, 'audio/wav'),
+            'recordable_type' => 'block',
+            'recordable_id' => $foreign->id,
+        ])->assertJsonValidationErrors('recordable_id');
 
         $this->assertDatabaseCount('media_assets', 0);
     }

@@ -77,7 +77,8 @@ class GenerateRoleplayReply implements ShouldBeUnique, ShouldQueue
             'ai_status' => GenerationStatus::Running,
         ])->save();
 
-        $reply = $ai->roleplayReply($scenario, $attempt->transcript);
+        // The guest speaks at the learner's measured level (spec 0005 §2.1).
+        $reply = $ai->roleplayReply($scenario, $attempt->transcript, $attempt->user?->english_level);
 
         $meter->record($attempt->user, AiFeature::RoleplayTurn, $reply->usage);
 

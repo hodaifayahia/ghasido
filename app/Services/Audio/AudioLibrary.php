@@ -2,6 +2,7 @@
 
 namespace App\Services\Audio;
 
+use App\Enums\Accent;
 use App\Enums\AudioSpeed;
 use App\Enums\GenerationStatus;
 use App\Jobs\GenerateAudioClip;
@@ -32,10 +33,22 @@ class AudioLibrary
     }
 
     /**
-     * Find or create the clip for this sentence at this speed, queueing its
-     * generation when it is new or has failed before.
+     * The voice of one lesson accent (spec 0006 §3), or the platform voice
+     * when no accent is given (role-play, tests, the lexicon library).
      */
-    public function ensure(string $text, AudioSpeed $speed, ?TtsSettings $settings = null): AudioClip
+    public function voiceFor(?Accent $accent, ?TtsSettings $settings = null): string
+    {
+        $settings ??= app(TtsSettings::class);
+
+        return $accent === null ? $this->voice($settings) : $settings->voiceFor($accent);
+    }
+
+    /**
+     * Find or create the clip for this sentence at this speed, queueing its
+     * generation when it is new or has failed before. `$queue` lets a clip a
+     * learner is waiting for skip the bulk media queue.
+     */
+    public function ensure(string $text, AudioSpeed $speed, ?TtsSettings $settings = null, ?Accent $accent = null, ?string $queue = null): AudioClip
     {
         $normalised = AudioClip::normalise($text);
         $provider = $this->provider();
@@ -43,7 +56,7 @@ class AudioLibrary
         $clip = AudioClip::query()->firstOrCreate(
             [
                 'text_hash' => AudioClip::hashFor($normalised),
-                'voice' => $this->voice($settings),
+                'voice' => $this->voiceFor($accent, $settings),
                 'speed' => $speed,
             ],
             [
@@ -76,24 +89,28 @@ class AudioLibrary
                 $clip->forceFill(['status' => GenerationStatus::Pending, 'failed_reason' => null])->save();
             }
 
-            GenerateAudioClip::dispatch($clip->id);
+            $dispatch = GenerateAudioClip::dispatch($clip->id);
+
+            if ($queue !== null) {
+                $dispatch->onQueue($queue);
+            }
         }
 
         return $clip;
     }
 
     /**
-     * Both speeds of one sentence, queued if new.
+     * Both speeds of one sentence, queued if new, in the accent's voice.
      *
      * @return array{normal: AudioClip, slow: AudioClip}
      */
-    public function ensureBoth(string $text, ?TtsSettings $settings = null): array
+    public function ensureBoth(string $text, ?TtsSettings $settings = null, ?Accent $accent = null, ?string $queue = null): array
     {
         $settings ??= app(TtsSettings::class);
 
         return [
-            'normal' => $this->ensure($text, AudioSpeed::Normal, $settings),
-            'slow' => $this->ensure($text, AudioSpeed::Slow, $settings),
+            'normal' => $this->ensure($text, AudioSpeed::Normal, $settings, $accent, $queue),
+            'slow' => $this->ensure($text, AudioSpeed::Slow, $settings, $accent, $queue),
         ];
     }
 
@@ -103,14 +120,14 @@ class AudioLibrary
      * so playback resolves immediately, keyed by the text exactly as content
      * stores it.
      */
-    public function attachUpload(string $text, AudioSpeed $speed, MediaAsset $media): AudioClip
+    public function attachUpload(string $text, AudioSpeed $speed, MediaAsset $media, ?Accent $accent = null): AudioClip
     {
         $normalised = AudioClip::normalise($text);
 
         $clip = AudioClip::query()->firstOrCreate(
             [
                 'text_hash' => AudioClip::hashFor($normalised),
-                'voice' => $this->voice(),
+                'voice' => $this->voiceFor($accent),
                 'speed' => $speed,
             ],
             [
@@ -134,28 +151,45 @@ class AudioLibrary
      * The playable URL for one sentence at one speed, or null while it does
      * not exist. Never queues anything.
      */
-    public function urlFor(string $text, AudioSpeed $speed): ?string
+    public function urlFor(string $text, AudioSpeed $speed, ?Accent $accent = null): ?string
     {
-        $clip = AudioClip::query()
-            ->with('mediaAsset')
-            ->forVoice($this->voice())
-            ->activeProvider($this->provider())
-            ->done()
-            ->where('text_hash', AudioClip::hashFor($text))
-            ->where('speed', $speed)
-            ->first();
+        $clip = $this->doneClip($text, $speed, $accent);
 
         return $clip?->url();
     }
 
     /**
+     * The generated clip of one sentence at one speed, or null while it does
+     * not exist. Never queues anything.
+     */
+    public function doneClip(string $text, AudioSpeed $speed, ?Accent $accent = null): ?AudioClip
+    {
+        return $this->doneClipInVoice($text, $speed, $this->voiceFor($accent));
+    }
+
+    /**
+     * The generated clip of one sentence in one voice at one speed.
+     */
+    public function doneClipInVoice(string $text, AudioSpeed $speed, string $voice): ?AudioClip
+    {
+        return AudioClip::query()
+            ->with('mediaAsset')
+            ->forVoice($voice)
+            ->activeProvider($this->provider())
+            ->done()
+            ->where('text_hash', AudioClip::hashFor($text))
+            ->where('speed', $speed)
+            ->first();
+    }
+
+    /**
      * Both URLs for every sentence a page plays, in one query, keyed by the
-     * text exactly as passed (spec 0003 B.4).
+     * text exactly as passed (spec 0003 B.4), in the accent's voice.
      *
      * @param  iterable<string>  $texts
      * @return array<string, array{normal: ?string, slow: ?string}>
      */
-    public function urlsFor(iterable $texts): array
+    public function urlsFor(iterable $texts, ?Accent $accent = null): array
     {
         $byHash = [];
 
@@ -173,7 +207,7 @@ class AudioLibrary
 
         $clips = AudioClip::query()
             ->with('mediaAsset')
-            ->forVoice($this->voice())
+            ->forVoice($this->voiceFor($accent))
             ->activeProvider($this->provider())
             ->done()
             ->whereIn('text_hash', array_keys($byHash))

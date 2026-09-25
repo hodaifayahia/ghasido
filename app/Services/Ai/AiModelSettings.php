@@ -5,6 +5,7 @@ namespace App\Services\Ai;
 use App\Models\AiModelSetting;
 use App\Models\User;
 use App\Services\Images\DashScopeImageProvider;
+use App\Services\Owner\ApiKeyring;
 use App\Services\Stt\DeepgramSpeechToTextProvider;
 use App\Services\Tts\DeepgramVoiceCatalog;
 use App\Services\Tts\TtsSettings;
@@ -223,6 +224,16 @@ final class AiModelSettings
     // ----------------------------------------------------------- effective
 
     /**
+     * The fast chat model after the admin's override, for callers that talk
+     * to the endpoint directly (the live voice call). Falls back to the main
+     * model, as the provider binding does (spec 0005 §2.3).
+     */
+    public function fastChatModel(): string
+    {
+        return $this->effective()['fast']['model'];
+    }
+
+    /**
      * What actually runs now, per capability, after overrides (no keys, only
      * whether one is set).
      *
@@ -236,26 +247,26 @@ final class AiModelSettings
         $sttProvider = $this->provider('stt', self::config('services.stt.provider', 'fake'));
 
         return [
-            'ai' => ['provider' => $aiProvider, 'model' => $aiModel, 'keyConfigured' => self::config('services.ai.key') !== ''],
+            'ai' => ['provider' => $aiProvider, 'model' => $aiModel, 'keyConfigured' => app(ApiKeyring::class)->key('services.ai.key') !== ''],
             'fast' => [
                 'provider' => $aiProvider,
                 'model' => $o['aiFastModel'] ?: (self::config('services.ai.fast_model') ?: $aiModel),
-                'keyConfigured' => self::config('services.ai.key') !== '',
+                'keyConfigured' => app(ApiKeyring::class)->key('services.ai.key') !== '',
             ],
             'image' => [
                 'provider' => $this->provider('image', self::config('services.ai.image_provider', 'fake')),
                 'model' => $o['imageModel'] ?: self::config('services.ai.image_model', DashScopeImageProvider::DEFAULT_MODEL),
-                'keyConfigured' => self::config('services.ai.image_key') !== '',
+                'keyConfigured' => app(ApiKeyring::class)->key('services.ai.image_key') !== '',
             ],
             'tts' => [
                 'provider' => $this->provider('tts', self::config('services.tts.provider', 'fake')),
                 'model' => $this->tts->voice(),
-                'keyConfigured' => self::config('services.tts.key') !== '',
+                'keyConfigured' => app(ApiKeyring::class)->key('services.tts.key') !== '',
             ],
             'stt' => [
                 'provider' => $sttProvider,
                 'model' => $this->sttModel($sttProvider),
-                'keyConfigured' => self::config('services.stt.key') !== '',
+                'keyConfigured' => app(ApiKeyring::class)->key('services.stt.key') !== '',
             ],
         ];
     }

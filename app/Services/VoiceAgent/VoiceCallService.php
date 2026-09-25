@@ -4,6 +4,7 @@ namespace App\Services\VoiceAgent;
 
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
+use App\Enums\ApiAccount;
 use App\Enums\RoleplayStatus;
 use App\Models\AiScenario;
 use App\Models\Block;
@@ -12,7 +13,9 @@ use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
 use App\Services\Ai\UsageMeter;
+use App\Services\Learning\ProgressService;
 use App\Services\Learning\RoleplayService;
+use App\Services\Owner\ApiCredit;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
@@ -38,6 +41,7 @@ final class VoiceCallService
         private readonly UsageMeter $meter,
         private readonly RoleplayService $roleplay,
         private readonly VoiceAgentSettings $settings,
+        private readonly ProgressService $progress,
     ) {}
 
     /**
@@ -45,12 +49,16 @@ final class VoiceCallService
      */
     public function start(User $user, AiScenario $scenario, ?Lesson $lesson, ?Block $block, bool $preview = false): RoleplayAttempt
     {
+        // The owner's Deepgram (and Qwen, for the Qwen proxy) credit, for a
+        // preview too: it spends the same accounts (spec 0007, D7a).
+        $this->meter->assertVoiceCredit($user, $this->settings->forScenario($scenario)['thinkMode'] === 'qwen_proxy');
+
         if (! $preview) {
             $this->meter->assertWithinLimits($user, AiFeature::RoleplayTurn);
             $this->meter->assertVoicePointsAvailable($user);
         }
 
-        return RoleplayAttempt::query()->create([
+        $attempt = RoleplayAttempt::query()->create([
             'user_id' => $user->id,
             'ai_scenario_id' => $scenario->id,
             'lesson_id' => $lesson?->id,
@@ -63,6 +71,14 @@ final class VoiceCallService
             'channel' => RoleplayAttempt::CHANNEL_VOICE_CALL,
             'started_at' => Date::now(),
         ]);
+
+        if (! $preview) {
+            // A call is learning activity like a lesson step (DATA-06; spec
+            // 0005 §5.4); an admin's preview is not.
+            $this->progress->touch($user);
+        }
+
+        return $attempt;
     }
 
     /**
@@ -127,10 +143,12 @@ final class VoiceCallService
             }
         }
 
-        $limitReached = ! $attempt->is_preview
+        $limitReached = (! $attempt->is_preview
             && $user !== null
             && (! $this->meter->isWithinLimits($user, AiFeature::RoleplayTurn)
-                || ! $this->meter->canContinueVoice($attempt));
+                || ! $this->meter->canContinueVoice($attempt)))
+            // The owner's Deepgram credit ends any call, preview or not.
+            || ! app(ApiCredit::class)->isAvailable(ApiAccount::Deepgram);
 
         return ['stored' => $stored, 'limitReached' => $limitReached];
     }
@@ -160,12 +178,14 @@ final class VoiceCallService
                 'duration_ms' => (int) abs($attempt->started_at->diffInMilliseconds(Date::now())),
             ])->save();
             $this->meter->chargeVoiceAttempt($attempt);
+            $this->meter->recordVoiceCall($attempt);
 
             return self::OUTCOME_ABANDONED;
         }
 
         $this->roleplay->end($attempt);
         $this->meter->chargeVoiceAttempt($attempt);
+        $this->meter->recordVoiceCall($attempt->refresh());
 
         return self::OUTCOME_EVALUATING;
     }

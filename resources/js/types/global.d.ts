@@ -1,5 +1,6 @@
 import type { Auth, LearnerJourney, TrainingContext } from '@/types/auth';
 import type { NotificationData } from '@/types/notifications';
+import type { OwnerIdentity } from '@/types/owner';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -28,6 +29,8 @@ declare module '@inertiajs/core' {
              * manager is on a learner route (client decision 2026-09-23).
              */
             trainingContext: TrainingContext | null;
+            /** Only on the owner console's routes (spec 0007). */
+            owner?: OwnerIdentity;
             [key: string]: unknown;
         };
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports\Exporters;
 
+use App\Enums\Permission;
 use App\Models\Attempt;
 use App\Services\Reports\AnswerFormatter;
 use App\Services\Reports\ReportRows;
@@ -41,7 +42,7 @@ class AnswersExport extends DatasetExport
             ...$this->identityHeaders(),
             'Hotel', 'Department', 'Context', 'Test or lesson', 'Test sitting ID', 'Activity ID', 'Question version',
             'Activity type', 'Skill', 'Question', 'Raw answer (JSON)', 'Answer', 'Correct', 'Score', 'Max score',
-            'Score overridden', 'Original score', 'Transcript',
+            'Score overridden', 'Original score', 'Override reason', 'Grading level', 'Transcript',
         ];
 
         foreach (self::CRITERIA as $criterion) {
@@ -85,6 +86,15 @@ class AnswersExport extends DatasetExport
         $feedback = $attempt->ai_feedback ?? [];
         $criteria = is_array($feedback['criteria'] ?? null) ? $feedback['criteria'] : [];
         $media = $attempt->responseMedia;
+        $withTranscript = $this->includesTranscripts();
+        $rawAnswer = $attempt->raw_answer;
+
+        // Without `transcripts.view` the spoken words and the recording stay
+        // out of the file; the columns remain, empty, so the long format keeps
+        // one shape for every viewer (ROLE-04, PRIV-04, REP-08).
+        if (! $withTranscript && is_array($rawAnswer)) {
+            unset($rawAnswer['transcript']);
+        }
 
         $cells = [
             ...$this->identityCells($attempt),
@@ -98,14 +108,20 @@ class AnswersExport extends DatasetExport
             $type?->value,
             $activity?->skill_label,
             $type === null ? ($activity->prompt ?? '') : AnswerFormatter::question($type, $item, $activity->prompt ?? ''),
-            $attempt->raw_answer,
-            $type === null ? '' : AnswerFormatter::answer($type, $item, $raw, $attempt->transcript),
+            $rawAnswer,
+            $type === null ? '' : AnswerFormatter::answer($type, $item, $raw, $attempt->transcript, $withTranscript),
             $attempt->is_correct,
             self::decimal($attempt->score),
             self::decimal($attempt->max_score),
             $attempt->isScoreOverridden(),
             self::decimal($attempt->original_score),
-            $attempt->transcript,
+            // Free text an admin typed may name the learner, so the
+            // anonymised variant leaves it blank (REP-07; spec 0005 §2.5).
+            $this->includesOverrideReason() ? $attempt->score_override_reason : null,
+            // The bar the AI judged against: a level for practice, blank for
+            // the fixed test scale (spec 0005 §5.2).
+            $attempt->graded_level?->value,
+            $withTranscript ? $attempt->transcript : null,
         ];
 
         foreach (self::CRITERIA as $criterion) {
@@ -124,8 +140,18 @@ class AnswersExport extends DatasetExport
             $attempt->time_taken_ms,
             $attempt->started_at,
             $attempt->submitted_at,
-            $media === null ? null : route('media.show', $media),
+            $media === null || ! $withTranscript ? null : route('media.show', $media),
         ];
+    }
+
+    protected function includesOverrideReason(): bool
+    {
+        return true;
+    }
+
+    public function includesTranscripts(): bool
+    {
+        return $this->viewer->can(Permission::TranscriptsView->value);
     }
 
     /**

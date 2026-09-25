@@ -77,3 +77,32 @@ export type RecentActivity = {
     activity: string;
     details: string;
 };
+
+/** At-risk learners from transparent rules (spec 0005 §4.1). */
+export type AtRiskLearner = {
+    id: number;
+    name: string;
+    department: string;
+    level: 'high' | 'medium';
+    score: number;
+    reasons: string[];
+};
+
+export type AtRiskSummary = {
+    total: number;
+    high: number;
+    medium: number;
+    /** How many learners each rule flagged, keyed by rule. */
+    reasons: Record<string, number>;
+    rows: AtRiskLearner[];
+};
+
+/** The AI briefing on the dashboard's aggregate figures (spec 0005 §4.1). */
+export type DashboardBriefing = {
+    status: 'empty' | 'pending' | 'refreshing' | 'ready' | 'failed';
+    headline: string | null;
+    highlights: string[];
+    concerns: string[];
+    actions: string[];
+    generatedAt: string | null;
+};

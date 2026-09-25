@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Landing\LandingPageContentStore;
@@ -12,8 +13,10 @@ use Inertia\Response;
 
 final class LandingPageController extends Controller
 {
-    public function edit(LandingPageContentStore $content): Response
+    public function edit(Request $request, LandingPageContentStore $content): Response
     {
+        abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
+
         return Inertia::render('settings/LandingPage', [
             'content' => $content->current(),
         ]);
@@ -21,6 +24,8 @@ final class LandingPageController extends Controller
 
     public function update(Request $request, LandingPageContentStore $content): RedirectResponse
     {
+        abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
+
         $validated = $request->validate([
             'content' => ['required', 'array:navigation,roles,journey,hero,why_us,about,features,ai,pricing,checkout,call_to_action,footer,support'],
             'content.navigation' => ['required', 'array:why_us,about,platform,ai_practice,roles,pricing,login,get_started,open_dashboard'],

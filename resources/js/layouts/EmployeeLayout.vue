@@ -23,6 +23,7 @@ import {
     lessons,
     messages,
     phrasebook,
+    postTest,
     progress,
 } from '@/routes/learn';
 import type { SidebarNavItem } from '@/types';
@@ -73,9 +74,10 @@ const journeyItems: SidebarNavItem[] = [
         iconClass: outline,
     },
     {
-        // The Post-test intro is the tests lane's: until it lands the entry
-        // announces "coming soon" rather than pointing nowhere.
+        // Resumes an open sitting, opens the intro once every lesson is
+        // done, or says what is left (spec 0005 §3.1).
         title: 'Post-test',
+        href: postTest(),
         icon: ClipboardCheck,
         iconClass: `${solid} [&>path:last-child]:fill-none [&>path:last-child]:stroke-surface`,
     },

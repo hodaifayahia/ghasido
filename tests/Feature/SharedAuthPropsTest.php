@@ -34,6 +34,23 @@ class SharedAuthPropsTest extends TestCase
             );
     }
 
+    public function test_the_shared_user_carries_only_whitelisted_fields()
+    {
+        // No loaded roles/permissions relation and no research columns on
+        // every response (PRIV-03; spec 0005 §1.9).
+        $this->actingAs(User::factory()->employee()->create(['participant_code' => 'P-SECRET']))
+            ->get(route('help'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.role', RoleEnum::Employee->value)
+                ->missing('auth.user.roles')
+                ->missing('auth.user.participant_code')
+                ->missing('auth.user.cohort')
+                ->has('auth.user.hotel_name')
+                ->has('auth.user.department_name')
+                ->etc()
+            );
+    }
+
     public function test_a_user_with_no_role_carries_a_null_role_and_no_permissions()
     {
         $this->actingAs(User::factory()->create())

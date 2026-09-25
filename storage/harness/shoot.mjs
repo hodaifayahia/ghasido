@@ -42,6 +42,9 @@ const browser = await chromium.launch({
         '--no-sandbox',
         '--use-fake-ui-for-media-stream',
         '--use-fake-device-for-media-stream',
+        // PW_NO_CORS=1: a WSL-side Vite (when Sail is down) only allows its
+        // own origin; the harness page lives on another port (spec 0005).
+        ...(process.env.PW_NO_CORS === '1' ? ['--disable-web-security'] : []),
     ],
 });
 

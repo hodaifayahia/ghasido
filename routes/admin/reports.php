@@ -2,6 +2,7 @@
 
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\Reports\ReportExportController;
+use App\Http\Controllers\Admin\Reports\ScoreOverrideController;
 use App\Http\Controllers\Admin\ReportsExportController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +20,18 @@ Route::get('reports-export', ReportsExportController::class)
 Route::get('reports-export/export', ReportExportController::class)
     ->middleware(Permission::ReportsExport->middleware())
     ->name('reports.export');
+
+// Adjusting an AI score (AIE-05; spec 0005 §2.5): replace it with a reason,
+// restore the machine's value, or ask the AI to grade again. The attempt
+// policy's `overrideScore` ability re-checks the hotel boundary.
+Route::middleware(Permission::ScoresOverride->middleware())
+    ->prefix('reports-export')
+    ->name('reports.')
+    ->group(function (): void {
+        Route::patch('answers/{attempt}/score', [ScoreOverrideController::class, 'updateAnswer'])->name('answers.score.update');
+        Route::delete('answers/{attempt}/score', [ScoreOverrideController::class, 'restoreAnswer'])->name('answers.score.restore');
+        Route::post('answers/{attempt}/reevaluate', [ScoreOverrideController::class, 'reevaluateAnswer'])->name('answers.reevaluate');
+        Route::patch('roleplay/{roleplayAttempt}/score', [ScoreOverrideController::class, 'updateRoleplay'])->name('roleplay.score.update');
+        Route::delete('roleplay/{roleplayAttempt}/score', [ScoreOverrideController::class, 'restoreRoleplay'])->name('roleplay.score.restore');
+        Route::post('roleplay/{roleplayAttempt}/reevaluate', [ScoreOverrideController::class, 'reevaluateRoleplay'])->name('roleplay.reevaluate');
+    });

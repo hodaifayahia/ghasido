@@ -27,7 +27,10 @@ use Illuminate\Support\Facades\Date;
  */
 class RoleplayService
 {
-    public function __construct(private readonly UsageMeter $meter) {}
+    public function __construct(
+        private readonly UsageMeter $meter,
+        private readonly ProgressService $progress,
+    ) {}
 
     public function attemptsUsed(User $user, AiScenario $scenario): int
     {
@@ -70,6 +73,11 @@ class RoleplayService
             'started_at' => Date::now(),
         ]);
 
+        // A conversation is learning activity like a lesson step (DATA-06;
+        // spec 0005 §5.4), so the streak, the at-risk list and the
+        // inactivity reminder all read the same fact.
+        $this->progress->touch($user);
+
         GenerateRoleplayReply::dispatch($attempt->id);
 
         return $attempt;
@@ -80,14 +88,37 @@ class RoleplayService
      *
      * @throws AiLimitReached
      */
-    public function message(User $user, RoleplayAttempt $attempt, string $text, ?int $audioMediaId): void
+    public function message(User $user, RoleplayAttempt $attempt, string $text, ?int $audioMediaId): bool
     {
+        // The scenario's bound is enforced here, not only suggested to the
+        // model (spec 0005 §2.2): once the employee has replied max_turns
+        // times the guest has closed, and the conversation goes to feedback
+        // instead of costing another turn. Returns true when it ended.
+        if ($this->reachedTurnLimit($attempt)) {
+            $this->end($attempt);
+
+            return true;
+        }
+
         $this->meter->assertWithinLimits($user, AiFeature::RoleplayTurn);
 
         $attempt->appendTurn(RoleplayAttempt::ROLE_EMPLOYEE, $text, $audioMediaId);
         $attempt->forceFill(['pending_reply' => true])->save();
+        $this->progress->touch($user);
 
         GenerateRoleplayReply::dispatch($attempt->id);
+
+        return false;
+    }
+
+    /**
+     * Has the employee used every reply the scenario allows?
+     */
+    public function reachedTurnLimit(RoleplayAttempt $attempt): bool
+    {
+        $scenario = $attempt->scenario;
+
+        return $scenario !== null && $attempt->employeeTurnsCount() >= max(1, $scenario->max_turns);
     }
 
     /**

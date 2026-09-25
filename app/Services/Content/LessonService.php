@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Pronunciation\LessonSpeech;
 use Database\Factories\BlockFactory;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -164,18 +165,31 @@ class LessonService
      */
     public function updateLesson(Lesson $lesson, array $data): Lesson
     {
-        return DB::transaction(function () use ($lesson, $data): Lesson {
+        $accentChanged = false;
+
+        $lesson = DB::transaction(function () use ($lesson, $data, &$accentChanged): Lesson {
             $lesson->fill($data);
 
             if (($data['status'] ?? null) === ContentStatus::Published->value && $lesson->published_at === null) {
                 $lesson->published_at = Carbon::now();
             }
 
+            $accentChanged = $lesson->isDirty('accent');
+
             AuditLog::record($lesson, 'lesson.updated');
             $lesson->save();
 
             return $lesson;
         });
+
+        // A new accent needs its own voice's clips and guides (spec 0006
+        // §4). Queued after the commit, so a worker never looks for a clip
+        // row that is not there yet.
+        if ($accentChanged) {
+            app(LessonSpeech::class)->prepare($lesson);
+        }
+
+        return $lesson;
     }
 
     /**

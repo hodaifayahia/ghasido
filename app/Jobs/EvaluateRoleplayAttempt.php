@@ -66,15 +66,25 @@ class EvaluateRoleplayAttempt implements ShouldBeUnique, ShouldQueue
 
         $attempt->forceFill(['ai_status' => GenerationStatus::Running])->save();
 
-        $evaluation = $ai->evaluateRoleplay($scenario, $attempt->transcript);
+        // Judged at the learner's measured level; the bar used is stored
+        // beside the score (spec 0005 §2.1, §5.2).
+        $level = $attempt->user?->english_level;
+        $evaluation = $ai->evaluateRoleplay($scenario, $attempt->transcript, $level);
 
         $meter->record($attempt->user, AiFeature::RoleplayEval, $evaluation->usage);
 
         $endedAt = $attempt->ended_at ?? Date::now();
 
+        // An admin's override stands through a re-grade (AIE-05; spec 0005
+        // §2.5): the AI's fresh verdict becomes the recorded original.
+        $overall = $attempt->isScoreOverridden()
+            ? ['original_overall_score' => $evaluation->overall]
+            : ['overall_score' => $evaluation->overall];
+
         $attempt->forceFill([
             'criteria_scores' => $evaluation->criteriaScores(),
-            'overall_score' => $evaluation->overall,
+            ...$overall,
+            'graded_level' => $level,
             'feedback' => $evaluation->toFeedbackArray(),
             'status' => RoleplayStatus::Completed,
             'ai_status' => GenerationStatus::Done,

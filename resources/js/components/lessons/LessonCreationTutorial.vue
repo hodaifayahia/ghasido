@@ -41,7 +41,7 @@ const steps: GuideStep[] = [
         description:
             'A Course is the large category, a Unit is a chapter, and a Lesson is the topic employees complete. Start by choosing Course in the Add dialog, then save it.',
         image: '/tutorial/lesson-builder/09-add-course.png',
-        alt: 'Guesvia Add Course dialog with arrows pointing to the course fields',
+        alt: 'GHASIDO Add Course dialog with arrows pointing to the course fields',
         caption:
             'This is the real Add Course screen. The same Add menu is used for Units and Lessons.',
         callouts: [
@@ -100,7 +100,7 @@ const steps: GuideStep[] = [
         description:
             'Select the Course and Unit that should contain the lesson, enter the lesson title, and leave the default nine employee steps checked. Then click Create Lesson.',
         image: '/tutorial/lesson-builder/02-create-lesson.png',
-        alt: 'Guesvia Create Lesson screen with arrows pointing to course, unit, title and default steps',
+        alt: 'GHASIDO Create Lesson screen with arrows pointing to course, unit, title and default steps',
         caption:
             'This page creates a draft and then takes you directly to the lesson editor.',
         callouts: [
@@ -155,7 +155,7 @@ const steps: GuideStep[] = [
         description:
             'The Lesson Directory shows every lesson and its status. Click Edit on the lesson you want to fill. Draft lessons are not visible to employees until you publish them.',
         image: '/tutorial/lesson-builder/01-lesson-directory.png',
-        alt: 'Guesvia Lesson Directory with arrows pointing to Edit and the lesson guide button',
+        alt: 'GHASIDO Lesson Directory with arrows pointing to Edit and the lesson guide button',
         caption:
             'You can reopen this visual guide at any time with How to create a lesson.',
         callouts: [
@@ -202,7 +202,7 @@ const steps: GuideStep[] = [
         description:
             'At the top of Lesson Content, set the title, choose the cover image, and write a short introduction. On the right, click a content block to add it to the employee journey.',
         image: '/tutorial/lesson-builder/03-lesson-editor.png',
-        alt: 'Guesvia lesson editor with the lesson title, cover image, introduction and content block palette visible',
+        alt: 'GHASIDO lesson editor with the lesson title, cover image, introduction and content block palette visible',
         caption:
             'This is the real editor: the middle is your lesson, the right side adds employee steps.',
         callouts: [
@@ -257,7 +257,7 @@ const steps: GuideStep[] = [
         description:
             'Add learning objectives, then use each Lesson Block row as one employee step. Click Edit to fill it, the arrows to reorder it, the eye to hide it, duplicate to copy it, and the trash icon to remove it.',
         image: '/tutorial/lesson-builder/08-lesson-objectives.png',
-        alt: 'Guesvia lesson objectives and lesson blocks with arrows pointing to objectives and block edit controls',
+        alt: 'GHASIDO lesson objectives and lesson blocks with arrows pointing to objectives and block edit controls',
         caption: 'Every visible block becomes one step in the employee lesson.',
         callouts: [
             {
@@ -315,7 +315,7 @@ const steps: GuideStep[] = [
         description:
             'Open the Vocabulary block and click Add word. A word can include an image, pronunciation, Arabic meaning, simple explanation, hotel example and its own Normal and Slow audio.',
         image: '/tutorial/lesson-builder/04-vocabulary-block.png',
-        alt: 'Guesvia Vocabulary block editor with Add word, Show Meaning and Normal and Slow audio visible',
+        alt: 'GHASIDO Vocabulary block editor with Add word, Show Meaning and Normal and Slow audio visible',
         caption:
             'The vocabulary editor keeps all word content together in one block.',
         callouts: [
@@ -362,7 +362,7 @@ const steps: GuideStep[] = [
         description:
             'Type the English word first. Then add the Arabic meaning, a very simple explanation, and an example employees might hear at the hotel. Save the word when finished.',
         image: '/tutorial/lesson-builder/05-add-word.png',
-        alt: 'Guesvia Add word form with arrows pointing to English, Arabic meaning, explanation, hotel example and Save',
+        alt: 'GHASIDO Add word form with arrows pointing to English, Arabic meaning, explanation, hotel example and Save',
         caption:
             'This is the exact Add word form. The same form is used for Useful Expressions.',
         callouts: [
@@ -425,7 +425,7 @@ const steps: GuideStep[] = [
         description:
             'Open Dialogue, choose a scene image, and click Add line. Choose Staff or Guest, write one English sentence, and add Arabic for Show Meaning. After the sentences exist, generate the Normal and Slow audio clips lower in the same editor.',
         image: '/tutorial/lesson-builder/06-dialogue-audio.png',
-        alt: 'Guesvia Dialogue block editor with scene image, Add line and conversation lines visible',
+        alt: 'GHASIDO Dialogue block editor with scene image, Add line and conversation lines visible',
         caption:
             'A dialogue is a real conversation: one short sentence per line and a speaker for every line.',
         callouts: [
@@ -476,7 +476,7 @@ const steps: GuideStep[] = [
         description:
             'Open Preview and check Phone (390px) and Desktop. Use Save Draft while you are still working. Publish Lesson only after every block is complete and the employee view looks correct.',
         image: '/tutorial/lesson-builder/07-lesson-preview.png',
-        alt: 'Guesvia lesson Preview tab showing the phone employee experience and Desktop switch',
+        alt: 'GHASIDO lesson Preview tab showing the phone employee experience and Desktop switch',
         caption:
             'Preview is safe: it shows the employee experience without recording employee progress.',
         callouts: [
@@ -544,7 +544,7 @@ watch(open, (value) => {
     <LessonsModal
         v-model:open="open"
         title="How to create a lesson"
-        description="A visual walkthrough of the real Guesvia lesson builder, from Course to Publish."
+        description="A visual walkthrough of the real GHASIDO lesson builder, from Course to Publish."
         size="xl"
     >
         <div class="mt-2 grid gap-3">

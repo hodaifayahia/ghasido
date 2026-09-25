@@ -23,7 +23,7 @@ enum MediaLibrary: string
     {
         return match ($this) {
             self::MyImages => __('My Images'),
-            self::GuesviaLibrary => __('Guesvia Library'),
+            self::GuesviaLibrary => __('GHASIDO Library'),
             self::IconsStickers => __('Icons & Stickers'),
             self::Generated => __('Generated audio'),
             self::Recordings => __('Recordings'),

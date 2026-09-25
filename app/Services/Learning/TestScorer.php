@@ -3,6 +3,7 @@
 namespace App\Services\Learning;
 
 use App\Enums\ActivityType;
+use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\TestAttemptStatus;
 use App\Jobs\EvaluateWrittenAnswer;
@@ -10,6 +11,7 @@ use App\Jobs\TranscribeAndEvaluateSpokenAnswer;
 use App\Models\Activity;
 use App\Models\Attempt;
 use App\Models\TestAttempt;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
@@ -93,6 +95,7 @@ class TestScorer
             $user->forceFill([
                 'training_started_at' => $user->training_started_at ?? Date::now(),
                 'last_activity_at' => Date::now(),
+                ...self::levelColumns($totalScore, $totalMax),
             ])->save();
         });
 
@@ -111,6 +114,26 @@ class TestScorer
                 }
             });
         }
+    }
+
+    /**
+     * The learner's English level from this sitting's auto-graded share
+     * (spec 0005 §2.1). The latest sitting wins, so a Post-test moves it on.
+     * A sitting with nothing auto-graded (only spoken or written items)
+     * leaves the level as it was.
+     *
+     * @return array{english_level?: EnglishLevel, english_level_assessed_at?: CarbonInterface}
+     */
+    private static function levelColumns(float $score, float $max): array
+    {
+        if ($max <= 0) {
+            return [];
+        }
+
+        return [
+            'english_level' => EnglishLevel::fromPercent($score / $max * 100),
+            'english_level_assessed_at' => Date::now(),
+        ];
     }
 
     /**

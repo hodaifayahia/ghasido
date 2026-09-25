@@ -65,6 +65,34 @@ function remove(): void {
                 <p v-if="entry.lesson" class="text-ink-slate mt-1 text-xs">
                     From {{ entry.lesson.title }}
                 </p>
+                <!-- Spaced review state (spec 0005 §3.4): a label with the
+                     dots, never colour alone (ACC-02). -->
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                        class="flex items-center gap-1"
+                        :aria-label="`Mastery ${entry.mastery} of ${entry.masteryMax}`"
+                        role="img"
+                    >
+                        <span
+                            v-for="step in entry.masteryMax"
+                            :key="step"
+                            :class="
+                                cn(
+                                    'size-1.5 rounded-full',
+                                    step <= entry.mastery
+                                        ? 'bg-brand-600'
+                                        : 'bg-tint-step',
+                                )
+                            "
+                        />
+                    </span>
+                    <span
+                        v-if="entry.needsPractice"
+                        class="bg-warning-tint text-warning-text rounded-pill px-2 py-0.5 text-[11px] font-semibold"
+                    >
+                        Needs practice
+                    </span>
+                </div>
             </div>
             <button
                 type="button"

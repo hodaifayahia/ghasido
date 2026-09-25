@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Learn;
 
+use App\Models\Hotel;
 use App\Models\LexiconItem;
 use App\Models\PhrasebookItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,5 +111,35 @@ class PhrasebookTest extends TestCase
 
         $this->assertDatabaseMissing('phrasebook_items', ['id' => $mine->id]);
         $this->assertDatabaseHas('phrasebook_items', ['id' => $theirs->id]);
+    }
+
+    public function test_another_hotels_lexicon_item_cannot_be_saved()
+    {
+        // Its Arabic would otherwise render on this learner's phrasebook
+        // (ROLE-02, CMS-04; spec 0005 §1.4).
+        $foreign = LexiconItem::factory()->create(['hotel_id' => Hotel::factory()->create()->id]);
+        $own = LexiconItem::factory()->create(['hotel_id' => $this->hotel->id]);
+        $learner = $this->learner();
+
+        $this->actingAs($learner)
+            ->postJson(route('learn.phrasebook.store'), ['lexicon_item_id' => $foreign->id])
+            ->assertJsonValidationErrors('lexicon_item_id');
+
+        $this->actingAs($learner)
+            ->postJson(route('learn.phrasebook.store'), ['lexicon_item_id' => $own->id])
+            ->assertCreated();
+
+        $this->assertDatabaseMissing('phrasebook_items', ['lexicon_item_id' => $foreign->id]);
+    }
+
+    public function test_a_source_lesson_out_of_reach_is_refused()
+    {
+        $foreignLesson = $this->publishedLesson(hotel: Hotel::factory()->create());
+
+        $this->actingAs($this->learner())
+            ->postJson(route('learn.phrasebook.store'), ['text' => 'Welcome back!', 'source_lesson_id' => $foreignLesson->id])
+            ->assertJsonValidationErrors('source_lesson_id');
+
+        $this->assertDatabaseCount('phrasebook_items', 0);
     }
 }

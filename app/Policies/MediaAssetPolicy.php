@@ -2,7 +2,9 @@
 
 namespace App\Policies;
 
+use App\Enums\MediaLibrary;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Models\MediaAsset;
 use App\Models\User;
 
@@ -11,10 +13,11 @@ use App\Models\User;
  *
  * Public disk files are lesson media: anyone signed in may see them, which
  * is also what the storage URL already allows. Private files are learner
- * recordings and exports, served only through `media.show`: the uploader
- * (the learner who recorded it), someone in the same hotel, or the Super
- * Admin through Gate::before. A manager of another hotel is refused, and so
- * is a manager with no hotel at all.
+ * recordings, served only through `media.show`. A learner's recording is
+ * readable by the learner who made it and by whoever holds
+ * `transcripts.view` (the Super Admin; ROLE-04, PRIV-04): a coworker, the
+ * hotel's manager or its Hotel Admin is refused, even inside the same hotel.
+ * Any other private file stays within its hotel's back office.
  */
 class MediaAssetPolicy
 {
@@ -28,7 +31,13 @@ class MediaAssetPolicy
             return true;
         }
 
-        return $asset->hotel_id !== null && $asset->hotel_id === $user->hotel_id;
+        if ($asset->library === MediaLibrary::Recordings) {
+            return $user->can(Permission::TranscriptsView->value);
+        }
+
+        return $asset->hotel_id !== null
+            && $asset->hotel_id === $user->hotel_id
+            && ! $user->hasRole(Role::Employee->value);
     }
 
     /**

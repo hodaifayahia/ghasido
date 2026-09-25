@@ -8,6 +8,7 @@ import ReportsResultsPanel from '@/components/reports/ReportsResultsPanel.vue';
 import ReportsStatsRow from '@/components/reports/ReportsStatsRow.vue';
 import ReportsToolbar from '@/components/reports/ReportsToolbar.vue';
 import type { ReportFilterValues } from '@/components/reports/ReportsToolbar.vue';
+import ReportsScoreDialog from '@/components/reports/ReportsScoreDialog.vue';
 import ReportsTranscriptDialog from '@/components/reports/ReportsTranscriptDialog.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { dashboard, reportsExport as reportsExportRoute } from '@/routes';
@@ -26,6 +27,7 @@ import type {
     ReportPagination,
     ReportResults,
     ReportRoleplayRow,
+    ReportScoreTarget,
     ReportRowAction,
     ReportsFilters,
     ReportSingleBarPoint,
@@ -50,6 +52,7 @@ type Props = {
     datasets: ReportDataset[];
     detail: ReportEmployeeDetail | null;
     canViewTranscripts: boolean;
+    canOverrideScores: boolean;
     canExport: boolean;
     canExportAnonymised: boolean;
 };
@@ -280,6 +283,15 @@ function showTranscript(row: ReportRoleplayRow): void {
     transcriptOpen.value = true;
 }
 
+// Adjusting an AI score (AIE-05; spec 0005 §2.5).
+const scoreOpen = ref(false);
+const scoreTarget = ref<ReportScoreTarget | null>(null);
+
+function showScore(target: ReportScoreTarget): void {
+    scoreTarget.value = target;
+    scoreOpen.value = true;
+}
+
 // ---------------------------------------------------------------- exports
 //
 // Every export runs reports.export with the page's current filters; CSV
@@ -378,6 +390,7 @@ function runExport(format: ReportExportFormat): void {
             :export-actions="exportActions"
             :datasets="datasets"
             :can-view-transcripts="canViewTranscripts"
+            :can-override-scores="canOverrideScores"
             :can-export="canExport"
             :loading="loading"
             @tab="selectTab"
@@ -386,12 +399,18 @@ function runExport(format: ReportExportFormat): void {
             @per-page="setPerPage"
             @action="onRowAction"
             @transcript="showTranscript"
+            @score="showScore"
             @export="runExport"
             @download="download"
         />
     </div>
 
     <ReportsEmployeeDialog v-model:open="detailOpen" :detail="detail" />
+    <ReportsScoreDialog
+        v-if="canOverrideScores"
+        v-model:open="scoreOpen"
+        :target="scoreTarget"
+    />
     <ReportsTranscriptDialog
         v-if="canViewTranscripts"
         v-model:open="transcriptOpen"

@@ -43,10 +43,12 @@ final class AnswerFormatter
     /**
      * The learner's answer in words: the option they chose, the pairs they
      * matched, the order they gave, the text they wrote, or the recording.
+     * A spoken answer carries its transcript only for a viewer who may read
+     * transcripts (ROLE-04, PRIV-04, REP-08); everyone else sees the label.
      *
      * @param  array<string, mixed>  $item
      */
-    public static function answer(ActivityType $type, array $item, mixed $rawAnswer, ?string $transcript = null): string
+    public static function answer(ActivityType $type, array $item, mixed $rawAnswer, ?string $transcript = null, bool $withTranscript = true): string
     {
         if ($rawAnswer === null) {
             return '';
@@ -62,7 +64,7 @@ final class AnswerFormatter
             ActivityType::ListenMatch => self::pairs($item, $rawAnswer),
             ActivityType::DialogueOrder => self::ordered(self::list($item, 'sentences'), 'text', $rawAnswer),
             ActivityType::PictureOrder => self::ordered(self::list($item, 'cards'), 'caption', $rawAnswer),
-            ActivityType::Speaking => self::recording($rawAnswer, $transcript),
+            ActivityType::Speaking => self::recording($rawAnswer, $transcript, $withTranscript),
             ActivityType::Writing => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
         };
     }
@@ -158,13 +160,17 @@ final class AnswerFormatter
         return implode(' → ', $parts);
     }
 
-    private static function recording(mixed $raw, ?string $transcript): string
+    private static function recording(mixed $raw, ?string $transcript, bool $withTranscript): string
     {
         $duration = is_array($raw) && is_numeric($raw['duration_ms'] ?? null)
             ? sprintf('%.1f s', ((float) $raw['duration_ms']) / 1000)
             : null;
 
         $label = $duration === null ? __('Voice recording') : __('Voice recording (:duration)', ['duration' => $duration]);
+
+        if (! $withTranscript) {
+            return $label;
+        }
 
         $text = $transcript ?? (is_array($raw) ? self::string($raw, 'transcript') : '');
 

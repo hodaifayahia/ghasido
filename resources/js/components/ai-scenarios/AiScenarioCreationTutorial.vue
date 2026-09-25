@@ -293,7 +293,7 @@ watch(open, (value) => {
     <LessonsModal
         v-model:open="open"
         title="How to create an AI role-play scenario"
-        description="A visual walkthrough of the Guesvia scenario builder, from a new draft to a tested conversation."
+        description="A visual walkthrough of the GHASIDO scenario builder, from a new draft to a tested conversation."
         size="xl"
     >
         <div class="mt-2 grid gap-3">

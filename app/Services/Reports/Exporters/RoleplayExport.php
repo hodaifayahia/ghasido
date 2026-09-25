@@ -40,7 +40,7 @@ final class RoleplayExport extends DatasetExport
     {
         $headers = [
             'Attempt ID', 'Participant code', 'Employee', 'Username', 'Hotel', 'Department', 'Scenario', 'Attempt no',
-            'Status', 'Overall score',
+            'Status', 'Overall score', 'Score overridden', 'Original overall score', 'Override reason', 'Grading level',
         ];
 
         foreach (self::criteriaKeys() as $key) {
@@ -84,6 +84,12 @@ final class RoleplayExport extends DatasetExport
                 $attempt->attempt_no,
                 $attempt->status->value,
                 $attempt->overall_score,
+                // An admin override keeps the AI's value beside it (AIE-05).
+                $attempt->isScoreOverridden(),
+                $attempt->original_overall_score,
+                $attempt->score_override_reason,
+                // The learner's level the AI judged against (spec 0005 §5.2).
+                $attempt->graded_level?->value,
             ];
 
             foreach (self::criteriaKeys() as $key) {

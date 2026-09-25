@@ -4,15 +4,17 @@ namespace App\Services\Ai;
 
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
+use App\Enums\ApiAccount;
 use App\Enums\Role;
+use App\Models\AiModelPrice;
 use App\Models\AiUsage;
 use App\Models\Hotel;
 use App\Models\RoleplayAttempt;
-use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Owner\ApiCredit;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Meters every AI, TTS and STT call and enforces the daily limits
@@ -34,15 +36,26 @@ use Illuminate\Support\Facades\Date;
  */
 final class UsageMeter
 {
+    /** The model id a live voice call's agent time is metered under. */
+    public const string VOICE_AGENT_MODEL = 'deepgram-voice-agent';
+
     /**
      * Write one ai_usages row. Nothing is aggregated or cached: the report
      * pages sum the rows (AIL-04).
      */
-    public function record(?User $user, AiFeature $feature, AiUsageInfo $usage, float $costEstimate = 0, bool $chargePoints = true): AiUsage
+    public function record(?User $user, AiFeature $feature, AiUsageInfo $usage, float $costEstimate = 0, bool $chargePoints = true, ?int $hotelId = null): AiUsage
     {
         $points = $user !== null && $chargePoints ? $this->aiActionCost($user) : 0;
 
-        return DB::transaction(function () use ($user, $feature, $usage, $costEstimate, $points): AiUsage {
+        // Priced from the Super Admin's table when the caller has no figure
+        // of its own (API-03; spec 0005 §4.3). Unpriced models stay at 0 and
+        // the usage page says so.
+        if ($costEstimate <= 0) {
+            $costEstimate = AiModelPrice::for($usage->model)
+                ?->costOf($usage->promptTokens, $usage->completionTokens) ?? 0.0;
+        }
+
+        return DB::transaction(function () use ($user, $feature, $usage, $costEstimate, $points, $hotelId): AiUsage {
             if ($user !== null) {
                 // Serialize usage writes per employee so two parallel AI replies
                 // cannot silently spend the same remaining points (AIL-01).
@@ -51,7 +64,9 @@ final class UsageMeter
 
             return AiUsage::query()->create([
                 'user_id' => $user?->id,
-                'hotel_id' => $user?->hotel_id,
+                // A system call made for a hotel (its dashboard briefing)
+                // is billed to that hotel although nobody triggered it.
+                'hotel_id' => $user->hotel_id ?? $hotelId,
                 'feature' => $feature,
                 'provider' => $usage->provider,
                 'model' => $usage->model,
@@ -69,6 +84,8 @@ final class UsageMeter
      */
     public function assertWithinLimits(User $user, AiFeature $feature): void
     {
+        // The platform owner's Qwen credit comes first (spec 0007, D7a).
+        $this->assertCredit($user, 'ai');
         $this->assertPointsAvailable($user, $this->aiActionCost($user));
 
         $perEmployee = self::perEmployeeDailyTurns();
@@ -96,6 +113,52 @@ final class UsageMeter
         }
 
         return true;
+    }
+
+    /**
+     * A live voice call needs the Deepgram account, and Qwen too when the
+     * agent thinks through our Qwen proxy (spec 0007, D7a). Checked for an
+     * admin's preview as well: it spends the same credit.
+     *
+     * @throws AiLimitReached
+     */
+    public function assertVoiceCredit(User $user, bool $usesQwen): void
+    {
+        $this->assertCredit($user, ...($usesQwen ? ['voice', 'ai'] : ['voice']));
+    }
+
+    /**
+     * Meter one finished live voice call: the Deepgram agent bills the
+     * call's length, so one row per call in seconds (spec 0007, D9). Never
+     * the learner's points (those are charged per ten-minute block).
+     */
+    public function recordVoiceCall(RoleplayAttempt $attempt): void
+    {
+        $durationMs = $attempt->duration_ms ?? 0;
+
+        if ($durationMs <= 0) {
+            return;
+        }
+
+        $user = $attempt->user;
+
+        $this->record($user, AiFeature::VoiceCall, self::audioUsage(
+            ApiAccount::Deepgram->value,
+            self::VOICE_AGENT_MODEL,
+            $durationMs,
+        ), chargePoints: false, hotelId: $user?->hotel_id);
+    }
+
+    /**
+     * Usage for a call billed by audio length: the seconds go in the input
+     * units, rounded up, so a `seconds` price costs them (spec 0007, D9).
+     * Zero when the length is unknown.
+     */
+    public static function audioUsage(string $provider, string $model, ?int $durationMs): AiUsageInfo
+    {
+        $seconds = $durationMs !== null && $durationMs > 0 ? (int) ceil($durationMs / 1000) : 0;
+
+        return new AiUsageInfo($seconds, 0, $model, $provider);
     }
 
     /** Voice calls use a time rate instead of the per-action rate. */
@@ -180,7 +243,8 @@ final class UsageMeter
             return 0;
         }
 
-        return $this->hotelFor($user)?->subscriptionPlan?->ai_action_points ?? 50;
+        // `??` also covers a hotel without a plan: the access is isset-guarded.
+        return $this->hotelFor($user)?->subscriptionPlan->ai_action_points ?? 50;
     }
 
     public function turnsUsedTodayBy(User $user): int
@@ -197,6 +261,20 @@ final class UsageMeter
     {
         return $this->turnsUsedTodayBy($user) < self::perEmployeeDailyTurns()
             && ($user->hotel_id === null || $this->turnsUsedTodayByHotel($user->hotel_id) < self::perHotelDailyTurns());
+    }
+
+    /**
+     * @throws AiLimitReached
+     */
+    private function assertCredit(User $user, string ...$capabilities): void
+    {
+        try {
+            app(ApiCredit::class)->assertCapabilities(...$capabilities);
+        } catch (AiLimitReached $exception) {
+            // A learner is told AI practice is paused, nothing about credit;
+            // the Super Admin sees which account ran out.
+            throw $user->hasRole(Role::SuperAdmin->value) ? $exception : AiLimitReached::forLearnerCredit();
+        }
     }
 
     private function assertPointsAvailable(User $user, int $required): void

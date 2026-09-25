@@ -94,10 +94,10 @@ const whatsappHref = computed(() => {
             <div
                 class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-8 lg:px-10"
             >
-                <Link href="/" aria-label="Guesvia home" class="shrink-0">
+                <Link href="/" aria-label="GHASIDO home" class="shrink-0">
                     <img
-                        src="/brand/guesvia-logo.png"
-                        alt="Guesvia — English for hotel staff"
+                        src="/brand/ghasido-logo.png"
+                        alt="GHASIDO — English for hotel staff"
                         width="600"
                         height="180"
                         class="h-11 w-auto object-contain sm:h-13"
@@ -338,7 +338,7 @@ const whatsappHref = computed(() => {
                         >
                             <img
                                 src="/landing/employee-pretest-mobile.png"
-                                alt="Guesvia employee pre-test on a mobile phone"
+                                alt="GHASIDO employee pre-test on a mobile phone"
                                 width="390"
                                 height="844"
                                 fetchpriority="high"
@@ -423,7 +423,7 @@ const whatsappHref = computed(() => {
                             </div>
                             <img
                                 src="/landing/ai-roleplay-builder.png"
-                                alt="Guesvia AI role-play scenario builder and preview"
+                                alt="GHASIDO AI role-play scenario builder and preview"
                                 width="1280"
                                 height="853"
                                 loading="lazy"
@@ -772,7 +772,7 @@ const whatsappHref = computed(() => {
                                                 index % featureShots.length
                                             ]
                                         "
-                                        :alt="`${item.title} in the Guesvia platform`"
+                                        :alt="`${item.title} in the GHASIDO platform`"
                                         width="1280"
                                         height="853"
                                         loading="lazy"
@@ -817,7 +817,7 @@ const whatsappHref = computed(() => {
                                     class="text-brand-700 mt-6 inline-flex items-center gap-2 text-[12px] font-semibold"
                                 >
                                     <CircleCheck class="text-success size-4" />
-                                    Connected to the same secure Guesvia
+                                    Connected to the same secure GHASIDO
                                     workspace
                                 </div>
                             </div>
@@ -1115,8 +1115,8 @@ const whatsappHref = computed(() => {
             >
                 <div class="max-w-sm">
                     <img
-                        src="/brand/guesvia-logo.png"
-                        alt="Guesvia"
+                        src="/brand/ghasido-logo.png"
+                        alt="GHASIDO"
                         width="600"
                         height="180"
                         class="h-11 w-auto object-contain object-left"

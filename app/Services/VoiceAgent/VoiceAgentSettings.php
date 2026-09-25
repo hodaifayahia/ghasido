@@ -5,6 +5,7 @@ namespace App\Services\VoiceAgent;
 use App\Models\AiScenario;
 use App\Models\User;
 use App\Models\VoiceAgentSetting;
+use App\Services\Owner\ApiKeyring;
 use Illuminate\Validation\Rule;
 
 /**
@@ -212,9 +213,9 @@ final class VoiceAgentSettings
             return __('Qwen needs a public HTTPS APP_URL so Deepgram can reach the /voice-agent/llm proxy. Current APP_URL: :url', ['url' => $appUrl]);
         }
 
-        $key = config('services.ai.key');
+        $key = app(ApiKeyring::class)->key('services.ai.key');
 
-        if (! is_string($key) || trim($key) === '') {
+        if (trim($key) === '') {
             return __('Qwen is not configured on the server (AI_KEY is empty).');
         }
 
@@ -223,9 +224,7 @@ final class VoiceAgentSettings
 
     public function apiConfigured(): bool
     {
-        $key = config('services.voice_agent.key');
-
-        return is_string($key) && trim($key) !== '';
+        return app(ApiKeyring::class)->key('services.voice_agent.key') !== '';
     }
 
     /**

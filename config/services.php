@@ -93,6 +93,10 @@ return [
         // `?:` not a default argument: a blank `STT_KEY=` line reads as ''.
         'key' => env('STT_KEY') ?: env('DEEPGRAM_API_KEY'),
         'model' => env('STT_MODEL') ?: (env('STT_PROVIDER') === 'deepgram' ? 'nova-3' : null),
+        // Fake provider only (tests, local demos): what the pronunciation
+        // check "hears", as `word` or `word:confidence` (spec 0006).
+        'fake_words' => env('STT_FAKE_WORDS'),
+        'fake_hinted_words' => env('STT_FAKE_HINTED_WORDS'),
     ],
 
 ];

@@ -240,7 +240,7 @@ return [
         'image' => 'media:complete-thumbs-up',
         'quote' => "“Small steps\nmake a big difference!”",
         'closing_quote' => '“Better communication creates happier guests.”',
-        'closing_quote_author' => 'Guesvia',
+        'closing_quote_author' => 'GHASIDO',
         'encouragement' => "Today you practiced\na real-life situation.\nWith more practice, you will feel more confident in speaking English with guests.",
         'progress_note' => "Keep going!\nYou're on the right track.",
         'summary_scenario' => 'Check-in (Guest arrival and registration)',

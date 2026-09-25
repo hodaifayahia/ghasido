@@ -1,3 +1,5 @@
+import type { Accent } from './pronunciation';
+
 export type LessonFilterOption = {
     value: string;
     label: string;
@@ -162,6 +164,10 @@ export type LessonEditor = {
     publishedAt: string | null;
     estimatedMinutes: number | null;
     completionCondition: LessonCompletionCondition | null;
+    /** Stored accent; null = the platform default (spec 0006 §3). */
+    accent: Accent | null;
+    /** The accent in effect: the stored one or the platform default. */
+    effectiveAccent: Accent;
     unitId: number | null;
     hotelLabel: string | null;
     departmentLabel: string | null;

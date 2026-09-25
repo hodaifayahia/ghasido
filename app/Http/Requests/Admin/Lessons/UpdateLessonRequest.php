@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\Accent;
 use App\Models\Lesson;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,9 @@ class UpdateLessonRequest extends FormRequest
             'completion_condition.rule' => ['sometimes', 'string', Rule::in(['all_steps', 'last_step', 'practice_passed'])],
             'completion_condition.min_score' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100'],
             'status' => ['sometimes', 'string', Rule::in(['draft', 'published'])],
+            // British or American English: the lesson's voice and the accent
+            // a learner's speech is judged in (spec 0006 §3).
+            'accent' => ['sometimes', 'nullable', Rule::enum(Accent::class)],
             'unit_id' => ['sometimes', 'integer', Rule::exists('units', 'id')],
         ];
     }

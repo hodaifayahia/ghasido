@@ -11,6 +11,7 @@ import {
     MessageSquareText,
     Minus,
     Search,
+    SlidersHorizontal,
     TrendingDown,
     TrendingUp,
     X,
@@ -44,6 +45,7 @@ import type {
     ReportRoleplayStatus,
     ReportRowAction,
     ReportRowStatus,
+    ReportScoreTarget,
     ReportsTab,
     ReportsTabKey,
 } from '@/types';
@@ -58,12 +60,17 @@ type Props = {
     datasets: ReportDataset[];
     canViewTranscripts: boolean;
     canExport: boolean;
+    /** Adjust and re-grade AI scores (AIE-05; spec 0005 §2.5). */
+    canOverrideScores?: boolean;
     /** True while a partial reload is in flight, for the skeleton rows. */
     loading?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = withDefaults(defineProps<Props>(), { loading: false });
+const props = withDefaults(defineProps<Props>(), {
+    loading: false,
+    canOverrideScores: false,
+});
 
 /** "Include detailed answers": the Employee Results export becomes the answers dataset (REP-06). */
 const includeDetailedAnswers = defineModel<boolean>('includeDetailedAnswers', {
@@ -77,6 +84,7 @@ const emit = defineEmits<{
     perPage: [perPage: number];
     action: [action: ReportRowAction, row: ReportEmployeeRow];
     transcript: [row: ReportRoleplayRow];
+    score: [target: ReportScoreTarget];
     export: [format: ReportExportFormat];
     download: [dataset: ReportDatasetKey, format: ReportExportFormat];
 }>();
@@ -700,6 +708,24 @@ const pill =
                                         >
                                         · v{{ row.version }}
                                     </span>
+                                    <button
+                                        v-if="canOverrideScores"
+                                        type="button"
+                                        class="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-600/15 mt-0.5 inline-flex items-center gap-1 rounded-sm text-[11px] font-semibold hover:underline focus-visible:ring-3 focus-visible:outline-none"
+                                        :data-test="`report-answer-${row.id}-adjust-button`"
+                                        @click="
+                                            emit('score', {
+                                                kind: 'answer',
+                                                row,
+                                            })
+                                        "
+                                    >
+                                        <SlidersHorizontal
+                                            class="size-3"
+                                            aria-hidden="true"
+                                        />
+                                        Adjust
+                                    </button>
                                 </td>
                                 <td :class="bodyCell">
                                     {{ formatDuration(row.timeTakenMs) }}
@@ -755,6 +781,32 @@ const pill =
                                     "
                                 >
                                     {{ row.overallScore ?? '—' }}
+                                    <span
+                                        v-if="row.overridden"
+                                        class="text-ink-slate block text-[10.5px] font-normal"
+                                        >overridden</span
+                                    >
+                                    <button
+                                        v-if="
+                                            canOverrideScores &&
+                                            row.status === 'completed'
+                                        "
+                                        type="button"
+                                        class="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-600/15 inline-flex items-center gap-1 rounded-sm text-[11px] font-semibold hover:underline focus-visible:ring-3 focus-visible:outline-none"
+                                        :data-test="`report-roleplay-${row.id}-adjust-button`"
+                                        @click="
+                                            emit('score', {
+                                                kind: 'roleplay',
+                                                row,
+                                            })
+                                        "
+                                    >
+                                        <SlidersHorizontal
+                                            class="size-3"
+                                            aria-hidden="true"
+                                        />
+                                        Adjust
+                                    </button>
                                 </td>
                                 <td class="px-2 py-[7px] align-middle">
                                     <ul class="flex flex-wrap gap-1">
@@ -1075,7 +1127,22 @@ const pill =
                             }}
                             ·
                             {{ row.submittedAt }}
+                            <template v-if="row.overridden">
+                                · overridden</template
+                            >
                         </p>
+                        <button
+                            v-if="canOverrideScores"
+                            type="button"
+                            class="border-line text-brand-700 hover:bg-brand-50 bg-surface mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold"
+                            @click="emit('score', { kind: 'answer', row })"
+                        >
+                            <SlidersHorizontal
+                                class="size-4"
+                                aria-hidden="true"
+                            />
+                            Adjust score
+                        </button>
                     </li>
                 </template>
 
@@ -1147,6 +1214,20 @@ const pill =
                                 Transcript
                             </button>
                         </div>
+                        <button
+                            v-if="
+                                canOverrideScores && row.status === 'completed'
+                            "
+                            type="button"
+                            class="border-line text-brand-700 hover:bg-brand-50 bg-surface mt-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-[12px] font-semibold"
+                            @click="emit('score', { kind: 'roleplay', row })"
+                        >
+                            <SlidersHorizontal
+                                class="size-4"
+                                aria-hidden="true"
+                            />
+                            Adjust score
+                        </button>
                     </li>
                 </template>
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\Role;
 use App\Models\Hotel;
 use App\Models\User;
+use App\Services\Dashboard\DashboardBriefing;
 use App\Services\Dashboard\DashboardStats;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ use Inertia\Response;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, DashboardStats $stats): Response|RedirectResponse
+    public function __invoke(Request $request, DashboardStats $stats, DashboardBriefing $briefing): Response|RedirectResponse
     {
         /** @var User|null $user */
         $user = $request->user();
@@ -42,8 +43,13 @@ class DashboardController extends Controller
                 : Hotel::withoutGlobalScopes()->find($user->hotel_id);
 
             if ($hotel !== null) {
+                $built = $stats->build($hotel);
+
                 return Inertia::render('Dashboard', [
-                    ...$stats->build($hotel),
+                    ...$built,
+                    // AI briefing on this hotel's aggregate figures only
+                    // (spec 0005 §4.1; ROLE-02).
+                    'briefing' => $briefing->present($hotel, $built),
                 ]);
             }
 
@@ -60,8 +66,11 @@ class DashboardController extends Controller
             ]);
         }
 
+        $built = $stats->build();
+
         return Inertia::render('Dashboard', [
-            ...$stats->build(),
+            ...$built,
+            'briefing' => $briefing->present(null, $built),
         ]);
     }
 }

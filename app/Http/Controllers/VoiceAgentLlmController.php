@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
+use App\Enums\ApiAccount;
 use App\Models\RoleplayAttempt;
+use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\RoleplayPrompt;
 use App\Services\Ai\UsageMeter;
+use App\Services\Owner\ApiCredit;
+use App\Services\Owner\ApiKeyring;
 use App\Services\VoiceAgent\VoiceAgentProxyToken;
 use App\Services\VoiceAgent\VoiceAgentSettings;
 use Illuminate\Http\Client\ConnectionException;
@@ -54,25 +58,28 @@ class VoiceAgentLlmController extends Controller
         }
 
         $values = $settings->forScenario($scenario);
-        $model = config('services.ai.fast_model') ?: config('services.ai.model');
-        $key = config('services.ai.key');
+        $model = app(AiModelSettings::class)->fastChatModel();
+        $key = app(ApiKeyring::class)->key('services.ai.key');
         $baseUrl = config('services.ai.base_url');
 
-        if (! is_string($model) || $model === '' || ! is_string($key) || $key === '') {
+        if ($model === '' || $key === '') {
             return $this->error('The language model is not configured.', 503);
         }
 
         $user = $attempt->user;
         $stream = $request->boolean('stream');
 
-        if (! $attempt->is_preview && $user !== null && ! $meter->isWithinLimits($user, AiFeature::RoleplayTurn)) {
+        // The owner's Qwen credit ends the call politely too, preview or not
+        // (spec 0007, D7).
+        if (! app(ApiCredit::class)->isAvailable(ApiAccount::Qwen)
+            || (! $attempt->is_preview && $user !== null && ! $meter->isWithinLimits($user, AiFeature::RoleplayTurn))) {
             return $this->reply(__('I am sorry, we need to finish our call here. Thank you for your help!'), $model, $stream);
         }
 
         $body = [
             'model' => $model,
             'messages' => [
-                ['role' => 'system', 'content' => RoleplayPrompt::forVoice($scenario, $values['prompt'])],
+                ['role' => 'system', 'content' => RoleplayPrompt::forVoice($scenario, $values['prompt'], $attempt->user?->english_level)],
                 ...$this->conversation($request->input('messages')),
             ],
             'temperature' => $values['temperature'],

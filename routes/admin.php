@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
  * One file per screen (spec 0003, Part D): each screen's routes live in
  * routes/admin/<screen>.php so the screens can be built independently.
  */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'hotel.access'])->group(function () {
     require __DIR__.'/admin/hotels.php';
     require __DIR__.'/admin/subscriptions.php';
     require __DIR__.'/admin/departments.php';

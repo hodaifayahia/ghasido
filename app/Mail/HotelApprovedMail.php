@@ -27,7 +27,7 @@ class HotelApprovedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: __('Your Guesvia hotel account is ready'),
+            subject: __('Your GHASIDO hotel account is ready'),
         );
     }
 

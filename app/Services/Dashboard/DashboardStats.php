@@ -44,6 +44,12 @@ final class DashboardStats
     /** Rows shown in Recent Activity. */
     public const ACTIVITY_ROWS = 5;
 
+    /** Rows shown in At-risk Learners (spec 0005 §4.1). */
+    public const AT_RISK_ROWS = 5;
+
+    /** A learner is listed as at risk from this score up. */
+    public const AT_RISK_MIN_SCORE = 2;
+
     /** Each recent activity source contributes at most this many candidates. */
     private const ACTIVITY_CANDIDATES = 5;
 
@@ -70,7 +76,7 @@ final class DashboardStats
     /**
      * The props of pages/Dashboard.vue (resources/js/types/dashboard.ts).
      *
-     * @return array{stats: list<array<string, mixed>>, trainingOverview: array{all: array{completed: int, inProgress: int, notStarted: int}, departments: list<array{id: int, name: string, breakdown: array{completed: int, inProgress: int, notStarted: int}}>}, departmentProgress: list<array{id: int, name: string, percent: int}>, needsAttention: list<array{key: string, label: string, total: int, employees: list<array{id: int, name: string, department: string, lastLogin: string}>}>, recentActivity: list<array{id: int, date: string, time: string, employee: string, type: string, activity: string, details: string}>}
+     * @return array{stats: list<array<string, mixed>>, trainingOverview: array{all: array{completed: int, inProgress: int, notStarted: int}, departments: list<array{id: int, name: string, breakdown: array{completed: int, inProgress: int, notStarted: int}}>}, departmentProgress: list<array{id: int, name: string, percent: int}>, needsAttention: list<array{key: string, label: string, total: int, employees: list<array{id: int, name: string, department: string, lastLogin: string}>}>, recentActivity: list<array{id: int, date: string, time: string, employee: string, type: string, activity: string, details: string}>, atRisk: array{total: int, high: int, medium: int, reasons: array<string, int>, rows: list<array{id: int, name: string, department: string, level: string, score: int, reasons: list<string>}>}}
      */
     public function build(?Hotel $hotel = null): array
     {
@@ -112,6 +118,7 @@ final class DashboardStats
             'departmentProgress' => $departmentProgress,
             'needsAttention' => $this->needsAttention($employees),
             'recentActivity' => $this->recentActivity($hotel),
+            'atRisk' => $this->atRisk($employees),
         ];
     }
 
@@ -511,6 +518,141 @@ final class DashboardStats
             $days === 1 => $this->text('1 day ago'),
             default => $this->text(':count days ago', ['count' => $days]),
         };
+    }
+
+    // --------------------------------------------------------------- at risk
+
+    /**
+     * Learners likely to drop out or fall behind, with the reasons, from
+     * rules anyone can check (spec 0005 §4.1): no AI decides who is at risk.
+     * Each signal adds to a score; two or more is listed, three or more is
+     * high. Completed learners are never listed. Two extra queries: the
+     * latest Pre-test percentage and the role-play average per learner.
+     *
+     * @param  Collection<int, User>  $employees
+     * @return array{total: int, high: int, medium: int, reasons: array<string, int>, rows: list<array{id: int, name: string, department: string, level: string, score: int, reasons: list<string>}>}
+     */
+    private function atRisk(Collection $employees): array
+    {
+        $candidates = $employees->filter(fn (User $user): bool => $this->stateOf($user) !== self::STATE_COMPLETED);
+        $preTest = $this->preTestPercents($candidates);
+        $roleplay = $this->roleplayAverages($candidates);
+        $now = Date::now();
+        $inactiveDays = self::inactiveDays();
+
+        $rows = [];
+        $tally = [];
+
+        foreach ($candidates as $user) {
+            $score = 0;
+            $reasons = [];
+            $flag = function (string $key, int $weight, string $reason) use (&$score, &$reasons, &$tally): void {
+                $score += $weight;
+                $reasons[] = $reason;
+                $tally[$key] = ($tally[$key] ?? 0) + 1;
+            };
+
+            $idleDays = $user->last_activity_at === null ? null : (int) $user->last_activity_at->diffInDays($now);
+            $accountDays = $user->created_at === null ? 0 : (int) $user->created_at->diffInDays($now);
+            $startedDays = $user->training_started_at === null ? null : (int) $user->training_started_at->diffInDays($now);
+
+            // Never started and gone quiet are one fact, not two: a learner
+            // who never started is flagged once, as not started.
+            if ($this->stateOf($user) === self::STATE_NOT_STARTED) {
+                if ($accountDays >= 7) {
+                    $flag('notStarted', 2, $this->text('Not started after :count days', ['count' => $accountDays]));
+                }
+            } elseif ($idleDays !== null && $idleDays >= $inactiveDays) {
+                $flag('inactive', 2, $this->text('No activity for :count days', ['count' => $idleDays]));
+            }
+
+            if ($startedDays !== null && $startedDays >= 14 && $this->percentOfUser($user) < 25) {
+                $flag('slowProgress', 1, $this->text('Slow progress: :percent% after :count days', ['percent' => $this->percentOfUser($user), 'count' => $startedDays]));
+            }
+
+            if (isset($preTest[$user->id]) && $preTest[$user->id] < 40) {
+                $flag('lowPreTest', 1, $this->text('Low Pre-test score (:percent%)', ['percent' => $preTest[$user->id]]));
+            }
+
+            if (isset($roleplay[$user->id]) && $roleplay[$user->id] < 50) {
+                $flag('lowRoleplay', 1, $this->text('Role-play average :score/100', ['score' => $roleplay[$user->id]]));
+            }
+
+            if ($score >= self::AT_RISK_MIN_SCORE) {
+                $rows[] = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'department' => $user->department->name ?? '',
+                    'level' => $score >= 3 ? 'high' : 'medium',
+                    'score' => $score,
+                    'reasons' => $reasons,
+                ];
+            }
+        }
+
+        usort($rows, fn (array $a, array $b): int => [$b['score'], $a['name']] <=> [$a['score'], $b['name']]);
+
+        return [
+            'total' => count($rows),
+            'high' => count(array_filter($rows, fn (array $row): bool => $row['level'] === 'high')),
+            'medium' => count(array_filter($rows, fn (array $row): bool => $row['level'] === 'medium')),
+            'reasons' => $tally,
+            'rows' => array_slice($rows, 0, self::AT_RISK_ROWS),
+        ];
+    }
+
+    /**
+     * The latest submitted Pre-test percentage per learner.
+     *
+     * @param  Collection<int, User>  $employees
+     * @return array<int, int>
+     */
+    private function preTestPercents(Collection $employees): array
+    {
+        if ($employees->isEmpty()) {
+            return [];
+        }
+
+        $percents = [];
+
+        TestAttempt::query()
+            ->where('status', TestAttemptStatus::Submitted->value)
+            ->whereIn('user_id', $employees->modelKeys())
+            ->whereHas('test', fn (Builder $test) => $test->where('type', TestType::Pre->value))
+            ->whereNotNull('max_score')
+            ->where('max_score', '>', 0)
+            ->orderBy('submitted_at')
+            ->get(['user_id', 'score', 'max_score'])
+            ->each(function (TestAttempt $attempt) use (&$percents): void {
+                $percents[$attempt->user_id] = (int) round((float) $attempt->score / (float) $attempt->max_score * 100);
+            });
+
+        return $percents;
+    }
+
+    /**
+     * The average overall role-play score per learner (real, scored
+     * conversations only; RP-13).
+     *
+     * @param  Collection<int, User>  $employees
+     * @return array<int, int>
+     */
+    private function roleplayAverages(Collection $employees): array
+    {
+        if ($employees->isEmpty()) {
+            return [];
+        }
+
+        return RoleplayAttempt::query()
+            ->whereIn('user_id', $employees->modelKeys())
+            ->where('is_preview', false)
+            ->whereNotNull('overall_score')
+            ->groupBy('user_id')
+            ->toBase()
+            ->selectRaw('user_id, avg(overall_score) as average')
+            ->pluck('average', 'user_id')
+            ->map(fn ($value): int => (int) round((float) $value))
+            ->all();
     }
 
     // ------------------------------------------------------- recent activity

@@ -259,7 +259,8 @@ final class DashScopeImageProvider implements ImageProvider
             },
             width: is_array($info) ? (int) $info[0] : null,
             height: is_array($info) ? (int) $info[1] : null,
-            usage: new AiUsageInfo(0, 0, $this->model, self::PROVIDER),
+            // One image = one input unit, priced per image (spec 0007, D9).
+            usage: new AiUsageInfo(1, 0, $this->model, self::PROVIDER),
         );
     }
 

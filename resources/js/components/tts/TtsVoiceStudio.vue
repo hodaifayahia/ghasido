@@ -20,6 +20,9 @@ const props = withDefaults(defineProps<Props>(), { compact: false });
 
 const voice = ref(props.settings.voice);
 const expressivity = ref(props.settings.expressivity);
+// One lesson voice per accent (spec 0006 §3).
+const britishVoice = ref(props.settings.britishVoice);
+const americanVoice = ref(props.settings.americanVoice);
 const gender = ref('');
 const accent = ref('');
 const age = ref('');
@@ -35,7 +38,16 @@ watch(
     (settings) => {
         voice.value = settings.voice;
         expressivity.value = settings.expressivity;
+        britishVoice.value = settings.britishVoice;
+        americanVoice.value = settings.americanVoice;
     },
+);
+
+const britishVoices = computed(() =>
+    props.settings.voices.filter((item) => item.accent === 'British'),
+);
+const americanVoices = computed(() =>
+    props.settings.voices.filter((item) => item.accent === 'American'),
 );
 
 const selected = computed<TtsVoice | undefined>(() =>
@@ -45,7 +57,9 @@ const selected = computed<TtsVoice | undefined>(() =>
 const settingsDirty = computed(
     () =>
         voice.value !== props.settings.voice ||
-        expressivity.value !== props.settings.expressivity,
+        expressivity.value !== props.settings.expressivity ||
+        britishVoice.value !== props.settings.britishVoice ||
+        americanVoice.value !== props.settings.americanVoice,
 );
 
 const filteredVoices = computed(() =>
@@ -89,7 +103,12 @@ function save(): void {
     saving.value = true;
     router.post(
         update.url(),
-        { voice: voice.value, expressivity: expressivity.value },
+        {
+            voice: voice.value,
+            expressivity: expressivity.value,
+            british_voice: britishVoice.value,
+            american_voice: americanVoice.value,
+        },
         {
             preserveState: true,
             preserveScroll: true,
@@ -319,6 +338,54 @@ function generateAllLessons(): void {
                     >{{ tag }}</span
                 >
             </div>
+        </div>
+
+        <div
+            v-if="!compact"
+            class="border-line mt-3 grid gap-2 rounded-md border px-3 py-2 sm:grid-cols-2"
+            data-test="tts-accent-voices"
+        >
+            <p class="text-brand-900 text-[11px] font-semibold sm:col-span-2">
+                Lesson voices by accent
+            </p>
+            <label class="grid min-w-0 gap-1">
+                <span class="text-ink-slate text-[11px]">British English</span>
+                <select
+                    v-model="britishVoice"
+                    :disabled="!editable"
+                    class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
+                    data-test="tts-british-voice"
+                >
+                    <option
+                        v-for="item in britishVoices"
+                        :key="item.model"
+                        :value="item.model"
+                    >
+                        {{ item.name }} · {{ item.gender }}
+                    </option>
+                </select>
+            </label>
+            <label class="grid min-w-0 gap-1">
+                <span class="text-ink-slate text-[11px]">American English</span>
+                <select
+                    v-model="americanVoice"
+                    :disabled="!editable"
+                    class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
+                    data-test="tts-american-voice"
+                >
+                    <option
+                        v-for="item in americanVoices"
+                        :key="item.model"
+                        :value="item.model"
+                    >
+                        {{ item.name }} · {{ item.gender }}
+                    </option>
+                </select>
+            </label>
+            <p class="text-ink-faint text-[10.5px] leading-4 sm:col-span-2">
+                Each lesson plays in the voice of its accent (lesson Settings →
+                Accent). Learners' pronunciation is checked against it.
+            </p>
         </div>
 
         <div class="mt-3">

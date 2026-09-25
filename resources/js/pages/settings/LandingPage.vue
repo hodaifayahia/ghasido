@@ -15,7 +15,7 @@ const editorSections = [
     { href: '#landing-editor-hero', label: 'Hero' },
     { href: '#landing-editor-roles', label: 'Roles' },
     { href: '#landing-editor-journey', label: 'Journey' },
-    { href: '#landing-editor-why', label: 'Why Guesvia' },
+    { href: '#landing-editor-why', label: 'Why GHASIDO' },
     { href: '#landing-editor-about', label: 'About' },
     { href: '#landing-editor-features', label: 'Features' },
     { href: '#landing-editor-ai', label: 'AI' },
@@ -53,7 +53,7 @@ defineOptions({
             <Heading
                 variant="small"
                 title="Landing page content"
-                description="Edit the words visitors see on Guesvia’s public page."
+                description="Edit the words visitors see on GHASIDO’s public page."
             />
             <Button as-child variant="outline" size="sm" class="shrink-0">
                 <Link href="/" target="_blank" rel="noreferrer">
@@ -310,7 +310,7 @@ defineOptions({
         <PanelCard
             id="landing-editor-why"
             class="scroll-mt-20"
-            title="Why Guesvia"
+            title="Why GHASIDO"
             title-id="landing-why-us"
         >
             <div class="grid gap-4">

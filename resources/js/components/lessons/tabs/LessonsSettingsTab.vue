@@ -15,6 +15,7 @@ import { useCan } from '@/composables/useCan';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/lessons';
 import type {
+    Accent,
     LessonCompletionRule,
     LessonContentStatus,
     LessonEditor,
@@ -23,8 +24,9 @@ import type {
 
 /**
  * Settings tab (CMS-05, JOURNEY-04): estimated minutes, the completion
- * condition, visibility (draft / published) and the scope the lesson
- * inherits from its course. Saved as one PATCH with a toast.
+ * condition, visibility (draft / published), the accent the lesson is
+ * taught and judged in (spec 0006 §3) and the scope the lesson inherits
+ * from its course. Saved as one PATCH with a toast.
  */
 type Props = {
     editor: LessonEditor;
@@ -43,6 +45,7 @@ const minScore = ref<number | null>(
     props.editor.completionCondition?.min_score ?? null,
 );
 const status = ref<LessonContentStatus>(props.editor.status);
+const accent = ref<Accent>(props.editor.effectiveAccent);
 const saving = ref(false);
 const errors = ref<Record<string, string>>({});
 
@@ -53,8 +56,20 @@ watch(
         rule.value = editor.completionCondition?.rule ?? 'all_steps';
         minScore.value = editor.completionCondition?.min_score ?? null;
         status.value = editor.status;
+        accent.value = editor.effectiveAccent;
     },
 );
+
+const accents: LessonFilterOption[] = [
+    { value: 'en-GB', label: 'British English' },
+    { value: 'en-US', label: 'American English' },
+];
+
+function onAccent(value: AcceptableValue): void {
+    if (value === 'en-GB' || value === 'en-US') {
+        accent.value = value;
+    }
+}
 
 const rules: LessonFilterOption[] = [
     { value: 'all_steps', label: 'Every visible step completed' },
@@ -101,6 +116,12 @@ function save(): void {
                     rule.value === 'practice_passed' ? minScore.value : null,
             },
             status: status.value,
+            // Saved only when it differs from what is stored, so a lesson
+            // on the platform default keeps following it.
+            ...(props.editor.accent !== null ||
+            accent.value !== props.editor.effectiveAccent
+                ? { accent: accent.value }
+                : {}),
             _notify: true,
         },
         {
@@ -200,6 +221,38 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                 :max="100"
                 :error="errors['completion_condition.min_score']"
             />
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="grid gap-1.5">
+                <span :class="labelClass">Accent</span>
+                <Select :model-value="accent" @update:model-value="onAccent">
+                    <SelectTrigger
+                        :class="selectTrigger"
+                        data-test="settings-accent-select"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent class="border-line shadow-pop">
+                        <SelectItem
+                            v-for="option in accents"
+                            :key="option.value"
+                            :value="option.value"
+                            class="text-[13px]"
+                        >
+                            {{ option.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <p v-if="errors.accent" class="text-danger-text text-[11.5px]">
+                    {{ errors.accent }}
+                </p>
+                <p v-else class="text-ink-faint text-[11.5px]">
+                    The voice of the lesson audio and the accent a learner's
+                    pronunciation is checked against. Changing it queues new
+                    Normal and Slow audio.
+                </p>
+            </div>
         </div>
 
         <dl

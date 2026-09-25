@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureFirstLoginCompleted;
 use App\Http\Middleware\EnsureHotelAccess;
+use App\Http\Middleware\EnsureOwnerAuthenticated;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveTrainingDepartment;
@@ -44,6 +45,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // A manager learns as an employee in a department they choose
             // (client decision 2026-09-23); this resolves that choice.
             'training.department' => ResolveTrainingDepartment::class,
+            // The platform owner's console (spec 0007): the `owner` guard.
+            'owner' => EnsureOwnerAuthenticated::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

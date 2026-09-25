@@ -23,6 +23,14 @@ class PhrasebookItemPolicy
         return $this->owns($user, $item);
     }
 
+    /**
+     * Marking a card known or missed in review mode (spec 0005 §3.4).
+     */
+    public function review(User $user, PhrasebookItem $item): bool
+    {
+        return $this->owns($user, $item);
+    }
+
     private function owns(User $user, PhrasebookItem $item): bool
     {
         return $item->user_id === $user->id;

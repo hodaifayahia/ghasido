@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import HelpPage from '@/pages/Help.vue';
+import HelpCenter from '@/components/help/HelpCenter.vue';
 </script>
 
 <template>
-    <HelpPage />
+    <HelpCenter />
 </template>

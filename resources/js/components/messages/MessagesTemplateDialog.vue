@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
-import { Eye } from '@lucide/vue';
+import { Eye, Sparkles } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MessagesModal from '@/components/messages/MessagesModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ReminderDraftController from '@/actions/App/Http/Controllers/Admin/Messages/ReminderDraftController';
 import { preview, store, update } from '@/routes/messages-reminders/templates';
 import type { MessageTemplate, MessageTemplatePreview } from '@/types';
 
@@ -57,6 +58,8 @@ function seed(): void {
     isActive.value = props.template?.isActive ?? true;
     previewResult.value = null;
     previewError.value = '';
+    draftOpen.value = false;
+    draftError.value = '';
 }
 
 watch(open, (isOpen) => {
@@ -141,6 +144,109 @@ async function loadPreview(): Promise<void> {
                 : 'The preview could not be loaded.';
     } finally {
         previewBusy.value = false;
+    }
+}
+
+// "Draft with AI" (spec 0005 §4.2): the admin says what the reminder is for,
+// a queued job writes a subject and body with the platform's placeholders,
+// and the dialog polls until it can drop them into the fields. Nothing is
+// saved until the admin presses Save (GEN-03).
+type DraftState = {
+    status: string;
+    subject: string | null;
+    body: string | null;
+    failedReason: string | null;
+};
+
+const draftOpen = ref(false);
+const draftPurpose = ref('');
+const draftTone = ref('friendly');
+const drafting = ref(false);
+const draftError = ref('');
+const draftTones = [
+    { value: 'friendly', label: 'Friendly' },
+    { value: 'encouraging', label: 'Encouraging' },
+    { value: 'formal', label: 'Formal' },
+];
+
+function xsrf(): string {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/u);
+
+    return match?.[1] ? decodeURIComponent(match[1]) : '';
+}
+
+function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function requestDraft(): Promise<void> {
+    if (draftPurpose.value.trim().length < 5 || drafting.value) {
+        return;
+    }
+
+    drafting.value = true;
+    draftError.value = '';
+
+    try {
+        const response = await fetch(ReminderDraftController.store().url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrf(),
+            },
+            body: JSON.stringify({
+                purpose: draftPurpose.value,
+                tone: draftTone.value,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `The draft could not be requested (${response.status}).`,
+            );
+        }
+
+        let state = (await response.json()) as DraftState;
+
+        // Poll the queued job for up to a minute (PERF-04).
+        for (
+            let tries = 0;
+            tries < 40 && state.status !== 'done' && state.status !== 'failed';
+            tries++
+        ) {
+            await wait(1500);
+            const poll = await fetch(ReminderDraftController.show().url, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            state = (await poll.json()) as DraftState;
+        }
+
+        if (
+            state.status !== 'done' ||
+            state.subject === null ||
+            state.body === null
+        ) {
+            throw new Error(
+                state.failedReason ??
+                    'The draft is taking longer than usual. Try again in a moment.',
+            );
+        }
+
+        subject.value = state.subject;
+        body.value = state.body;
+        previewResult.value = null;
+        draftOpen.value = false;
+    } catch (error) {
+        draftError.value =
+            error instanceof Error
+                ? error.message
+                : 'The draft could not be written.';
+    } finally {
+        drafting.value = false;
     }
 }
 
@@ -292,6 +398,79 @@ const title = computed(() => {
                     >
                         {{ placeholderToken(variable) }}
                     </button>
+                </div>
+
+                <div class="pt-1">
+                    <button
+                        v-if="!draftOpen"
+                        type="button"
+                        class="border-line text-brand-700 hover:bg-brand-50 bg-surface focus-visible:ring-brand-600/15 inline-flex h-9 items-center gap-2 rounded-md border px-3 text-[12.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
+                        data-test="template-draft-open-button"
+                        @click="draftOpen = true"
+                    >
+                        <Sparkles class="text-ai size-4" aria-hidden="true" />
+                        Draft with AI
+                    </button>
+
+                    <div
+                        v-else
+                        class="bg-brand-50 grid gap-2 rounded-md p-3"
+                        data-test="template-draft-panel"
+                    >
+                        <Label for="template-draft-purpose" :class="labelClass">
+                            What is this reminder for?
+                        </Label>
+                        <textarea
+                            id="template-draft-purpose"
+                            v-model="draftPurpose"
+                            rows="2"
+                            maxlength="300"
+                            placeholder="For example: learners who have not practised for a week"
+                            :class="[fieldClass, 'py-2 leading-5']"
+                        />
+                        <div class="flex flex-wrap items-center gap-2">
+                            <label
+                                for="template-draft-tone"
+                                class="text-ink-slate text-[12px]"
+                                >Tone</label
+                            >
+                            <select
+                                id="template-draft-tone"
+                                v-model="draftTone"
+                                :class="[fieldClass, 'h-9 w-auto']"
+                            >
+                                <option
+                                    v-for="tone in draftTones"
+                                    :key="tone.value"
+                                    :value="tone.value"
+                                >
+                                    {{ tone.label }}
+                                </option>
+                            </select>
+                            <button
+                                type="button"
+                                :disabled="
+                                    drafting || draftPurpose.trim().length < 5
+                                "
+                                class="bg-brand-600 shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/15 ms-auto inline-flex h-9 items-center gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white focus-visible:ring-3 focus-visible:outline-none disabled:opacity-60"
+                                data-test="template-draft-button"
+                                @click="requestDraft"
+                            >
+                                <Sparkles class="size-4" aria-hidden="true" />
+                                {{ drafting ? 'Writing…' : 'Write draft' }}
+                            </button>
+                        </div>
+                        <p
+                            v-if="drafting"
+                            class="text-ink-slate text-[11.5px]"
+                            aria-live="polite"
+                        >
+                            Writing a draft. It will replace the subject and
+                            body above, and nothing is saved until you press
+                            Save.
+                        </p>
+                        <InputError :message="draftError" />
+                    </div>
                 </div>
             </div>
 

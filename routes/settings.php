@@ -1,15 +1,16 @@
 <?php
 
-use App\Http\Controllers\Settings\AiModelsController;
-use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\SecurityController;
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\LandingPageController;
+use App\Http\Controllers\Settings\AiModelsController;
+use App\Http\Controllers\Settings\AiUsageController;
+use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\SecurityController;
 use App\Services\Ai\AiModelSettings;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -22,7 +23,7 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'hotel.access'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
@@ -45,6 +46,11 @@ Route::middleware(['auth', 'can:manage-ai-models'])->group(function () {
         ->whereIn('capability', AiModelSettings::CHECKS)
         ->middleware('throttle:20,1')
         ->name('ai-models.check');
+
+    // Settings → AI usage: cost by feature, model, hotel and day (API-03,
+    // AIL-04; spec 0005 §4.3). The prices behind it are the platform
+    // owner's, edited on the owner console (spec 0007, D8).
+    Route::get('settings/ai-usage', [AiUsageController::class, 'index'])->name('ai-usage.index');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

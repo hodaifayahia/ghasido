@@ -301,7 +301,7 @@ function saveScenario(): void {
                             >
                                 Qwen ({{
                                     settings.qwenModel ?? 'server model'
-                                }}) through Guesvia
+                                }}) through GHASIDO
                             </SelectItem>
                         </SelectContent>
                     </Select>

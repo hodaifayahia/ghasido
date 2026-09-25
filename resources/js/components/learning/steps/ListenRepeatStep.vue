@@ -1,24 +1,29 @@
 <script setup lang="ts">
-import { CircleCheck, Mic, Volume2 } from '@lucide/vue';
+import { Mic, Volume2 } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import PhrasebookButton from '@/components/learning/PhrasebookButton.vue';
+import PronunciationResult from '@/components/learning/pronunciation/PronunciationResult.vue';
+import PronunciationWordDrill from '@/components/learning/pronunciation/PronunciationWordDrill.vue';
 import RecorderButton from '@/components/learning/RecorderButton.vue';
 import RecordingPlayer from '@/components/learning/RecordingPlayer.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import SidePhotoCard from '@/components/learning/SidePhotoCard.vue';
 import TipCard from '@/components/learning/TipCard.vue';
+import { Spinner } from '@/components/ui/spinner';
+import { usePronunciationCheck } from '@/composables/usePronunciationCheck';
 import { useShowMeaning } from '@/composables/useShowMeaning';
-import { store as storeRecording } from '@/routes/learn/recordings';
-import type { LessonSummary, StepBlockOf } from '@/types';
+import type { LessonSummary, PronunciationWord, StepBlockOf } from '@/types';
 
 /*
  * Step 4, "Listen & Repeat" (LESSON-06, RESP-05, TEST-07, DATA-02; photo_4):
  * the sentence photo with its caption on the left, a two-step card on the
- * right — Listen (Normal / Slow) then Repeat (record, play back, encourage).
- * The recording uploads to this block so it is never browser-only (DATA-02);
- * a denied microphone is handled non-blockingly by RecorderButton.
+ * right — Listen (Normal / Slow) then Repeat. The recording is uploaded to
+ * the pronunciation check (spec 0006), which keeps it (DATA-02) and returns
+ * a verdict per word, then the coach's tip; a weak word opens a drill for
+ * that word alone. A denied microphone is handled non-blockingly by
+ * RecorderButton.
  */
 type Props = {
     lesson: LessonSummary;
@@ -34,69 +39,48 @@ const subtitle = computed(() => props.block.settings.subtitle ?? null);
 const tip = computed(() => props.block.settings.tip ?? null);
 
 const meaning = useShowMeaning();
+const check = usePronunciationCheck();
 
 type Recorded = { url: string; durationMs: number };
 const recordings = reactive<Record<number, Recorded>>({});
-const uploading = ref(false);
 const currentRecording = computed(() => recordings[index.value] ?? null);
+const drillWord = ref<PronunciationWord | null>(null);
 
-watch(index, () => meaning.hide());
+const checking = computed(
+    () => check.busy.value && check.result.value?.status !== 'done',
+);
 
-function xsrf(): string {
-    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/u);
+watch(index, () => {
+    meaning.hide();
+    check.reset();
+    drillWord.value = null;
+});
 
-    return match?.[1] ? decodeURIComponent(match[1]) : '';
-}
-
-async function onRecorded(payload: {
+function onRecorded(payload: {
     blob: Blob;
     url: string;
     durationMs: number;
     mimeType: string;
-}): Promise<void> {
-    const at = index.value;
-    recordings[at] = { url: payload.url, durationMs: payload.durationMs };
-    uploading.value = true;
+}): void {
+    recordings[index.value] = {
+        url: payload.url,
+        durationMs: payload.durationMs,
+    };
+    drillWord.value = null;
 
-    const body = new FormData();
-    const extension = payload.mimeType.includes('mp4')
-        ? 'm4a'
-        : payload.mimeType.includes('ogg')
-          ? 'ogg'
-          : 'webm';
-    body.append('audio', payload.blob, `repeat.${extension}`);
-    body.append('recordable_type', 'block');
-    body.append('recordable_id', String(props.block.id));
-    body.append('duration_ms', String(payload.durationMs));
+    void check.check(
+        {
+            lessonId: props.lesson.id,
+            blockId: props.block.id,
+            item: index.value,
+        },
+        payload,
+    );
+}
 
-    try {
-        const response = await fetch(storeRecording().url, {
-            method: 'POST',
-            body,
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-XSRF-TOKEN': xsrf(),
-            },
-        });
-
-        if (response.ok) {
-            const data = (await response.json()) as {
-                id: number;
-                url?: string;
-                duration_ms?: number;
-            };
-            recordings[at] = {
-                url: data.url ?? payload.url,
-                durationMs: data.duration_ms ?? payload.durationMs,
-            };
-        }
-    } catch {
-        // Keep the local blob URL; the learner can re-record to retry (DATA-02).
-    } finally {
-        uploading.value = false;
-    }
+function onRecordAgain(): void {
+    check.reset();
+    drillWord.value = null;
 }
 </script>
 
@@ -118,7 +102,7 @@ async function onRecorded(payload: {
             </div>
 
             <div
-                class="border-line bg-surface shadow-card flex flex-col gap-5 rounded-lg border p-5"
+                class="border-line bg-surface shadow-card flex min-w-0 flex-col gap-5 rounded-lg border p-5"
             >
                 <div>
                     <div class="flex items-center gap-2">
@@ -170,6 +154,7 @@ async function onRecorded(payload: {
                             size="lg"
                             class="shrink-0"
                             @recorded="onRecorded"
+                            @reset="onRecordAgain"
                         />
 
                         <div class="flex w-full min-w-0 flex-1 flex-col gap-3">
@@ -189,24 +174,41 @@ async function onRecorded(payload: {
                             </div>
 
                             <p
-                                v-if="uploading"
-                                class="text-ink-slate text-sm"
+                                v-if="checking"
+                                class="text-ink-slate flex items-center gap-2 text-sm"
                                 aria-live="polite"
+                                data-test="pronunciation-checking"
                             >
-                                Saving your recording…
+                                <Spinner class="size-4" />
+                                Checking your pronunciation…
                             </p>
-                            <div
-                                v-else-if="currentRecording"
-                                class="bg-success-tint text-success-text flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold"
+                            <p
+                                v-else-if="check.error.value"
+                                class="bg-danger-tint text-danger-text rounded-lg px-4 py-3 text-sm font-semibold"
+                                role="alert"
                             >
-                                <CircleCheck
-                                    class="text-success size-5 shrink-0"
-                                    aria-hidden="true"
-                                />
-                                Great! Keep practicing!
-                            </div>
+                                {{ check.error.value }}
+                            </p>
                         </div>
                     </div>
+
+                    <PronunciationResult
+                        v-if="check.result.value && !checking"
+                        :result="check.result.value"
+                        class="mt-4"
+                        @drill="drillWord = $event"
+                    />
+
+                    <PronunciationWordDrill
+                        v-if="drillWord"
+                        :key="`${check.result.value?.id}-${drillWord.index}`"
+                        :word="drillWord"
+                        :lesson-id="lesson.id"
+                        :block-id="block.id"
+                        :item="index"
+                        class="mt-4"
+                        @close="drillWord = null"
+                    />
                 </div>
             </div>
         </div>

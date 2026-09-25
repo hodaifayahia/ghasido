@@ -2,12 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Contracts\AiUsageInfo;
 use App\Contracts\TtsProvider;
+use App\Enums\AiFeature;
 use App\Enums\GenerationStatus;
 use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Models\AudioClip;
 use App\Models\MediaAsset;
+use App\Services\Ai\UsageMeter;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -50,7 +53,7 @@ class GenerateAudioClip implements ShouldBeUnique, ShouldQueue
         return (string) $this->clipId;
     }
 
-    public function handle(TtsProvider $tts): void
+    public function handle(TtsProvider $tts, UsageMeter $meter): void
     {
         $clip = AudioClip::query()->find($this->clipId);
 
@@ -90,8 +93,18 @@ class GenerateAudioClip implements ShouldBeUnique, ShouldQueue
         ]);
 
         $provider = config('services.tts.provider', 'fake');
+        $provider = is_string($provider) ? $provider : 'unknown';
 
-        $clip->markDone($asset, is_string($provider) ? $provider : 'unknown');
+        // Speech is metered in characters (spec 0005 §4.3): it used to be
+        // the one paid call with no ledger row (API-03).
+        $meter->record(null, AiFeature::Tts, new AiUsageInfo(
+            promptTokens: mb_strlen($clip->text),
+            completionTokens: 0,
+            model: $clip->voice,
+            provider: $provider,
+        ), chargePoints: false);
+
+        $clip->markDone($asset, $provider);
     }
 
     public function failed(?Throwable $exception): void

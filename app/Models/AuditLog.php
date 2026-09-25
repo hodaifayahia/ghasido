@@ -94,6 +94,27 @@ class AuditLog extends Model
     }
 
     /**
+     * Record an owner console action (spec 0007). The owner is not a User,
+     * so `actor_id` stays null and the owner is named in `changes`; the
+     * web guard's user (an app session in the same browser) is never
+     * credited with it. Nothing is diffed, so a stored API key can never
+     * land in the log: callers pass only what is safe to keep.
+     *
+     * @param  array<string, mixed>  $extra
+     */
+    public static function recordByOwner(Model $model, string $action, Owner $owner, array $extra = []): self
+    {
+        return self::create([
+            'actor_id' => null,
+            'action' => $action,
+            'auditable_type' => $model->getMorphClass(),
+            'auditable_id' => $model->getKey(),
+            'changes' => ['owner' => ['id' => $owner->id, 'email' => $owner->email]] + $extra,
+            'ip' => Request::ip(),
+        ]);
+    }
+
+    /**
      * @param  array<string, mixed>  $changes
      */
     private static function write(Model $model, string $action, array $changes): self

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\AccountStatus;
+use App\Enums\EnglishLevel;
 use App\Enums\Role;
 use App\Enums\TestAttemptStatus;
 use App\Enums\TestType;
@@ -50,6 +51,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $cohort
  * @property int|null $created_by
  * @property int $ai_points_allocated
+ * @property EnglishLevel|null $english_level
+ * @property Carbon|null $english_level_assessed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -72,6 +75,8 @@ use Spatie\Permission\Traits\HasRoles;
     'cohort',
     'created_by',
     'ai_points_allocated',
+    'english_level',
+    'english_level_assessed_at',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
@@ -110,6 +115,8 @@ class User extends Authenticatable implements PasskeyUser
             'last_activity_at' => 'datetime',
             'training_started_at' => 'datetime',
             'training_completed_at' => 'datetime',
+            'english_level' => EnglishLevel::class,
+            'english_level_assessed_at' => 'datetime',
         ];
     }
 

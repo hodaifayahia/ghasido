@@ -14,6 +14,8 @@ use App\Services\Ai\FakeAiProvider;
 use App\Services\Ai\OpenAiCompatibleAiProvider;
 use App\Services\Images\DashScopeImageProvider;
 use App\Services\Images\FakeImageProvider;
+use App\Services\Owner\ApiCredit;
+use App\Services\Owner\ApiKeyring;
 use App\Services\Stt\DeepgramSpeechToTextProvider;
 use App\Services\Stt\FakeSpeechToTextProvider;
 use App\Services\Stt\OpenAiCompatibleSpeechToTextProvider;
@@ -36,6 +38,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // The owner console's keys and credit (spec 0007): read once per
+        // request or queued job, so a key or recharge saved now applies to
+        // the next job without restarting workers.
+        $this->app->scoped(ApiKeyring::class);
+        $this->app->scoped(ApiCredit::class);
+
         $this->registerProviders();
     }
 
@@ -50,7 +58,12 @@ class AppServiceProvider extends ServiceProvider
      * The Super Admin's Settings → AI models row (AiModelSettings) overrides
      * the model ids and can switch a capability to fake or real; a blank
      * override falls back to config. It is read inside each closure, so a
-     * save applies on the next job. Keys are never overridable (SEC-03).
+     * save applies on the next job.
+     *
+     * Keys come from ApiKeyring: the platform owner's stored key when there
+     * is one, else config (spec 0007, D2; still server-side only, SEC-03).
+     * A provider whose paid account is spent or paused is refused here, so
+     * no queued job can spend past the owner's credit (spec 0007, D7b).
      */
     protected function registerProviders(): void
     {
@@ -60,16 +73,18 @@ class AppServiceProvider extends ServiceProvider
             $provider = $models->provider('ai', self::configString('services.ai.provider', FakeAiProvider::PROVIDER));
             $model = $overrides['aiModel'] ?: self::configString('services.ai.model');
             $fastModel = $overrides['aiFastModel'] ?: self::configString('services.ai.fast_model');
+            app(ApiCredit::class)->assertProvider($provider);
 
             return match ($provider) {
                 FakeAiProvider::PROVIDER => new FakeAiProvider,
                 AnthropicAiProvider::PROVIDER => new AnthropicAiProvider(
-                    apiKey: self::configString('services.ai.key'),
+                    apiKey: self::apiKey('services.ai.key'),
                     model: $model,
                     baseUrl: self::configString('services.ai.base_url') ?: null,
+                    fastModel: $fastModel ?: null,
                 ),
                 OpenAiCompatibleAiProvider::PROVIDER, 'qwen' => new OpenAiCompatibleAiProvider(
-                    apiKey: self::configString('services.ai.key'),
+                    apiKey: self::apiKey('services.ai.key'),
                     model: $model,
                     baseUrl: self::configString('services.ai.base_url') ?: null,
                     providerLabel: $provider,
@@ -81,17 +96,18 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(TtsProvider::class, function (): TtsProvider {
             $provider = app(AiModelSettings::class)->provider('tts', self::configString('services.tts.provider', FakeTtsProvider::PROVIDER));
+            app(ApiCredit::class)->assertProvider($provider);
 
             return match ($provider) {
                 FakeTtsProvider::PROVIDER => new FakeTtsProvider,
                 DeepgramTtsProvider::PROVIDER => new DeepgramTtsProvider(
-                    apiKey: self::configString('services.tts.key'),
+                    apiKey: self::apiKey('services.tts.key'),
                     model: self::configString('services.tts.model', DeepgramTtsProvider::DEFAULT_MODEL),
                     baseUrl: self::configString('services.tts.base_url') ?: null,
                     expressivity: app(TtsSettings::class)->expressivity(),
                 ),
                 OpenAiCompatibleTtsProvider::PROVIDER => new OpenAiCompatibleTtsProvider(
-                    apiKey: self::configString('services.tts.key'),
+                    apiKey: self::apiKey('services.tts.key'),
                     model: self::configString('services.tts.model'),
                     baseUrl: self::configString('services.tts.base_url') ?: null,
                 ),
@@ -103,16 +119,17 @@ class AppServiceProvider extends ServiceProvider
             $models = app(AiModelSettings::class);
             $provider = $models->provider('stt', self::configString('services.stt.provider', FakeSpeechToTextProvider::PROVIDER));
             $sttModel = $models->sttModel($provider);
+            app(ApiCredit::class)->assertProvider($provider);
 
             return match ($provider) {
                 FakeSpeechToTextProvider::PROVIDER => new FakeSpeechToTextProvider,
                 DeepgramSpeechToTextProvider::PROVIDER => new DeepgramSpeechToTextProvider(
-                    apiKey: self::configString('services.stt.key'),
+                    apiKey: self::apiKey('services.stt.key'),
                     model: $sttModel,
                     baseUrl: self::configString('services.stt.base_url') ?: null,
                 ),
                 OpenAiCompatibleSpeechToTextProvider::PROVIDER => new OpenAiCompatibleSpeechToTextProvider(
-                    apiKey: self::configString('services.stt.key'),
+                    apiKey: self::apiKey('services.stt.key'),
                     model: $sttModel,
                     baseUrl: self::configString('services.stt.base_url') ?: null,
                 ),
@@ -126,11 +143,12 @@ class AppServiceProvider extends ServiceProvider
             $models = app(AiModelSettings::class);
             $overrides = $models->overrides();
             $provider = $models->provider('image', self::configString('services.ai.image_provider', FakeImageProvider::PROVIDER));
+            app(ApiCredit::class)->assertProvider($provider);
 
             return match ($provider) {
                 FakeImageProvider::PROVIDER => new FakeImageProvider,
                 DashScopeImageProvider::PROVIDER, 'dashscope' => new DashScopeImageProvider(
-                    apiKey: self::configString('services.ai.image_key'),
+                    apiKey: self::apiKey('services.ai.image_key'),
                     model: $overrides['imageModel'] ?: self::configString('services.ai.image_model', DashScopeImageProvider::DEFAULT_MODEL),
                     baseUrl: self::configString('services.ai.image_base_url') ?: null,
                     landscapeSize: $overrides['imageSizeLandscape'] ?: null,
@@ -139,6 +157,14 @@ class AppServiceProvider extends ServiceProvider
                 default => throw new InvalidArgumentException(sprintf('Unknown image provider [%s]; set AI_IMAGE_PROVIDER to fake or qwen.', $provider)),
             };
         });
+    }
+
+    /**
+     * A provider key: the owner's stored key when set, else config.
+     */
+    private static function apiKey(string $configKey): string
+    {
+        return app(ApiKeyring::class)->key($configKey);
     }
 
     /**

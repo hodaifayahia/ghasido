@@ -28,6 +28,7 @@ use App\Models\User;
 use App\Services\Ai\AiLimitReached;
 use App\Services\Audio\AudioLibrary;
 use App\Services\Audio\PlayableTextCollector;
+use App\Services\Owner\ApiCredit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +218,10 @@ class LessonGenerator
      */
     public function assertWithinLimits(User $actor, int $lessonCount, bool $images): void
     {
+        // The platform owner's credit for the accounts this run spends
+        // (spec 0007, D7a).
+        app(ApiCredit::class)->assertCapabilities(...($images ? ['ai', 'image'] : ['ai']));
+
         $limit = (int) config('guesvia.ai.limits.per_admin_daily_generated_lessons', 40);
         $used = (int) ContentGeneration::query()
             ->where('user_id', $actor->id)
@@ -238,6 +243,8 @@ class LessonGenerator
      */
     public function assertImagesWithinLimits(User $actor, int $wanted): void
     {
+        app(ApiCredit::class)->assertCapabilities('image');
+
         $limit = (int) config('guesvia.ai.limits.per_admin_daily_images', 200);
         $used = AiUsage::query()
             ->forFeature(AiFeature::ImageGenerate)

@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Award, BookOpen, CircleCheck } from '@lucide/vue';
 import { computed } from 'vue';
+import Celebration from '@/components/learning/Celebration.vue';
 
 /*
  * The test result (TEST-04, JOURNEY-01/05; spec 0003 Part E). What the
@@ -37,12 +38,14 @@ const showScore = computed(() => props.result !== null);
 
     <section class="mx-auto grid max-w-2xl content-start gap-6 p-4 md:p-6">
         <div
-            class="border-line bg-surface shadow-card grid justify-items-center gap-4 rounded-lg border p-8 text-center"
+            class="border-line bg-surface shadow-card relative grid justify-items-center gap-4 rounded-lg border p-8 text-center"
         >
             <span
-                class="bg-success-tint text-success grid size-16 place-items-center rounded-xl"
+                class="bg-success-tint text-success animate-pop-in relative grid size-16 place-items-center rounded-xl motion-reduce:animate-none"
             >
                 <CircleCheck class="size-8" aria-hidden="true" />
+                <!-- The Post-test ends the training (spec 0005 §3.3). -->
+                <Celebration :active="isPost" />
             </span>
             <div class="grid gap-1">
                 <h1

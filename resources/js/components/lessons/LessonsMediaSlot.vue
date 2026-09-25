@@ -38,7 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
     kind: 'image',
     tabs: () => [
         { key: 'my-images', label: 'My Images' },
-        { key: 'guesvia-library', label: 'Guesvia Library' },
+        { key: 'guesvia-library', label: 'GHASIDO Library' },
         { key: 'icons-stickers', label: 'Icons & Stickers' },
     ],
     categories: () => [{ value: 'all-categories', label: 'All Categories' }],

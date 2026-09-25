@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Ai;
 
+use App\Enums\EnglishLevel;
 use App\Enums\LexiconKind;
 use App\Models\AiScenario;
 use App\Services\Ai\AnthropicAiProvider;
+use App\Services\Ai\RoleplayPrompt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Tests\TestCase;
@@ -43,7 +46,12 @@ class AnthropicAiProviderTest extends TestCase
             $this->assertSame('2023-06-01', $request->header('anthropic-version')[0]);
             $this->assertSame('configured-model', $request['model']);
             $this->assertIsInt($request['max_tokens']);
-            $this->assertIsString($request['system']);
+            // One cached system block (spec 0005 §2.3); no sampling
+            // parameters, which current models reject.
+            $this->assertSame('text', $request['system'][0]['type']);
+            $this->assertIsString($request['system'][0]['text']);
+            $this->assertSame(['type' => 'ephemeral'], $request['system'][0]['cache_control']);
+            $this->assertArrayNotHasKey('temperature', $request->data());
             $this->assertSame('user', $request['messages'][0]['role']);
             $this->assertStringContainsString('Towel', $request['messages'][0]['content']);
             $this->assertStringContainsString('Housekeeping', $request['messages'][0]['content']);
@@ -155,8 +163,8 @@ class AnthropicAiProviderTest extends TestCase
             $this->assertSame('Good evening. May I have your name, please?', $messages[2]['content']);
 
             // The scenario brief comes from the row, never from the client (RP-04).
-            $this->assertStringContainsString('Check-in', $request['system']);
-            $this->assertStringContainsString('Stay in character', $request['system']);
+            $this->assertStringContainsString('Check-in', $request['system'][0]['text']);
+            $this->assertStringContainsString('Stay in character', $request['system'][0]['text']);
 
             return true;
         });
@@ -217,7 +225,7 @@ class AnthropicAiProviderTest extends TestCase
         $this->assertSame('Use complete sentences.', $evaluation->footnote);
 
         Http::assertSent(function (Request $request): bool {
-            $this->assertStringContainsString('"politeness": {"score"', $request['system']);
+            $this->assertStringContainsString('"politeness": {"score"', $request['system'][0]['text']);
             $this->assertStringContainsString("Guest: Hello!\nEmployee: Good evening.", $request['messages'][0]['content']);
 
             return true;
@@ -232,6 +240,95 @@ class AnthropicAiProviderTest extends TestCase
      * @param  array<string, mixed>  $json
      * @return array<string, mixed>
      */
+    public function test_a_role_play_reply_uses_the_fast_model_the_shared_prompt_and_the_learners_level()
+    {
+        Http::fake(['*' => Http::response($this->reply(['reply' => 'Hello!']))]);
+
+        (new AnthropicAiProvider(apiKey: 'k', model: 'heavy-model', fastModel: 'fast-model'))
+            ->roleplayReply($this->scenario(), [], EnglishLevel::Beginner);
+
+        Http::assertSent(function (Request $request): bool {
+            $system = $request['system'][0]['text'];
+
+            // The learner waits on this line: the fast model (PERF-04).
+            $this->assertSame('fast-model', $request['model']);
+            // The same prompt every provider sends (spec 0005 §2.3).
+            $this->assertStringContainsString(RoleplayPrompt::GUARD, $system);
+            $this->assertStringContainsString(RoleplayPrompt::configuredInstruction($this->scenario()), $system);
+            $this->assertStringContainsString(EnglishLevel::Beginner->promptDescription(), $system);
+            // The per-turn line is the second, uncached block (spec 0005 §5.3).
+            $this->assertStringContainsString('opening line', $request['system'][1]['text']);
+
+            return true;
+        });
+    }
+
+    public function test_the_pacing_line_travels_outside_the_cached_block()
+    {
+        // A cache hit needs a byte-identical prefix (spec 0005 §5.3): the
+        // brief is the cached block and is the same from turn to turn; the
+        // per-turn pacing line is a second block without a cache breakpoint.
+        Http::fake(['*' => Http::response($this->reply(['reply' => 'Hello!']))]);
+        $provider = new AnthropicAiProvider(apiKey: 'k', model: 'm');
+
+        $provider->roleplayReply($this->scenario(), []);
+        $provider->roleplayReply($this->scenario(), [
+            ['role' => 'guest', 'text' => 'Hello!', 'at' => 't1'],
+            ['role' => 'employee', 'text' => 'Good evening.', 'at' => 't2'],
+        ]);
+
+        /** @var list<list<array<string, mixed>>> $systems */
+        $systems = Http::recorded()->map(fn (array $pair): array => $pair[0]['system'])->values()->all();
+
+        $this->assertCount(2, $systems);
+        $this->assertCount(2, $systems[1]);
+        $this->assertSame($systems[0][0]['text'], $systems[1][0]['text']);
+        $this->assertSame(['type' => 'ephemeral'], $systems[1][0]['cache_control']);
+        $this->assertArrayNotHasKey('cache_control', $systems[1][1]);
+        $this->assertStringContainsString('opening line', $systems[0][1]['text']);
+        $this->assertStringContainsString('replied 1 of', $systems[1][1]['text']);
+        $this->assertStringNotContainsString('replied', $systems[1][0]['text']);
+    }
+
+    public function test_the_evaluation_uses_the_main_model()
+    {
+        Http::fake(['*' => Http::response($this->reply(['overall' => 70]))]);
+
+        (new AnthropicAiProvider(apiKey: 'k', model: 'heavy-model', fastModel: 'fast-model'))
+            ->evaluateRoleplay($this->scenario(), [['role' => 'employee', 'text' => 'Hello']]);
+
+        Http::assertSent(fn (Request $request): bool => $request['model'] === 'heavy-model');
+    }
+
+    public function test_a_client_error_is_not_retried()
+    {
+        Http::fake(['*' => Http::response(['error' => ['message' => 'bad request']], 400)]);
+
+        try {
+            (new AnthropicAiProvider(apiKey: 'k', model: 'm'))->generateLexicon('Towel', LexiconKind::Word, '');
+            $this->fail('A 400 must raise.');
+        } catch (RequestException) {
+            // expected
+        }
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_cached_prompt_tokens_count_towards_the_usage()
+    {
+        Http::fake(['*' => Http::response([
+            'model' => 'm',
+            'content' => [['type' => 'text', 'text' => '{"reply": "Hi"}']],
+            'stop_reason' => 'end_turn',
+            'usage' => ['input_tokens' => 20, 'cache_read_input_tokens' => 900, 'cache_creation_input_tokens' => 0, 'output_tokens' => 4],
+        ])]);
+
+        $reply = (new AnthropicAiProvider(apiKey: 'k', model: 'm'))->roleplayReply($this->scenario(), []);
+
+        $this->assertSame(920, $reply->usage->promptTokens);
+        $this->assertSame(4, $reply->usage->completionTokens);
+    }
+
     private function reply(array $json, int $inputTokens = 10, int $outputTokens = 5): array
     {
         return $this->rawReply((string) json_encode($json, JSON_UNESCAPED_UNICODE), $inputTokens, $outputTokens);

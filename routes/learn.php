@@ -10,6 +10,7 @@ use App\Http\Controllers\Learn\LessonStepController;
 use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\Learn\PhrasebookController;
 use App\Http\Controllers\Learn\ProgressController;
+use App\Http\Controllers\Learn\PronunciationController;
 use App\Http\Controllers\Learn\RecordingController;
 use App\Http\Controllers\Learn\RoleplayController;
 use App\Http\Controllers\Learn\TestController;
@@ -62,6 +63,7 @@ Route::middleware([
 
         Route::middleware(['first-login', 'training.department'])->group(function () {
             Route::get('/', [HomeController::class, 'index'])->name('home');
+            Route::get('post-test', [HomeController::class, 'postTest'])->name('post-test');
 
             Route::get('lessons', [LessonsController::class, 'index'])->name('lessons');
             Route::get('lessons/{lesson}', [LessonsController::class, 'show'])->name('lessons.show');
@@ -73,7 +75,15 @@ Route::middleware([
                 Route::post('lessons/{lesson}/steps/{block}/complete', [LessonStepController::class, 'complete'])->name('lessons.step.complete');
                 Route::get('lessons/{lesson}/steps/{block}/activities/{placement}', [ActivityController::class, 'show'])->name('lessons.activity');
                 Route::post('lessons/{lesson}/steps/{block}/activities/{placement}/answers', [ActivityController::class, 'answer'])->name('lessons.activity.answer');
+
+                // Pronunciation check of a speaking step (spec 0006): JSON,
+                // throttled; the daily cap lives in the controller.
+                Route::post('lessons/{lesson}/steps/{block}/pronunciation', [PronunciationController::class, 'store'])
+                    ->middleware('throttle:30,1')
+                    ->name('pronunciation.store');
             });
+
+            Route::get('pronunciation/{attempt}', [PronunciationController::class, 'show'])->name('pronunciation.show');
 
             Route::get('lessons/{lesson}/steps/{block}/roleplay/{scenario}', [RoleplayController::class, 'ready'])->name('roleplay.ready');
             Route::post('lessons/{lesson}/steps/{block}/roleplay/{scenario}/attempts', [RoleplayController::class, 'start'])->name('roleplay.start');
@@ -96,6 +106,8 @@ Route::middleware([
             Route::get('tests/{test}/attempts/{attempt}/result', [TestController::class, 'result'])->name('tests.result');
 
             Route::get('phrasebook', [PhrasebookController::class, 'index'])->name('phrasebook');
+            Route::get('phrasebook/review', [PhrasebookController::class, 'review'])->name('phrasebook.review');
+            Route::post('phrasebook/{item}/review', [PhrasebookController::class, 'recordReview'])->name('phrasebook.review.store');
             Route::post('phrasebook', [PhrasebookController::class, 'store'])->name('phrasebook.store');
             Route::delete('phrasebook/{item}', [PhrasebookController::class, 'destroy'])->name('phrasebook.destroy');
 

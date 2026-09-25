@@ -181,6 +181,8 @@ class AiScenariosController extends Controller
 
     public function __invoke(Request $request, TtsSettings $tts, AudioLibrary $audio, ScenarioConfiguration $configuration, VoiceAgentSettings $voiceAgent): Response
     {
+        Gate::authorize('viewAny', AiScenario::class);
+
         $scenarioId = (string) $request->query('scenario', '');
         /** @var User $viewer */
         $viewer = $request->user();
@@ -974,7 +976,7 @@ class AiScenariosController extends Controller
      */
     private function previewPayload(Request $request, AudioLibrary $audio): array
     {
-        $models = $this->visibleScenarios($request->user())
+        $models = $this->visibleScenarios($request->user('web'))
             ->with('department')
             ->orderBy('title')
             ->get();

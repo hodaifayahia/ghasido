@@ -40,6 +40,9 @@ type Props = {
     answerUrl: string;
     blockId: number;
     initialAnswers?: AnswerMap;
+    // What a spoken answer is recorded for: the lesson step by default, the
+    // open test sitting in the test runner (TEST-07).
+    recordable?: { type: 'block' | 'test_attempt'; id: number };
 };
 
 const props = defineProps<Props>();
@@ -316,8 +319,8 @@ async function onRecorded(
           ? 'ogg'
           : 'webm';
     body.append('audio', payload.blob, `answer.${extension}`);
-    body.append('recordable_type', 'block');
-    body.append('recordable_id', String(props.blockId));
+    body.append('recordable_type', props.recordable?.type ?? 'block');
+    body.append('recordable_id', String(props.recordable?.id ?? props.blockId));
     body.append('duration_ms', String(payload.durationMs));
 
     try {

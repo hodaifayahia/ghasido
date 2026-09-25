@@ -7,16 +7,24 @@ use App\Contracts\AiProvider;
 use App\Contracts\AiReply;
 use App\Contracts\AiUsageInfo;
 use App\Contracts\ChecksConnection;
+use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
+use App\Contracts\DashboardBriefingDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
+use App\Contracts\PronunciationCoaching;
+use App\Contracts\PronunciationGuideDraft;
+use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
 use App\Contracts\WritingEvaluation;
+use App\Enums\Accent;
+use App\Enums\EnglishLevel;
 use App\Enums\LexiconKind;
 use App\Enums\ScenarioDifficulty;
 use App\Models\AiScenario;
+use App\Services\Pronunciation\ReferenceText;
 
 /**
  * The provider the seeder, the tests and every local run use (spec 0003
@@ -99,7 +107,7 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
         return new AiReply('{"ok": true}', AiUsageInfo::none(self::PROVIDER, $fast ? 'fake-fast' : 'fake'));
     }
 
-    public function roleplayReply(AiScenario $scenario, array $transcript): AiReply
+    public function roleplayReply(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiReply
     {
         $script = self::$scripts[$scenario->slug] ?? self::$scripts[self::FALLBACK_SCRIPT];
 
@@ -111,7 +119,7 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
         return new AiReply($script[$guestTurns] ?? self::CLOSING_LINE, AiUsageInfo::none());
     }
 
-    public function evaluateRoleplay(AiScenario $scenario, array $transcript): AiEvaluation
+    public function evaluateRoleplay(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiEvaluation
     {
         return new AiEvaluation(
             criteria: [
@@ -276,7 +284,7 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
         );
     }
 
-    public function evaluateWriting(array $item, string $answer): WritingEvaluation
+    public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation
     {
         $information = $item['information'] ?? [];
         $facts = is_array($information)
@@ -299,7 +307,7 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
         );
     }
 
-    public function evaluateSpeaking(array $item, string $transcript): SpeakingEvaluation
+    public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation
     {
         $heard = trim($transcript) !== '';
 
@@ -320,6 +328,123 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
      * Deterministic drafts: the first template per skill whose question is
      * not in `$avoid`, so a paired Post-test always gets different items.
      */
+    /**
+     * A predictable summary built from the figures it was given, so the
+     * coaching card works locally without a key (spec 0005 §3.5).
+     */
+    public function coachLearner(array $context, ?EnglishLevel $level = null): CoachingSummary
+    {
+        $lessons = is_array($context['lessons'] ?? null) ? $context['lessons'] : [];
+        $done = (int) ($lessons['completed'] ?? 0);
+        $total = (int) ($lessons['total'] ?? 0);
+        $focus = is_string($context['weakest_skill'] ?? null) ? $context['weakest_skill'] : null;
+
+        return new CoachingSummary(
+            headline: $done > 0 ? 'Good progress, keep your rhythm going.' : 'A great time to start your training.',
+            strengths: [$done > 0 ? sprintf('You have completed %d of %d lessons.', $done, $total) : 'You have everything ready to begin.'],
+            focus: [$focus !== null ? sprintf('Spend a little extra time on %s.', $focus) : 'Practise the useful phrases from your next lesson.'],
+            tip: 'Try saying "Of course, let me check that for you." with your next guest.',
+            usage: AiUsageInfo::none(self::PROVIDER, 'fake'),
+        );
+    }
+
+    /**
+     * A predictable briefing from the figures it was given (spec 0005 §4.1).
+     */
+    public function briefDashboard(array $context): DashboardBriefingDraft
+    {
+        $employees = (int) ($context['employees'] ?? 0);
+        $atRisk = is_array($context['at_risk'] ?? null) ? (int) ($context['at_risk']['total'] ?? 0) : 0;
+
+        return new DashboardBriefingDraft(
+            headline: $employees > 0 ? 'Training is moving; a few learners need a nudge.' : 'No learners in this programme yet.',
+            highlights: [sprintf('%d learners are enrolled in the programme.', $employees)],
+            concerns: [$atRisk > 0 ? sprintf('%d learners show signs of falling behind.', $atRisk) : 'No learner is currently at risk.'],
+            actions: ['Send a friendly reminder to inactive learners this week.', 'Give each department 15 minutes of practice time on shift.'],
+            usage: AiUsageInfo::none(self::PROVIDER, 'fake'),
+        );
+    }
+
+    /**
+     * A predictable reminder draft using the first placeholders (spec 0005 §4.2).
+     */
+    /**
+     * A predictable guide (spec 0006 §4): each word as its own "IPA", and a
+     * trap for every typical swap its letters allow ("very" → "fery").
+     */
+    public function pronunciationGuide(string $text, Accent $accent): PronunciationGuideDraft
+    {
+        $swaps = ['th' => ['s', 'th → s'], 'v' => ['f', 'v → f'], 'p' => ['b', 'p → b']];
+        $words = [];
+
+        foreach (ReferenceText::from($text)->tokens as $token) {
+            $traps = [];
+
+            foreach ($swaps as $from => [$to, $sound]) {
+                $position = strpos($token['key'], $from);
+
+                if ($position !== false) {
+                    $traps[] = [
+                        'heard_as' => substr_replace($token['key'], $to, $position, strlen($from)),
+                        'sound' => $sound,
+                        'tip' => sprintf('Practise the %s sound slowly.', $from),
+                    ];
+                }
+            }
+
+            $words[] = [
+                'word' => $token['display'],
+                'ipa' => '/'.$token['key'].'/',
+                'syllables' => $token['key'],
+                'sounds_like' => $token['key'],
+                'tip' => '',
+                'traps' => $traps,
+                'homophones' => [],
+            ];
+        }
+
+        return new PronunciationGuideDraft(
+            ipa: '/'.implode(' ', array_column($words, 'syllables')).'/',
+            words: $words,
+            tips: ['Say it slowly first, then at normal speed.'],
+            usage: AiUsageInfo::none(self::PROVIDER, 'fake'),
+        );
+    }
+
+    /**
+     * A predictable coaching from the result it was given (spec 0006 §5).
+     */
+    public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching
+    {
+        $tips = [];
+
+        foreach (is_array($result['weak_words'] ?? null) ? $result['weak_words'] : [] as $weak) {
+            if (is_array($weak) && is_string($weak['word'] ?? null) && count($tips) < 2) {
+                $sound = is_string($weak['sound'] ?? null) ? ' ('.$weak['sound'].')' : '';
+                $tips[] = ['word' => $weak['word'], 'tip' => sprintf('Say "%s" slowly and clearly%s.', $weak['word'], $sound)];
+            }
+        }
+
+        return new PronunciationCoaching(
+            headline: 'Good try! A few words need more practice.',
+            tips: $tips,
+            next: 'Listen to the slow audio, then say the sentence again.',
+            arabic: null,
+            usage: AiUsageInfo::none(self::PROVIDER, 'fake'),
+        );
+    }
+
+    public function draftReminder(string $purpose, string $tone, array $variables): ReminderDraft
+    {
+        $name = in_array('name', $variables, true) ? '{{name}}' : 'there';
+
+        return new ReminderDraft(
+            subject: 'A quick English practice today',
+            body: sprintf('Hello %s, your next English lesson is ready. Ten minutes today will help you with your guests. Open GHASIDO and continue now.', $name),
+            usage: AiUsageInfo::none(self::PROVIDER, 'fake'),
+        );
+    }
+
     public function generateTestQuestions(string $department, string $level, array $skills, string $notes = '', array $avoid = []): TestQuestionsDraft
     {
         $used = array_flip($avoid);

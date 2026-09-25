@@ -21,6 +21,11 @@ final class AnonymisedExport extends AnswersExport
         return __('Anonymised Research Export');
     }
 
+    protected function includesOverrideReason(): bool
+    {
+        return false;
+    }
+
     /**
      * @return list<string>
      */

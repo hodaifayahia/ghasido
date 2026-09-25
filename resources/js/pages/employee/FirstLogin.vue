@@ -24,7 +24,7 @@ defineProps<Props>();
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Welcome to Guesvia"
+            title="Welcome to GHASIDO"
             description="A moment to set up your account before your first lesson."
         />
 

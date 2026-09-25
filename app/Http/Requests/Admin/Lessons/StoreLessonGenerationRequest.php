@@ -22,7 +22,7 @@ class StoreLessonGenerationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
+        $user = $this->user('web');
 
         if ($user === null || ! $user->can('create', Course::class)) {
             return false;

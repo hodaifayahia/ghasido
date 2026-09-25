@@ -12,6 +12,7 @@ use App\Services\Learning\RoleplayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -38,6 +39,7 @@ class AiScenarioPreviewController extends Controller
         ]);
 
         $scenario = AiScenario::query()->whereKey((int) $validated['scenario'])->firstOrFail();
+        Gate::authorize('update', $scenario);
 
         $attempt = RoleplayAttempt::query()->create([
             'user_id' => $this->admin($request)->id,

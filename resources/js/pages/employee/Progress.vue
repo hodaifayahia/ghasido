@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { Award, BookOpen, TrendingUp } from '@lucide/vue';
+import { Award, BookOpen, Flame, TrendingUp } from '@lucide/vue';
 import StatCard from '@/components/common/StatCard.vue';
+import CoachCard from '@/components/learning/CoachCard.vue';
 import ProgressCourseCard from '@/components/learning/ProgressCourseCard.vue';
 import TestResultCard from '@/components/learning/TestResultCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import type {
+    CoachSummary,
     JourneyState,
     ProgressCourse,
     ProgressStats,
+    StreakSummary,
     TestResultSummary,
 } from '@/types';
 
@@ -21,6 +24,8 @@ type Props = {
     stats: ProgressStats;
     tests: { pre: TestResultSummary | null; post: TestResultSummary | null };
     journey: JourneyState;
+    streak: StreakSummary;
+    coach: CoachSummary;
 };
 
 defineProps<Props>();
@@ -46,7 +51,7 @@ function since(iso: string | null): string {
             :description="`Training started ${since(stats.trainingStartedAt)}`"
         />
 
-        <div class="grid min-w-0 gap-3 md:grid-cols-3">
+        <div class="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
                 :value="stats.percent"
                 unit="%"
@@ -84,7 +89,23 @@ function since(iso: string | null): string {
                     <Award class="size-6" aria-hidden="true" />
                 </template>
             </StatCard>
+            <StatCard
+                :value="streak.current"
+                label="Day streak"
+                :detail="
+                    streak.activeToday
+                        ? `You practised today · best ${streak.best}`
+                        : `Practise today to keep it · best ${streak.best}`
+                "
+                tone="ai"
+            >
+                <template #icon>
+                    <Flame class="size-6" aria-hidden="true" />
+                </template>
+            </StatCard>
         </div>
+
+        <CoachCard :coach="coach" />
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2">
             <TestResultCard title="Pre-test" :result="tests.pre" />

@@ -20,6 +20,7 @@ import {
 import { computed, onMounted } from 'vue';
 import type { Component } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import Celebration from '@/components/learning/Celebration.vue';
 import ProgressRing from '@/components/learning/ProgressRing.vue';
 import type { BlockType, LessonSummary, StepBlockOf } from '@/types';
 
@@ -120,9 +121,12 @@ onMounted(async () => {
     <div class="mt-3 flex flex-col gap-6">
         <div class="flex items-center gap-4">
             <span
-                class="bg-brand-800 grid size-16 shrink-0 place-items-center rounded-full text-white md:size-[76px]"
+                class="bg-brand-800 animate-pop-in relative grid size-16 shrink-0 place-items-center rounded-full text-white motion-reduce:animate-none md:size-[76px]"
             >
                 <Trophy class="size-8 md:size-9" aria-hidden="true" />
+                <!-- One burst when the lesson is finished right now, never on
+                     a revisit or an admin preview (spec 0005 §3.3). -->
+                <Celebration :active="!preview && !alreadyDone" />
             </span>
             <div class="min-w-0">
                 <h1
@@ -312,7 +316,7 @@ onMounted(async () => {
             class="bg-brand-50 flex items-center gap-3 rounded-lg px-5 py-4"
         >
             <Quote class="text-brand-300 size-6 shrink-0" aria-hidden="true" />
-            <p class="text-ink italic">{{ closingQuote }} — Guesvia</p>
+            <p class="text-ink italic">{{ closingQuote }} — GHASIDO</p>
         </div>
     </div>
 </template>

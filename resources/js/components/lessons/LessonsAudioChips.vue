@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { Turtle, Upload, Volume2 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -28,6 +28,21 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { readOnly: false });
+
+/*
+ * The lesson the builder is editing, when there is one: its clips are
+ * generated in the lesson's accent voice and its pronunciation guides are
+ * queued with them (spec 0006 §4). The lexicon library has no lesson and
+ * keeps the platform voice.
+ */
+const page = usePage();
+const lessonId = computed<number | null>(() => {
+    const editor = (page.props as Record<string, unknown>).editor as
+        | { id?: unknown }
+        | undefined;
+
+    return typeof editor?.id === 'number' ? editor.id : null;
+});
 
 const busy = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -92,7 +107,10 @@ function generateAll(): void {
     startPolling();
     router.post(
         generate.url(),
-        { texts: incomplete.value.map((row) => row.text) },
+        {
+            texts: incomplete.value.map((row) => row.text),
+            lesson_id: lessonId.value,
+        },
         options,
     );
 }
@@ -146,6 +164,7 @@ function onUploaded(image: LessonLibraryImage): void {
             text: uploadTarget.value.text,
             speed: uploadTarget.value.speed,
             media_id: Number(image.id),
+            lesson_id: lessonId.value,
         },
         options,
     );

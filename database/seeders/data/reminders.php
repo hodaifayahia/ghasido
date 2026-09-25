@@ -13,22 +13,22 @@ return [
     'templates' => [
         [
             'name' => 'Training comeback reminder',
-            'subject' => 'We miss you at Guesvia, {{name}}!',
-            'body' => "Hello {{name}},\n\nIt has been a few days since your last lesson at {{hotel}}. Your English training is waiting for you, and you are already {{progress}}% of the way through.\n\nLog in and continue where you left off: {{login_url}}\n\nSee you soon,\nThe Guesvia team",
+            'subject' => 'We miss you at GHASIDO, {{name}}!',
+            'body' => "Hello {{name}},\n\nIt has been a few days since your last lesson at {{hotel}}. Your English training is waiting for you, and you are already {{progress}}% of the way through.\n\nLog in and continue where you left off: {{login_url}}\n\nSee you soon,\nThe GHASIDO team",
             'audience_label' => 'Inactive employees',
             'trigger_label' => '5 days without activity',
         ],
         [
             'name' => 'Pre-test completion nudge',
             'subject' => 'Your first step: the short Pre-test',
-            'body' => "Hello {{name}},\n\nWelcome to Guesvia! Before your lessons start, please complete the short Pre-test. It takes about 15 to 20 minutes and it is not a pass or fail test.\n\nStart here: {{login_url}}\n\nGood luck,\nThe Guesvia team",
+            'body' => "Hello {{name}},\n\nWelcome to GHASIDO! Before your lessons start, please complete the short Pre-test. It takes about 15 to 20 minutes and it is not a pass or fail test.\n\nStart here: {{login_url}}\n\nGood luck,\nThe GHASIDO team",
             'audience_label' => 'New starters',
             'trigger_label' => 'First login incomplete',
         ],
         [
             'name' => 'Post-test unlock reminder',
             'subject' => 'Congratulations {{name}}, your Post-test is ready!',
-            'body' => "Hello {{name}},\n\nYou have completed all your lessons in the {{department}} programme. Your Post-test is now unlocked: finish it to receive your certificate.\n\nYou have {{days_remaining}} days left in your training period.\n\nStart the Post-test: {{login_url}}\n\nWell done,\nThe Guesvia team",
+            'body' => "Hello {{name}},\n\nYou have completed all your lessons in the {{department}} programme. Your Post-test is now unlocked: finish it to receive your certificate.\n\nYou have {{days_remaining}} days left in your training period.\n\nStart the Post-test: {{login_url}}\n\nWell done,\nThe GHASIDO team",
             'audience_label' => 'Completed lessons',
             'trigger_label' => 'Post-test available',
         ],

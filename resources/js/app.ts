@@ -4,10 +4,11 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import EmployeeLayout from '@/layouts/EmployeeLayout.vue';
 import LessonLayout from '@/layouts/LessonLayout.vue';
+import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'GHASIDO';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -17,7 +18,12 @@ void createInertiaApp({
             case name === 'Checkout':
                 return null;
             case name.startsWith('auth/'):
+            case name === 'owner/Login':
                 return AuthLayout;
+            // The platform owner's console (spec 0007): its own slim shell,
+            // not the app sidebar, since the owner is not an app user.
+            case name.startsWith('owner/'):
+                return OwnerLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             // The lesson runner and AI role-play share the step-tracker shell

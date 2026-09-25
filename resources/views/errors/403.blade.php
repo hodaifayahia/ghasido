@@ -15,14 +15,16 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ __('Access denied') }} - {{ config('app.name', 'Guesvia') }}</title>
+        <title>{{ __('Access denied') }} - {{ config('app.name', 'GHASIDO') }}</title>
 
         <style>
             html { background-color: #f4f9fe; }
         </style>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
+        <link rel="icon" href="/favicon-192x192.png" type="image/png" sizes="192x192">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         @fonts
         @vite(['resources/css/app.css'])
@@ -30,8 +32,8 @@
     <body class="bg-app font-sans antialiased">
         <main class="flex min-h-svh flex-col items-center justify-center gap-6 px-6 py-12 text-center">
             <img
-                src="/brand/guesvia-logo.png"
-                alt="{{ config('app.name', 'Guesvia') }}"
+                src="/brand/ghasido-logo.png"
+                alt="{{ config('app.name', 'GHASIDO') }}"
                 width="260"
                 height="120"
                 class="h-auto w-44"

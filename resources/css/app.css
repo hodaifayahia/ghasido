@@ -247,7 +247,36 @@
     --animate-fade-up: fade-up 220ms var(--ease-brand) both;
     --animate-shake: shake 260ms var(--ease-brand);
     --animate-pulse-ring: pulse-ring 1.4s infinite;
+    /* Lesson / test / review complete: one confetti burst ≤1.2s and a
+       trophy scale-in (AGENTS.md §3 Motion; spec 0005 §3.3). Each piece
+       reads its own --confetti-x/y/r offsets. */
+    --animate-confetti: confetti 1100ms var(--ease-brand) both;
+    --animate-pop-in: pop-in 300ms var(--ease-brand) both;
 
+    @keyframes confetti {
+        0% {
+            opacity: 1;
+            transform: translate(0, 0) rotate(0deg) scale(1);
+        }
+        80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translate(var(--confetti-x), var(--confetti-y))
+                rotate(var(--confetti-r)) scale(0.8);
+        }
+    }
+    @keyframes pop-in {
+        from {
+            opacity: 0;
+            transform: scale(0.6);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
     @keyframes fade-up {
         from {
             opacity: 0;

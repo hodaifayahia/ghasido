@@ -40,7 +40,10 @@ abstract class EmployeeIdsRequest extends FormRequest
     {
         return [
             'ids' => ['required', 'array', 'min:1', 'max:500'],
-            'ids.*' => ['required', 'integer', 'distinct', Rule::exists(User::class, 'id')],
+            // No `exists` rule: a 422 for an unknown id beside a 403 for a
+            // foreign one would let a manager probe which ids exist in other
+            // hotels. employees() answers 403 for both (spec 0005 §1.7).
+            'ids.*' => ['required', 'integer', 'distinct', 'min:1'],
         ];
     }
 
@@ -72,6 +75,10 @@ abstract class EmployeeIdsRequest extends FormRequest
             ->findMany($ids)
             ->sortBy(fn (User $user): int => array_search($user->id, $ids, true) ?: 0)
             ->values();
+
+        if ($employees->count() !== count($ids)) {
+            abort(403);
+        }
 
         foreach ($employees as $employee) {
             if (! ($this->user()?->can($this->ability(), $employee) ?? false)) {

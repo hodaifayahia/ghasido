@@ -52,7 +52,9 @@ class HandleInertiaRequests extends Middleware
         // (invariant 8). The sidebar reads `permissions` to hide what the user
         // cannot open, which is presentation only; the server decides access.
         /** @var User|null $user */
-        $user = $request->user();
+        // The web guard by name: the owner console's `owner` guard (spec
+        // 0007) is never an app user, even when it is the request's guard.
+        $user = $request->user('web');
         $user?->loadMissing('roles.permissions');
         $user?->append('role');
         $notifications = $user?->reminders()
@@ -69,8 +71,17 @@ class HandleInertiaRequests extends Middleware
                 // rather than two loaded relations, so a hotel's settings and
                 // manager contact never ship on every response (spec 0003
                 // Part D). Both are null for the Super Admin.
+                //
+                // Only the fields a screen reads go out: every response used to
+                // carry the whole row, the loaded roles with every permission,
+                // and research columns such as the participant code (PRIV-03;
+                // spec 0005 §1.9). Capabilities travel as `permissions` below.
                 'user' => $user === null ? null : [
-                    ...$user->toArray(),
+                    ...$user->only([
+                        'id', 'name', 'username', 'email', 'email_verified_at',
+                        'role', 'status', 'hotel_id', 'department_id',
+                        'created_at', 'updated_at',
+                    ]),
                     'department_name' => $user->department_id === null ? null : $user->department()->value('name'),
                     'hotel_name' => $user->hotel_id === null ? null : $user->hotel()->withoutGlobalScopes()->value('name'),
                 ],

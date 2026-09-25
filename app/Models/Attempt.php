@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Policies\AttemptPolicy;
 use Database\Factories\AttemptFactory;
@@ -47,6 +48,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $ai_failed_reason
  * @property int|null $score_overridden_by
  * @property string|null $original_score
+ * @property string|null $score_override_reason
+ * @property Carbon|null $score_overridden_at
+ * @property EnglishLevel|null $graded_level
  * @property Carbon $started_at
  * @property Carbon|null $submitted_at
  * @property int|null $time_taken_ms
@@ -74,6 +78,9 @@ use Illuminate\Support\Carbon;
     'ai_failed_reason',
     'score_overridden_by',
     'original_score',
+    'score_override_reason',
+    'score_overridden_at',
+    'graded_level',
     'started_at',
     'submitted_at',
     'time_taken_ms',
@@ -99,6 +106,8 @@ class Attempt extends Model
             'ai_feedback' => 'array',
             'ai_status' => GenerationStatus::class,
             'original_score' => 'decimal:2',
+            'score_overridden_at' => 'datetime',
+            'graded_level' => EnglishLevel::class,
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'time_taken_ms' => 'integer',
@@ -199,6 +208,20 @@ class Attempt extends Model
     public function isScoreOverridden(): bool
     {
         return $this->score_overridden_by !== null;
+    }
+
+    /**
+     * The bar an AI evaluator judges this answer against (spec 0005 §5.2).
+     *
+     * Lesson practice is pitched at the learner's measured level, so the
+     * feedback is realistic for them. A Pre- or Post-test answer is judged on
+     * the one fixed scale for everyone: the level moves after every sitting
+     * and the study compares the two sittings (TEST-02, TSTM-03). The bar
+     * used is written to `graded_level` beside the score.
+     */
+    public function gradingLevel(): ?EnglishLevel
+    {
+        return $this->isTestAnswer() ? null : $this->user?->english_level;
     }
 
     /**

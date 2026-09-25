@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AiScenario;
 use App\Models\RoleplayAttempt;
+use App\Services\Owner\ApiKeyring;
 use App\Services\VoiceAgent\VoiceAgentSessionFactory;
 use App\Services\VoiceAgent\VoiceAgentSettings;
 use Illuminate\Console\Attributes\Description;
@@ -126,7 +127,7 @@ final class VoiceAgentProbeSession extends Command
     /** One line of employee speech as raw linear16 mono at $rate Hz. */
     private function speak(string $text, int $rate): string
     {
-        $key = (string) config('services.tts.key');
+        $key = app(ApiKeyring::class)->key('services.tts.key');
         if ($key === '') {
             throw new \RuntimeException('No Deepgram key (TTS_KEY / DEEPGRAM_API_KEY).');
         }

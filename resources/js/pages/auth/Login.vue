@@ -14,7 +14,7 @@ import PasskeyVerify from '@/components/PasskeyVerify.vue';
 
 defineOptions({
     layout: {
-        title: 'Sign in to Guesvia',
+        title: 'Sign in to GHASIDO',
         description:
             'Super Admin, approved hotel managers and invited staff sign in here.',
     },

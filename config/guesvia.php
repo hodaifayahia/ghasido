@@ -82,6 +82,59 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pronunciation check
+    |--------------------------------------------------------------------------
+    |
+    | Score v1 of spec 0006 §5 (App\Services\Pronunciation\PronunciationScorer
+    | holds the same values as its defaults). Every attempt stores `version`
+    | with its scores: change a threshold and bump the version, so research
+    | data scored under two rules is never mixed silently.
+    |
+    */
+
+    'pronunciation' => [
+        'version' => 'v1',
+
+        // Checks one employee may run per calendar day. A check charges no
+        // AI points; this cap bounds the STT and coaching cost (AIL-04).
+        'daily_checks_per_employee' => (int) env('PRONUNCIATION_DAILY_CHECKS', 300),
+
+        // The longest recording judged; longer ones are refused before any
+        // provider is called.
+        'max_recording_seconds' => 30,
+
+        'weights' => ['words' => 0.6, 'clarity' => 0.25, 'flow' => 0.15],
+        'credit' => [
+            'correct' => 1.0,
+            'unclear' => 0.7,
+            'almost' => 0.5,
+            'mispronounced' => 0.25,
+            'different' => 0.0,
+            'missed' => 0.0,
+        ],
+        'close_similarity' => 0.5,
+        'unclear_floor' => 0.55,
+        'unclear_margin' => 0.15,
+        'default_reference_confidence' => 0.95,
+        'hinted_min_confidence' => 0.3,
+        'pause_ms' => 700,
+        'ms_per_word' => 380,
+        'slow_ratio' => 1.6,
+        'penalties' => [
+            'slow_per_ratio' => 40,
+            'slow_max' => 40,
+            'pause' => 10,
+            'pause_max' => 30,
+            'filler' => 8,
+            'filler_max' => 24,
+            'extra' => 5,
+            'extra_max' => 20,
+        ],
+        'levels' => ['excellent' => 90, 'good' => 75, 'fair' => 50],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Reminders
     |--------------------------------------------------------------------------
     */
@@ -100,6 +153,26 @@ return [
     'tests' => [
         // Default time limit for a seeded Pre-test (TIME-01; spec 0003 G.4).
         'pre_test_time_limit_seconds' => 1200,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Learner English level
+    |--------------------------------------------------------------------------
+    |
+    | The auto-graded percentage of a learner's latest Pre- or Post-test places
+    | them in a band (App\Enums\EnglishLevel). The AI role-play guest and the
+    | evaluators pitch their English at that band (spec 0005 §2.1). A score at
+    | or above a threshold reaches that band; below Elementary is Beginner.
+    | Difficulty tags, not CEFR: that choice is still open (system/08 8.1).
+    |
+    */
+
+    'levels' => [
+        'thresholds' => [
+            'elementary' => (float) env('LEVEL_ELEMENTARY_FROM', 40),
+            'intermediate' => (float) env('LEVEL_INTERMEDIATE_FROM', 70),
+        ],
     ],
 
 ];

@@ -14,6 +14,7 @@ use App\Models\Lesson;
 use App\Models\MediaAsset;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Tts\TtsSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -324,6 +325,8 @@ class ContentTree
                 'publishedAt' => null,
                 'estimatedMinutes' => null,
                 'completionCondition' => null,
+                'accent' => null,
+                'effectiveAccent' => app(TtsSettings::class)->defaultAccent()->value,
                 'unitId' => null,
                 'hotelLabel' => null,
                 'departmentLabel' => null,
@@ -351,6 +354,10 @@ class ContentTree
             'publishedAt' => $lesson->published_at?->toIso8601String(),
             'estimatedMinutes' => $lesson->estimated_minutes,
             'completionCondition' => $lesson->completion_condition,
+            // Stored accent (null = platform default) and the one in effect
+            // (spec 0006 §3).
+            'accent' => $lesson->accent?->value,
+            'effectiveAccent' => $lesson->speakingAccent()->value,
             'unitId' => $lesson->unit_id,
             'hotelLabel' => $lesson->hotel_id === null
                 ? __('Shared (all hotels)')

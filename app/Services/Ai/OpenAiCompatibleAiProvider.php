@@ -7,17 +7,29 @@ use App\Contracts\AiProvider;
 use App\Contracts\AiReply;
 use App\Contracts\AiUsageInfo;
 use App\Contracts\ChecksConnection;
+use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
+use App\Contracts\DashboardBriefingDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
+use App\Contracts\PronunciationCoaching;
+use App\Contracts\PronunciationGuideDraft;
+use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
 use App\Contracts\WritingEvaluation;
+use App\Enums\Accent;
+use App\Enums\EnglishLevel;
 use App\Enums\LexiconKind;
 use App\Enums\ScenarioDifficulty;
 use App\Models\AiScenario;
+use App\Services\Ai\Concerns\BuildsBriefingPrompts;
+use App\Services\Ai\Concerns\BuildsCoachingPrompts;
 use App\Services\Ai\Concerns\BuildsLessonPrompts;
+use App\Services\Ai\Concerns\BuildsPronunciationPrompts;
+use App\Services\Ai\Concerns\BuildsReminderPrompts;
+use App\Services\Ai\Concerns\BuildsRoleplayPrompts;
 use App\Services\Ai\Concerns\ParsesJsonReplies;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -44,7 +56,12 @@ use Throwable;
  */
 final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
 {
+    use BuildsBriefingPrompts;
+    use BuildsCoachingPrompts;
     use BuildsLessonPrompts;
+    use BuildsPronunciationPrompts;
+    use BuildsReminderPrompts;
+    use BuildsRoleplayPrompts;
     use Concerns\BuildsAssessmentPrompts;
     use ParsesJsonReplies;
 
@@ -60,6 +77,12 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
 
     private const TEMPERATURE = 0.6;
 
+    /**
+     * Judging runs cool, so the same answer earns the same score from one
+     * run to the next (AIE-04; spec 0005 §2.4). Conversation stays warmer.
+     */
+    private const EVALUATION_TEMPERATURE = 0.1;
+
     private const TIMEOUT_SECONDS = 180;
 
     /**
@@ -71,12 +94,6 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
     private const RETRY_TIMES = 3;
 
     private const RETRY_SLEEP_MS = 2000;
-
-    /**
-     * The one instruction every role-play prompt carries, so the guest never
-     * drifts into a general assistant (RP-04).
-     */
-    private const ROLEPLAY_GUARD = RoleplayPrompt::GUARD;
 
     public function __construct(
         private readonly string $apiKey,
@@ -115,14 +132,9 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
         return new AiReply(trim($result['text']), $result['usage']);
     }
 
-    public function roleplayReply(AiScenario $scenario, array $transcript): AiReply
+    public function roleplayReply(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiReply
     {
-        $system = implode("\n\n", [
-            self::ROLEPLAY_GUARD,
-            $this->configuredInstruction($scenario),
-            $this->scenarioBrief($scenario),
-            'Respond with ONLY a JSON object of the shape {"reply": "<the guest\'s next line>"}. No markdown, no commentary.',
-        ]);
+        $system = RoleplayPrompt::replySystem($scenario, $transcript, $level);
 
         // A learner is waiting on this line, so it uses the fast model when
         // one is configured (PERF-04).
@@ -147,70 +159,17 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
         return new AiReply($reply, $result['usage']);
     }
 
-    public function evaluateRoleplay(AiScenario $scenario, array $transcript): AiEvaluation
+    public function evaluateRoleplay(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiEvaluation
     {
         $criteria = $scenario->criteriaKeys();
 
-        $system = implode("\n\n", [
-            'You are an encouraging English coach for hotel staff. Evaluate the EMPLOYEE\'s side of the role-play below. Reward communicative success over grammatical perfection; the tone is adult, warm and professional, never childish (RP-08, RP-09).',
-            $this->configuredInstruction($scenario),
-            $this->scenarioBrief($scenario),
-            'Score each criterion 0-100 with a one-sentence comment. Respond with ONLY a JSON object of this exact shape: '
-            .'{"criteria": {'.implode(', ', array_map(static fn (string $key): string => sprintf('"%s": {"score": <int>, "comment": "<text>"}', $key), $criteria)).'}, '
-            .'"overall": <int 0-100>, "did_well": ["<text>", ...], "improve": [{"title": "<short title>", "text": "<advice>"}], '
-            .'"better_expression": {"yours": "<one sentence the employee said>", "better": "<a more natural version>"}, '
-            .'"key_phrase": "<one short phrase to remember, in quotation marks>", "summary_label": "<2-3 words>", "summary_text": "<one sentence>", "footnote": "<one sentence of general advice>"}',
-        ]);
-
-        $messages = [[
-            'role' => 'user',
-            'content' => "Transcript:\n".$this->transcriptText($transcript)."\n\nEvaluate the employee now.",
-        ]];
-
-        $result = $this->complete($system, $messages);
-        $data = $this->decodeJson($result['text']);
-
-        $rawCriteria = $data['criteria'] ?? [];
-        $parsedCriteria = [];
-        foreach ($criteria as $key) {
-            $entry = is_array($rawCriteria) && isset($rawCriteria[$key]) && is_array($rawCriteria[$key]) ? $rawCriteria[$key] : [];
-            $parsedCriteria[$key] = [
-                'score' => $this->score($entry, 'score'),
-                'comment' => $this->string($entry, 'comment', ''),
-            ];
-        }
-
-        $overall = isset($data['overall'])
-            ? $this->score($data, 'overall')
-            : (int) round(array_sum(array_column($parsedCriteria, 'score')) / max(1, count($parsedCriteria)));
-
-        $improve = [];
-        foreach ($this->list($data, 'improve') as $entry) {
-            if (is_array($entry)) {
-                $improve[] = [
-                    'title' => $this->string($entry, 'title', ''),
-                    'text' => $this->string($entry, 'text', ''),
-                ];
-            }
-        }
-
-        $betterExpression = is_array($data['better_expression'] ?? null) ? $data['better_expression'] : [];
-
-        return new AiEvaluation(
-            criteria: $parsedCriteria,
-            overall: $overall,
-            didWell: $this->stringList($data, 'did_well'),
-            improve: $improve,
-            betterExpression: [
-                'yours' => $this->string($betterExpression, 'yours', ''),
-                'better' => $this->string($betterExpression, 'better', ''),
-            ],
-            keyPhrase: $this->string($data, 'key_phrase', ''),
-            summaryLabel: $this->string($data, 'summary_label', 'Good try!'),
-            summaryText: $this->string($data, 'summary_text', 'Keep practicing. You can try again.'),
-            usage: $result['usage'],
-            footnote: $this->string($data, 'footnote', ''),
+        $result = $this->complete(
+            RoleplayPrompt::evaluationSystem($scenario, $criteria, $level),
+            $this->evaluationMessages($transcript),
+            temperature: self::EVALUATION_TEMPERATURE,
         );
+
+        return $this->roleplayEvaluationFrom($this->decodeJson($result['text']), $criteria, $result['usage']);
     }
 
     public function generateLexicon(string $english, LexiconKind $kind, string $context): LexiconDraft
@@ -298,47 +257,24 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
         return $this->outlineFrom($this->decodeJson($result['text']), $brief, $lessonCount, $result['usage']);
     }
 
-    public function evaluateWriting(array $item, string $answer): WritingEvaluation
+    public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation
     {
-        $system = 'You are an encouraging English coach for hotel staff. Evaluate the written reply below against the task. Reward getting the message across over perfect grammar; the tone is adult, warm and professional. Respond with ONLY a JSON object of this exact shape: '
-            .'{"criteria": {"task_completion": {"score": <int 0-100>, "comment": "<text>"}, "accuracy": {"score": <int>, "comment": "<text>"}, "politeness": {"score": <int>, "comment": "<text>"}, "clarity": {"score": <int>, "comment": "<text>"}}, '
-            .'"better_answer": "<a model reply of similar length>", "summary": "<one encouraging sentence>"}';
-
-        $task = json_encode($item, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
-        $messages = [[
-            'role' => 'user',
-            'content' => sprintf(
-                "Task (JSON):\n%s\n\nEmployee's answer (verbatim):\n%s",
-                $task === false ? '{}' : $task,
-                $answer,
-            ),
-        ]];
-
-        $result = $this->complete($system, $messages);
-        $data = $this->decodeJson($result['text']);
-
-        $rawCriteria = is_array($data['criteria'] ?? null) ? $data['criteria'] : [];
-        $criteria = [];
-        foreach (['task_completion', 'accuracy', 'politeness', 'clarity'] as $key) {
-            $entry = is_array($rawCriteria[$key] ?? null) ? $rawCriteria[$key] : [];
-            $criteria[$key] = [
-                'score' => $this->score($entry, 'score'),
-                'comment' => $this->string($entry, 'comment', ''),
-            ];
-        }
-
-        return new WritingEvaluation(
-            criteria: $criteria,
-            betterAnswer: $this->string($data, 'better_answer', ''),
-            summary: $this->string($data, 'summary', ''),
-            usage: $result['usage'],
+        $result = $this->complete(
+            $this->writingSystemPrompt($level),
+            $this->writingMessages($item, $answer),
+            temperature: self::EVALUATION_TEMPERATURE,
         );
+
+        return $this->parseWritingEvaluation($this->decodeJson($result['text']), $result['usage']);
     }
 
-    public function evaluateSpeaking(array $item, string $transcript): SpeakingEvaluation
+    public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation
     {
-        $result = $this->complete($this->speakingSystemPrompt(), $this->speakingMessages($item, $transcript));
+        $result = $this->complete(
+            $this->speakingSystemPrompt($level),
+            $this->speakingMessages($item, $transcript),
+            temperature: self::EVALUATION_TEMPERATURE,
+        );
 
         return $this->parseSpeakingEvaluation($this->decodeJson($result['text']), $result['usage']);
     }
@@ -353,6 +289,60 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
         return $this->parseTestQuestions($this->decodeJson($result['text']), $skills, $result['usage']);
     }
 
+    public function coachLearner(array $context, ?EnglishLevel $level = null): CoachingSummary
+    {
+        $result = $this->complete(
+            $this->coachingSystemPrompt($level),
+            $this->coachingMessages($context),
+            temperature: self::EVALUATION_TEMPERATURE,
+        );
+
+        return $this->parseCoachingSummary($this->decodeJson($result['text']), $result['usage']);
+    }
+
+    public function briefDashboard(array $context): DashboardBriefingDraft
+    {
+        $result = $this->complete(
+            $this->briefingSystemPrompt(),
+            $this->briefingMessages($context),
+            temperature: self::EVALUATION_TEMPERATURE,
+        );
+
+        return $this->parseBriefing($this->decodeJson($result['text']), $result['usage']);
+    }
+
+    public function draftReminder(string $purpose, string $tone, array $variables): ReminderDraft
+    {
+        $result = $this->complete($this->reminderSystemPrompt($variables), $this->reminderMessages($purpose, $tone));
+
+        return $this->parseReminderDraft($this->decodeJson($result['text']), $variables, $result['usage']);
+    }
+
+    public function pronunciationGuide(string $text, Accent $accent): PronunciationGuideDraft
+    {
+        // IPA and trap words are knowledge work: the main model, run cool.
+        $result = $this->complete(
+            $this->pronunciationGuideSystemPrompt($accent),
+            $this->pronunciationGuideMessages($text, $accent),
+            temperature: self::EVALUATION_TEMPERATURE,
+        );
+
+        return $this->parsePronunciationGuide($this->decodeJson($result['text']), $result['usage']);
+    }
+
+    public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching
+    {
+        // A learner is waiting on this tip: the fast model when configured.
+        $reply = $this->complete(
+            $this->pronunciationCoachSystemPrompt($accent, $level),
+            $this->pronunciationCoachMessages($result),
+            $this->fastModel,
+            self::EVALUATION_TEMPERATURE,
+        );
+
+        return $this->parsePronunciationCoaching($this->decodeJson($reply['text']), $words, $reply['usage']);
+    }
+
     // ------------------------------------------------------------ transport
 
     /**
@@ -362,7 +352,7 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
      * @param  list<array{role: string, content: string}>  $messages
      * @return array{text: string, usage: AiUsageInfo}
      */
-    private function complete(string $system, array $messages, ?string $model = null): array
+    private function complete(string $system, array $messages, ?string $model = null, float $temperature = self::TEMPERATURE): array
     {
         $model = $model !== null && $model !== '' ? $model : $this->model;
 
@@ -378,7 +368,7 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
             'model' => $model,
             'messages' => array_merge([['role' => 'system', 'content' => $system]], $messages),
             'max_tokens' => self::MAX_TOKENS,
-            'temperature' => self::TEMPERATURE,
+            'temperature' => $temperature,
             'response_format' => ['type' => 'json_object'],
         ];
 
@@ -447,74 +437,5 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
                 fn (Throwable $e): bool => $e instanceof ConnectionException
                     || ($e instanceof RequestException && ($e->response->status() === 429 || $e->response->serverError())),
             );
-    }
-
-    // -------------------------------------------------------------- prompts
-
-    /**
-     * The scenario brief, assembled from the ai_scenarios row and nothing the
-     * client sent (RP-04).
-     */
-    private function scenarioBrief(AiScenario $scenario): string
-    {
-        return RoleplayPrompt::brief($scenario);
-    }
-
-    private function configuredInstruction(AiScenario $scenario): string
-    {
-        return RoleplayPrompt::configuredInstruction($scenario);
-    }
-
-    /**
-     * Map the stored transcript onto chat turns: the guest is the assistant,
-     * the employee is the user. An empty or guest-first transcript gets a
-     * neutral opener so the model always has a user turn to answer.
-     *
-     * @param  list<array{role: string, text: string, at?: string}>  $transcript
-     * @return list<array{role: string, content: string}>
-     */
-    private function conversationMessages(array $transcript): array
-    {
-        $messages = [];
-
-        foreach ($transcript as $turn) {
-            $text = trim($turn['text']);
-            if ($text === '') {
-                continue;
-            }
-
-            $messages[] = [
-                'role' => $turn['role'] === 'guest' ? 'assistant' : 'user',
-                'content' => $text,
-            ];
-        }
-
-        if ($messages === [] || $messages[0]['role'] !== 'user') {
-            array_unshift($messages, [
-                'role' => 'user',
-                'content' => '(The employee is ready. Begin the conversation as the guest.)',
-            ]);
-        }
-
-        $last = $messages[count($messages) - 1];
-        if ($last['role'] === 'assistant') {
-            $messages[] = [
-                'role' => 'user',
-                'content' => '(Continue as the guest.)',
-            ];
-        }
-
-        return $messages;
-    }
-
-    /**
-     * @param  list<array{role: string, text: string, at?: string}>  $transcript
-     */
-    private function transcriptText(array $transcript): string
-    {
-        return implode("\n", array_map(
-            static fn (array $turn): string => sprintf('%s: %s', $turn['role'] === 'guest' ? 'Guest' : 'Employee', trim($turn['text'])),
-            $transcript,
-        ));
     }
 }

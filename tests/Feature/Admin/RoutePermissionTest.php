@@ -135,6 +135,6 @@ class RoutePermissionTest extends TestCase
         $response->assertForbidden();
         $response->assertSee('Access denied');
         $response->assertSee('Error 403');
-        $response->assertSee('/brand/guesvia-logo.png', false);
+        $response->assertSee('/brand/ghasido-logo.png', false);
     }
 }

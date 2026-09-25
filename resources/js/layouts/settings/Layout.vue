@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAiModels } from '@/routes/ai-models';
+import { index as aiUsage } from '@/routes/ai-usage';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -14,7 +15,9 @@ import type { NavItem } from '@/types';
 
 const page = usePage();
 const isWideSettingsPage = computed(
-    () => page.component === 'settings/LandingPage',
+    () =>
+        page.component === 'settings/LandingPage' ||
+        page.component === 'settings/AiUsage',
 );
 
 // "AI models" is the Super Admin's tab only; the route itself is a 403 for
@@ -35,6 +38,7 @@ const sidebarNavItems = computed((): NavItem[] => [
     ...(page.props.auth.user?.role === 'super_admin'
         ? [
               { title: 'AI models', href: editAiModels() },
+              { title: 'AI usage', href: aiUsage() },
               { title: 'Landing page', href: '/settings/landing-page' },
           ]
         : []),

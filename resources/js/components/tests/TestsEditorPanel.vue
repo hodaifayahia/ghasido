@@ -81,7 +81,7 @@ const imagePickerOpen = computed({
     },
 });
 const libraryTabs = [
-    { key: 'guesvia-library', label: 'Guesvia Library' },
+    { key: 'guesvia-library', label: 'GHASIDO Library' },
     { key: 'my-images', label: 'My Images' },
     { key: 'icons-stickers', label: 'Icons & Stickers' },
 ];

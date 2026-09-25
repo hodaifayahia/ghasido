@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Learn;
 
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Learn\Concerns\AuthorizesRoleplayStep;
 use App\Http\Requests\Learn\RoleplayMessageRequest;
 use App\Models\AiScenario;
 use App\Models\Block;
@@ -30,6 +31,8 @@ use Inertia\Response;
  */
 class RoleplayController extends Controller
 {
+    use AuthorizesRoleplayStep;
+
     public function __construct(
         private readonly RoleplayService $roleplay,
         private readonly PayloadResolver $resolver,
@@ -39,6 +42,7 @@ class RoleplayController extends Controller
     {
         $user = $this->learner($request);
         $this->assertReach($user, $scenario);
+        $this->authorizeRoleplayStep($lesson, $block, $scenario);
 
         return Inertia::render('employee/roleplay/Ready', [
             'scenario' => $this->brief($scenario, $user),
@@ -60,6 +64,7 @@ class RoleplayController extends Controller
     {
         $user = $this->learner($request);
         $this->assertReach($user, $scenario);
+        $this->authorizeRoleplayStep($lesson, $block, $scenario);
 
         if (! $this->roleplay->canStart($user, $scenario)) {
             return $this->flashBack('warning', __('You have used all :n attempts for this scenario.', ['n' => $scenario->attempts_allowed]));
@@ -92,9 +97,15 @@ class RoleplayController extends Controller
         }
 
         try {
-            $this->roleplay->message($user, $attempt, $request->text(), $request->recordingMediaId());
+            $ended = $this->roleplay->message($user, $attempt, $request->text(), $request->recordingMediaId());
         } catch (AiLimitReached $exception) {
             return $this->flashBack('error', $exception->getMessage());
+        }
+
+        if ($ended) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('The guest has wrapped up the conversation. Here is your feedback.')]);
+
+            return to_route('learn.roleplay.feedback', ['attempt' => $attempt->id]);
         }
 
         return to_route('learn.roleplay.attempt', ['attempt' => $attempt->id]);
@@ -167,6 +178,10 @@ class RoleplayController extends Controller
                 'transcript' => $this->transcript($attempt),
                 'employeeTurns' => $attempt->employeeTurnsCount(),
                 'minTurns' => $scenario->min_turns,
+                'maxTurns' => $scenario->max_turns,
+                // The guest has closed and the next step is feedback (spec
+                // 0005 §2.2); the chat swaps the input for that action.
+                'atTurnLimit' => $this->roleplay->reachedTurnLimit($attempt),
                 'inputMode' => $scenario->input_mode,
                 'canEnd' => $attempt->employeeTurnsCount() >= $scenario->min_turns,
             ],

@@ -3,6 +3,8 @@
 namespace App\Services\Stt;
 
 use App\Contracts\SpeechToTextProvider;
+use App\Contracts\TranscribedWord;
+use App\Contracts\WordTranscript;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -60,5 +62,67 @@ final class OpenAiCompatibleSpeechToTextProvider implements SpeechToTextProvider
         $text = $response->json('text');
 
         return is_string($text) ? trim($text) : '';
+    }
+
+    /**
+     * Word timings through `verbose_json` + `timestamp_granularities[]=word`
+     * (spec 0006 §5). This API gives no per-word confidence, so the check
+     * runs without its clarity score; keyterms go in as the `prompt`.
+     */
+    public function transcribeWords(string $absolutePath, string $mime, array $keyterms = []): WordTranscript
+    {
+        if ($this->model === '') {
+            throw new RuntimeException('STT_MODEL is not configured (config services.stt.model).');
+        }
+
+        $contents = is_readable($absolutePath) ? file_get_contents($absolutePath) : false;
+
+        if ($contents === false) {
+            throw new RuntimeException(sprintf('Recording [%s] could not be read.', basename($absolutePath)));
+        }
+
+        $baseUrl = rtrim($this->baseUrl !== null && $this->baseUrl !== '' ? $this->baseUrl : self::DEFAULT_BASE_URL, '/');
+
+        $fields = [
+            'model' => $this->model,
+            'response_format' => 'verbose_json',
+            'timestamp_granularities[]' => 'word',
+            'language' => 'en',
+        ];
+
+        if ($keyterms !== []) {
+            $fields['prompt'] = implode(', ', $keyterms);
+        }
+
+        $response = Http::baseUrl($baseUrl)
+            ->withToken($this->apiKey)
+            ->timeout(self::TIMEOUT_SECONDS)
+            ->retry(self::RETRY_TIMES, self::RETRY_SLEEP_MS)
+            ->attach('file', $contents, basename($absolutePath), ['Content-Type' => $mime])
+            ->post('/audio/transcriptions', $fields)
+            ->throw();
+
+        $words = [];
+
+        foreach ((array) $response->json('words', []) as $word) {
+            if (is_array($word) && is_string($word['word'] ?? null)) {
+                $words[] = new TranscribedWord(
+                    word: $word['word'],
+                    confidence: null,
+                    startMs: is_numeric($word['start'] ?? null) ? (int) round((float) $word['start'] * 1000) : null,
+                    endMs: is_numeric($word['end'] ?? null) ? (int) round((float) $word['end'] * 1000) : null,
+                );
+            }
+        }
+
+        $text = $response->json('text');
+
+        return new WordTranscript(
+            text: is_string($text) ? trim($text) : '',
+            words: $words,
+            provider: self::PROVIDER,
+            model: $this->model,
+            keyterms: $keyterms,
+        );
     }
 }

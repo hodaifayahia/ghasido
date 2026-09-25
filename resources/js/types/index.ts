@@ -13,6 +13,8 @@ export * from './lessons';
 export * from './messages';
 export * from './navigation';
 export * from './notifications';
+export * from './owner';
+export * from './pronunciation';
 export * from './reports';
 export * from './roleplay';
 export * from './roles';

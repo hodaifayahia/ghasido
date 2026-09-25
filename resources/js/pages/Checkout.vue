@@ -59,10 +59,10 @@ function submit(): void {
             <div
                 class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8 lg:px-10"
             >
-                <Link href="/" aria-label="Guesvia home">
+                <Link href="/" aria-label="GHASIDO home">
                     <img
-                        src="/brand/guesvia-logo.png"
-                        alt="Guesvia"
+                        src="/brand/ghasido-logo.png"
+                        alt="GHASIDO"
                         width="600"
                         height="180"
                         class="h-11 w-auto object-contain sm:h-13"

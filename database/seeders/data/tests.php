@@ -151,7 +151,7 @@ return [
         'settings' => $settings,
         // photo_20
         'intro' => [
-            'eyebrow' => 'WELCOME TO GUESVIA',
+            'eyebrow' => 'WELCOME TO GHASIDO',
             'heading' => "Let's start with a short Pre-test",
             'paragraphs' => [
                 'The pre-test helps us understand your current level of English. It is not a pass or fail test.',

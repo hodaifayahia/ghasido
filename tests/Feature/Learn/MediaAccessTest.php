@@ -48,16 +48,33 @@ class MediaAccessTest extends TestCase
         $this->actingAs($stranger)->get(route('media.show', $asset))->assertForbidden();
     }
 
-    public function test_a_manager_of_another_hotel_is_refused_and_the_own_hotels_manager_is_not()
+    public function test_a_manager_of_another_hotel_is_refused()
     {
-        $learner = $this->learner();
-        $asset = $this->recordingOf($learner);
-
+        $asset = $this->recordingOf($this->learner());
         $foreignManager = User::factory()->manager()->create(['hotel_id' => Hotel::factory()->create()->id]);
-        $ownManager = User::factory()->manager()->create(['hotel_id' => $this->hotel->id]);
 
         $this->actingAs($foreignManager)->get(route('media.show', $asset))->assertForbidden();
-        $this->actingAs($ownManager)->get(route('media.show', $asset))->assertOk();
+    }
+
+    public function test_the_own_hotels_manager_and_hotel_admin_are_refused_a_recording()
+    {
+        // Recordings are Super Admin only (ROLE-04, PRIV-04): being in the
+        // learner's hotel is not enough.
+        $asset = $this->recordingOf($this->learner());
+
+        $ownManager = User::factory()->manager()->create(['hotel_id' => $this->hotel->id]);
+        $ownAdmin = User::factory()->admin()->create(['hotel_id' => $this->hotel->id]);
+
+        $this->actingAs($ownManager)->get(route('media.show', $asset))->assertForbidden();
+        $this->actingAs($ownAdmin)->get(route('media.show', $asset))->assertForbidden();
+    }
+
+    public function test_a_coworker_in_the_same_hotel_is_refused()
+    {
+        $asset = $this->recordingOf($this->learner());
+        $coworker = $this->learner(['username' => 'coworker']);
+
+        $this->actingAs($coworker)->get(route('media.show', $asset))->assertForbidden();
     }
 
     public function test_the_super_admin_can_read_any_recording()

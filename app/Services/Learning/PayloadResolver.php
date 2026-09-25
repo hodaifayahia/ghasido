@@ -2,6 +2,7 @@
 
 namespace App\Services\Learning;
 
+use App\Enums\Accent;
 use App\Models\MediaAsset;
 use App\Services\Audio\AudioLibrary;
 
@@ -26,7 +27,22 @@ class PayloadResolver
     /** @var list<string> */
     public const array MEDIA_KEYS = ['image', 'video', 'poster', 'cover', 'thumbnail', 'side_image'];
 
+    /** The lesson accent whose voice the audio URLs are read for (spec 0006 §3). */
+    private ?Accent $accent = null;
+
     public function __construct(private readonly AudioLibrary $audio) {}
+
+    /**
+     * The same resolver, reading audio in one accent's voice. A copy, so a
+     * shared instance is never left pointing at another lesson's accent.
+     */
+    public function forAccent(?Accent $accent): self
+    {
+        $copy = clone $this;
+        $copy->accent = $accent;
+
+        return $copy;
+    }
 
     /**
      * @param  array<array-key, mixed>  $data
@@ -40,7 +56,7 @@ class PayloadResolver
         $this->collect($data, $mediaIds, $texts);
 
         $media = $this->mediaById(array_values(array_unique($mediaIds)));
-        $audio = $texts === [] ? [] : $this->audio->urlsFor(array_values(array_unique($texts)));
+        $audio = $texts === [] ? [] : $this->audio->urlsFor(array_values(array_unique($texts)), $this->accent);
 
         return $this->transform($data, $media, $audio);
     }
@@ -74,7 +90,7 @@ class PayloadResolver
             return ['normal' => null, 'slow' => null];
         }
 
-        return $this->audio->urlsFor([$text])[$text] ?? ['normal' => null, 'slow' => null];
+        return $this->audio->urlsFor([$text], $this->accent)[$text] ?? ['normal' => null, 'slow' => null];
     }
 
     /**
@@ -93,7 +109,7 @@ class PayloadResolver
             }
         }
 
-        return $clean === [] ? [] : $this->audio->urlsFor(array_values(array_unique($clean)));
+        return $clean === [] ? [] : $this->audio->urlsFor(array_values(array_unique($clean)), $this->accent);
     }
 
     /**

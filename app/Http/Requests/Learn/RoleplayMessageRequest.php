@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Learn;
 
+use App\Models\MediaAsset;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * One employee turn in a role-play (RP-02, RP-03): typed text, an uploaded
@@ -23,7 +25,13 @@ class RoleplayMessageRequest extends FormRequest
     {
         return [
             'text' => ['nullable', 'string', 'max:2000', 'required_without:recording_media_id'],
-            'recording_media_id' => ['nullable', 'integer', 'exists:media_assets,id'],
+            // Only a recording this learner uploaded may join their transcript
+            // (DATA-05, PRIV-04; spec 0005 §1.6).
+            'recording_media_id' => [
+                'nullable',
+                'integer',
+                Rule::exists(MediaAsset::class, 'id')->where('uploaded_by', $this->user()->id),
+            ],
         ];
     }
 

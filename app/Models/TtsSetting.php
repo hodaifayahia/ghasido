@@ -15,9 +15,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property string|null $voice
  * @property int|null $expressivity
+ * @property string|null $british_voice
+ * @property string|null $american_voice
  * @property int|null $updated_by
  */
-#[Fillable(['voice', 'expressivity', 'updated_by'])]
+#[Fillable(['voice', 'expressivity', 'british_voice', 'american_voice', 'updated_by'])]
 class TtsSetting extends Model
 {
     /** @use HasFactory<TtsSettingFactory> */

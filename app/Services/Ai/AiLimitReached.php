@@ -3,6 +3,7 @@
 namespace App\Services\Ai;
 
 use App\Enums\AiFeature;
+use App\Enums\ApiAccount;
 use RuntimeException;
 
 /**
@@ -54,6 +55,34 @@ final class AiLimitReached extends RuntimeException
             $feature,
             'hotel',
             $limit,
+        );
+    }
+
+    /**
+     * A paid API account the platform owner funds is spent or paused
+     * (spec 0007, D7). Nothing that needs it is dispatched; everything
+     * else keeps working.
+     */
+    public static function forCredit(ApiAccount $account, bool $paused = false): self
+    {
+        $message = $paused
+            ? __('AI features that use :service are paused by the platform owner. Everything else still works; please try again later.', ['service' => $account->label()])
+            : __("The platform's :service credit has run out, so the AI features that use it are paused. Everything else still works; the platform owner can recharge it.", ['service' => $account->label()]);
+
+        return new self($message, AiFeature::RoleplayTurn, 'credit', 0);
+    }
+
+    /**
+     * The same stop, worded for a learner: nothing about credit or owners,
+     * just that AI practice is paused and the rest is open (AIL-03).
+     */
+    public static function forLearnerCredit(): self
+    {
+        return new self(
+            __('AI practice is paused for now. Your lessons and phrasebook are still open; please try the AI guest again later.'),
+            AiFeature::RoleplayTurn,
+            'credit',
+            0,
         );
     }
 

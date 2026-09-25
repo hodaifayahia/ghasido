@@ -135,6 +135,32 @@ class HotelAccessGateTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_a_back_office_session_is_ended_when_the_hotel_is_paused()
+    {
+        // The back office follows the hotel too, not only /learn (AUTH-08,
+        // SUB-05; spec 0005 §1.5).
+        $manager = User::factory()->manager()->create(['hotel_id' => $this->hotel->id]);
+        $admin = User::factory()->admin()->create(['hotel_id' => $this->hotel->id]);
+
+        $this->actingAs($manager)->get(route('employees'))->assertOk();
+
+        $this->hotel->forceFill(['access_state' => HotelAccessState::Paused, 'paused_at' => now()])->save();
+
+        foreach ([$manager, $admin] as $user) {
+            $this->actingAs($user->fresh())
+                ->get(route('employees'))
+                ->assertRedirect(route('login'));
+            $this->assertGuest();
+
+            $this->actingAs($user->fresh())
+                ->get(route('dashboard'))
+                ->assertRedirect(route('login'));
+            $this->assertGuest();
+        }
+
+        $this->assertDatabaseHas('users', ['id' => $manager->id]);
+    }
+
     public function test_a_super_admin_without_a_hotel_is_never_blocked()
     {
         $admin = User::factory()->superAdmin()->create(['email' => 'owner@example.test']);

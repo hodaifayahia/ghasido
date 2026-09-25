@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\Accent;
 use App\Enums\ContentStatus;
 use App\Enums\GenerationStatus;
 use App\Policies\LessonPolicy;
+use App\Services\Tts\TtsSettings;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
@@ -38,6 +40,7 @@ use Illuminate\Support\Carbon;
  * @property ContentStatus $status
  * @property Carbon|null $published_at
  * @property GenerationStatus|null $ai_status
+ * @property Accent|null $accent
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read int|null $visible_blocks_count
@@ -54,6 +57,7 @@ use Illuminate\Support\Carbon;
     'position',
     'status',
     'published_at',
+    'accent',
 ])]
 #[UsePolicy(LessonPolicy::class)]
 class Lesson extends Model
@@ -74,7 +78,17 @@ class Lesson extends Model
             'status' => ContentStatus::class,
             'published_at' => 'datetime',
             'ai_status' => GenerationStatus::class,
+            'accent' => Accent::class,
         ];
+    }
+
+    /**
+     * The accent this lesson is taught and judged in (spec 0006 §3): its
+     * own, else the accent of the platform voice.
+     */
+    public function speakingAccent(): Accent
+    {
+        return $this->accent ?? app(TtsSettings::class)->defaultAccent();
     }
 
     protected static function booted(): void

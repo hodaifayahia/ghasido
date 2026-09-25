@@ -2,6 +2,7 @@
 
 namespace App\Services\Learning;
 
+use App\Enums\Accent;
 use App\Enums\BlockType;
 use App\Models\Activity;
 use App\Models\ActivityPlacement;
@@ -43,6 +44,10 @@ class BlockPresenter
     public function present(Block $block, User $user): array
     {
         $type = $block->type;
+        // The step plays in its lesson's accent voice; a lesson with no
+        // accent keeps the platform voice (spec 0006 §3).
+        $lesson = $block->lesson;
+        $accent = $lesson?->accent;
 
         return [
             'id' => $block->id,
@@ -51,8 +56,9 @@ class BlockPresenter
             'heading' => $block->heading(),
             'stepLabel' => $type->stepLabel(),
             'layout' => $block->layout,
-            'settings' => $this->resolver->resolve($block->settings ?? []),
-            'lexicon' => $type->holdsLexicon() ? $this->lexicon($block, $user) : [],
+            'accent' => $lesson?->speakingAccent()->value,
+            'settings' => $this->resolver->forAccent($accent)->resolve($block->settings ?? []),
+            'lexicon' => $type->holdsLexicon() ? $this->lexicon($block, $user, $accent) : [],
             'activities' => $type->holdsActivities() ? $this->activities($block, $user) : [],
             'scenarios' => $type === BlockType::AiRoleplay ? $this->scenarios($block, $user) : [],
             'summary' => $type === BlockType::Complete ? $this->summary($block, $user) : null,
@@ -66,7 +72,7 @@ class BlockPresenter
      *
      * @return list<array<string, mixed>>
      */
-    public function lexicon(Block $block, User $user): array
+    public function lexicon(Block $block, User $user, ?Accent $accent = null): array
     {
         $items = $block->lexiconItems()->with('image')->get();
 
@@ -82,7 +88,7 @@ class BlockPresenter
             }
         }
 
-        $audio = $this->resolver->audioForMany($texts);
+        $audio = $this->resolver->forAccent($accent)->audioForMany($texts);
 
         /** @var list<int> $saved */
         $saved = $user->phrasebookItems()

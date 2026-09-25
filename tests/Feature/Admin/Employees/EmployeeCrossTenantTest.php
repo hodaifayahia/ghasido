@@ -120,6 +120,12 @@ class EmployeeCrossTenantTest extends TestCase
             ->post(route('employees.remind'), ['ids' => [$this->theirEmployee->id]])
             ->assertForbidden();
 
+        // An id that does not exist answers exactly like a foreign one, so
+        // the endpoint cannot be used to probe other hotels (spec 0005 §1.7).
+        $this->actingAs($this->manager)
+            ->post(route('employees.remind'), ['ids' => [999999]])
+            ->assertForbidden();
+
         $this->assertSame(0, AuditLog::count());
         $this->assertSame(AccountStatus::Active, $this->myEmployee->fresh()?->status);
         $this->assertSame('theirs.one', $this->theirEmployee->fresh()?->username);

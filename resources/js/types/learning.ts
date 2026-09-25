@@ -1,5 +1,6 @@
 import type { LearnerJourney } from './auth';
 import type { ActivityKind } from './assessment';
+import type { Accent } from './pronunciation';
 import type { ScenarioCard } from './roleplay';
 
 /*
@@ -219,6 +220,8 @@ type StepBlockBase<TType extends BlockType, TSettings> = {
     heading: string;
     stepLabel: string;
     layout: string | null;
+    /** The accent the learner's speech is judged in (spec 0006 §3). */
+    accent?: Accent | null;
     settings: TSettings;
     lexicon: LexiconEntry[];
     activities: PracticeCard[];
@@ -343,6 +346,32 @@ export type PhrasebookEntry = {
     lesson: { id: number; title: string } | null;
     savedAt: string;
     removeUrl: string;
+    /** Spaced review (spec 0005 §3.4): Leitner box 0..masteryMax. */
+    mastery: number;
+    masteryMax: number;
+    needsPractice: boolean;
+    /** Sent back with an answer so a retried request saves it once. */
+    reviewCount: number;
+    reviewUrl: string;
+};
+
+/** The AI coach card (spec 0005 §3.5); the next step is chosen by the server. */
+export type CoachSummary = {
+    status: 'empty' | 'pending' | 'refreshing' | 'ready' | 'failed';
+    headline: string | null;
+    strengths: string[];
+    focus: string[];
+    tip: string | null;
+    generatedAt: string | null;
+    nextStep: { label: string; description: string; url: string };
+};
+
+/** Days in a row with some learning (spec 0005 §3.2). */
+export type StreakSummary = {
+    current: number;
+    best: number;
+    activeToday: boolean;
+    week: { date: string; label: string; active: boolean; today: boolean }[];
 };
 
 // --------------------------------------------------------------- progress

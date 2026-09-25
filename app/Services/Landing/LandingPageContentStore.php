@@ -18,7 +18,7 @@ final class LandingPageContentStore
     {
         return [
             'navigation' => [
-                'why_us' => 'Why Guesvia',
+                'why_us' => 'Why GHASIDO',
                 'about' => 'About',
                 'platform' => 'Platform',
                 'ai_practice' => 'AI practice',
@@ -31,10 +31,10 @@ final class LandingPageContentStore
             'hero' => [
                 'eyebrow' => 'English for every hotel team',
                 'title' => 'Hotel English your team can use on their next shift.',
-                'description' => 'Guesvia brings lessons, assessments, AI guest role-play and measurable progress into one clear training path for every hotel department.',
+                'description' => 'GHASIDO brings lessons, assessments, AI guest role-play and measurable progress into one clear training path for every hotel department.',
                 'primary_cta' => 'See how it works',
                 'secondary_cta' => 'View plans',
-                'image_alt' => 'Guesvia training screens, with the admin dashboard and an employee pre-test on a phone',
+                'image_alt' => 'GHASIDO training screens, with the admin dashboard and an employee pre-test on a phone',
                 'proof_points' => ['Built for hotel teams', 'Works beautifully on mobile', 'AI practice with purpose'],
             ],
             'roles' => [
@@ -71,7 +71,7 @@ final class LandingPageContentStore
                 ],
             ],
             'why_us' => [
-                'eyebrow' => 'Why Guesvia',
+                'eyebrow' => 'Why GHASIDO',
                 'title' => 'Training made for the hotel floor.',
                 'description' => 'Short lessons help staff practise the English they need during a real shift.',
                 'items' => [
@@ -81,16 +81,16 @@ final class LandingPageContentStore
                 ],
             ],
             'about' => [
-                'eyebrow' => 'About Guesvia',
+                'eyebrow' => 'About GHASIDO',
                 'title' => 'A clearer way to learn hotel English.',
-                'description' => 'Guesvia helps hotels build staff confidence with job-specific lessons, practice and measurable progress.',
+                'description' => 'GHASIDO helps hotels build staff confidence with job-specific lessons, practice and measurable progress.',
                 'learner_note' => 'English comes first, with a simple Arabic meaning available when the learner asks for it.',
-                'image_alt' => 'An employee using the Guesvia pre-test on a phone',
+                'image_alt' => 'An employee using the GHASIDO pre-test on a phone',
             ],
             'features' => [
                 'eyebrow' => 'The complete platform',
                 'title' => 'Built to make training easier to run and easier to finish.',
-                'description' => 'Guesvia connects content, people and evidence of progress without adding administrative clutter.',
+                'description' => 'GHASIDO connects content, people and evidence of progress without adding administrative clutter.',
                 'items' => [
                     ['title' => 'Create hotel-specific learning without code', 'description' => 'Build and organise department lessons, activities, tests, audio and examples from one visual content workspace.'],
                     ['title' => 'Keep every hotel team organised', 'description' => 'Manage employees, seat limits, departments and reminders while each hotel stays securely separated.'],
@@ -124,22 +124,22 @@ final class LandingPageContentStore
                     'Assessments and certificates',
                     'Manager progress reporting',
                 ],
-                'footnote' => 'Your request stays pending until the Guesvia team confirms the plan and activates your hotel.',
+                'footnote' => 'Your request stays pending until the GHASIDO team confirms the plan and activates your hotel.',
             ],
             'checkout' => [
                 'eyebrow' => 'Complete your hotel request',
-                'title' => 'Set up your hotel for Guesvia.',
+                'title' => 'Set up your hotel for GHASIDO.',
                 'description' => 'Create the first manager account and send your selected plan for approval.',
                 'summary_title' => 'Your selected plan',
                 'form_title' => 'Hotel and manager details',
                 'payment_title' => 'Payment and activation',
-                'payment_description' => 'After review, the Guesvia team confirms your payment method and activates the manager account.',
+                'payment_description' => 'After review, the GHASIDO team confirms your payment method and activates the manager account.',
                 'submit_button' => 'Send subscription request',
                 'approval_note' => 'No access is activated until a Super Admin approves the hotel.',
                 'back_to_plans' => 'Back to all plans',
             ],
             'call_to_action' => [
-                'eyebrow' => 'Bring Guesvia to your hotel',
+                'eyebrow' => 'Bring GHASIDO to your hotel',
                 'title' => 'Help every team feel ready for the next guest.',
                 'description' => 'Explore a practical English training platform made for hotel staff.',
                 'button_text' => 'Get started',

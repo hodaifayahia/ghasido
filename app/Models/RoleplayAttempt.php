@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\RoleplayStatus;
 use App\Policies\RoleplayAttemptPolicy;
@@ -35,6 +36,11 @@ use Illuminate\Support\Facades\Date;
  * @property bool $pending_reply
  * @property array<string, int>|null $criteria_scores
  * @property int|null $overall_score
+ * @property int|null $original_overall_score
+ * @property int|null $score_overridden_by
+ * @property string|null $score_override_reason
+ * @property Carbon|null $score_overridden_at
+ * @property EnglishLevel|null $graded_level
  * @property array<string, mixed>|null $feedback
  * @property GenerationStatus|null $ai_status
  * @property string|null $failed_reason
@@ -58,6 +64,11 @@ use Illuminate\Support\Facades\Date;
     'pending_reply',
     'criteria_scores',
     'overall_score',
+    'original_overall_score',
+    'score_overridden_by',
+    'score_override_reason',
+    'score_overridden_at',
+    'graded_level',
     'feedback',
     'ai_status',
     'failed_reason',
@@ -96,6 +107,9 @@ class RoleplayAttempt extends Model
             'pending_reply' => 'boolean',
             'criteria_scores' => 'array',
             'overall_score' => 'integer',
+            'original_overall_score' => 'integer',
+            'score_overridden_at' => 'datetime',
+            'graded_level' => EnglishLevel::class,
             'feedback' => 'array',
             'ai_status' => GenerationStatus::class,
             'duration_ms' => 'integer',
@@ -172,6 +186,14 @@ class RoleplayAttempt extends Model
         $this->save();
 
         return $this;
+    }
+
+    /**
+     * Has an admin replaced the AI's overall score (AIE-05)?
+     */
+    public function isScoreOverridden(): bool
+    {
+        return $this->score_overridden_by !== null;
     }
 
     public function turnsCount(): int

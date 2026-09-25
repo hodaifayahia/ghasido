@@ -45,6 +45,9 @@ final class ReportPage
             'datasets' => $this->datasets(),
             'detail' => (new EmployeeDetail($population))->build($this->filters->detailId),
             'canViewTranscripts' => $rows->canViewTranscripts(),
+            // Adjusting an AI score (AIE-05; spec 0005 §2.5); the policy
+            // re-checks every row on the server.
+            'canOverrideScores' => $this->viewer->can(Permission::ScoresOverride->value),
             'canExport' => $this->viewer->can(Permission::ReportsExport->value),
             'canExportAnonymised' => $this->viewer->can(Permission::ReportsExportAnonymised->value),
         ];

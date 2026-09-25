@@ -114,6 +114,12 @@ export type ReportAnswerRow = {
     score: number | null;
     maxScore: number | null;
     overridden: boolean;
+    /** The AI's value kept beside an admin override (AIE-05), else null. */
+    originalScore: number | null;
+    overrideReason: string | null;
+    /** Written and spoken answers are graded by the AI and can be re-graded. */
+    aiGraded: boolean;
+    aiStatus: 'pending' | 'running' | 'done' | 'failed' | null;
     timeTakenMs: number | null;
     version: number;
     submittedAt: string;
@@ -159,6 +165,10 @@ export type ReportRoleplayRow = {
     status: ReportRoleplayStatus;
     statusLabel: string;
     overallScore: number | null;
+    overridden: boolean;
+    originalScore: number | null;
+    overrideReason: string | null;
+    aiStatus: 'pending' | 'running' | 'done' | 'failed' | null;
     criteria: ReportCriterionScore[];
     summary: string | null;
     turns: number;
@@ -282,3 +292,8 @@ export type ReportRowAction =
     | 'lessons'
     | 'comparison'
     | 'export';
+
+/** The score an admin is adjusting from Reports & Export (AIE-05; spec 0005 §2.5). */
+export type ReportScoreTarget =
+    | { kind: 'answer'; row: ReportAnswerRow }
+    | { kind: 'roleplay'; row: ReportRoleplayRow };

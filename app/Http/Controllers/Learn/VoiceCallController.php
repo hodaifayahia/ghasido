@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Learn;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Learn\Concerns\AuthorizesRoleplayStep;
 use App\Http\Requests\VoiceAgent\VoiceCallTurnRequest;
 use App\Models\AiScenario;
 use App\Models\Block;
@@ -31,6 +32,8 @@ use RuntimeException;
  */
 class VoiceCallController extends Controller
 {
+    use AuthorizesRoleplayStep;
+
     public function __construct(
         private readonly RoleplayService $roleplay,
         private readonly VoiceCallService $calls,
@@ -41,6 +44,7 @@ class VoiceCallController extends Controller
     {
         $user = $this->learner($request);
         abort_unless($scenario->isVisibleTo($user), 403);
+        $this->authorizeRoleplayStep($lesson, $block, $scenario);
 
         if (! $this->roleplay->canStart($user, $scenario)) {
             return response()->json([

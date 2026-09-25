@@ -10,8 +10,11 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Learning\JourneyService;
+use App\Services\Learning\LearnerCoach;
 use App\Services\Learning\LessonNavigator;
 use App\Services\Learning\PayloadResolver;
+use App\Services\Learning\StreakService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,6 +33,8 @@ class HomeController extends Controller
         private readonly JourneyService $journey,
         private readonly LessonNavigator $navigator,
         private readonly PayloadResolver $resolver,
+        private readonly StreakService $streaks,
+        private readonly LearnerCoach $coach,
     ) {}
 
     public function index(Request $request): Response
@@ -38,6 +43,13 @@ class HomeController extends Controller
         $user = $request->user();
 
         $test = $this->journey->preTest($user);
+
+        // Once every lesson is done the same intro card offers the Post-test
+        // (JOURNEY-04; spec 0005 §3.1), until it has been submitted.
+        if (($test === null || $this->journey->preTestSubmitted($user)) && $this->postTestDue($user)) {
+            $test = $this->journey->postTest($user);
+        }
+
         $target = $this->navigator->continueTarget($user);
 
         return Inertia::render('employee/Home', [
@@ -50,6 +62,8 @@ class HomeController extends Controller
                 'url' => $this->navigator->stepUrl($target['lesson'], $target['block']),
             ],
             'journey' => $this->journey->summary($user),
+            'streak' => $this->streaks->summary($user),
+            'coach' => $this->coach->present($user),
             // The client's receptionist photo from the seed manifest
             // (spec 0003 F `home-receptionist`, photo_20); null until the
             // asset lane has shipped it, never a placeholder.
@@ -60,8 +74,50 @@ class HomeController extends Controller
     }
 
     /**
-     * The Pre-test intro card (spec 0003 G.4): the stored `intro` json plus
-     * what the runner needs to start it.
+     * The sidebar's Post-test entry (spec 0005 §3.1): an open sitting
+     * resumes, an unlocked test opens its intro on Home, and a locked one
+     * lands on Home with a note saying what is left. Gate 2 itself is still
+     * enforced where the sitting starts (TestController::assertSittable).
+     */
+    public function postTest(Request $request): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $test = $this->journey->postTest($user);
+
+        if ($test === null) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('There is no Post-test for your department yet.')]);
+
+            return to_route('learn.home');
+        }
+
+        $open = $this->attemptInProgress($user, $test);
+
+        if ($open !== null) {
+            return redirect()->to($open['url']);
+        }
+
+        if ($this->journey->postTestSubmitted($user)) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('You have already taken the Post-test.')]);
+
+            return to_route('learn.progress');
+        }
+
+        if (! $this->journey->postTestUnlocked($user)) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('Finish all your lessons to unlock the Post-test.')]);
+        }
+
+        return to_route('learn.home');
+    }
+
+    private function postTestDue(User $user): bool
+    {
+        return $this->journey->postTestUnlocked($user) && ! $this->journey->postTestSubmitted($user);
+    }
+
+    /**
+     * The Pre- or Post-test intro card (spec 0003 G.4): the stored `intro`
+     * json plus what the runner needs to start it.
      *
      * @return array<string, mixed>
      */

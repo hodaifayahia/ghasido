@@ -66,6 +66,34 @@ final class DeepgramVoiceCatalog
         return array_column(self::all(), 'model');
     }
 
+    /**
+     * The catalog accent of one voice model ("British", "American"…), or
+     * null for a model the catalog does not list.
+     */
+    public static function accentOf(string $model): ?string
+    {
+        foreach (self::all() as $voice) {
+            if ($voice['model'] === $model) {
+                return $voice['accent'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The voice models of one catalog accent, for the per-accent pickers.
+     *
+     * @return list<string>
+     */
+    public static function modelsWithAccent(string $accent): array
+    {
+        return array_values(array_map(
+            static fn (array $voice): string => $voice['model'],
+            array_filter(self::all(), static fn (array $voice): bool => $voice['accent'] === $accent),
+        ));
+    }
+
     /** @return array{genders: list<string>, accents: list<string>, ages: list<string>, use_cases: list<string>, characteristics: list<string>} */
     public static function filters(): array
     {

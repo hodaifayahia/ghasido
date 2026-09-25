@@ -127,6 +127,7 @@ watch(expired, (isExpired) => {
                 :result="null"
                 :answer-url="answerUrl"
                 :block-id="0"
+                :recordable="{ type: 'test_attempt', id: attempt.id }"
                 :initial-answers="savedAnswer ?? undefined"
             />
 

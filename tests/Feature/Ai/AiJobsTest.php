@@ -5,15 +5,23 @@ namespace Tests\Feature\Ai;
 use App\Contracts\AiEvaluation;
 use App\Contracts\AiProvider;
 use App\Contracts\AiReply;
+use App\Contracts\AiUsageInfo;
+use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
+use App\Contracts\DashboardBriefingDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
+use App\Contracts\PronunciationCoaching;
+use App\Contracts\PronunciationGuideDraft;
+use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
 use App\Contracts\WritingEvaluation;
+use App\Enums\Accent;
 use App\Enums\ActivityType;
 use App\Enums\AiFeature;
+use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\LexiconKind;
 use App\Enums\RoleplayStatus;
@@ -28,8 +36,10 @@ use App\Models\Attempt;
 use App\Models\Department;
 use App\Models\LexiconItem;
 use App\Models\RoleplayAttempt;
+use App\Models\TestAttempt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery\MockInterface;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -153,6 +163,7 @@ class AiJobsTest extends TestCase
             'ended_at' => null,
             'duration_ms' => null,
         ]);
+        $attempt->user?->forceFill(['english_level' => EnglishLevel::Beginner])->save();
 
         EvaluateRoleplayAttempt::dispatch($attempt->id);
 
@@ -160,6 +171,8 @@ class AiJobsTest extends TestCase
         $this->assertSame(RoleplayStatus::Completed, $attempt->status);
         $this->assertSame(GenerationStatus::Done, $attempt->ai_status);
         $this->assertSame(70, $attempt->overall_score);
+        // The bar the score was judged against is kept (spec 0005 §5.2).
+        $this->assertSame(EnglishLevel::Beginner, $attempt->graded_level);
         $this->assertSame(
             ['pronunciation' => 70, 'grammar' => 60, 'vocabulary' => 80, 'fluency' => 70, 'politeness' => 80],
             $attempt->criteria_scores,
@@ -212,6 +225,41 @@ class AiJobsTest extends TestCase
         ]);
     }
 
+    public function test_a_test_answer_is_graded_on_the_fixed_scale_and_practice_at_the_learners_level()
+    {
+        // The level moves after every sitting, so Pre- and Post-test answers
+        // are judged on one fixed scale and compare (TEST-02, TSTM-03; spec
+        // 0005 §5.2); lesson practice is judged at the learner's level. The
+        // bar used is stored beside the score.
+        $levels = [];
+        $this->mock(AiProvider::class, function (MockInterface $mock) use (&$levels): void {
+            $mock->shouldReceive('evaluateWriting')
+                ->twice()
+                ->andReturnUsing(function (array $item, string $answer, ?EnglishLevel $level) use (&$levels): WritingEvaluation {
+                    $levels[] = $level;
+
+                    return new WritingEvaluation(
+                        criteria: ['task_completion' => ['score' => 80, 'comment' => 'ok']],
+                        betterAnswer: 'Dear guest, welcome.',
+                        summary: 'Good.',
+                        usage: new AiUsageInfo(promptTokens: 1, completionTokens: 1, model: 'm', provider: 'fake'),
+                    );
+                });
+        });
+
+        $learner = User::factory()->employee()->create(['english_level' => EnglishLevel::Intermediate]);
+        $sitting = TestAttempt::factory()->create(['user_id' => $learner->id]);
+        $testAnswer = $this->writingAttempt('Dear guest, welcome.', ['user_id' => $learner->id, 'test_attempt_id' => $sitting->id]);
+        $practice = $this->writingAttempt('Dear guest, welcome.', ['user_id' => $learner->id]);
+
+        EvaluateWrittenAnswer::dispatch($testAnswer->id);
+        EvaluateWrittenAnswer::dispatch($practice->id);
+
+        $this->assertSame([null, EnglishLevel::Intermediate], $levels);
+        $this->assertNull($testAnswer->fresh()?->graded_level);
+        $this->assertSame(EnglishLevel::Intermediate, $practice->fresh()?->graded_level);
+    }
+
     public function test_evaluate_written_answer_never_overwrites_an_overridden_score()
     {
         $admin = User::factory()->superAdmin()->create();
@@ -235,12 +283,12 @@ class AiJobsTest extends TestCase
     {
         $this->app->instance(AiProvider::class, new class implements AiProvider
         {
-            public function roleplayReply(AiScenario $scenario, array $transcript): AiReply
+            public function roleplayReply(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiReply
             {
                 throw new RuntimeException('provider down');
             }
 
-            public function evaluateRoleplay(AiScenario $scenario, array $transcript): AiEvaluation
+            public function evaluateRoleplay(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiEvaluation
             {
                 throw new RuntimeException('provider down');
             }
@@ -265,12 +313,37 @@ class AiJobsTest extends TestCase
                 throw new RuntimeException('provider down');
             }
 
-            public function evaluateWriting(array $item, string $answer): WritingEvaluation
+            public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation
             {
                 throw new RuntimeException('provider down');
             }
 
-            public function evaluateSpeaking(array $item, string $transcript): SpeakingEvaluation
+            public function coachLearner(array $context, ?EnglishLevel $level = null): CoachingSummary
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function briefDashboard(array $context): DashboardBriefingDraft
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function draftReminder(string $purpose, string $tone, array $variables): ReminderDraft
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function pronunciationGuide(string $text, Accent $accent): PronunciationGuideDraft
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation
             {
                 throw new RuntimeException('provider down');
             }

@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin\Subscriptions;
 
 use App\Enums\Permission;
-use App\Models\SubscriptionPlan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

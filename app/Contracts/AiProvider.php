@@ -2,6 +2,8 @@
 
 namespace App\Contracts;
 
+use App\Enums\Accent;
+use App\Enums\EnglishLevel;
 use App\Enums\LexiconKind;
 use App\Enums\ScenarioDifficulty;
 use App\Models\AiScenario;
@@ -23,7 +25,7 @@ interface AiProvider
      *
      * @param  list<array{role: string, text: string, at?: string}>  $transcript
      */
-    public function roleplayReply(AiScenario $scenario, array $transcript): AiReply;
+    public function roleplayReply(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiReply;
 
     /**
      * Judge one complete conversation against the scenario's criteria
@@ -31,7 +33,7 @@ interface AiProvider
      *
      * @param  list<array{role: string, text: string, at?: string}>  $transcript
      */
-    public function evaluateRoleplay(AiScenario $scenario, array $transcript): AiEvaluation;
+    public function evaluateRoleplay(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiEvaluation;
 
     /**
      * Draft the Arabic meaning, explanation and hotel example for a word or
@@ -65,7 +67,7 @@ interface AiProvider
      *
      * @param  array<string, mixed>  $item  one `writing` payload item (spec 0003 B.9)
      */
-    public function evaluateWriting(array $item, string $answer): WritingEvaluation;
+    public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation;
 
     /**
      * Judge one spoken answer from its transcript against its speaking item
@@ -73,7 +75,7 @@ interface AiProvider
      *
      * @param  array<string, mixed>  $item  one `speaking` payload item (spec 0003 B.9)
      */
-    public function evaluateSpeaking(array $item, string $transcript): SpeakingEvaluation;
+    public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation;
 
     /**
      * Draft Pre/Post-test questions, one per entry of `$skills` in order
@@ -85,4 +87,45 @@ interface AiProvider
      * @param  list<string>  $avoid
      */
     public function generateTestQuestions(string $department, string $level, array $skills, string $notes = '', array $avoid = []): TestQuestionsDraft;
+
+    /**
+     * A short personal coaching summary from one learner's own figures
+     * (spec 0005 §3.5). Words only; the server picks the next step.
+     *
+     * @param  array<string, mixed>  $context  LearnerCoach::context()
+     */
+    public function coachLearner(array $context, ?EnglishLevel $level = null): CoachingSummary;
+
+    /**
+     * A short briefing for managers from aggregate training figures only
+     * (spec 0005 §4.1): no learner is ever named in the data.
+     *
+     * @param  array<string, mixed>  $context  DashboardBriefing::context()
+     */
+    public function briefDashboard(array $context): DashboardBriefingDraft;
+
+    /**
+     * Draft a reminder template's subject and body for a purpose the admin
+     * typed, using only the given placeholders (spec 0005 §4.2). A draft
+     * the admin edits and saves (GEN-03).
+     *
+     * @param  list<string>  $variables  ReminderTemplate::VARIABLES
+     */
+    public function draftReminder(string $purpose, string $tone, array $variables): ReminderDraft;
+
+    /**
+     * How a text sounds in one accent, word by word, with the trap words an
+     * Arabic speaker's typical errors produce (spec 0006 §4). An internal
+     * scoring aid; the admin may review it (GEN-03).
+     */
+    public function pronunciationGuide(string $text, Accent $accent): PronunciationGuideDraft;
+
+    /**
+     * Coach a learner from the structured result of one pronunciation check
+     * (spec 0006 §5). Words only: the scores are the server's.
+     *
+     * @param  array<string, mixed>  $result  CoachPronunciation::context()
+     * @param  list<string>  $words  the words of the sentence practised
+     */
+    public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching;
 }

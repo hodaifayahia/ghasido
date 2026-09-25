@@ -24,10 +24,10 @@ Route::middleware('guest')->group(function () {
 // without the admin permissions gets the placeholder rather than a 403
 // (spec 0001, AC-7). `verified` is dropped here for the same reason as in
 // admin.php: User never implements MustVerifyEmail, so it guarded nothing.
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::get('help', function (Request $request) {
-        $page = $request->user()->hasRole(Role::Employee->value)
+        $page = $request->user('web')?->hasRole(Role::Employee->value)
             ? 'employee/Help'
             : 'Help';
 
@@ -44,4 +44,5 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/admin.php';
 require __DIR__.'/learn.php';
+require __DIR__.'/owner.php';
 require __DIR__.'/settings.php';

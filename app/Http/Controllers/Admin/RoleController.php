@@ -30,6 +30,10 @@ class RoleController extends Controller
 {
     public function index(): Response
     {
+        // The route middleware is the first wall; this is the second, so the
+        // action stays safe if it is ever mounted elsewhere (SEC-01).
+        abort_unless(request()->user()?->can(PermissionEnum::RolesView->value), 403);
+
         return Inertia::render('admin/Roles', [
             'roles' => $this->roles(),
             'permissionGroups' => $this->permissionGroups(),
@@ -84,6 +88,8 @@ class RoleController extends Controller
 
     public function destroy(Role $role): RedirectResponse
     {
+        abort_unless(request()->user()?->can(PermissionEnum::RolesManage->value), 403);
+
         // A system role is never deletable, even for the Super Admin.
         abort_if(RoleEnum::isSystem($role->name), 403, __('System roles cannot be deleted.'));
 

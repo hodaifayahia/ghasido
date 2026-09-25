@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // LOCKED: client-approved chrome matched to desginphotos/ (AGENTS.md §0).
 // Change only when the user explicitly asks; verify against the mockup.
+// 2026-09-25: renamed Guesvia -> GHASIDO at the user's request. The palm mark
+// and tagline are the client's artwork; only the wordmark image is new.
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 
@@ -18,24 +20,25 @@ const props = withDefaults(defineProps<Props>(), {
 <template>
     <img
         v-if="variant === 'mark'"
-        src="/brand/guesvia-mark.png"
-        alt="Guesvia"
+        src="/brand/ghasido-mark.png"
+        alt="GHASIDO"
         width="144"
         height="144"
         draggable="false"
         :class="cn('size-9 shrink-0 object-contain', props.class)"
     />
-    <!-- The client's lockup, split into mark / wordmark / tagline so each piece
-         sits where the approved mockup places it (mark 58px, wordmark 19px to
-         its right, tagline 8px under the wordmark). -->
+    <!-- The lockup, split into mark / wordmark / tagline so each piece sits
+         where the approved mockup places it (mark 58px, text 18.5px to its
+         right). The all-caps GHASIDO wordmark is as wide as the tagline and
+         shorter than the old one, so the text block is centred on the mark. -->
     <span
         v-else
         role="img"
-        aria-label="Guesvia — English for Hotel Staff"
-        :class="cn('flex shrink-0 items-start', props.class)"
+        aria-label="GHASIDO — English for Hotel Staff"
+        :class="cn('flex shrink-0 items-center', props.class)"
     >
         <img
-            src="/brand/guesvia-mark.png"
+            src="/brand/ghasido-mark.png"
             alt=""
             width="144"
             height="144"
@@ -44,15 +47,15 @@ const props = withDefaults(defineProps<Props>(), {
         />
         <span class="ms-[18.5px] flex flex-col items-start">
             <img
-                src="/brand/guesvia-wordmark.png"
+                src="/brand/ghasido-wordmark.png"
                 alt=""
-                width="405"
-                height="92"
+                width="432"
+                height="69"
                 draggable="false"
-                class="-mt-px h-auto w-[136px] max-w-none"
+                class="h-auto w-[144px] max-w-none"
             />
             <img
-                src="/brand/guesvia-tagline.png"
+                src="/brand/ghasido-tagline.png"
                 alt=""
                 width="429"
                 height="47"

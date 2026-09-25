@@ -61,6 +61,7 @@ class VoiceAgentCallTest extends TestCase
             'slug' => 'voice-check-in',
             'attempts_allowed' => 2,
         ]);
+        $this->block->scenarios()->attach($this->scenario->id, ['position' => 1]);
 
         Http::fake([
             'api.deepgram.com/v1/auth/grant' => fn () => $this->grantStatus === 200

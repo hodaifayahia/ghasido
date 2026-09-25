@@ -2,6 +2,7 @@
 
 namespace App\Services\Content;
 
+use App\Enums\Accent;
 use App\Enums\AudioSpeed;
 use App\Models\Activity;
 use App\Models\ActivityPlacement;
@@ -58,7 +59,9 @@ class BlockShaper
         }
 
         $media = $this->mediaMap(array_values(array_unique($mediaIds)));
-        $audio = $this->audioMap(array_values(array_unique($texts)));
+        // Clip states in the lesson's accent voice (spec 0006 §3), so the
+        // builder shows the audio the learners will hear.
+        $audio = $this->audioMap(array_values(array_unique($texts)), $lesson->accent);
 
         return array_values($blocks->map(fn (Block $block): array => $this->row($block, $media, $audio))->all());
     }
@@ -191,7 +194,7 @@ class BlockShaper
      * @param  list<string>  $texts
      * @return array<string, array{normal: array{status: string, url: string|null}, slow: array{status: string, url: string|null}}>
      */
-    public function audioMap(array $texts): array
+    public function audioMap(array $texts, ?Accent $accent = null): array
     {
         if ($texts === []) {
             return [];
@@ -207,7 +210,7 @@ class BlockShaper
 
         $clips = AudioClip::query()
             ->with('mediaAsset')
-            ->forVoice($this->audio->voice())
+            ->forVoice($this->audio->voiceFor($accent))
             ->whereIn('text_hash', array_keys($byHash))
             ->get();
 

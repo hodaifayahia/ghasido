@@ -59,6 +59,44 @@ class DeepgramSttTest extends TestCase
         });
     }
 
+    public function test_the_pronunciation_listen_reads_every_word_with_its_confidence_and_timing()
+    {
+        Http::fake([
+            'api.deepgram.com/v1/listen*' => Http::response([
+                'results' => ['channels' => [['alternatives' => [[
+                    'transcript' => 'a furry quiet room',
+                    'words' => [
+                        ['word' => 'a', 'start' => 0.08, 'end' => 0.2, 'confidence' => 0.99],
+                        ['word' => 'furry', 'start' => 0.2, 'end' => 0.61, 'confidence' => 0.9],
+                        ['word' => 'um', 'start' => 0.7, 'end' => 0.9, 'confidence' => 0.8],
+                        ['word' => 'quiet', 'start' => 1.1, 'end' => 1.5, 'confidence' => 0.5],
+                    ],
+                ]]]]],
+            ]),
+        ]);
+
+        $transcript = (new DeepgramSpeechToTextProvider('dg-test-key'))
+            ->transcribeWords($this->recording, 'audio/webm', ['very', 'quiet room']);
+
+        $this->assertSame('a furry quiet room', $transcript->text);
+        $this->assertSame(['a', 'furry', 'um', 'quiet'], array_map(fn ($w) => $w->word, $transcript->words));
+        $this->assertSame(0.9, $transcript->words[1]->confidence);
+        $this->assertSame(200, $transcript->words[1]->startMs);
+        $this->assertSame(610, $transcript->words[1]->endMs);
+        $this->assertSame(['very', 'quiet room'], $transcript->keyterms);
+
+        Http::assertSent(function (Request $request): bool {
+            $url = $request->url();
+
+            // Numbers stay words, hesitations are kept, each keyterm is its
+            // own repeated parameter (spec 0006 §2).
+            return str_contains($url, 'smart_format=false')
+                && str_contains($url, 'filler_words=true')
+                && str_contains($url, 'language=en')
+                && str_contains($url, 'keyterm=very&keyterm=quiet%20room');
+        });
+    }
+
     public function test_a_rejected_request_surfaces_deepgrams_own_message()
     {
         Http::fake([

@@ -129,10 +129,11 @@ final class ReportRows
             ->paginate($this->filters->perPage, ['attempts.*'], 'page', $this->filters->page);
 
         $rows = [];
+        $withTranscript = $this->canViewTranscripts();
 
         /** @var Attempt $attempt */
         foreach ($page->items() as $attempt) {
-            $rows[] = self::answerRow($attempt);
+            $rows[] = self::answerRow($attempt, $withTranscript);
         }
 
         return ['rows' => $rows, 'pagination' => $this->pagination($page)];
@@ -189,9 +190,13 @@ final class ReportRows
     }
 
     /**
+     * A spoken answer's transcript and recording reach only a viewer holding
+     * `transcripts.view`; a Hotel Admin sees the label and the score, and the
+     * recording link is left out of the payload (ROLE-04, PRIV-04, REP-08).
+     *
      * @return array<string, mixed>
      */
-    public static function answerRow(Attempt $attempt): array
+    public static function answerRow(Attempt $attempt, bool $withTranscript): array
     {
         $activity = $attempt->activity;
         $type = $activity?->type;
@@ -206,17 +211,24 @@ final class ReportRows
             'context' => self::answerContext($attempt),
             'skill' => $activity->skill_label ?? $type?->label() ?? '—',
             'question' => $type === null ? ($activity->prompt ?? '') : AnswerFormatter::question($type, $item, $activity->prompt ?? ''),
-            'answer' => $type === null ? '' : AnswerFormatter::answer($type, $item, $raw, $attempt->transcript),
+            'answer' => $type === null ? '' : AnswerFormatter::answer($type, $item, $raw, $attempt->transcript, $withTranscript),
             'isCorrect' => $attempt->is_correct,
             'score' => $attempt->score === null ? null : (float) $attempt->score,
             'maxScore' => $attempt->max_score === null ? null : (float) $attempt->max_score,
             'overridden' => $attempt->isScoreOverridden(),
+            // The adjust dialog (AIE-05; spec 0005 §2.5): the machine's value
+            // beside an override, why it changed, and whether the AI grades
+            // this answer (and is grading it right now).
+            'originalScore' => $attempt->original_score === null ? null : (float) $attempt->original_score,
+            'overrideReason' => $attempt->score_override_reason,
+            'aiGraded' => ScoreOverrides::isAiGraded($type),
+            'aiStatus' => $attempt->ai_status?->value,
             'timeTakenMs' => $attempt->time_taken_ms,
             'version' => $attempt->activityVersion->version ?? 0,
             'submittedAt' => self::dateTime($attempt->submitted_at),
             // A spoken answer plays through the authorized serve route,
             // never a guessable file URL (TEST-07, DATA-02, PRIV-04).
-            'audioUrl' => $media === null ? null : route('media.show', $media),
+            'audioUrl' => $media === null || ! $withTranscript ? null : route('media.show', $media),
         ];
     }
 
@@ -320,6 +332,10 @@ final class ReportRows
             'status' => $attempt->status->value,
             'statusLabel' => self::roleplayStatusLabel($attempt),
             'overallScore' => $attempt->overall_score,
+            'overridden' => $attempt->isScoreOverridden(),
+            'originalScore' => $attempt->original_overall_score,
+            'overrideReason' => $attempt->score_override_reason,
+            'aiStatus' => $attempt->ai_status?->value,
             'criteria' => $criteria,
             'summary' => is_string($feedback['summary_label'] ?? null) ? $feedback['summary_label'] : null,
             'turns' => $attempt->turnsCount(),

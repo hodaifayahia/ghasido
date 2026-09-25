@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import DashboardAtRiskPanel from '@/components/dashboard/DashboardAtRiskPanel.vue';
+import DashboardBriefingPanel from '@/components/dashboard/DashboardBriefingPanel.vue';
 import DashboardStats from '@/components/dashboard/DashboardStats.vue';
 import DepartmentProgressPanel from '@/components/dashboard/DepartmentProgressPanel.vue';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel.vue';
@@ -11,7 +13,9 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { dashboard } from '@/routes';
 import type {
+    AtRiskSummary,
     AttentionGroup,
+    DashboardBriefing,
     DashboardStat,
     DepartmentProgress,
     RecentActivity,
@@ -24,6 +28,8 @@ type Props = {
     departmentProgress: DepartmentProgress[];
     needsAttention: AttentionGroup[];
     recentActivity: RecentActivity[];
+    atRisk: AtRiskSummary;
+    briefing: DashboardBriefing;
 };
 
 defineProps<Props>();
@@ -81,6 +87,14 @@ defineOptions({
         <div class="grid min-w-0 gap-3 xl:grid-cols-[536fr_481fr] xl:gap-4">
             <NeedsAttentionList :groups="needsAttention" />
             <ActivityFeed :items="recentActivity" />
+        </div>
+
+        <!-- Below the approved mockup rows (spec 0005 §4.1): who is at risk
+             and why, beside an AI reading of the figures above. Same column
+             split and card recipe as the row above. -->
+        <div class="grid min-w-0 gap-3 xl:grid-cols-[536fr_481fr] xl:gap-4">
+            <DashboardAtRiskPanel :at-risk="atRisk" />
+            <DashboardBriefingPanel :briefing="briefing" />
         </div>
     </div>
 </template>

@@ -75,3 +75,52 @@ export type AiCheckState = {
 };
 
 export type AiChecks = Record<AiCheckCapability, AiCheckState | null>;
+
+/** One row of the Settings → AI usage price table (spec 0005 §4.3). */
+export type AiPriceRow = {
+    model: string;
+    unit: string;
+    /** Price per million units (tokens or characters). */
+    input: number;
+    output: number;
+};
+
+/** Settings → AI usage (API-03, AIL-04; spec 0005 §4.3). */
+export type AiUsageReport = {
+    period: number;
+    hotel: number | null;
+    totals: {
+        calls: number;
+        promptTokens: number;
+        completionTokens: number;
+        cost: number;
+        points: number;
+        /** Some rows were costed at today's prices. */
+        estimated: boolean;
+    };
+    byModel: {
+        provider: string;
+        model: string;
+        calls: number;
+        promptTokens: number;
+        completionTokens: number;
+        cost: number;
+        priced: boolean;
+        unit: string | null;
+        estimated: boolean;
+    }[];
+    byFeature: {
+        feature: string;
+        label: string;
+        calls: number;
+        cost: number;
+    }[];
+    byHotel: {
+        hotelId: number | null;
+        hotel: string;
+        calls: number;
+        cost: number;
+    }[];
+    daily: { date: string; label: string; calls: number; cost: number }[];
+    unpricedModels: string[];
+};

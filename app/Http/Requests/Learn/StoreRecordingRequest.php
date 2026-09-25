@@ -3,6 +3,10 @@
 namespace App\Http\Requests\Learn;
 
 use App\Models\Block;
+use App\Models\TestAttempt;
+use App\Models\User;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -18,9 +22,15 @@ use Illuminate\Validation\Rule;
  */
 class StoreRecordingRequest extends FormRequest
 {
-    /** @var array<string, class-string<Model>> */
+    /**
+     * A lesson step (Listen & Repeat, a practice speaking item) or the
+     * learner's open test sitting (a speaking question, TEST-07).
+     *
+     * @var array<string, class-string<Model>>
+     */
     public const array RECORDABLES = [
         'block' => Block::class,
+        'test_attempt' => TestAttempt::class,
     ];
 
     /**
@@ -68,7 +78,19 @@ class StoreRecordingRequest extends FormRequest
                 'mimetypes:'.implode(',', self::MIME_TYPES),
             ],
             'recordable_type' => ['required', 'string', Rule::in(array_keys(self::RECORDABLES))],
-            'recordable_id' => ['required', 'integer', 'min:1'],
+            // The recording must hang off something this learner may reach:
+            // a step of a lesson they can open, or their own open sitting
+            // (ROLE-02, TEST-07; spec 0005 §1.6).
+            'recordable_id' => [
+                'required',
+                'integer',
+                'min:1',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! $this->recordableIsReachable((int) $value)) {
+                        $fail(__('This recording has nowhere to go.'));
+                    }
+                },
+            ],
             'duration_ms' => ['nullable', 'integer', 'min:0', 'max:3600000'],
         ];
     }
@@ -90,6 +112,30 @@ class StoreRecordingRequest extends FormRequest
         $type = $this->validated('recordable_type');
 
         return self::RECORDABLES[$type];
+    }
+
+    private function recordableIsReachable(int $id): bool
+    {
+        $user = $this->user();
+        $type = $this->input('recordable_type');
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return match ($type) {
+            'block' => Block::query()
+                ->whereKey($id)
+                ->where('is_visible', true)
+                ->whereHas('lesson', fn (Builder $lesson) => $lesson->forLearner($user))
+                ->exists(),
+            'test_attempt' => TestAttempt::query()
+                ->whereKey($id)
+                ->where('user_id', $user->id)
+                ->whereNull('submitted_at')
+                ->exists(),
+            default => false,
+        };
     }
 
     public function recordableId(): int

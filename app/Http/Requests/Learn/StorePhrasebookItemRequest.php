@@ -2,7 +2,11 @@
 
 namespace App\Http\Requests\Learn;
 
+use App\Models\Lesson;
 use App\Models\LexiconItem;
+use App\Models\User;
+use Closure;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,16 +28,35 @@ class StorePhrasebookItemRequest extends FormRequest
      */
     public function rules(): array
     {
+        $user = $this->user();
+        $hotelId = $user?->hotel_id;
+
         return [
+            // Only a shared item or one of the learner's own hotel: another
+            // hotel's vocabulary (and its Arabic) never reaches this
+            // learner's phrasebook (ROLE-02, CMS-04).
             'lexicon_item_id' => [
                 'required_without:text',
                 'nullable',
                 'integer',
-                Rule::exists(LexiconItem::class, 'id'),
+                Rule::exists(LexiconItem::class, 'id')->where(
+                    fn (Builder $query) => $query->whereNull('hotel_id')->orWhere('hotel_id', $hotelId),
+                ),
             ],
             'text' => ['required_without:lexicon_item_id', 'nullable', 'string', 'max:500'],
             'arabic' => ['nullable', 'string', 'max:500'],
-            'source_lesson_id' => ['nullable', 'integer'],
+            'source_lesson_id' => [
+                'nullable',
+                'integer',
+                function (string $attribute, mixed $value, Closure $fail) use ($user): void {
+                    $visible = $user instanceof User && is_numeric($value)
+                        && Lesson::query()->whereKey((int) $value)->forLearner($user)->exists();
+
+                    if (! $visible) {
+                        $fail(__('That lesson is not available.'));
+                    }
+                },
+            ],
         ];
     }
 

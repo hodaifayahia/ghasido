@@ -9,13 +9,12 @@ use App\Enums\AiFeature;
 use App\Enums\GenerationStatus;
 use App\Models\ActivityVersion;
 use App\Models\Attempt;
-use App\Models\MediaAsset;
 use App\Services\Ai\UsageMeter;
+use App\Support\LocalMediaFile;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -80,13 +79,16 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
                 throw new RuntimeException('The spoken answer has no stored recording.');
             }
 
-            $transcript = $stt->transcribe(self::localPath($media), $media->mime ?? 'audio/webm');
+            $transcript = $stt->transcribe(LocalMediaFile::path($media), $media->mime ?? 'audio/webm');
             $attempt->forceFill(['transcript' => $transcript])->save();
 
-            $meter->record($attempt->user, AiFeature::Stt, self::sttUsage());
+            $meter->record($attempt->user, AiFeature::Stt, self::sttUsage($media->duration_ms));
         }
 
-        $evaluation = $ai->evaluateSpeaking(self::itemFor($version, $attempt->raw_answer ?? []), $transcript);
+        // Practice at the learner's level, a test answer on the fixed scale;
+        // the bar used is stored beside the score (spec 0005 §5.2).
+        $level = $attempt->gradingLevel();
+        $evaluation = $ai->evaluateSpeaking(self::itemFor($version, $attempt->raw_answer ?? []), $transcript, $level);
 
         $meter->record($attempt->user, AiFeature::SpeakingEval, $evaluation->usage);
 
@@ -95,9 +97,14 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
             'ai_status' => GenerationStatus::Done,
             'ai_failed_reason' => null,
             'max_score' => $attempt->max_score ?? self::MAX_SCORE,
+            'graded_level' => $level,
         ];
 
-        if (! $attempt->isScoreOverridden()) {
+        // An admin's override stands through a re-grade; the AI's fresh
+        // verdict becomes the recorded original (AIE-05; spec 0005 §2.5).
+        if ($attempt->isScoreOverridden()) {
+            $changes['original_score'] = $evaluation->overallScore();
+        } else {
             $changes['score'] = $evaluation->overallScore();
         }
 
@@ -112,37 +119,6 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
                 'ai_status' => GenerationStatus::Failed->value,
                 'ai_failed_reason' => Str::limit($exception?->getMessage() ?? 'The spoken answer could not be evaluated.', 500),
             ]);
-    }
-
-    /**
-     * A readable local path to the recording. A private local disk has one
-     * already; any other driver is copied to a temporary file first.
-     */
-    private static function localPath(MediaAsset $media): string
-    {
-        $disk = Storage::disk($media->disk);
-
-        if (! $disk->exists($media->path)) {
-            throw new RuntimeException('The recording file is missing from storage.');
-        }
-
-        try {
-            $path = $disk->path($media->path);
-
-            if (is_readable($path)) {
-                return $path;
-            }
-        } catch (Throwable) {
-            // Not a local driver; fall through to a temporary copy.
-        }
-
-        $temporary = tempnam(sys_get_temp_dir(), 'rec');
-
-        if ($temporary === false || file_put_contents($temporary, (string) $disk->get($media->path)) === false) {
-            throw new RuntimeException('The recording could not be copied for transcription.');
-        }
-
-        return $temporary;
     }
 
     /**
@@ -169,16 +145,19 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
      * STT is billed per audio minute, not tokens: the row records the call
      * and the model for the cost report (AIL-04).
      */
-    private static function sttUsage(): AiUsageInfo
+    /**
+     * STT bills audio length: the recording's seconds are the input units
+     * (spec 0007, D9), zero when the length was not captured.
+     */
+    private static function sttUsage(?int $durationMs): AiUsageInfo
     {
         $provider = config('services.stt.provider');
         $model = config('services.stt.model');
 
-        return new AiUsageInfo(
-            promptTokens: 0,
-            completionTokens: 0,
-            model: is_string($model) && $model !== '' ? $model : 'default',
-            provider: is_string($provider) && $provider !== '' ? $provider : 'fake',
+        return UsageMeter::audioUsage(
+            is_string($provider) && $provider !== '' ? $provider : 'fake',
+            is_string($model) && $model !== '' ? $model : 'default',
+            $durationMs,
         );
     }
 }

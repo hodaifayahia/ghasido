@@ -5,12 +5,14 @@ namespace Tests\Feature\Learn\Roleplay;
 use App\Enums\BlockType;
 use App\Enums\ContentStatus;
 use App\Enums\RoleplayStatus;
+use App\Jobs\EvaluateRoleplayAttempt;
 use App\Jobs\GenerateRoleplayReply;
 use App\Models\AiScenario;
 use App\Models\Block;
 use App\Models\Lesson;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
+use App\Services\VoiceAgent\VoiceCallService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\Feature\Learn\BuildsLearnerFixtures;
@@ -45,6 +47,8 @@ class RoleplayFlowTest extends TestCase
             'min_turns' => 2,
             'input_mode' => 'text',
         ]);
+        // The step offers the scenario, as the CMS links it (RP-14).
+        $this->block->scenarios()->attach($this->scenario->id, ['position' => 1]);
     }
 
     private function startUrl(): string
@@ -106,6 +110,44 @@ class RoleplayFlowTest extends TestCase
         Queue::assertPushed(GenerateRoleplayReply::class);
     }
 
+    public function test_the_scenarios_reply_bound_is_enforced_on_the_server()
+    {
+        // max_turns is a hard bound, not only a hint in the prompt (spec 0005
+        // §2.2): once used up, a stale page's message goes to feedback.
+        Queue::fake();
+        $this->scenario->forceFill(['max_turns' => 2])->save();
+        $learner = $this->learner();
+        $attempt = RoleplayAttempt::factory()->create([
+            'user_id' => $learner->id,
+            'ai_scenario_id' => $this->scenario->id,
+            'status' => RoleplayStatus::InProgress,
+            'transcript' => [
+                ['role' => 'guest', 'text' => 'Hello!', 'at' => now()->toIso8601String()],
+                ['role' => 'employee', 'text' => 'Good afternoon!', 'at' => now()->toIso8601String()],
+                ['role' => 'guest', 'text' => 'I booked a room.', 'at' => now()->toIso8601String()],
+                ['role' => 'employee', 'text' => 'Welcome, Mr Miller.', 'at' => now()->toIso8601String()],
+                ['role' => 'guest', 'text' => 'Thank you, goodbye!', 'at' => now()->toIso8601String()],
+            ],
+        ]);
+
+        $this->actingAs($learner)
+            ->get(route('learn.roleplay.attempt', ['attempt' => $attempt]))
+            ->assertInertia(fn ($page) => $page
+                ->where('attempt.maxTurns', 2)
+                ->where('attempt.atTurnLimit', true)
+                ->etc());
+
+        $this->actingAs($learner)
+            ->post(route('learn.roleplay.message', ['attempt' => $attempt]), ['text' => 'One more thing'])
+            ->assertRedirect(route('learn.roleplay.feedback', ['attempt' => $attempt]));
+
+        $attempt->refresh();
+        $this->assertCount(5, $attempt->transcript);
+        $this->assertTrue($attempt->status->isFinished());
+        Queue::assertNotPushed(GenerateRoleplayReply::class);
+        Queue::assertPushed(EvaluateRoleplayAttempt::class);
+    }
+
     public function test_ending_evaluates_and_stores_the_scores_with_the_transcript_intact()
     {
         $learner = $this->learner();
@@ -129,6 +171,40 @@ class RoleplayFlowTest extends TestCase
         $this->assertNotEmpty($attempt->criteria_scores);
         $this->assertNotNull($attempt->feedback);
         $this->assertCount(2, $attempt->transcript);
+    }
+
+    public function test_a_role_play_counts_as_learner_activity()
+    {
+        // The streak, the at-risk list and the inactivity reminder all read
+        // `last_activity_at` (DATA-06; spec 0005 §5.4): a learner who only
+        // does role-plays is active, never "no activity for N days".
+        Queue::fake();
+        $learner = $this->learner(['last_activity_at' => null]);
+
+        $this->actingAs($learner)->post($this->startUrl())->assertRedirect();
+        $this->assertNotNull($learner->fresh()?->last_activity_at);
+
+        $learner->forceFill(['last_activity_at' => now()->subDays(10)])->save();
+        $attempt = RoleplayAttempt::factory()->create([
+            'user_id' => $learner->id,
+            'ai_scenario_id' => $this->scenario->id,
+            'status' => RoleplayStatus::InProgress,
+            'transcript' => [],
+        ]);
+
+        $this->actingAs($learner)
+            ->post(route('learn.roleplay.message', ['attempt' => $attempt]), ['text' => 'Good afternoon!'])
+            ->assertRedirect();
+        $this->assertTrue($learner->fresh()?->last_activity_at?->isSameDay(now()));
+
+        // A live voice call too; an admin's preview call is not.
+        $learner->forceFill(['last_activity_at' => now()->subDays(10)])->save();
+        app(VoiceCallService::class)->start($learner, $this->scenario, $this->lesson, $this->block);
+        $this->assertTrue($learner->fresh()?->last_activity_at?->isSameDay(now()));
+
+        $learner->forceFill(['last_activity_at' => now()->subDays(10)])->save();
+        app(VoiceCallService::class)->start($learner, $this->scenario, $this->lesson, $this->block, preview: true);
+        $this->assertSame(10, (int) $learner->fresh()?->last_activity_at?->diffInDays(now()));
     }
 
     public function test_a_preview_attempt_never_counts_against_the_limit()

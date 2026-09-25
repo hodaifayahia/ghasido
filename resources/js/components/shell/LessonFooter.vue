@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 /*
  * The lesson runner's footer line (spec 0003 H.1), measured on photo_1:
- * "Guesvia | Real English for a Warmer Welcome" starts at x 31 and "Hotel
+ * "GHASIDO | Real English for a Warmer Welcome" starts at x 31 and "Hotel
  * People. Brighter Futures." ends at x 1250, both 12.5px with their text
  * box at y 817–830 (21px above the window bottom). photo_7/12/14–19 also
  * draw the client's palm sketch just left of the right-hand line; `palm`
@@ -28,7 +28,7 @@ const props = defineProps<Props>();
         "
     >
         <p class="text-[12.5px] leading-4 whitespace-nowrap">
-            <span class="text-brand-600 font-semibold">Guesvia</span>
+            <span class="text-brand-600 font-semibold">GHASIDO</span>
             <span class="text-ink-faint mx-[15px]" aria-hidden="true">|</span>
             <span class="text-ink-faint"
                 >Real English for a Warmer Welcome</span

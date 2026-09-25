@@ -9,7 +9,9 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Learning\JourneyService;
+use App\Services\Learning\LearnerCoach;
 use App\Services\Learning\ProgressService;
+use App\Services\Learning\StreakService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,6 +28,8 @@ class ProgressController extends Controller
     public function __construct(
         private readonly JourneyService $journey,
         private readonly ProgressService $progress,
+        private readonly StreakService $streaks,
+        private readonly LearnerCoach $coach,
     ) {}
 
     public function index(Request $request): Response
@@ -50,6 +54,8 @@ class ProgressController extends Controller
                 'post' => $this->latestResult($user, TestType::Post),
             ],
             'journey' => $journey,
+            'streak' => $this->streaks->summary($user),
+            'coach' => $this->coach->present($user),
         ]);
     }
 
