@@ -34,19 +34,27 @@ function creditTone(
         : tone;
 }
 
-function creditValue(card: ApiAccountCard | undefined): number {
+// Her balance as she sees it (spec 0007, D11), or the cost while no
+// limit is set.
+function balanceValue(card: ApiAccountCard | undefined): number {
     if (!card) {
         return 0;
     }
 
     return Math.round(
-        card.limitedByUsd
-            ? Math.max(0, card.remaining.usd ?? 0)
-            : card.spent.usd,
+        card.mode === 'none' ? card.costUsd : (card.client.remainingUsd ?? 0),
     );
 }
 
-function creditDetail(card: ApiAccountCard | undefined): string {
+function balanceLabel(card: ApiAccountCard | undefined): string {
+    const name = card?.label ?? '';
+
+    return card?.mode === 'none'
+        ? `${name}: no limit, cost ($)`
+        : `Her ${name} balance ($)`;
+}
+
+function balanceDetail(card: ApiAccountCard | undefined): string {
     if (!card) {
         return '';
     }
@@ -55,17 +63,25 @@ function creditDetail(card: ApiAccountCard | undefined): string {
         return 'Paused';
     }
 
-    return card.limitedByUsd
-        ? `${formatUsd(Math.max(0, card.remaining.usd ?? 0))} of ${formatUsd(card.credit.usd)}`
-        : `No limit set · ${formatUsd(card.spent.usd)} spent`;
+    return card.mode === 'none'
+        ? 'Recharge to set a limit'
+        : `${formatUsd(card.client.remainingUsd ?? 0)} of ${formatUsd(card.client.creditUsd)}`;
 }
+
+const tokens = computed(() =>
+    qwen.value?.meters.find((meter) => meter.meter === 'tokens'),
+);
+
+const tokensLeft = computed(() =>
+    tokens.value ? Math.max(0, tokens.value.granted - tokens.value.used) : 0,
+);
 
 const unpriced = computed(() =>
     props.accounts.flatMap((card) => card.unpricedModels),
 );
 
-const totalSpent = computed(() =>
-    props.accounts.reduce((sum, card) => sum + card.spent.usd, 0),
+const totalCost = computed(() =>
+    props.accounts.reduce((sum, card) => sum + card.costUsd, 0),
 );
 
 // Poll while a connection test is queued or running (PERF-04).
@@ -109,13 +125,9 @@ watch(
 
         <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-                :value="creditValue(qwen)"
-                :label="
-                    qwen?.limitedByUsd
-                        ? 'Qwen credit left ($)'
-                        : 'Qwen spent ($)'
-                "
-                :detail="creditDetail(qwen)"
+                :value="balanceValue(qwen)"
+                :label="balanceLabel(qwen)"
+                :detail="balanceDetail(qwen)"
                 :tone="creditTone(qwen, 'ai')"
             >
                 <template #icon
@@ -125,20 +137,17 @@ watch(
             <StatCard
                 :value="
                     Math.round(
-                        (qwen?.limitedByTokens
-                            ? Math.max(0, qwen.remaining.tokens ?? 0)
-                            : (qwen?.spent.tokens ?? 0)) / 1000,
+                        (tokens?.limited ? tokensLeft : (tokens?.used ?? 0)) /
+                            1000,
                     )
                 "
                 unit="k"
                 :label="
-                    qwen?.limitedByTokens
-                        ? 'Qwen tokens left'
-                        : 'Qwen tokens used'
+                    tokens?.limited ? 'Qwen tokens left' : 'Qwen tokens used'
                 "
                 :detail="
-                    qwen?.limitedByTokens
-                        ? `${formatCount(Math.max(0, qwen.remaining.tokens ?? 0))} of ${formatCount(qwen.credit.tokens)}`
+                    tokens?.limited
+                        ? `${formatCount(tokensLeft)} of ${formatCount(tokens.granted)}`
                         : 'No token limit set'
                 "
                 :tone="creditTone(qwen, 'brand')"
@@ -148,13 +157,9 @@ watch(
                 /></template>
             </StatCard>
             <StatCard
-                :value="creditValue(deepgram)"
-                :label="
-                    deepgram?.limitedByUsd
-                        ? 'Deepgram credit left ($)'
-                        : 'Deepgram spent ($)'
-                "
-                :detail="creditDetail(deepgram)"
+                :value="balanceValue(deepgram)"
+                :label="balanceLabel(deepgram)"
+                :detail="balanceDetail(deepgram)"
                 :tone="creditTone(deepgram, 'azure')"
             >
                 <template #icon
@@ -162,9 +167,9 @@ watch(
                 /></template>
             </StatCard>
             <StatCard
-                :value="Math.round(totalSpent)"
-                label="Spent ($)"
-                :detail="`${formatUsd(totalSpent)} across both accounts`"
+                :value="Math.round(totalCost)"
+                label="Your cost ($)"
+                :detail="`${formatUsd(totalCost)} at provider prices`"
                 tone="success"
             >
                 <template #icon

@@ -106,3 +106,17 @@ export type DashboardBriefing = {
     actions: string[];
     generatedAt: string | null;
 };
+
+/** Super Admin only: this month's employee AI points and estimated API spend. */
+export type DashboardAiPointSpend = {
+    voiceAgent: {
+        points: number;
+        costUsd: number;
+        priceComplete: boolean;
+    };
+    llm: {
+        points: number;
+        costUsd: number;
+        priceComplete: boolean;
+    };
+};

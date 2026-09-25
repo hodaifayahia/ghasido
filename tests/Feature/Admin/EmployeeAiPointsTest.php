@@ -154,6 +154,23 @@ class EmployeeAiPointsTest extends TestCase
         $this->assertSame(2000, $service->forHotel($hotel)['employees'][0]['remaining']);
     }
 
+    public function test_the_employee_receives_their_remaining_monthly_points_in_shared_page_props(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $employee = $this->employee($hotel, Department::factory()->create(), 'Balance Employee', 500);
+        (new UsageMeter)->record($employee, AiFeature::WritingEval, AiUsageInfo::none());
+
+        $this->actingAs($employee)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('aiPointBalance.role', 'employee')
+                ->where('aiPointBalance.total', 500)
+                ->where('aiPointBalance.used', 50)
+                ->where('aiPointBalance.remaining', 450)
+                ->where('aiPointBalance.percent', 90));
+    }
+
     public function test_managers_cannot_read_or_change_ai_points_for_another_hotel_or_a_non_employee(): void
     {
         $hotel = Hotel::factory()->create();

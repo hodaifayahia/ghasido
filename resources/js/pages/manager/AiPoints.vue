@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Coins, Sparkles, Users } from '@lucide/vue';
+import { Coins, Frown, Sparkles, Users } from '@lucide/vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { aiPoints, dashboard } from '@/routes';
-import { update as updateAllocation } from '@/routes/ai-points';
+import {
+    requestTopUp as requestAiPointTopUp,
+    update as updateAllocation,
+} from '@/routes/ai-points';
 
 type Employee = {
     id: number;
@@ -25,6 +28,7 @@ type Props = {
         name: string;
         employeeLimit: number;
         monthlyPointPool: number;
+        paidTopUpPoints: number;
         pointsPerEmployee: number;
         bonusPointsPerEmployee: number;
         voicePointsPer10Minutes: number;
@@ -35,7 +39,9 @@ type Props = {
         allocated: number;
         available: number;
         used: number;
+        remaining: number;
     };
+    topUpRequestPending: boolean;
     employees: Employee[];
 };
 
@@ -56,11 +62,16 @@ const forms = Object.fromEntries(
         useForm({ ai_points_allocated: employee.allocated }),
     ]),
 );
+const topUpRequestForm = useForm({});
 
 function save(employee: Employee): void {
     forms[employee.id].patch(updateAllocation(employee.id).url, {
         preserveScroll: true,
     });
+}
+
+function requestTopUp(): void {
+    topUpRequestForm.post(requestAiPointTopUp().url, { preserveScroll: true });
 }
 
 function points(value: number): string {
@@ -119,6 +130,12 @@ function points(value: number): string {
                     <p class="text-brand-900 mt-0.5 text-[13px] font-semibold">
                         {{ points(plan.monthlyPointPool) }} points
                     </p>
+                    <p
+                        v-if="plan.paidTopUpPoints > 0"
+                        class="text-ink-muted mt-0.5 text-[10px]"
+                    >
+                        Includes {{ points(plan.paidTopUpPoints) }} paid points
+                    </p>
                 </div>
             </div>
             <div
@@ -150,6 +167,33 @@ function points(value: number): string {
             </div>
         </div>
 
+        <div
+            v-if="summary.remaining === 0"
+            class="bg-danger-tint text-danger-text flex flex-wrap items-center justify-between gap-3 rounded-md px-3 py-2.5 text-[11px] leading-4"
+            role="status"
+        >
+            <div class="flex min-w-0 items-start gap-2">
+                <Frown class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <p>
+                    Your hotel's AI points are used up. Ask the platform admin
+                    to add points after payment.
+                </p>
+            </div>
+            <Button
+                v-if="!topUpRequestPending"
+                type="button"
+                variant="outline"
+                class="border-danger-text text-danger-text h-9 shrink-0 text-[11px]"
+                :disabled="topUpRequestForm.processing"
+                @click="requestTopUp"
+            >
+                Request recharge
+            </Button>
+            <span v-else class="shrink-0 font-semibold">
+                Recharge request sent
+            </span>
+        </div>
+
         <p
             v-if="summary.available < 0"
             class="bg-danger-tint text-danger-text rounded-md px-3 py-2 text-[11px] leading-4"
@@ -157,7 +201,7 @@ function points(value: number): string {
         >
             Employee allocations exceed this plan's monthly point pool by
             {{ points(Math.abs(summary.available)) }} points. Reduce allocations
-            or ask the Super Admin to change the hotel plan.
+            or ask the platform admin to add points after payment.
         </p>
 
         <PanelCard

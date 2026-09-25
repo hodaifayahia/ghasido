@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureAdminProfileCompleted;
 use App\Http\Middleware\EnsureFirstLoginCompleted;
 use App\Http\Middleware\EnsureHotelAccess;
 use App\Http\Middleware\EnsureOwnerAuthenticated;
@@ -28,6 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            // Admin accounts complete their contact profile first (owner
+            // request 2026-09-25; spec 0007, D12).
+            EnsureAdminProfileCompleted::class,
         ]);
 
         // Authorization is decided at the route boundary, server side

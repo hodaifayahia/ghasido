@@ -67,7 +67,7 @@ class UserFactory extends Factory
      */
     public function superAdmin(): static
     {
-        return $this->withRole(Role::SuperAdmin);
+        return $this->withAdminProfile()->withRole(Role::SuperAdmin);
     }
 
     /**
@@ -76,7 +76,21 @@ class UserFactory extends Factory
      */
     public function admin(): static
     {
-        return $this->withRole(Role::Admin);
+        return $this->withAdminProfile()->withRole(Role::Admin);
+    }
+
+    /**
+     * The contact profile admin accounts must complete (owner request
+     * 2026-09-25): without it they are sent to their profile page.
+     */
+    public function withAdminProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'phone' => fake()->numerify('+213 5## ## ## ##'),
+            'address' => fake()->streetAddress().', Algiers',
+        ]);
     }
 
     /**

@@ -16,6 +16,9 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureOwnerAuthenticated
 {
+    /** Session key of the owner page to return to after signing in. */
+    public const string INTENDED = 'owner.url.intended';
+
     /**
      * @param  Closure(Request): Response  $next
      */
@@ -28,7 +31,15 @@ class EnsureOwnerAuthenticated
                 abort(401);
             }
 
-            return redirect()->guest(route('owner.login'));
+            // Its own "go back here after sign-in" key: Laravel's shared
+            // `url.intended` belongs to the app login, and mixing the two
+            // sent an owner to /dashboard (then the app login) after
+            // signing in, and an app user to the owner login.
+            if ($request->isMethod('GET')) {
+                $request->session()->put(self::INTENDED, $request->fullUrl());
+            }
+
+            return redirect()->route('owner.login');
         }
 
         // Only the owner layout reads this, so it is shared here rather than

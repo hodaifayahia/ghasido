@@ -48,6 +48,16 @@ export type Auth = {
     permissions: string[];
 };
 
+/** Current-month employee allowance or hotel pool shown in the navbar (AIL-01). */
+export type AiPointsBalance = {
+    role: 'employee' | 'manager';
+    total: number;
+    used: number;
+    remaining: number;
+    /** Remaining points as a percentage of this month's allowance. */
+    percent: number;
+};
+
 /**
  * A manager's training department switcher (client decision 2026-09-23): the
  * departments they may train in and the one they are training in now. Null

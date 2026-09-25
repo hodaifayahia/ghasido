@@ -98,8 +98,21 @@ const paymentMethodForm = useForm({
     sort_order: 1,
     is_active: false,
 });
+const pointTopUpHotel = ref<HotelRow | null>(null);
+const pointTopUpOpen = ref(false);
+const pointTopUpForm = useForm({
+    hotel_id: 0,
+    points: 5000,
+    amount_dzd: 0,
+    payment_method_id: null as number | null,
+    payment_reference: '',
+    payment_received: false,
+});
 
 const activeHotelCount = computed(() => props.hotels.length);
+const activePaymentMethods = computed(() =>
+    props.paymentMethods.filter((method) => method.isActive),
+);
 
 function formatDzd(value: number): string {
     return `${new Intl.NumberFormat('fr-DZ', { maximumFractionDigits: 0 }).format(value)} DZD`;
@@ -142,6 +155,29 @@ function saveHotelPlan(hotel: HotelRow): void {
             },
         },
     );
+}
+
+function addPaidPoints(hotel: HotelRow): void {
+    pointTopUpHotel.value = hotel;
+    pointTopUpForm.hotel_id = hotel.id;
+    pointTopUpForm.points = 5000;
+    pointTopUpForm.amount_dzd = 0;
+    pointTopUpForm.payment_method_id =
+        activePaymentMethods.value[0]?.id ?? null;
+    pointTopUpForm.payment_reference = '';
+    pointTopUpForm.payment_received = false;
+    pointTopUpForm.clearErrors();
+    pointTopUpOpen.value = true;
+}
+
+function savePaidPoints(): void {
+    pointTopUpForm.post('/subscriptions/ai-point-topups', {
+        preserveScroll: true,
+        onSuccess: () => {
+            pointTopUpOpen.value = false;
+            pointTopUpHotel.value = null;
+        },
+    });
 }
 
 function editPaymentMethod(method: PaymentMethod): void {
@@ -369,7 +405,7 @@ function savePaymentMethod(): void {
                 v-else
                 class="border-line/80 max-h-[62vh] overflow-auto rounded-md border"
             >
-                <table class="w-full min-w-[620px] border-collapse text-start">
+                <table class="w-full min-w-[820px] border-collapse text-start">
                     <thead class="bg-app-alt sticky top-0 z-10">
                         <tr
                             class="text-ink-slate text-[10.5px] tracking-wide uppercase"
@@ -384,7 +420,7 @@ function savePaymentMethod(): void {
                                 Subscription plan
                             </th>
                             <th class="px-3 py-2.5 text-end font-semibold">
-                                Action
+                                Actions
                             </th>
                         </tr>
                     </thead>
@@ -439,22 +475,37 @@ function savePaymentMethod(): void {
                                 </select>
                             </td>
                             <td class="px-3 py-2.5 text-end">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    class="border-line text-brand-700 h-9 min-w-20 text-[11px]"
-                                    :disabled="
-                                        savingHotel === hotel.id ||
-                                        selectedPlan[hotel.id] === hotel.planId
-                                    "
-                                    @click="saveHotelPlan(hotel)"
-                                >
-                                    {{
-                                        savingHotel === hotel.id
-                                            ? 'Saving…'
-                                            : 'Save plan'
-                                    }}
-                                </Button>
+                                <div class="flex flex-col items-end gap-1.5">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        class="border-line text-brand-700 h-8 gap-1.5 text-[10px]"
+                                        @click="addPaidPoints(hotel)"
+                                    >
+                                        <Plus
+                                            class="size-3"
+                                            aria-hidden="true"
+                                        />
+                                        Record payment + points
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        class="border-line text-brand-700 h-9 min-w-20 text-[11px]"
+                                        :disabled="
+                                            savingHotel === hotel.id ||
+                                            selectedPlan[hotel.id] ===
+                                                hotel.planId
+                                        "
+                                        @click="saveHotelPlan(hotel)"
+                                    >
+                                        {{
+                                            savingHotel === hotel.id
+                                                ? 'Saving…'
+                                                : 'Save plan'
+                                        }}
+                                    </Button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -671,6 +722,116 @@ function savePaymentMethod(): void {
                     :disabled="form.processing"
                 >
                     {{ form.processing ? 'Saving…' : 'Save plan' }}
+                </Button>
+            </div>
+        </form>
+    </HotelsModal>
+
+    <HotelsModal
+        v-model:open="pointTopUpOpen"
+        title="Record payment and add AI points"
+        :description="
+            pointTopUpHotel
+                ? `For ${pointTopUpHotel.name}. Added points are available to this hotel for the current month.`
+                : 'Add paid AI points to a hotel.'
+        "
+        class="sm:max-w-[560px]"
+    >
+        <form class="mt-2 grid gap-3" @submit.prevent="savePaidPoints">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Points to add this month</span
+                    >
+                    <input
+                        v-model.number="pointTopUpForm.points"
+                        type="number"
+                        min="1"
+                        max="100000000"
+                        required
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="pointTopUpForm.errors.points" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Payment received (DZD)</span
+                    >
+                    <input
+                        v-model.number="pointTopUpForm.amount_dzd"
+                        type="number"
+                        min="1"
+                        max="1000000000"
+                        required
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="pointTopUpForm.errors.amount_dzd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Payment method</span
+                    >
+                    <select
+                        v-model.number="pointTopUpForm.payment_method_id"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    >
+                        <option :value="null">Manual / other</option>
+                        <option
+                            v-for="method in activePaymentMethods"
+                            :key="method.id"
+                            :value="method.id"
+                        >
+                            {{ method.name }}
+                        </option>
+                    </select>
+                    <InputError
+                        :message="pointTopUpForm.errors.payment_method_id"
+                    />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Transaction / receipt reference</span
+                    >
+                    <input
+                        v-model="pointTopUpForm.payment_reference"
+                        maxlength="120"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError
+                        :message="pointTopUpForm.errors.payment_reference"
+                    />
+                </label>
+            </div>
+            <label
+                class="text-ink-slate flex items-start gap-2 text-[12px] font-medium"
+            >
+                <input
+                    v-model="pointTopUpForm.payment_received"
+                    type="checkbox"
+                    required
+                    class="accent-brand-600 border-line mt-0.5 size-4 shrink-0 rounded"
+                />
+                I confirm the hotel's payment has been received.
+            </label>
+            <InputError :message="pointTopUpForm.errors.payment_received" />
+            <div class="mt-1 flex justify-end gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="border-line h-10 px-4 text-[12px]"
+                    @click="pointTopUpOpen = false"
+                    >Cancel</Button
+                >
+                <Button
+                    type="submit"
+                    class="bg-brand-600 hover:bg-brand-700 h-10 px-4 text-[12px]"
+                    :disabled="pointTopUpForm.processing"
+                >
+                    {{
+                        pointTopUpForm.processing
+                            ? 'Recording…'
+                            : 'Confirm payment and add points'
+                    }}
                 </Button>
             </div>
         </form>

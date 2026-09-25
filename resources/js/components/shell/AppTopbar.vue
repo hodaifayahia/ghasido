@@ -6,6 +6,7 @@ import { ChevronDown } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import AiPointsMeter from '@/components/shell/AiPointsMeter.vue';
 import NotificationMenu from '@/components/shell/NotificationMenu.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -96,6 +97,7 @@ const iconButtonClass =
         />
 
         <div class="ms-auto flex min-w-0 items-center">
+            <AiPointsMeter />
             <NotificationMenu />
 
             <DropdownMenu>

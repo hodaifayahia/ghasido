@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureOwnerAuthenticated;
 use App\Http\Requests\Owner\OwnerLoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,12 @@ class OwnerSessionController extends Controller
         $request->session()->regenerate();
         $owner->forceFill(['last_login_at' => Date::now()])->save();
 
-        return redirect()->intended(route('owner.dashboard'));
+        // Back to the owner page that asked for the sign-in, never to the
+        // app's `url.intended` (an app page would bounce to the app login).
+        $intended = $request->session()->pull(EnsureOwnerAuthenticated::INTENDED);
+        $console = route('owner.dashboard');
+
+        return redirect()->to(is_string($intended) && str_starts_with($intended, $console) ? $intended : $console);
     }
 
     public function destroy(Request $request): RedirectResponse

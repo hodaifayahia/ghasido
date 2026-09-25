@@ -23,10 +23,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $key_updated_at
  * @property Carbon|null $paused_at
  * @property Carbon|null $metering_started_at
+ * @property Carbon|null $low_alert_sent_at
+ * @property Carbon|null $empty_alert_sent_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['account', 'api_key', 'key_updated_at', 'paused_at', 'metering_started_at'])]
+#[Fillable(['account', 'api_key', 'key_updated_at', 'paused_at', 'metering_started_at', 'low_alert_sent_at', 'empty_alert_sent_at'])]
 #[Hidden(['api_key'])]
 class ApiAccountSetting extends Model
 {
@@ -41,6 +43,8 @@ class ApiAccountSetting extends Model
             'key_updated_at' => 'datetime',
             'paused_at' => 'datetime',
             'metering_started_at' => 'datetime',
+            'low_alert_sent_at' => 'datetime',
+            'empty_alert_sent_at' => 'datetime',
         ];
     }
 

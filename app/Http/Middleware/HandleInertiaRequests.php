@@ -3,10 +3,12 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Role;
+use App\Models\HotelAiPointTopUpRequest;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\TrainingDepartments;
+use App\Services\Subscriptions\AiPointsBalanceService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -24,6 +26,7 @@ class HandleInertiaRequests extends Middleware
     public function __construct(
         private readonly JourneyService $journey,
         private readonly TrainingDepartments $training,
+        private readonly AiPointsBalanceService $aiPoints,
     ) {}
 
     /**
@@ -62,6 +65,50 @@ class HandleInertiaRequests extends Middleware
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->get() ?? collect();
+        $topUpRequests = $user?->hasRole(Role::SuperAdmin->value)
+            ? HotelAiPointTopUpRequest::query()
+                ->where('status', 'pending')
+                ->with(['hotel', 'requester'])
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+            : collect();
+        $unreadTopUpRequests = $user?->hasRole(Role::SuperAdmin->value)
+            ? HotelAiPointTopUpRequest::query()
+                ->where('status', 'pending')
+                ->whereNull('read_at')
+                ->count()
+            : 0;
+        $notificationItems = $notifications
+            ->map(fn (Reminder $reminder): array => [
+                'id' => $reminder->id,
+                'channel' => $reminder->channel->value,
+                'subject' => $reminder->subject,
+                'body' => $reminder->body,
+                'sentAt' => $reminder->sent_at?->toIso8601String() ?? '',
+                'expiresAt' => $reminder->sent_at?->copy()
+                    ->addHours(Reminder::IN_APP_EXPIRY_HOURS)
+                    ->toIso8601String() ?? '',
+                'read' => $reminder->read_at !== null,
+                'readUrl' => route('notifications.read', ['reminder' => $reminder]),
+            ])
+            ->concat($topUpRequests->map(fn (HotelAiPointTopUpRequest $topUpRequest): array => [
+                // Negative IDs keep this global bell key unique from reminder IDs.
+                'id' => -$topUpRequest->id,
+                'channel' => 'in_app',
+                'subject' => __('AI points depleted at :hotel', [
+                    'hotel' => $topUpRequest->hotel?->name ?? __('Archived hotel'),
+                ]),
+                'body' => __(':requester requested a paid point recharge. Review the request and record payment in Subscriptions.', [
+                    'requester' => $topUpRequest->requester?->name ?? __('A hotel administrator'),
+                ]),
+                'sentAt' => $topUpRequest->created_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => $topUpRequest->read_at !== null,
+                'readUrl' => route('subscriptions.ai-point-top-up-requests.read', ['topUpRequest' => $topUpRequest]),
+            ]))
+            ->sortByDesc('sentAt')
+            ->values();
 
         return [
             ...parent::share($request),
@@ -87,29 +134,16 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'permissions' => $user?->permissionNames() ?? [],
             ],
+            // Monthly employee or hotel AI balance for the shared navbar
+            // (AIL-01). Hotel admins/managers receive only their own hotel's aggregate (ROLE-02).
+            'aiPointBalance' => $user === null ? null : $this->aiPoints->forUser($user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            // The global topbar notification menu (REM-08): only this user's
-            // delivered reminders from the last 24 hours. Older rows remain
-            // in the reminder log (DATA-10).
+            // The global topbar notification menu (REM-08, AIL-01): this user's
+            // recent reminders plus outstanding Super Admin recharge requests.
             'notifications' => [
-                'unread' => $user === null
-                    ? 0
-                    : $user->reminders()->unreadNotifications()->count(),
-                'items' => $notifications
-                    ->map(fn (Reminder $reminder): array => [
-                        'id' => $reminder->id,
-                        'channel' => $reminder->channel->value,
-                        'subject' => $reminder->subject,
-                        'body' => $reminder->body,
-                        'sentAt' => $reminder->sent_at?->toIso8601String() ?? '',
-                        'expiresAt' => $reminder->sent_at?->copy()
-                            ->addHours(Reminder::IN_APP_EXPIRY_HOURS)
-                            ->toIso8601String() ?? '',
-                        'read' => $reminder->read_at !== null,
-                        'readUrl' => route('notifications.read', ['reminder' => $reminder]),
-                    ])
-                    ->values()
-                    ->all(),
+                'unread' => $notifications->whereNull('read_at')->count()
+                    + $unreadTopUpRequests,
+                'items' => $notificationItems->all(),
             ],
             // The employee journey's gates and figures (JOURNEY-01..05, PROG-05;
             // spec 0003 Part E). Null for every non-learner: the learner shell

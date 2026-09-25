@@ -4,7 +4,8 @@ export type AppNotification = {
     subject: string;
     body: string;
     sentAt: string;
-    expiresAt: string;
+    /** Recharge requests remain until paid; reminders expire after 24 hours. */
+    expiresAt: string | null;
     read: boolean;
     readUrl: string;
 };

@@ -140,7 +140,7 @@ const mainNavItems: SidebarNavItem[] = [
         title: 'AI Points',
         href: aiPointsRoute(),
         icon: Coins,
-        roles: ['manager'],
+        roles: ['admin', 'manager'],
         permission: 'ai_points.manage',
     },
     {
@@ -228,6 +228,14 @@ const mainNavItems: SidebarNavItem[] = [
         // Only the Super Admin holds roles.view, so this item is invisible to
         // every other role and the approved mockup is unchanged for them.
         permission: 'roles.view',
+    },
+    {
+        title: 'Users',
+        href: '/users',
+        icon: User,
+        iconClass: solid,
+        // App access accounts are managed separately from hotel employees.
+        permission: 'users.view',
     },
     {
         title: 'Website Management',

@@ -21,10 +21,10 @@
             html { background-color: #f4f9fe; }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
-        <link rel="icon" href="/favicon-192x192.png" type="image/png" sizes="192x192">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="icon" href="/favicon.ico?v=ghasido-20260925" sizes="any">
+        <link rel="icon" href="/favicon-32x32.png?v=ghasido-20260925" type="image/png" sizes="32x32">
+        <link rel="icon" href="/favicon-192x192.png?v=ghasido-20260925" type="image/png" sizes="192x192">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=ghasido-20260925">
 
         @fonts
         @vite(['resources/css/app.css'])

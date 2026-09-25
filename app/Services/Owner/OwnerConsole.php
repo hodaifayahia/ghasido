@@ -3,6 +3,7 @@
 namespace App\Services\Owner;
 
 use App\Enums\ApiAccount;
+use App\Enums\CreditMeter;
 use App\Models\AiModelPrice;
 use App\Models\ApiCreditTopup;
 use App\Services\Ai\AiModelSettings;
@@ -30,6 +31,7 @@ final class OwnerConsole
         private readonly ApiKeyring $keyring,
         private readonly AiModelSettings $models,
         private readonly DeepgramBalance $deepgram,
+        private readonly CreditSummary $summary,
     ) {}
 
     /**
@@ -72,14 +74,27 @@ final class OwnerConsole
             'label' => $account->label(),
             'vendor' => $account->vendor(),
             'usedFor' => $account->usedFor(),
-            'tracksTokens' => $account->tracksTokens(),
             'state' => $balance->state(),
             'paused' => $balance->paused,
-            'limitedByUsd' => $balance->limitedByUsd,
-            'limitedByTokens' => $balance->limitedByTokens,
-            'credit' => ['usd' => $balance->creditUsd, 'tokens' => $balance->creditTokens],
-            'spent' => ['usd' => $balance->spentUsd, 'tokens' => $balance->spentTokens],
-            'remaining' => ['usd' => $balance->remainingUsd(), 'tokens' => $balance->remainingTokens()],
+            // What the Super Admin sees (D10, D11): the pack's dollars in
+            // step with its units, or the dollar credit.
+            'mode' => $balance->mode(),
+            'client' => $this->summary->present($account),
+            // The owner's own figure: usage at the owner's prices.
+            'costUsd' => $balance->costUsd,
+            'meters' => array_map(
+                fn (CreditMeter $meter): array => [
+                    'meter' => $meter->value,
+                    'label' => $meter->label(),
+                    'covers' => $meter->covers(),
+                    'field' => $meter->inputField(),
+                    'scale' => $meter->inputScale(),
+                    'limited' => $balance->meters[$meter->value]['limited'] ?? false,
+                    'granted' => $balance->meters[$meter->value]['granted'] ?? 0,
+                    'used' => $balance->meters[$meter->value]['used'] ?? 0,
+                ],
+                $account->meters(),
+            ),
             'since' => $balance->since?->toIso8601String(),
             'calls' => $balance->calls,
             'unpricedModels' => $balance->unpricedModels,
@@ -107,6 +122,8 @@ final class OwnerConsole
                     'id' => $topup->id,
                     'usd' => (float) $topup->amount_usd,
                     'tokens' => $topup->amount_tokens,
+                    'characters' => $topup->amount_characters,
+                    'seconds' => $topup->amount_seconds,
                     'note' => $topup->note,
                     'createdAt' => $topup->created_at?->toIso8601String(),
                     'by' => $topup->owner?->name,

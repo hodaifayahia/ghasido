@@ -12,9 +12,12 @@ use App\Models\Hotel;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Owner\ApiCredit;
+use App\Services\Owner\CreditAlerts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Meters every AI, TTS and STT call and enforces the daily limits
@@ -55,7 +58,7 @@ final class UsageMeter
                 ?->costOf($usage->promptTokens, $usage->completionTokens) ?? 0.0;
         }
 
-        return DB::transaction(function () use ($user, $feature, $usage, $costEstimate, $points, $hotelId): AiUsage {
+        $row = DB::transaction(function () use ($user, $feature, $usage, $costEstimate, $points, $hotelId): AiUsage {
             if ($user !== null) {
                 // Serialize usage writes per employee so two parallel AI replies
                 // cannot silently spend the same remaining points (AIL-01).
@@ -77,6 +80,16 @@ final class UsageMeter
                 'occurred_at' => Date::now(),
             ]);
         });
+
+        // Warn before the credit runs out (spec 0007, D12). An alert
+        // problem must never break the metering itself.
+        try {
+            app(CreditAlerts::class)->afterUsage($usage->provider);
+        } catch (Throwable $e) {
+            Log::warning('Credit alert check failed', ['provider' => $usage->provider, 'error' => $e->getMessage()]);
+        }
+
+        return $row;
     }
 
     /**

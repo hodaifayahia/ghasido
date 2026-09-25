@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Hotel;
 use App\Services\Ai\AiUsageReport;
+use App\Services\Owner\CreditSummary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -22,7 +23,7 @@ class AiUsageController extends Controller
 {
     public function __construct(private readonly AiUsageReport $report) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request, CreditSummary $credit): Response
     {
         Gate::authorize('manage-ai-models');
 
@@ -36,6 +37,8 @@ class AiUsageController extends Controller
 
         return Inertia::render('settings/AiUsage', [
             'report' => $this->report->build($period, $hotel),
+            // Her AI credit, as on the dashboard (spec 0007, D11).
+            'aiCredit' => $credit->forSuperAdmin(),
             'periods' => AiUsageReport::PERIODS,
             'hotels' => Hotel::withoutGlobalScopes()->notArchived()->orderBy('name')->get(['id', 'name'])
                 ->map(fn (Hotel $hotel): array => ['id' => $hotel->id, 'name' => $hotel->name])

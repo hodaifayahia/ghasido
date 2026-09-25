@@ -172,7 +172,9 @@ const iconButton =
         body-class="mt-2"
     >
         <template #actions>
-            <div class="flex items-center gap-2">
+            <!-- Phones get these in their own row below (RESP-01): the
+                 title row cannot hold the count and both buttons. -->
+            <div class="hidden items-center gap-2 sm:flex">
                 <span class="text-ink-faint text-[11.5px] whitespace-nowrap">
                     {{ pagination.total }}
                     {{ pagination.total === 1 ? 'lesson' : 'lessons' }}
@@ -200,6 +202,34 @@ const iconButton =
                 </Button>
             </div>
         </template>
+
+        <div class="mb-3 grid gap-2 sm:hidden">
+            <p class="text-ink-faint text-[11.5px]">
+                {{ pagination.total }}
+                {{ pagination.total === 1 ? 'lesson' : 'lessons' }}
+            </p>
+            <div v-if="manage" class="grid grid-cols-2 gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-2 text-[12px] font-semibold shadow-none"
+                    data-test="generate-with-ai-from-directory-mobile"
+                    @click="emit('generate')"
+                >
+                    <Sparkles class="size-3.5" aria-hidden="true" />
+                    Generate with AI
+                </Button>
+                <Button
+                    type="button"
+                    class="bg-brand-600 hover:bg-brand-700 shadow-btn text-surface h-10 gap-1.5 rounded-md px-2 text-[12px] font-semibold"
+                    data-test="create-lesson-from-directory-mobile"
+                    @click="emit('create')"
+                >
+                    <Plus class="size-3.5" aria-hidden="true" />
+                    Create lesson
+                </Button>
+            </div>
+        </div>
 
         <div
             class="border-line bg-brand-50/35 mb-3 rounded-lg border p-2.5 md:p-3"

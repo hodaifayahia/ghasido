@@ -74,6 +74,8 @@ Run `deploy-export.php` inside the Sail container (`docker exec -u sail -w /var/
 
 ## Known gaps
 
+- **Email is logged, not sent** (`MAIL_MAILER=log`): the low-credit alerts (spec 0007, D12), hotel approvals and reminders land in `storage/logs/` until SMTP is configured. With a Hostinger mailbox, set in the server `.env`: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.hostinger.com`, `MAIL_PORT=465`, `MAIL_SCHEME=smtps`, `MAIL_USERNAME=<mailbox>`, `MAIL_PASSWORD=<password>`, `MAIL_FROM_ADDRESS=<mailbox>`, then `php artisan optimize` and `remote-workers.sh`.
+
 - The three cron jobs above are not created yet (API refused); the bridge workers cover the queues meanwhile, and the daily `RunAutomationRules` job will not run until the scheduler cron exists.
 - No domain connected; the temporary `*.hostingersite.com` URL has Hostinger's SSL.
 - Deployed from the working tree on 2026-09-25, including uncommitted work in progress at that time.

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import AiCreditPanel from '@/components/common/AiCreditPanel.vue';
 import DashboardAtRiskPanel from '@/components/dashboard/DashboardAtRiskPanel.vue';
+import DashboardAiPointSpend from '@/components/dashboard/DashboardAiPointSpend.vue';
 import DashboardBriefingPanel from '@/components/dashboard/DashboardBriefingPanel.vue';
 import DashboardStats from '@/components/dashboard/DashboardStats.vue';
 import DepartmentProgressPanel from '@/components/dashboard/DepartmentProgressPanel.vue';
@@ -13,8 +15,10 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { dashboard } from '@/routes';
 import type {
+    AiCreditAccount,
     AtRiskSummary,
     AttentionGroup,
+    DashboardAiPointSpend as DashboardAiPointSpendData,
     DashboardBriefing,
     DashboardStat,
     DepartmentProgress,
@@ -30,6 +34,9 @@ type Props = {
     recentActivity: RecentActivity[];
     atRisk: AtRiskSummary;
     briefing: DashboardBriefing;
+    aiPointSpend?: DashboardAiPointSpendData;
+    /** Super Admin only (spec 0007, D11). */
+    aiCredit?: AiCreditAccount[];
 };
 
 defineProps<Props>();
@@ -75,6 +82,11 @@ defineOptions({
         </PageHeader>
 
         <DashboardStats :stats="stats" />
+
+        <DashboardAiPointSpend v-if="aiPointSpend" :summary="aiPointSpend" />
+
+        <!-- The AI credit the platform owner gave her (spec 0007, D11). -->
+        <AiCreditPanel v-if="aiCredit" :accounts="aiCredit" />
 
         <div
             class="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[388fr_302fr_320fr]"

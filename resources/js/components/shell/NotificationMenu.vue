@@ -10,6 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { subscriptions } from '@/routes';
 import { messages } from '@/routes/learn';
 import type { AppNotification } from '@/types';
 
@@ -17,9 +18,15 @@ const page = usePage();
 const sourceItems = computed(() => page.props.notifications.items);
 const now = ref(Date.now());
 const items = computed(() =>
-    sourceItems.value.filter((item) => Date.parse(item.expiresAt) > now.value),
+    sourceItems.value.filter(
+        (item) =>
+            item.expiresAt === null || Date.parse(item.expiresAt) > now.value,
+    ),
 );
 const unread = computed(() => items.value.filter((item) => !item.read).length);
+const isSuperAdmin = computed(
+    () => page.props.auth.user?.role === 'super_admin',
+);
 
 let pollTimer: number | undefined;
 let expiryTimer: number | undefined;
@@ -32,7 +39,8 @@ function scheduleExpiry(): void {
     }
 
     const nextExpiry = sourceItems.value
-        .map((item) => Date.parse(item.expiresAt))
+        .filter((item) => item.expiresAt !== null)
+        .map((item) => Date.parse(item.expiresAt!))
         .filter(
             (timestamp) => Number.isFinite(timestamp) && timestamp > now.value,
         )
@@ -52,7 +60,8 @@ onMounted(() => {
     scheduleExpiry();
     pollTimer = window.setInterval(() => {
         router.reload({
-            only: ['notifications'],
+            // Refresh the navbar point balance while an AI session is open too (AIL-03).
+            only: ['notifications', 'aiPointBalance'],
         });
     }, 60_000);
 });
@@ -181,10 +190,14 @@ function sentTime(value: string): string {
             <DropdownMenuSeparator class="mx-0 my-0" />
             <DropdownMenuItem as-child class="justify-center px-4 py-2.5">
                 <Link
-                    :href="messages()"
+                    :href="isSuperAdmin ? subscriptions() : messages()"
                     class="text-brand-700 cursor-pointer text-sm font-semibold"
                 >
-                    View all notifications
+                    {{
+                        isSuperAdmin
+                            ? 'Review point requests'
+                            : 'View all notifications'
+                    }}
                 </Link>
             </DropdownMenuItem>
         </DropdownMenuContent>

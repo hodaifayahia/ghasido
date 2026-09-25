@@ -119,6 +119,18 @@ class Hotel extends Model
         return $this->hasMany(User::class);
     }
 
+    /** @return HasMany<HotelAiPointTopUp, $this> */
+    public function aiPointTopUps(): HasMany
+    {
+        return $this->hasMany(HotelAiPointTopUp::class);
+    }
+
+    /** @return HasMany<HotelAiPointTopUpRequest, $this> */
+    public function aiPointTopUpRequests(): HasMany
+    {
+        return $this->hasMany(HotelAiPointTopUpRequest::class);
+    }
+
     /** @return HasMany<Department, $this> */
     public function departments(): HasMany
     {

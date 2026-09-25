@@ -4,6 +4,7 @@ namespace App\Services\Owner;
 
 use App\Enums\AiFeature;
 use App\Enums\ApiAccount;
+use App\Enums\CreditMeter;
 use App\Models\AiModelPrice;
 use App\Models\AiUsage;
 use App\Models\ApiCreditTopup;
@@ -32,7 +33,7 @@ final class ApiCredit
     /** @var array<string, CreditBalance> */
     private array $balances = [];
 
-    /** @var array<string, array{usd: float, tokens: int, limitedByUsd: bool, limitedByTokens: bool}> */
+    /** @var array<string, array{usd: float, hasUsd: bool, limited: bool, meters: array<string, array{granted: int, limited: bool}>}> */
     private array $grants = [];
 
     public function __construct(private readonly ApiKeyring $keyring) {}
@@ -53,9 +54,7 @@ final class ApiCredit
                 return false;
             }
 
-            $grants = $this->grants($account);
-
-            if (! $grants['limitedByUsd'] && ! $grants['limitedByTokens']) {
+            if (! $this->grants($account)['limited']) {
                 return true;
             }
 
@@ -197,43 +196,51 @@ final class ApiCredit
 
         $prices = AiModelPrice::byModel();
         $rows = $this->usage($account)
-            ->groupBy('model')
+            ->groupBy('model', 'feature')
             ->toBase()
-            ->selectRaw("model, min(feature) as feature, count(*) as calls, sum(cost_estimate) as cost, sum(case when feature = '".AiFeature::ImageGenerate->value."' then 0 else prompt_tokens + completion_tokens end) as tokens, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion")
+            ->selectRaw('model, feature, count(*) as calls, sum(cost_estimate) as cost, sum(prompt_tokens + completion_tokens) as units, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion')
             ->get();
 
-        $spentUsd = 0.0;
-        $spentTokens = 0;
+        $costUsd = 0.0;
         $calls = 0;
+        $used = [];
         $unpriced = [];
 
         foreach ($rows as $row) {
             $model = (string) $row->model;
+            $unit = AiFeature::tryFrom((string) $row->feature)?->unit() ?? 'tokens';
             $price = AiModelPrice::lookup($prices, $model);
             $unpricedUnits = (int) $row->unpriced_prompt + (int) $row->unpriced_completion;
 
-            $spentUsd += (float) $row->cost + ($price?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0);
-            $spentTokens += (int) $row->tokens;
+            $costUsd += (float) $row->cost + ($price?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0);
             $calls += (int) $row->calls;
+            // A row counts against the meter of its feature's unit: text in
+            // tokens, speech in characters, listening in seconds (D10).
+            $used[$unit] = ($used[$unit] ?? 0) + (int) $row->units;
 
-            if ($price === null && $unpricedUnits > 0) {
-                $unpriced[] = [
-                    'model' => $model,
-                    'unit' => AiFeature::tryFrom((string) $row->feature)?->unit() ?? 'tokens',
-                ];
+            if ($price === null && $unpricedUnits > 0 && ! in_array($model, array_column($unpriced, 'model'), true)) {
+                $unpriced[] = ['model' => $model, 'unit' => $unit];
             }
         }
 
         usort($unpriced, fn (array $a, array $b): int => $a['model'] <=> $b['model']);
 
+        $meters = [];
+
+        foreach ($account->meters() as $meter) {
+            $meters[$meter->value] = [
+                'granted' => $grants['meters'][$meter->value]['granted'] ?? 0,
+                'used' => $used[$meter->value] ?? 0,
+                'limited' => $grants['meters'][$meter->value]['limited'] ?? false,
+            ];
+        }
+
         return new CreditBalance(
             account: $account,
             creditUsd: $grants['usd'],
-            creditTokens: $grants['tokens'],
-            spentUsd: round($spentUsd, 4),
-            spentTokens: $spentTokens,
-            limitedByUsd: $grants['limitedByUsd'],
-            limitedByTokens: $grants['limitedByTokens'],
+            hasUsdGrant: $grants['hasUsd'],
+            costUsd: round($costUsd, 4),
+            meters: $meters,
             paused: $setting?->paused_at !== null,
             since: $setting?->metering_started_at,
             calls: $calls,
@@ -242,10 +249,10 @@ final class ApiCredit
     }
 
     /**
-     * What the owner granted: the recharge totals, and which units carry a
-     * limit (any non-zero row in that unit, D6).
+     * What the owner granted: the dollar total, and per meter the units
+     * total and whether it is limited (any non-zero row in it, D6, D10).
      *
-     * @return array{usd: float, tokens: int, limitedByUsd: bool, limitedByTokens: bool}
+     * @return array{usd: float, hasUsd: bool, limited: bool, meters: array<string, array{granted: int, limited: bool}>}
      */
     private function grants(ApiAccount $account): array
     {
@@ -253,17 +260,33 @@ final class ApiCredit
             return $this->grants[$account->value];
         }
 
+        // One literal SQL string; the aliases are the CreditMeter values.
         $row = ApiCreditTopup::query()
             ->where('account', $account->value)
             ->toBase()
-            ->selectRaw('sum(amount_usd) as usd, sum(amount_tokens) as tokens, sum(case when amount_usd <> 0 then 1 else 0 end) as usd_rows, sum(case when amount_tokens <> 0 then 1 else 0 end) as token_rows')
+            ->selectRaw('sum(amount_usd) as usd, sum(case when amount_usd <> 0 then 1 else 0 end) as usd_rows, '
+                .'sum(amount_tokens) as tokens, sum(case when amount_tokens <> 0 then 1 else 0 end) as tokens_rows, '
+                .'sum(amount_characters) as characters, sum(case when amount_characters <> 0 then 1 else 0 end) as characters_rows, '
+                .'sum(amount_seconds) as seconds, sum(case when amount_seconds <> 0 then 1 else 0 end) as seconds_rows')
             ->first();
+
+        $meters = [];
+        $limited = (int) ($row->usd_rows ?? 0) > 0;
+
+        foreach ($account->meters() as $meter) {
+            $meterLimited = (int) ($row->{$meter->value.'_rows'} ?? 0) > 0;
+            $meters[$meter->value] = [
+                'granted' => (int) ($row->{$meter->value} ?? 0),
+                'limited' => $meterLimited,
+            ];
+            $limited = $limited || $meterLimited;
+        }
 
         return $this->grants[$account->value] = [
             'usd' => round((float) ($row->usd ?? 0), 4),
-            'tokens' => (int) ($row->tokens ?? 0),
-            'limitedByUsd' => (int) ($row->usd_rows ?? 0) > 0,
-            'limitedByTokens' => $account->tracksTokens() && (int) ($row->token_rows ?? 0) > 0,
+            'hasUsd' => (int) ($row->usd_rows ?? 0) > 0,
+            'limited' => $limited,
+            'meters' => $meters,
         ];
     }
 

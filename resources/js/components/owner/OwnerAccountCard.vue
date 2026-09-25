@@ -23,7 +23,13 @@ import {
     update as updateKey,
 } from '@/routes/owner/accounts/key';
 import { store as storeTopup } from '@/routes/owner/accounts/topups';
-import type { ApiAccountCard, ApiAccountState, DeepgramBalance } from '@/types';
+import type {
+    ApiAccountCard,
+    ApiAccountMeter,
+    ApiAccountState,
+    ApiAccountTopup,
+    DeepgramBalance,
+} from '@/types';
 import { formatCount, formatDate, formatDateTime, formatUsd } from './format';
 
 /*
@@ -59,24 +65,64 @@ const stateTone: Record<ApiAccountState, string> = {
     paused: 'bg-danger-tint text-danger-text',
 };
 
-function share(left: number | null, total: number): number {
-    return total > 0 && left !== null ? (left / total) * 100 : 0;
+// Bars turn amber below 20% left, when the low-credit email goes out.
+function tone(share: number | null): ProgressTone {
+    return (share ?? 0) < 0.2 ? 'warning' : 'brand';
 }
 
-// Each bar by its own unit: tokens running out does not colour the
-// dollar bar.
-function barTone(left: number | null, total: number): ProgressTone {
-    return share(left, total) < 10 ? 'warning' : 'brand';
+// Seconds are entered and shown as minutes (spec 0007, D10).
+function units(meter: ApiAccountMeter, value: number): string {
+    return meter.meter === 'seconds'
+        ? `${formatCount(Math.floor(value / 60))} min`
+        : formatCount(value);
 }
 
-// Calls already running when the credit ran out can overspend a little;
-// the figure stays at zero and the overspend is said in words.
-function over(left: number | null): number {
-    return left !== null && left < 0 ? -left : 0;
+function meterText(meter: ApiAccountMeter): string {
+    if (!meter.limited) {
+        return `${units(meter, meter.used)} used · not limited`;
+    }
+
+    const left = meter.granted - meter.used;
+
+    // Calls already running when a meter ran out can overspend a little;
+    // the figure stays at zero and the overspend is said in words.
+    return left < 0
+        ? `0 left of ${units(meter, meter.granted)} · ${units(meter, -left)} over`
+        : `${units(meter, left)} left of ${units(meter, meter.granted)}`;
 }
 
-const unlimited = computed(
-    () => !props.card.limitedByUsd && !props.card.limitedByTokens,
+function meterShare(meter: ApiAccountMeter): number {
+    return meter.granted > 0
+        ? Math.max(0, (meter.granted - meter.used) / meter.granted)
+        : 0;
+}
+
+const historyHeads: Record<ApiAccountMeter['meter'], string> = {
+    tokens: 'Tokens',
+    characters: 'Characters',
+    seconds: 'Minutes',
+};
+
+function historyValue(
+    topup: ApiAccountTopup,
+    meter: ApiAccountMeter['meter'],
+): string {
+    const value =
+        meter === 'seconds'
+            ? Math.round(topup.seconds / 60)
+            : meter === 'tokens'
+              ? topup.tokens
+              : topup.characters;
+
+    return value === 0 ? '—' : formatCount(value);
+}
+
+const amountsGrid = computed(() =>
+    props.card.meters.length > 1 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+);
+
+const unitWords = computed(() =>
+    props.card.meters.map((meter) => meter.label.toLowerCase()).join(' and '),
 );
 
 const keySource = computed((): string => {
@@ -156,83 +202,80 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             {{ card.usedFor }}
         </p>
 
-        <!-- Credit (D4–D6) -->
-        <div
-            :class="
-                cn(
-                    'grid gap-4',
-                    card.limitedByUsd &&
-                        card.limitedByTokens &&
-                        'sm:grid-cols-2',
-                )
-            "
-        >
-            <div v-if="card.limitedByUsd" class="grid gap-1.5">
-                <p :class="labelClass">Dollar credit left</p>
-                <p
-                    class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
-                >
-                    {{ formatUsd(Math.max(0, card.remaining.usd ?? 0)) }}
-                </p>
-                <ProgressBar
-                    :value="share(card.remaining.usd, card.credit.usd)"
-                    :tone="barTone(card.remaining.usd, card.credit.usd)"
-                    :label="`${card.label} dollar credit left`"
-                />
-                <p class="text-ink-slate text-[12px]">
-                    of {{ formatUsd(card.credit.usd) }} ·
-                    {{ formatUsd(card.spent.usd) }} spent<template
-                        v-if="over(card.remaining.usd) > 0"
+        <!-- Her balance and your cost (D10, D11) -->
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid content-start gap-1.5">
+                <p :class="labelClass">Her balance</p>
+                <template v-if="card.mode !== 'none'">
+                    <p
+                        class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
+                        :data-test="`${card.account}-client-balance`"
                     >
-                        ·
-                        {{ formatUsd(over(card.remaining.usd)) }} over</template
+                        {{ formatUsd(card.client.remainingUsd ?? 0) }}
+                    </p>
+                    <ProgressBar
+                        :value="(card.client.shareLeft ?? 0) * 100"
+                        :tone="tone(card.client.shareLeft)"
+                        :label="`${card.label} balance left`"
+                    />
+                    <p class="text-ink-slate text-[12px]">
+                        of {{ formatUsd(card.client.creditUsd) }} credited. This
+                        is what the Super Admin sees.
+                    </p>
+                </template>
+                <template v-else>
+                    <p
+                        class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
                     >
-                </p>
+                        No limit
+                    </p>
+                    <p class="text-ink-slate text-[12px]">
+                        The app keeps calling {{ card.label }} until your first
+                        recharge starts the count.
+                    </p>
+                </template>
             </div>
 
-            <div v-if="card.limitedByTokens" class="grid gap-1.5">
-                <p :class="labelClass">Tokens left</p>
+            <div class="grid content-start gap-1.5">
+                <p :class="labelClass">Your cost at provider prices</p>
                 <p
-                    class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
+                    class="font-heading text-ink-indigo text-[26px] leading-8 font-bold"
                 >
-                    {{ formatCount(Math.max(0, card.remaining.tokens ?? 0)) }}
+                    {{ formatUsd(card.costUsd) }}
                 </p>
-                <ProgressBar
-                    :value="share(card.remaining.tokens, card.credit.tokens)"
-                    :tone="barTone(card.remaining.tokens, card.credit.tokens)"
-                    :label="`${card.label} tokens left`"
-                />
                 <p class="text-ink-slate text-[12px]">
-                    of {{ formatCount(card.credit.tokens) }} ·
-                    {{ formatCount(card.spent.tokens) }} used<template
-                        v-if="over(card.remaining.tokens) > 0"
-                    >
-                        ·
-                        {{ formatCount(over(card.remaining.tokens)) }}
-                        over</template
-                    >
-                </p>
-            </div>
-
-            <div v-if="unlimited" class="grid gap-1">
-                <p :class="labelClass">Spent so far</p>
-                <p
-                    class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
-                >
-                    {{ formatUsd(card.spent.usd) }}
-                </p>
-                <p class="text-ink-slate text-[12.5px]">
-                    {{ formatCount(card.calls) }} calls. No limit is set: the
-                    app keeps calling {{ card.label }} until you add a first
-                    recharge, which starts the count.
+                    {{ formatCount(card.calls) }} calls
+                    {{
+                        card.since
+                            ? `since ${formatDate(card.since)}`
+                            : 'so far'
+                    }}. Only you see this.
                 </p>
             </div>
         </div>
 
-        <p v-if="card.since" class="text-ink-faint -mt-2 text-[12px]">
-            Counting since {{ formatDate(card.since) }} ·
-            {{ formatCount(card.calls) }} calls
-        </p>
+        <ul class="grid gap-3" :aria-label="`${card.label} usage by unit`">
+            <li
+                v-for="meter in card.meters"
+                :key="meter.meter"
+                class="grid gap-1"
+                :data-test="`${card.account}-meter-${meter.meter}`"
+            >
+                <p
+                    class="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 text-[12.5px]"
+                >
+                    <span class="text-ink font-medium">{{ meter.label }}</span>
+                    <span class="text-ink-slate">{{ meterText(meter) }}</span>
+                </p>
+                <ProgressBar
+                    v-if="meter.limited"
+                    :value="meterShare(meter) * 100"
+                    :tone="tone(meterShare(meter))"
+                    :label="`${meter.label} left`"
+                />
+                <p class="text-ink-faint text-[11.5px]">{{ meter.covers }}</p>
+            </li>
+        </ul>
 
         <p
             v-if="card.unpricedModels.length > 0"
@@ -243,11 +286,11 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             <span>
                 No price yet for
                 {{ card.unpricedModels.map((row) => row.model).join(', ') }}:
-                their usage counts as $0 until you add one under Prices.
+                your cost for them shows as $0 until you add one under Prices.
             </span>
         </p>
 
-        <!-- Recharge (D4) -->
+        <!-- Recharge: a pack of dollars and units (D4, D10) -->
         <Form
             v-bind="storeTopup.form({ account: card.account })"
             :options="{ preserveScroll: true }"
@@ -256,19 +299,10 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             class="border-line grid gap-2 border-t pt-4"
         >
             <h3 :class="sectionTitle">Recharge</h3>
-            <div
-                :class="
-                    cn(
-                        'grid gap-2 sm:items-end',
-                        card.tracksTokens
-                            ? 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto]'
-                            : 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_auto]',
-                    )
-                "
-            >
-                <div class="grid gap-1">
+            <div :class="cn('grid gap-2', amountsGrid)">
+                <div class="grid content-start gap-1">
                     <label :for="`${id}-usd`" :class="labelClass"
-                        >Dollars</label
+                        >Dollars she sees</label
                     >
                     <input
                         :id="`${id}-usd`"
@@ -279,22 +313,38 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                         placeholder="200"
                         :class="fieldClass"
                     />
+                    <InputError :message="errors.usd" />
                 </div>
-                <div v-if="card.tracksTokens" class="grid gap-1">
-                    <label :for="`${id}-tokens`" :class="labelClass"
-                        >Tokens</label
-                    >
+                <div
+                    v-for="meter in card.meters"
+                    :key="meter.meter"
+                    class="grid content-start gap-1"
+                >
+                    <label :for="`${id}-${meter.field}`" :class="labelClass">{{
+                        meter.label
+                    }}</label>
                     <input
-                        :id="`${id}-tokens`"
-                        name="tokens"
+                        :id="`${id}-${meter.field}`"
+                        :name="meter.field"
                         type="number"
-                        step="1000"
+                        step="1"
                         inputmode="numeric"
-                        placeholder="250000"
+                        :placeholder="
+                            meter.meter === 'tokens'
+                                ? '250000'
+                                : meter.meter === 'seconds'
+                                  ? '300'
+                                  : '500000'
+                        "
                         :class="fieldClass"
                     />
+                    <InputError :message="errors[meter.field]" />
                 </div>
-                <div class="grid gap-1">
+            </div>
+            <div
+                class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+            >
+                <div class="grid content-start gap-1">
                     <label :for="`${id}-note`" :class="labelClass"
                         >Note (optional)</label
                     >
@@ -317,16 +367,12 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                     Recharge
                 </button>
             </div>
-            <InputError :message="errors.usd" />
-            <InputError :message="errors.tokens" />
             <InputError :message="errors.note" />
-            <p class="text-ink-faint text-[12px]">
-                Adds to the credit.
-                <template v-if="card.tracksTokens"
-                    >Fill dollars, tokens or both: the app stops when either
-                    runs out.</template
-                >
-                A negative amount corrects a mistake.
+            <p class="text-ink-faint text-[12px] leading-5">
+                She sees the dollars; the {{ unitWords }} are the limit. Her
+                dollars go down as the units are used, and AI pauses when any
+                limited unit runs out. Dollars with no units are spent at your
+                prices instead. A negative amount corrects a mistake.
             </p>
         </Form>
 
@@ -620,19 +666,20 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             >
                 No recharge yet.
             </p>
-            <table v-else class="w-full table-fixed border-collapse">
+            <table v-else class="w-full border-collapse sm:table-fixed">
                 <thead class="bg-app-alt">
                     <tr class="h-[26px]">
-                        <th scope="col" :class="cn(head, 'w-24')">Date</th>
-                        <th scope="col" :class="cn(head, 'w-24 text-end')">
+                        <th scope="col" :class="cn(head, 'sm:w-24')">Date</th>
+                        <th scope="col" :class="cn(head, 'text-end sm:w-24')">
                             Dollars
                         </th>
                         <th
-                            v-if="card.tracksTokens"
+                            v-for="meter in card.meters"
+                            :key="meter.meter"
                             scope="col"
-                            :class="cn(head, 'w-24 text-end')"
+                            :class="cn(head, 'text-end sm:w-24')"
                         >
-                            Tokens
+                            {{ historyHeads[meter.meter] }}
                         </th>
                         <th scope="col" :class="head">Note</th>
                     </tr>
@@ -650,17 +697,14 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                             {{ topup.usd === 0 ? '—' : formatUsd(topup.usd) }}
                         </td>
                         <td
-                            v-if="card.tracksTokens"
+                            v-for="meter in card.meters"
+                            :key="meter.meter"
                             :class="cn(cell, 'text-end')"
                         >
-                            {{
-                                topup.tokens === 0
-                                    ? '—'
-                                    : formatCount(topup.tokens)
-                            }}
+                            {{ historyValue(topup, meter.meter) }}
                         </td>
                         <td
-                            :class="cn(cell, 'truncate')"
+                            :class="cn(cell, 'break-words sm:truncate')"
                             :title="topup.note ?? ''"
                         >
                             {{ topup.note ?? '' }}

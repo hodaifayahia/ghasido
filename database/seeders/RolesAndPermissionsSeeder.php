@@ -10,13 +10,13 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * The four account roles (including the learner role) and twenty permissions
- * behind them (ROLE-01, AC-3). Super Admin, Admin and Manager are the three
- * back-office roles; Employee is the learner role.
+ * The four account roles (including the learner role) and the permission
+ * catalogue behind them (ROLE-01, AC-3). Super Admin, Admin and Manager are
+ * the three back-office roles; Employee is the learner role.
  *
  * Idempotent: findOrCreate never duplicates a row and syncPermissions rewrites
- * the matrix rather than appending to it, so running this twice leaves twenty
- * permissions, not forty.
+ * the matrix rather than appending to it, so running this twice leaves one
+ * row per defined permission.
  */
 class RolesAndPermissionsSeeder extends Seeder
 {

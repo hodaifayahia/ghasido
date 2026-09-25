@@ -15,11 +15,14 @@ use Illuminate\Validation\ValidationException;
 /** Monthly employee AI point allocations and balances (AIL-01, AIL-04). */
 final class EmployeeAiPointsService
 {
+    public function __construct(private readonly HotelAiPointTopUpService $topUps) {}
+
     /** @return array<string, mixed> */
     public function forHotel(Hotel $hotel): array
     {
         $plan = $hotel->subscriptionPlan;
         abort_if($plan === null, 409, __('This hotel does not have a subscription plan.'));
+        $monthlyPointPool = $this->topUps->poolFor($hotel, $plan);
 
         $employees = User::query()
             ->where('hotel_id', $hotel->id)
@@ -70,7 +73,9 @@ final class EmployeeAiPointsService
             'plan' => [
                 'name' => $plan->name,
                 'employeeLimit' => $plan->employee_limit,
-                'monthlyPointPool' => $plan->pointsPool(),
+                'monthlyPointPool' => $monthlyPointPool,
+                'baseMonthlyPointPool' => $plan->pointsPool(),
+                'paidTopUpPoints' => $monthlyPointPool - $plan->pointsPool(),
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
@@ -79,9 +84,13 @@ final class EmployeeAiPointsService
             'summary' => [
                 'employees' => $employees->count(),
                 'allocated' => $allocated,
-                'available' => $plan->pointsPool() - $allocated,
+                'available' => $monthlyPointPool - $allocated,
                 'used' => array_sum($used) + array_sum($voiceUsed),
+                'remaining' => max(0, $monthlyPointPool - array_sum($used) - array_sum($voiceUsed)),
             ],
+            'topUpRequestPending' => $hotel->aiPointTopUpRequests()
+                ->where('status', 'pending')
+                ->exists(),
             'employees' => $rows,
         ];
     }
@@ -105,6 +114,8 @@ final class EmployeeAiPointsService
                 throw ValidationException::withMessages(['ai_points_allocated' => __('This hotel does not have an active subscription plan.')]);
             }
 
+            $monthlyPointPool = $this->topUps->poolFor($lockedHotel, $plan);
+
             $monthStart = Date::now()->startOfMonth();
             $spentActions = (int) AiUsage::query()
                 ->where('user_id', $lockedEmployee->id)
@@ -126,10 +137,10 @@ final class EmployeeAiPointsService
                 ->sum('ai_points_allocated');
             $newTotal = $currentlyAllocated - $lockedEmployee->ai_points_allocated + $points;
 
-            if ($newTotal > $plan->pointsPool() && $newTotal > $currentlyAllocated) {
+            if ($newTotal > $monthlyPointPool && $newTotal > $currentlyAllocated) {
                 throw ValidationException::withMessages([
                     'ai_points_allocated' => __('This allocation exceeds the hotel plan point pool (:available points remain).', [
-                        'available' => max(0, $plan->pointsPool() - $currentlyAllocated + $lockedEmployee->ai_points_allocated),
+                        'available' => max(0, $monthlyPointPool - $currentlyAllocated + $lockedEmployee->ai_points_allocated),
                     ]),
                 ]);
             }

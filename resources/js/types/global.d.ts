@@ -1,4 +1,9 @@
-import type { Auth, LearnerJourney, TrainingContext } from '@/types/auth';
+import type {
+    AiPointsBalance,
+    Auth,
+    LearnerJourney,
+    TrainingContext,
+} from '@/types/auth';
 import type { NotificationData } from '@/types/notifications';
 import type { OwnerIdentity } from '@/types/owner';
 
@@ -20,6 +25,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            aiPointBalance: AiPointsBalance | null;
             sidebarOpen: boolean;
             notifications: NotificationData;
             /** Employee role only; null for every other user and for guests. */

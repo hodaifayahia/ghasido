@@ -9,19 +9,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * One recharge of a paid API account's credit (spec 0007, D4). The credit
- * is the sum of these rows; a negative row corrects a mistake. Write once:
- * the ledger is the audit trail of what the owner granted.
+ * One recharge of a paid API account's credit (spec 0007, D4, D10): the
+ * dollars the Super Admin is credited, and the provider units they buy
+ * (Qwen tokens; Deepgram characters and audio seconds). The credit is the
+ * sum of these rows; a negative row corrects a mistake. Write once: the
+ * ledger is the audit trail of what the owner granted.
  *
  * @property int $id
  * @property ApiAccount $account
  * @property string $amount_usd
  * @property int $amount_tokens
+ * @property int $amount_characters
+ * @property int $amount_seconds
  * @property string|null $note
  * @property int|null $owner_id
  * @property Carbon|null $created_at
  */
-#[Fillable(['account', 'amount_usd', 'amount_tokens', 'note', 'owner_id'])]
+#[Fillable(['account', 'amount_usd', 'amount_tokens', 'amount_characters', 'amount_seconds', 'note', 'owner_id'])]
 class ApiCreditTopup extends Model
 {
     public const UPDATED_AT = null;
@@ -35,6 +39,8 @@ class ApiCreditTopup extends Model
             'account' => ApiAccount::class,
             'amount_usd' => 'decimal:4',
             'amount_tokens' => 'integer',
+            'amount_characters' => 'integer',
+            'amount_seconds' => 'integer',
         ];
     }
 

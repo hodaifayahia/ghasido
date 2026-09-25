@@ -45,7 +45,13 @@ const props = defineProps<Props>();
             </p>
         </div>
 
-        <div class="flex min-h-11 shrink-0 items-center md:pe-[14px]">
+        <!-- The 31px space is a gap, not a margin, so on a very narrow
+             screen (the admin's phone preview frame) "Lesson 1 / 8" wraps
+             under the chip instead of running off the edge; unchanged on
+             one line. -->
+        <div
+            class="flex min-h-11 max-w-full shrink-0 flex-wrap items-center gap-x-[31px] gap-y-2 md:pe-[14px]"
+        >
             <span
                 class="bg-tint-grid text-ink flex h-11 items-center rounded-md ps-5 pe-[22px] text-[17px] leading-none font-semibold"
             >
@@ -55,7 +61,7 @@ const props = defineProps<Props>();
                 />
                 {{ department }}
             </span>
-            <span class="text-ink ms-[31px] text-lg leading-none font-medium">
+            <span class="text-ink text-lg leading-none font-medium">
                 Lesson {{ lessonNumber }} / {{ lessonCount }}
             </span>
         </div>

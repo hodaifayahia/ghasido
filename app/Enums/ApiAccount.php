@@ -32,6 +32,18 @@ enum ApiAccount: string
     }
 
     /**
+     * The account as the Super Admin knows it: the service, not the vendor
+     * contract behind it.
+     */
+    public function serviceLabel(): string
+    {
+        return match ($this) {
+            self::Qwen => 'AI text & images',
+            self::Deepgram => 'Speech & listening',
+        };
+    }
+
+    /**
      * What the app uses this account for, in plain words for the console.
      */
     public function usedFor(): string
@@ -43,12 +55,18 @@ enum ApiAccount: string
     }
 
     /**
-     * Qwen is sold as a token plan, so its credit can also be counted in
-     * tokens. Deepgram bills audio and characters: dollars only.
+     * The provider units a recharge can buy (spec 0007, D10): Qwen is sold
+     * as a token plan; Deepgram bills speech by the character and listening
+     * (transcription, pronunciation, voice calls) by the second.
+     *
+     * @return list<CreditMeter>
      */
-    public function tracksTokens(): bool
+    public function meters(): array
     {
-        return $this === self::Qwen;
+        return match ($this) {
+            self::Qwen => [CreditMeter::Tokens],
+            self::Deepgram => [CreditMeter::Seconds, CreditMeter::Characters],
+        };
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Contracts\ImageProvider;
 use App\Contracts\TtsProvider;
 use App\Enums\AiFeature;
 use App\Enums\ApiAccount;
+use App\Enums\CreditMeter;
 use App\Models\AiModelPrice;
 use App\Models\AiUsage;
 use App\Models\ApiAccountSetting;
@@ -52,13 +53,31 @@ class ApiCreditTest extends TestCase
         return $credit;
     }
 
-    private function recharge(ApiAccount $account, float $usd = 0, int $tokens = 0): void
+    private function recharge(ApiAccount $account, float $usd = 0, int $tokens = 0, int $seconds = 0, int $characters = 0): void
     {
         $setting = ApiAccountSetting::for($account);
         $setting->metering_started_at ??= Date::now()->subMinute();
         $setting->save();
 
-        ApiCreditTopup::query()->create(['account' => $account, 'amount_usd' => $usd, 'amount_tokens' => $tokens]);
+        ApiCreditTopup::query()->create([
+            'account' => $account,
+            'amount_usd' => $usd,
+            'amount_tokens' => $tokens,
+            'amount_seconds' => $seconds,
+            'amount_characters' => $characters,
+        ]);
+    }
+
+    private function use(AiFeature $feature, int $units): void
+    {
+        AiUsage::factory()->create([
+            'provider' => 'deepgram',
+            'model' => 'nova-3',
+            'feature' => $feature,
+            'prompt_tokens' => $units,
+            'completion_tokens' => 0,
+            'cost_estimate' => 0,
+        ]);
     }
 
     private function spend(string $provider, float $cost, int $tokens = 0, string $model = 'qwen3.8-flash', ?\DateTimeInterface $at = null): void
@@ -81,7 +100,7 @@ class ApiCreditTest extends TestCase
 
         $this->assertSame('unlimited', $balance->state());
         $this->assertTrue($this->credit()->isAvailable(ApiAccount::Qwen));
-        $this->assertEqualsWithDelta(500.0, $balance->spentUsd, 0.0001);
+        $this->assertEqualsWithDelta(500.0, $balance->costUsd, 0.0001);
     }
 
     public function test_spend_since_the_first_recharge_counts_against_the_credit()
@@ -93,7 +112,7 @@ class ApiCreditTest extends TestCase
         $this->spend('deepgram', 50, model: 'nova-3');
 
         $balance = $this->credit()->balance(ApiAccount::Qwen);
-        $this->assertEqualsWithDelta(5.0, $balance->spentUsd, 0.0001);
+        $this->assertEqualsWithDelta(5.0, $balance->costUsd, 0.0001);
         $this->assertEqualsWithDelta(5.0, (float) $balance->remainingUsd(), 0.0001);
         $this->assertSame('active', $balance->state());
 
@@ -126,7 +145,7 @@ class ApiCreditTest extends TestCase
         AiModelPrice::query()->create(['model' => 'qwen3.8-*', 'unit' => 'tokens', 'input_per_million' => 3, 'output_per_million' => 9]);
 
         $balance = $this->credit()->balance(ApiAccount::Qwen);
-        $this->assertEqualsWithDelta(6.0, $balance->spentUsd, 0.0001);
+        $this->assertEqualsWithDelta(6.0, $balance->costUsd, 0.0001);
         $this->assertSame([], $balance->unpricedModels);
     }
 
@@ -136,15 +155,59 @@ class ApiCreditTest extends TestCase
         $this->spend('qwen', 0, tokens: 600);
 
         $balance = $this->credit()->balance(ApiAccount::Qwen);
-        $this->assertFalse($balance->limitedByUsd);
-        $this->assertSame(400, $balance->remainingTokens());
+        $this->assertSame('units', $balance->mode());
+        $this->assertSame(400, $balance->meterLeft(CreditMeter::Tokens));
 
         // An image is one unit, not tokens: it does not eat the token credit.
         AiUsage::factory()->create(['provider' => 'qwen', 'feature' => AiFeature::ImageGenerate, 'prompt_tokens' => 1, 'completion_tokens' => 0, 'cost_estimate' => 0]);
-        $this->assertSame(400, $this->credit()->balance(ApiAccount::Qwen)->remainingTokens());
+        $this->assertSame(400, $this->credit()->balance(ApiAccount::Qwen)->meterLeft(CreditMeter::Tokens));
 
         $this->spend('qwen', 0, tokens: 400);
         $this->assertFalse($this->credit()->isAvailable(ApiAccount::Qwen));
+    }
+
+    public function test_a_pack_shows_her_dollars_in_step_with_the_tokens_used()
+    {
+        // "$200 buys 1,000 tokens": the tokens are the limit, the dollars
+        // follow them (D10), whatever the provider really charged.
+        $this->recharge(ApiAccount::Qwen, usd: 200, tokens: 1000);
+        $this->spend('qwen', 0.01, tokens: 250);
+
+        $balance = $this->credit()->balance(ApiAccount::Qwen);
+        $this->assertSame('units', $balance->mode());
+        $this->assertEqualsWithDelta(150.0, (float) $balance->remainingUsd(), 0.001);
+        $this->assertEqualsWithDelta(50.0, $balance->usedUsd(), 0.001);
+        $this->assertEqualsWithDelta(0.01, $balance->costUsd, 0.0001);
+        $this->assertSame('active', $balance->state());
+
+        $this->spend('qwen', 0.01, tokens: 750);
+        $balance = $this->credit()->balance(ApiAccount::Qwen);
+        $this->assertSame(0.0, $balance->remainingUsd());
+        $this->assertSame('exhausted', $balance->state());
+        $this->assertFalse($this->credit()->isAvailable(ApiAccount::Qwen));
+    }
+
+    public function test_a_deepgram_pack_counts_audio_minutes_and_speech_characters()
+    {
+        $this->recharge(ApiAccount::Deepgram, usd: 50, seconds: 600, characters: 10_000);
+
+        $this->use(AiFeature::VoiceCall, 300);
+        $balance = $this->credit()->balance(ApiAccount::Deepgram);
+        $this->assertSame(300, $balance->meterLeft(CreditMeter::Seconds));
+        $this->assertEqualsWithDelta(25.0, (float) $balance->remainingUsd(), 0.001);
+
+        // The meter nearest empty sets her balance.
+        $this->use(AiFeature::Tts, 9_500);
+        $balance = $this->credit()->balance(ApiAccount::Deepgram);
+        $this->assertSame(500, $balance->meterLeft(CreditMeter::Characters));
+        $this->assertEqualsWithDelta(2.5, (float) $balance->remainingUsd(), 0.001);
+        $this->assertSame('low', $balance->state());
+
+        // Transcription and pronunciation checks are audio seconds too.
+        $this->use(AiFeature::Stt, 200);
+        $this->use(AiFeature::PronunciationCheck, 100);
+        $this->assertSame('exhausted', $this->credit()->balance(ApiAccount::Deepgram)->state());
+        $this->assertFalse($this->credit()->isAvailable(ApiAccount::Deepgram));
     }
 
     public function test_a_paused_account_is_blocked_whatever_its_credit()
@@ -233,6 +296,6 @@ class ApiCreditTest extends TestCase
 
         app(UsageMeter::class)->recordVoiceCall(RoleplayAttempt::factory()->create(['duration_ms' => 600_000]));
 
-        $this->assertEqualsWithDelta(0.8, $this->credit()->balance(ApiAccount::Deepgram)->spentUsd, 0.0001);
+        $this->assertEqualsWithDelta(0.8, $this->credit()->balance(ApiAccount::Deepgram)->costUsd, 0.0001);
     }
 }

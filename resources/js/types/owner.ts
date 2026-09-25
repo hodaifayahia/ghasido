@@ -20,9 +20,53 @@ export type ApiAccountTopup = {
     id: number;
     usd: number;
     tokens: number;
+    characters: number;
+    seconds: number;
     note: string | null;
     createdAt: string | null;
     by: string | null;
+};
+
+/** A unit a recharge can buy (spec 0007, D10). */
+export type CreditMeterId = 'tokens' | 'characters' | 'seconds';
+
+export type ApiAccountMeter = {
+    meter: CreditMeterId;
+    label: string;
+    covers: string;
+    /** The recharge form field: `tokens`, `characters` or `minutes`. */
+    field: string;
+    /** Stored units per entered unit (a minute is 60 seconds). */
+    scale: number;
+    limited: boolean;
+    granted: number;
+    used: number;
+};
+
+/** `units` = a pack (dollars follow the units), `dollars`, `none`. */
+export type AiCreditMode = 'units' | 'dollars' | 'none';
+
+/**
+ * One account's AI credit as the Super Admin sees it (spec 0007, D11):
+ * never the owner's cost, prices or keys.
+ */
+export type AiCreditAccount = {
+    account: ApiAccountId;
+    service: string;
+    provider: string;
+    state: ApiAccountState;
+    mode: AiCreditMode;
+    creditUsd: number;
+    remainingUsd: number | null;
+    usedUsd: number | null;
+    /** 0–1, null without a limit. */
+    shareLeft: number | null;
+    meters: {
+        meter: CreditMeterId;
+        label: string;
+        granted: number;
+        left: number;
+    }[];
 };
 
 export type ApiAccountCard = {
@@ -30,14 +74,14 @@ export type ApiAccountCard = {
     label: string;
     vendor: string;
     usedFor: string;
-    tracksTokens: boolean;
     state: ApiAccountState;
     paused: boolean;
-    limitedByUsd: boolean;
-    limitedByTokens: boolean;
-    credit: { usd: number; tokens: number };
-    spent: { usd: number; tokens: number };
-    remaining: { usd: number | null; tokens: number | null };
+    mode: AiCreditMode;
+    /** Exactly what the Super Admin sees for this account. */
+    client: AiCreditAccount;
+    /** Usage at the owner's prices: the owner's figure only. */
+    costUsd: number;
+    meters: ApiAccountMeter[];
     /** When metering started: the first recharge. */
     since: string | null;
     calls: number;

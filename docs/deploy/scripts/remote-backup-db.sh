@@ -10,4 +10,4 @@ php -r '$db = new PDO("sqlite:" . $argv[1]); $db->exec("VACUUM INTO " . $db->quo
 chmod 640 "$out"
 ls -la database/backups | tail -n 5
 php artisan --version
-php artisan migrate:status --no-interaction 2>&1 | tail -n 4
+php artisan migrate:status --no-interaction 2>&1 | grep -i pending || echo "(no pending migrations on the live code)"

@@ -2,12 +2,13 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Activity, Coins, Cpu, Wallet } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import AiCreditPanel from '@/components/common/AiCreditPanel.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import Heading from '@/components/Heading.vue';
 import { cn } from '@/lib/utils';
 import { index as aiUsageIndex } from '@/routes/ai-usage';
-import type { AiUsageReport } from '@/types';
+import type { AiCreditAccount, AiUsageReport } from '@/types';
 
 /*
  * Settings → AI usage (API-03, AIL-04; spec 0005 §4.3; Super Admin only):
@@ -20,6 +21,8 @@ type Props = {
     report: AiUsageReport;
     periods: number[];
     hotels: { id: number; name: string }[];
+    /** The AI credit the platform owner gave her (spec 0007, D11). */
+    aiCredit: AiCreditAccount[];
 };
 
 const props = defineProps<Props>();
@@ -86,6 +89,8 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             title="AI usage"
             description="What the platform's AI calls cost, by feature, model, hotel and day, at the platform owner's prices."
         />
+
+        <AiCreditPanel :accounts="aiCredit" />
 
         <div class="flex flex-wrap items-center gap-3">
             <div

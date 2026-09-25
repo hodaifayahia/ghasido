@@ -37,7 +37,9 @@ const deviceButton = (active: boolean): string =>
 </script>
 
 <template>
-    <div class="grid gap-3">
+    <!-- minmax(0, 1fr): the 406px phone frame must never widen the panel
+         past a phone screen (RESP-01). -->
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex gap-1.5" role="group" aria-label="Preview device">
                 <Button
@@ -88,9 +90,12 @@ const deviceButton = (active: boolean): string =>
             Add at least one visible block to preview this lesson.
         </div>
 
-        <div v-else-if="device === 'phone'" class="flex justify-center py-2">
+        <div
+            v-else-if="device === 'phone'"
+            class="flex min-w-0 justify-center py-2"
+        >
             <div
-                class="border-line-strong bg-ink shadow-pop w-[406px] max-w-full rounded-[28px] border-[6px] p-0.5"
+                class="border-line-strong bg-ink shadow-pop w-full max-w-[406px] min-w-0 rounded-[28px] border-[6px] p-0.5"
             >
                 <iframe
                     :src="url"

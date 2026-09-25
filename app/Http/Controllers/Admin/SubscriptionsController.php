@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Subscriptions\UpdateSubscriptionPlanRequest;
 use App\Models\AuditLog;
 use App\Models\Hotel;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
+use App\Services\Subscriptions\HotelAiPointTopUpService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,6 +109,48 @@ final class SubscriptionsController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => __(':hotel is now on the :plan plan.', ['hotel' => $hotel->name, 'plan' => $plan->name]),
+        ]);
+
+        return back();
+    }
+
+    public function recordAiPointPayment(Request $request, HotelAiPointTopUpService $topUps): RedirectResponse
+    {
+        Gate::authorize(Permission::SubscriptionsManage->value);
+
+        abort_unless($request->user()?->hasRole(Role::SuperAdmin->value), 403);
+
+        $data = $request->validate([
+            'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
+            'points' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'amount_dzd' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'payment_method_id' => ['nullable', 'integer', 'exists:subscription_payment_methods,id'],
+            'payment_reference' => ['nullable', 'string', 'max:120'],
+            'payment_received' => ['accepted'],
+        ]);
+
+        $hotel = Hotel::query()
+            ->withoutGlobalScopes()
+            ->notArchived()
+            ->findOrFail($data['hotel_id']);
+
+        /** @var User $actor */
+        $actor = $request->user();
+        $topUps->recordPayment(
+            $hotel,
+            (int) $data['points'],
+            (int) $data['amount_dzd'],
+            isset($data['payment_method_id']) ? (int) $data['payment_method_id'] : null,
+            $data['payment_reference'] ?? null,
+            $actor,
+        );
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Payment recorded and :points AI points added for :hotel this month.', [
+                'points' => number_format((int) $data['points']),
+                'hotel' => $hotel->name,
+            ]),
         ]);
 
         return back();

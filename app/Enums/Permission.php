@@ -40,6 +40,8 @@ enum Permission: string
     case ProgressReset = 'progress.reset';
     case RolesView = 'roles.view';
     case RolesManage = 'roles.manage';
+    case UsersView = 'users.view';
+    case UsersManage = 'users.manage';
     case LandingManage = 'landing.manage';
     case TrainingSelf = 'training.self';
 
@@ -88,6 +90,8 @@ enum Permission: string
             self::ProgressReset => 'Reset employee progress',
             self::RolesView => 'View roles & permissions',
             self::RolesManage => 'Manage roles & permissions',
+            self::UsersView => 'View app users',
+            self::UsersManage => 'Add and manage app users',
             self::LandingManage => 'Manage the public landing page',
             self::TrainingSelf => 'Access own training (learn as an employee)',
         };
@@ -114,6 +118,7 @@ enum Permission: string
             self::ScoresOverride => 'Reports & Export',
             self::ProgressReset => 'Employee Progress',
             self::RolesView, self::RolesManage => 'Roles & Permissions',
+            self::UsersView, self::UsersManage => 'Users',
             self::LandingManage => 'Landing Page',
             self::TrainingSelf => 'Training',
         };

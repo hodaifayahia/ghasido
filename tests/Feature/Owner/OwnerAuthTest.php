@@ -81,6 +81,36 @@ class OwnerAuthTest extends TestCase
         $this->get(route('owner.dashboard'))->assertRedirect(route('owner.login'));
     }
 
+    public function test_an_app_page_visited_first_does_not_hijack_the_owner_sign_in()
+    {
+        // Seen live 2026-09-25: an app page opened while signed out left its
+        // URL in `url.intended`, and the owner sign-in went there, then to
+        // the app login.
+        $owner = Owner::factory()->create();
+        $this->get(route('dashboard'))->assertRedirect(route('login'));
+
+        $this->post(route('owner.login.store'), ['email' => $owner->email, 'password' => 'password'])
+            ->assertRedirect(route('owner.dashboard'));
+
+        $this->assertAuthenticatedAs($owner, 'owner');
+    }
+
+    public function test_the_owner_returns_to_the_owner_page_that_asked_for_the_sign_in()
+    {
+        $owner = Owner::factory()->create();
+        $this->get(route('owner.dashboard', ['tab' => 'prices']))->assertRedirect(route('owner.login'));
+
+        $this->post(route('owner.login.store'), ['email' => $owner->email, 'password' => 'password'])
+            ->assertRedirect(route('owner.dashboard', ['tab' => 'prices']));
+    }
+
+    public function test_an_owner_page_visited_first_does_not_hijack_the_app_sign_in()
+    {
+        $this->get(route('owner.dashboard'))->assertRedirect(route('owner.login'));
+
+        $this->assertNull(session('url.intended'));
+    }
+
     public function test_no_app_user_reaches_the_console_not_even_the_super_admin()
     {
         $superAdmin = User::factory()->superAdmin()->create();

@@ -25,11 +25,17 @@ GHASIDO runs on two paid APIs the platform owner pays for: **Qwen** (Alibaba Mod
 | D8 | **Prices move to the owner.** The price table (`ai_model_prices`) is edited only on the owner console; Settings → AI usage shows costs but no editor. | Whoever sets prices controls the dollar budget. |
 | D9 | **Deepgram and images are metered in real units.** Units `seconds` (transcription, pronunciation listens, live voice calls: one `voice_call` row per call at hang-up) and `images` (one per generated image) join `tokens` and `characters`. Prices are still stored per million units; the console shows them per minute and per image. A model id ending in `*` prices every model with that prefix (`aura-2-*`). | Before this, only TTS had a Deepgram cost, so a Deepgram dollar budget would never move. |
 
+| D10 | **A recharge is a pack: dollars + provider units** (added 2026-09-25 at the owner's request). Qwen counts **tokens**; Deepgram counts **audio minutes** (transcription, pronunciation checks, live voice calls; stored as seconds) and **speech characters** (TTS). Once an account has units, the units are the limit and the dollars are what the Super Admin paid: her dollars left = dollars credited × the share left of the unit nearest empty. A dollar-only recharge on a pack account is refused. An account with dollars only is still spent at the owner's prices. Each usage row counts against the meter of `AiFeature::unit()`. | The owner sells "$200 = 250,000 tokens"; the provider's real cost is his business. Qwen images are not tokens, so a Qwen pack does not count them (the per-admin daily image limit still applies). |
+| D11 | **The Super Admin sees her credit** (read-only) in an "AI credit" card on her dashboard (below the stat cards) and on Settings → AI usage: per service, dollars left of what she was credited, units left, state and a "ask the platform owner to recharge" line when low or out. `CreditSummary::forSuperAdmin()`; never the owner's cost, prices or keys; hotel admins and managers never receive it. | She asked to see "how many dollars she has". |
+
+| D12 | **Low-credit emails.** When an account drops under 20% left (the "Running low" state everywhere), and again when it is used up, `CreditAlerts` queues `ApiCreditAlertMail` to every owner and every active Super Admin, checked after each metered call (`UsageMeter::record`). Each is sent once (claimed with a conditional UPDATE on `api_account_settings.low_alert_sent_at` / `empty_alert_sent_at`); a recharge clears both. A problem in the check is logged and never breaks metering. | Learners in the research study must not be cut off mid-lesson without warning. Needs a real mailer: production has `MAIL_MAILER=log` until SMTP is set. |
+| D13 | **Admin contact profile** (owner request 2026-09-25). Super Admin and hotel Admin accounts must fill first name, last name, email, phone and address; `EnsureAdminProfileCompleted` (web group) sends their page visits to Settings → Profile until done (settings, sign-out and the owner console stay open). The display `name` follows first + last. Managers and employees keep name + email only: no phone or address for learners (PRIV-03). | The platform must be able to reach its admins, e.g. for D12. |
+
 ## Data
 
 - `owners`: name, email (unique), password (hashed), remember_token, last_login_at.
 - `api_account_settings`: account (`qwen`/`deepgram`, unique), api_key (encrypted, nullable), key_updated_at, paused_at, metering_started_at.
-- `api_credit_topups`: account, amount_usd decimal(12,4), amount_tokens bigint, note, owner_id, created_at.
+- `api_credit_topups`: account, amount_usd decimal(12,4), amount_tokens, amount_characters, amount_seconds (bigint; the last two from migration `2026_09_25_100002`), note, owner_id, created_at.
 - `ai_usages`: new index (provider, occurred_at).
 
 Provider mapping (`App\Enums\ApiAccount`): Qwen = `ai_usages.provider` `qwen`, `qwen_*`, `dashscope`; Deepgram = `deepgram`, `deepgram_*`.
@@ -83,6 +89,7 @@ After the first deploy, set prices for every model the app uses (the console lis
 
 - `php artisan test`: 864 passed, 10 skipped (Fortify feature flags); `tests/Feature/Owner`: 43 passed. PHPStan and Pint clean on every changed file; `vp check` and `vue-tsc` clean.
 - Browser (SQLite harness on :8097, fake AI): `/owner/login` and `/owner` at 1280×853, 1240×698 and 390×844, with no horizontal overflow and no console errors. A recharge through the form works; a signed-in Super Admin is sent to `/owner/login`; Settings → AI usage shows no price editor. At 1240 the two account cards stack (the two-column grid starts at `xl`).
+- Fixed after the first deploy (2026-09-25): the owner sign-in used Laravel's shared `url.intended`, so a browser that had opened an app page while signed out was sent there, then to the app login. The owner side now keeps its own key (`EnsureOwnerAuthenticated::INTENDED`) and only returns to `/owner…` URLs; covered by three tests in `OwnerAuthTest` and re-checked live in a browser.
 - Not verified live: real Qwen/Deepgram calls through a stored key, and the Deepgram balance endpoint with a real key (covered by HTTP-faked tests only).
 
 ## Not done (follow-ups)

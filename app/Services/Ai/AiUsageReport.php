@@ -6,6 +6,7 @@ use App\Enums\AiFeature;
 use App\Models\AiModelPrice;
 use App\Models\AiUsage;
 use App\Models\Hotel;
+use App\Models\RoleplayAttempt;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
@@ -87,6 +88,75 @@ final class AiUsageReport
                 array_filter($byModel, fn (array $row): bool => ! $row['priced']),
             )),
         ];
+    }
+
+    /**
+     * Points used this calendar month alongside the provider cost for voice
+     * agent calls and token-based LLM usage (API-03, AIL-04).
+     *
+     * Costs use the same saved estimates and current model prices as the AI
+     * usage report. Points are an employee allowance, so these figures are
+     * intentionally shown side by side rather than treated as a fixed USD
+     * exchange rate.
+     *
+     * @return array{
+     *     voiceAgent: array{points: int, costUsd: float, priceComplete: bool},
+     *     llm: array{points: int, costUsd: float, priceComplete: bool}
+     * }
+     */
+    public function dashboardPointSpend(): array
+    {
+        $from = CarbonImmutable::instance(Date::now())->startOfMonth();
+        $prices = AiModelPrice::byModel();
+        $summary = [
+            'voiceAgent' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
+            'llm' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
+        ];
+
+        $rows = AiUsage::query()
+            ->where('occurred_at', '>=', $from)
+            ->groupBy('feature', 'model')
+            ->toBase()
+            ->selectRaw('feature, model, sum(points_charged) as points, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else 1 end) as unpriced_calls, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion')
+            ->get();
+
+        foreach ($rows as $row) {
+            $feature = AiFeature::tryFrom((string) $row->feature);
+            $key = match (true) {
+                $feature === AiFeature::VoiceCall => 'voiceAgent',
+                $feature?->unit() === 'tokens' => 'llm',
+                default => null,
+            };
+
+            if ($key === null) {
+                continue;
+            }
+
+            $model = (string) $row->model;
+            $price = AiModelPrice::lookup($prices, $model);
+            $stored = (float) $row->cost;
+            $estimate = $price?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0;
+
+            $summary[$key]['points'] += (int) $row->points;
+            $summary[$key]['costUsd'] += $stored + $estimate;
+            $summary[$key]['priceComplete'] = $summary[$key]['priceComplete']
+                && ((int) $row->unpriced_calls === 0 || $price !== null);
+        }
+
+        // Live voice points are charged per rounded-up ten-minute call and
+        // stored on the attempt, not on the provider usage row (API-03, AIL-01).
+        $summary['voiceAgent']['points'] = (int) RoleplayAttempt::query()
+            ->where('channel', RoleplayAttempt::CHANNEL_VOICE_CALL)
+            ->where('is_preview', false)
+            ->where('started_at', '>=', $from)
+            ->sum('ai_points_charged');
+
+        foreach ($summary as &$entry) {
+            $entry['costUsd'] = round($entry['costUsd'], 4);
+        }
+        unset($entry);
+
+        return $summary;
     }
 
     /**

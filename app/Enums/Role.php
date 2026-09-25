@@ -43,6 +43,9 @@ enum Role: string
                 Permission::EmployeesView,
                 Permission::EmployeesCreate,
                 Permission::EmployeesManage,
+                // Hotel admins may distribute the hotel's AI point pool to
+                // its own employees (ROLE-02, AIL-01).
+                Permission::AiPointsManage,
                 Permission::LessonsView,
                 Permission::MessagesView,
                 Permission::MessagesManage,

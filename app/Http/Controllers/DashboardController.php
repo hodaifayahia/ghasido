@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Enums\Role;
 use App\Models\Hotel;
 use App\Models\User;
+use App\Services\Ai\AiUsageReport;
 use App\Services\Dashboard\DashboardBriefing;
 use App\Services\Dashboard\DashboardStats;
+use App\Services\Owner\CreditSummary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +23,7 @@ use Inertia\Response;
  */
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request, DashboardStats $stats, DashboardBriefing $briefing): Response|RedirectResponse
+    public function __invoke(Request $request, DashboardStats $stats, DashboardBriefing $briefing, AiUsageReport $aiUsage): Response|RedirectResponse
     {
         /** @var User|null $user */
         $user = $request->user();
@@ -71,6 +73,11 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             ...$built,
             'briefing' => $briefing->present(null, $built),
+            // Provider costs and point use are platform-wide and Super Admin
+            // only (API-03, AIL-04; ROLE-02).
+            'aiPointSpend' => $aiUsage->dashboardPointSpend(),
+            // The AI credit the platform owner gave her (spec 0007, D11).
+            'aiCredit' => app(CreditSummary::class)->forSuperAdmin(),
         ]);
     }
 }

@@ -31,6 +31,10 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $name
  * @property string|null $username
  * @property string|null $email
+ * @property string|null $first_name
+ * @property string|null $last_name
+ * @property string|null $phone
+ * @property string|null $address
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -60,6 +64,10 @@ use Spatie\Permission\Traits\HasRoles;
     'name',
     'username',
     'email',
+    'first_name',
+    'last_name',
+    'phone',
+    'address',
     'password',
     'hotel_id',
     'department_id',
@@ -127,6 +135,42 @@ class User extends Authenticatable implements PasskeyUser
      * only place a role is assigned: syncRoles() replaces rather than appends,
      * which assignRole() would not.
      */
+    /**
+     * The roles that must complete the admin contact profile (owner request
+     * 2026-09-25): first and last name, email, phone and address. Learners
+     * never are (PRIV-03).
+     *
+     * @var list<Role>
+     */
+    public const array ADMIN_PROFILE_ROLES = [Role::SuperAdmin, Role::Admin];
+
+    public function needsAdminProfile(): bool
+    {
+        return $this->hasAnyRole(array_map(
+            static fn (Role $role): string => $role->value,
+            self::ADMIN_PROFILE_ROLES,
+        ));
+    }
+
+    /**
+     * An admin who has not filled every contact field yet; the app sends
+     * them to their profile until they do.
+     */
+    public function adminProfileIncomplete(): bool
+    {
+        if (! $this->needsAdminProfile()) {
+            return false;
+        }
+
+        foreach ([$this->first_name, $this->last_name, $this->email, $this->phone, $this->address] as $value) {
+            if ($value === null || trim($value) === '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function setRole(Role $role): self
     {
         $this->syncRoles([$role->value]);

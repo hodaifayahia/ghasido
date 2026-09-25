@@ -150,9 +150,11 @@ class OwnerConsoleTest extends TestCase
             ->get(route('owner.dashboard'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('accounts.0.state', 'active')
-                ->where('accounts.0.credit.usd', 200)
-                ->where('accounts.0.credit.tokens', 250000)
-                ->where('accounts.0.remaining.usd', 200)
+                ->where('accounts.0.mode', 'units')
+                ->where('accounts.0.client.creditUsd', 200)
+                ->where('accounts.0.client.remainingUsd', 200)
+                ->where('accounts.0.meters.0.meter', 'tokens')
+                ->where('accounts.0.meters.0.granted', 250000)
                 ->has('accounts.0.topups', 1)
                 ->where('accounts.1.state', 'unlimited'));
     }
@@ -169,6 +171,49 @@ class OwnerConsoleTest extends TestCase
             ->assertSessionHasErrors('tokens');
 
         $this->assertSame(0, ApiCreditTopup::query()->count());
+    }
+
+    public function test_a_deepgram_recharge_takes_minutes_and_characters()
+    {
+        $this->actingAs($this->owner, 'owner')
+            ->post(route('owner.accounts.topups.store', ['account' => 'deepgram']), ['usd' => 50, 'minutes' => 300, 'characters' => 500000])
+            ->assertSessionHasNoErrors();
+
+        $topup = ApiCreditTopup::query()->sole();
+        $this->assertSame(18000, $topup->amount_seconds);
+        $this->assertSame(500000, $topup->amount_characters);
+        $this->assertSame(0, $topup->amount_tokens);
+    }
+
+    public function test_a_pack_account_needs_units_with_its_dollars()
+    {
+        $this->actingAs($this->owner, 'owner')
+            ->post(route('owner.accounts.topups.store', ['account' => 'qwen']), ['usd' => 200, 'tokens' => 250000]);
+
+        // Dollars alone would raise her balance without buying anything.
+        $this->actingAs($this->owner, 'owner')
+            ->post(route('owner.accounts.topups.store', ['account' => 'qwen']), ['usd' => 50])
+            ->assertSessionHasErrors('tokens');
+
+        $this->assertSame(1, ApiCreditTopup::query()->count());
+    }
+
+    public function test_a_units_only_recharge_fixes_a_mistyped_pack()
+    {
+        // Meant "$200 = 25,000,000 tokens" but typed 250,000: add the
+        // missing tokens with no dollars, and her $200 stays $200.
+        $this->actingAs($this->owner, 'owner')
+            ->post(route('owner.accounts.topups.store', ['account' => 'qwen']), ['usd' => 200, 'tokens' => 250000]);
+        $this->actingAs($this->owner, 'owner')
+            ->post(route('owner.accounts.topups.store', ['account' => 'qwen']), ['tokens' => 24750000, 'note' => 'Correction: 25M tokens'])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->owner, 'owner')
+            ->get(route('owner.dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('accounts.0.meters.0.granted', 25000000)
+                ->where('accounts.0.client.creditUsd', 200)
+                ->where('accounts.0.client.remainingUsd', 200));
     }
 
     public function test_a_negative_recharge_corrects_a_mistake()
