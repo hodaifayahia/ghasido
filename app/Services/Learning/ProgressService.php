@@ -49,6 +49,7 @@ class ProgressService
             }
 
             $this->touch($user, $lessonJustCompleted);
+            $this->journey->forget($user);
 
             return $lessonJustCompleted;
         });

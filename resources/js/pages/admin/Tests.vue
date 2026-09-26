@@ -12,6 +12,7 @@ import TestsEditorPanel from '@/components/tests/TestsEditorPanel.vue';
 import TestsHeaderAccent from '@/components/tests/TestsHeaderAccent.vue';
 import TestsListPanel from '@/components/tests/TestsListPanel.vue';
 import TestPreviewDialog from '@/components/tests/TestPreviewDialog.vue';
+import TestsImportDialog from '@/components/tests/TestsImportDialog.vue';
 import TestsQuestionBankPanel from '@/components/tests/TestsQuestionBankPanel.vue';
 import TestsResultsPanel from '@/components/tests/TestsResultsPanel.vue';
 import TestsSidebarPanel from '@/components/tests/TestsSidebarPanel.vue';
@@ -57,6 +58,7 @@ const builderOpen = ref(props.builderOpen);
 const activeTab = ref(props.activeTab);
 const createTestOpen = ref(false);
 const previewOpen = ref(false);
+const importOpen = ref(false);
 const editorPanel = ref<InstanceType<typeof TestsEditorPanel> | null>(null);
 
 watch(
@@ -355,6 +357,7 @@ defineOptions({
             :tabs="tabs"
             @update:active-tab="changeTab"
             @create="createTestOpen = true"
+            @import="importOpen = true"
         />
 
         <template v-if="activeTab === 'tests' && !builderOpen">
@@ -441,6 +444,13 @@ defineOptions({
             v-model:open="createTestOpen"
             :departments="list.departments"
             @create="createTest"
+        />
+
+        <TestsImportDialog
+            v-model:open="importOpen"
+            :tests="list.items"
+            :current-test-id="editor.id"
+            @imported="openTest"
         />
 
         <TestPreviewDialog

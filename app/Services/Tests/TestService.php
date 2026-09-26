@@ -153,6 +153,24 @@ class TestService
     }
 
     /**
+     * Add several questions at once, all or none (client request 2026-09-26).
+     *
+     * @param  list<array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}>  $questions
+     */
+    public function importQuestions(Test $test, array $questions, User $actor): int
+    {
+        return DB::transaction(function () use ($test, $questions, $actor): int {
+            foreach ($questions as $question) {
+                $this->addQuestion($test, $question, $actor);
+            }
+
+            AuditLog::record($test, 'test.questions.imported', ['count' => count($questions)]);
+
+            return count($questions);
+        });
+    }
+
+    /**
      * @param  array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}  $data
      */
     public function updateQuestion(ActivityPlacement $placement, array $data): ActivityPlacement

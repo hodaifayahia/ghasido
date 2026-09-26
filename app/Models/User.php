@@ -324,13 +324,13 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function hasSubmittedPreTest(): bool
     {
-        return $this->testAttempts()
+        return $this->oncePerRequest('pre-test-submitted', fn (): bool => $this->testAttempts()
             ->where('status', TestAttemptStatus::Submitted->value)
             ->whereHas('test', function (Builder $test): void {
                 /** @var Builder<Test> $test */
                 $test->ofType(TestType::Pre)->forLearner($this);
             })
-            ->exists();
+            ->exists());
     }
 
     /**
@@ -340,7 +340,30 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function hasPreTestToSit(): bool
     {
-        return Test::query()->forLearner($this)->ofType(TestType::Pre)->exists();
+        return $this->oncePerRequest('pre-test-to-sit', fn (): bool => Test::query()->forLearner($this)->ofType(TestType::Pre)->exists());
+    }
+
+    /**
+     * The gate checks run many times in one HTTP request (middleware,
+     * policies, the shared journey prop): answer each once per request.
+     * Kept on the request, never on the model, so the next request, a test
+     * request or a queued job reads fresh rows. A submitted test always
+     * redirects, so no request writes a sitting and then reads the gate.
+     */
+    private function oncePerRequest(string $key, \Closure $compute): bool
+    {
+        $request = request();
+        $key = 'user.'.$this->id.'.'.$key;
+
+        if ($request->route() === null) {
+            return (bool) $compute();
+        }
+
+        if (! $request->attributes->has($key)) {
+            $request->attributes->set($key, (bool) $compute());
+        }
+
+        return (bool) $request->attributes->get($key);
     }
 
     /**

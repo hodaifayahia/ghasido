@@ -33,6 +33,42 @@ class JourneyService
      */
     public function summary(User $user): array
     {
+        // One HTTP request asks for the summary several times (the shared
+        // `journey` prop, the page, the coach): compute it once per request.
+        // Kept on the request itself, so the next request, a test request or
+        // a queued job always reads fresh rows (spec 0003 Part E).
+        $request = request();
+        $key = 'journey.summary.'.$user->id;
+
+        if ($request->route() !== null && $request->attributes->has($key)) {
+            /** @var array{preTestSubmitted: bool, lessonsUnlocked: bool, lessonsCompleted: int, lessonsTotal: int, postTestUnlocked: bool, certificateAvailable: bool, continueUrl: string|null} $cached */
+            $cached = $request->attributes->get($key);
+
+            return $cached;
+        }
+
+        $summary = $this->computeSummary($user);
+
+        if ($request->route() !== null) {
+            $request->attributes->set($key, $summary);
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Drop this request's summary after progress changed within it.
+     */
+    public function forget(User $user): void
+    {
+        request()->attributes->remove('journey.summary.'.$user->id);
+    }
+
+    /**
+     * @return array{preTestSubmitted: bool, lessonsUnlocked: bool, lessonsCompleted: int, lessonsTotal: int, postTestUnlocked: bool, certificateAvailable: bool, continueUrl: string|null}
+     */
+    private function computeSummary(User $user): array
+    {
         $preTestSubmitted = $this->preTestSubmitted($user);
         $lessonsUnlocked = $preTestSubmitted || ! $user->hasPreTestToSit();
         $total = $this->lessonsTotal($user);

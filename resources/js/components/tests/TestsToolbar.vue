@@ -22,6 +22,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     create: [];
+    import: [];
 }>();
 
 const activeTab = defineModel<TestsTabKey>('activeTab', { required: true });
@@ -77,6 +78,8 @@ const tabIcons: Record<TestsTabKey, Component> = {
                 type="button"
                 variant="outline"
                 class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
+                data-test="open-import-questions"
+                @click="emit('import')"
             >
                 <Upload class="size-4" aria-hidden="true" />
                 Import Questions

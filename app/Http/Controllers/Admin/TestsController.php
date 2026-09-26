@@ -10,6 +10,7 @@ use App\Enums\TestQuestionSkill;
 use App\Enums\TestType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Tests\GenerateTestQuestionsRequest;
+use App\Http\Requests\Admin\Tests\ImportTestQuestionsRequest;
 use App\Http\Requests\Admin\Tests\StoreTestQuestionRequest;
 use App\Http\Requests\Admin\Tests\StoreTestRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestQuestionMediaRequest;
@@ -26,6 +27,7 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Content\MediaService;
+use App\Services\Tests\QuestionImport;
 use App\Services\Tests\TestAudio;
 use App\Services\Tests\TestQuestionGenerator;
 use App\Services\Tests\TestService;
@@ -35,8 +37,10 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The Super Admin Pre-test & Post-test builder (TEST-01..10, TSTM-01..05).
@@ -151,6 +155,48 @@ class TestsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question added.')]);
 
         return back();
+    }
+
+    /**
+     * Import questions from a CSV file or pasted rows (client request
+     * 2026-09-26): every row is checked first, and nothing is saved while
+     * any row has a problem.
+     */
+    public function importQuestions(ImportTestQuestionsRequest $request, Test $test, TestService $tests, QuestionImport $import): RedirectResponse
+    {
+        Gate::authorize('update', $test);
+
+        $parsed = $import->parse($request->content());
+
+        if ($parsed['errors'] !== []) {
+            // One key per problem, so the dialog can list every line.
+            $messages = [];
+
+            foreach ($parsed['errors'] as $index => $error) {
+                $messages['import.'.$index] = $error;
+            }
+
+            throw ValidationException::withMessages($messages);
+        }
+
+        /** @var User $actor */
+        $actor = $request->user();
+        $count = $tests->importQuestions($test, $parsed['questions'], $actor);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => trans_choice(':count question imported.|:count questions imported.', $count, ['count' => $count]),
+        ]);
+
+        return back();
+    }
+
+    /** The CSV template for the import dialog. */
+    public function importTemplate(): StreamedResponse
+    {
+        return response()->streamDownload(function (): void {
+            echo QuestionImport::template();
+        }, 'ghasido-test-questions-template.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function updateQuestion(UpdateTestQuestionRequest $request, Test $test, ActivityPlacement $placement, TestService $tests): RedirectResponse
