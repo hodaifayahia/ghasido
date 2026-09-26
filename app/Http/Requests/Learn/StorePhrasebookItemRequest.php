@@ -28,7 +28,7 @@ class StorePhrasebookItemRequest extends FormRequest
      */
     public function rules(): array
     {
-        $user = $this->user();
+        $user = $this->user('web');
         $hotelId = $user?->hotel_id;
 
         return [

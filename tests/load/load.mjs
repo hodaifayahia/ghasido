@@ -55,7 +55,7 @@ class Client {
             ok = res.status < 400;
             if (!ok) note('status:' + res.status, 0, false);
             return res;
-        } catch (e) {
+        } catch {
             note('network', 0, false);
         } finally {
             note(key, performance.now() - t, ok);

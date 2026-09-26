@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\Users\StoreUserRequest;
 use App\Http\Requests\Admin\Users\UpdateUserRequest;
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -68,8 +69,8 @@ class UsersController extends Controller
     {
         Gate::authorize(Permission::UsersManage->value);
         $data = $request->accountData();
-        $role = Role::query()->findOrFail($data['role_id']);
-        $this->assertAssignableRole($request->user(), $role);
+        $role = Role::query()->findOrFail((int) $data['role_id']);
+        $this->assertAssignableRole($request->user('web'), $role);
 
         $account = DB::transaction(function () use ($request, $data, $role): User {
             $user = new User;
@@ -109,14 +110,14 @@ class UsersController extends Controller
         abort_if($user->hasRole(RoleEnum::Employee->value), 404);
         abort_if(
             $user->hasRole(RoleEnum::SuperAdmin->value)
-                && ! $request->user()?->hasRole(RoleEnum::SuperAdmin->value),
+                && ! $request->user('web')?->hasRole(RoleEnum::SuperAdmin->value),
             403,
             __('Only a Super Admin can change another Super Admin account.'),
         );
 
         $data = $request->accountChanges();
-        $role = Role::query()->findOrFail($data['role_id']);
-        $this->assertAssignableRole($request->user(), $role);
+        $role = Role::query()->findOrFail((int) $data['role_id']);
+        $this->assertAssignableRole($request->user('web'), $role);
 
         if ($user->is($request->user()) && $data['status'] !== AccountStatus::Active->value) {
             abort(422, __('You cannot deactivate your own account.'));
@@ -191,14 +192,14 @@ class UsersController extends Controller
     }
 
     /** @return array{id: int, name: string, label: string, permissionCount: int}|null */
-    private function roleRecord(?Role $role): ?array
+    private function roleRecord(?Model $role): ?array
     {
-        if ($role === null) {
+        if (! $role instanceof Role) {
             return null;
         }
 
         return [
-            'id' => $role->id,
+            'id' => (int) $role->id,
             'name' => $role->name,
             'label' => RoleEnum::tryFrom($role->name)?->label() ?? Str::headline($role->name),
             'permissionCount' => $role->permissions->count(),

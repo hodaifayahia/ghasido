@@ -59,7 +59,10 @@ final class AiPointsBalanceService
         return $this->balance('manager', $total, $actionPoints + $voicePoints);
     }
 
-    /** @return array{role: 'employee'|'manager', total: int, used: int, remaining: int, percent: int} */
+    /**
+     * @param  'employee'|'manager'  $role
+     * @return array{role: 'employee'|'manager', total: int, used: int, remaining: int, percent: int}
+     */
     private function balance(string $role, int $total, int $used): array
     {
         $remaining = max(0, $total - $used);

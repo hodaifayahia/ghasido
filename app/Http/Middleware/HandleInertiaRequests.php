@@ -97,10 +97,10 @@ class HandleInertiaRequests extends Middleware
                 'id' => -$topUpRequest->id,
                 'channel' => 'in_app',
                 'subject' => __('AI points depleted at :hotel', [
-                    'hotel' => $topUpRequest->hotel?->name ?? __('Archived hotel'),
+                    'hotel' => $topUpRequest->hotel->name ?? __('Archived hotel'),
                 ]),
                 'body' => __(':requester requested a paid point recharge. Review the request and record payment in Subscriptions.', [
-                    'requester' => $topUpRequest->requester?->name ?? __('A hotel administrator'),
+                    'requester' => $topUpRequest->requester->name ?? __('A hotel administrator'),
                 ]),
                 'sentAt' => $topUpRequest->created_at?->toIso8601String() ?? '',
                 'expiresAt' => null,

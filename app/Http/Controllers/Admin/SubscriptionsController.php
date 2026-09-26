@@ -10,7 +10,6 @@ use App\Models\AuditLog;
 use App\Models\Hotel;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
-use App\Models\User;
 use App\Services\Subscriptions\HotelAiPointTopUpService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -63,7 +62,7 @@ final class SubscriptionsController extends Controller
                 'planId' => $hotel->subscription_plan_id,
                 'planName' => $hotel->subscriptionPlan?->name,
                 'usedEmployees' => $hotel->active_employees_count ?? $hotel->usedSeats(),
-                'employeeLimit' => $hotel->subscriptionPlan?->employee_limit ?? 0,
+                'employeeLimit' => $hotel->subscriptionPlan->employee_limit ?? 0,
             ])->values()->all(),
             'activePlans' => $plans->where('is_active', true)->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
@@ -108,8 +107,8 @@ final class SubscriptionsController extends Controller
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
             'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
         ]);
-        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail($data['hotel_id']);
-        $plan = SubscriptionPlan::query()->findOrFail($data['plan_id']);
+        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail((int) $data['hotel_id']);
+        $plan = SubscriptionPlan::query()->findOrFail((int) $data['plan_id']);
         $subscriptions->assignPlan($hotel, $plan);
 
         Inertia::flash('toast', [
@@ -124,7 +123,7 @@ final class SubscriptionsController extends Controller
     {
         Gate::authorize(Permission::SubscriptionsManage->value);
 
-        abort_unless($request->user()?->hasRole(Role::SuperAdmin->value), 403);
+        abort_unless($request->user('web')?->hasRole(Role::SuperAdmin->value), 403);
 
         $data = $request->validate([
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
@@ -140,10 +139,9 @@ final class SubscriptionsController extends Controller
         $hotel = Hotel::query()
             ->withoutGlobalScopes()
             ->notArchived()
-            ->findOrFail($data['hotel_id']);
+            ->findOrFail((int) $data['hotel_id']);
 
-        /** @var User $actor */
-        $actor = $request->user();
+        $actor = $request->user('web');
         $topUps->recordPayment(
             $hotel,
             (int) $data['points'],

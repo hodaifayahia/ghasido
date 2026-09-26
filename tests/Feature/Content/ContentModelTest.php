@@ -354,7 +354,11 @@ class ContentModelTest extends TestCase
         $public = MediaAsset::factory()->seed('situation-complaint')->create();
         $private = MediaAsset::factory()->recording()->create();
 
-        $this->assertSame(Storage::disk('public')->url('content/seed/situation-complaint.jpg'), $public->url());
+        // With `storage:link` the storage URL; without it (CI, fresh clones)
+        // the copy shipped in public/content/seed. Never the serve route.
+        $path = 'content/seed/situation-complaint.jpg';
+        $expected = is_file(public_path('storage/'.$path)) ? Storage::disk('public')->url($path) : asset($path);
+        $this->assertSame($expected, $public->url());
         $this->assertSame(route('media.show', $private), $private->url());
         $this->assertTrue($public->isImage());
         $this->assertTrue($private->isAudio());

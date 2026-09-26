@@ -70,7 +70,7 @@ final class CheckoutController extends Controller
     /** @return list<array{id: int, name: string, recipientName: ?string, accountReference: string, instructions: ?string}> */
     private function paymentMethods(): array
     {
-        return SubscriptionPaymentMethod::query()
+        return array_values(SubscriptionPaymentMethod::query()
             ->where('is_active', true)
             ->whereNotNull('account_reference')
             ->whereRaw("trim(account_reference) <> ''")
@@ -83,6 +83,6 @@ final class CheckoutController extends Controller
                 'recipientName' => $method->recipient_name,
                 'accountReference' => (string) $method->account_reference,
                 'instructions' => $method->instructions,
-            ])->values()->all();
+            ])->all());
     }
 }
