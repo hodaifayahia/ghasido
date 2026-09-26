@@ -9,6 +9,7 @@ import {
 import { computed, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { intlLocale } from '@/lib/i18n';
 import type { DashboardBriefing } from '@/types';
 
 /*
@@ -50,7 +51,7 @@ watch(
 
 const updated = computed((): string | null =>
     props.briefing.generatedAt
-        ? new Date(props.briefing.generatedAt).toLocaleString('en-GB', {
+        ? new Date(props.briefing.generatedAt).toLocaleString(intlLocale(), {
               day: 'numeric',
               month: 'short',
               hour: '2-digit',
@@ -62,7 +63,7 @@ const updated = computed((): string | null =>
 
 <template>
     <PanelCard
-        title="AI Briefing"
+        :title="$t('AI Briefing')"
         title-id="ai-briefing"
         class="px-3 pt-1 pb-5"
         title-class="text-[17px]"
@@ -81,14 +82,16 @@ const updated = computed((): string | null =>
         <template #actions>
             <span
                 class="bg-ai-tint text-ai rounded-pill px-2 py-0.5 text-[11px] font-semibold"
-                title="Written by AI from the figures on this page"
+                :title="$t('Written by AI from the figures on this page')"
             >
                 AI
             </span>
         </template>
 
         <div v-if="briefing.status === 'pending'" class="grid gap-2">
-            <p class="text-ink/75 text-[13px]">Reading this week's figures…</p>
+            <p class="text-ink/75 text-[13px]">
+                {{ $t("Reading this week's figures…") }}
+            </p>
             <Skeleton class="h-4 w-3/4" />
             <Skeleton class="h-3 w-full" />
             <Skeleton class="h-3 w-5/6" />
@@ -99,15 +102,18 @@ const updated = computed((): string | null =>
             v-else-if="briefing.status === 'empty'"
             class="bg-app-alt text-ink/80 rounded-[8px] px-3 py-4 text-[13px]"
         >
-            The briefing appears once learners are enrolled.
+            {{ $t('The briefing appears once learners are enrolled.') }}
         </p>
 
         <p
             v-else-if="briefing.status === 'failed'"
             class="bg-app-alt text-ink/80 rounded-[8px] px-3 py-4 text-[13px]"
         >
-            The briefing could not be written just now. It will try again within
-            the hour; every figure above is live.
+            {{
+                $t(
+                    'The briefing could not be written just now. It will try again within the hour; every figure above is live.',
+                )
+            }}
         </p>
 
         <div v-else class="grid gap-3">
@@ -119,7 +125,7 @@ const updated = computed((): string | null =>
 
             <section v-if="briefing.highlights.length > 0" class="grid gap-1.5">
                 <h3 class="text-ink/75 text-[12px] font-semibold">
-                    Going well
+                    {{ $t('Going well') }}
                 </h3>
                 <p
                     v-for="item in briefing.highlights"
@@ -136,7 +142,7 @@ const updated = computed((): string | null =>
 
             <section v-if="briefing.concerns.length > 0" class="grid gap-1.5">
                 <h3 class="text-ink/75 text-[12px] font-semibold">
-                    Needs attention
+                    {{ $t('Needs attention') }}
                 </h3>
                 <p
                     v-for="item in briefing.concerns"
@@ -156,7 +162,7 @@ const updated = computed((): string | null =>
                 class="bg-brand-50 grid gap-1.5 rounded-[8px] p-3"
             >
                 <h3 class="text-brand-800 text-[12px] font-semibold">
-                    Suggested this week
+                    {{ $t('Suggested this week') }}
                 </h3>
                 <p
                     v-for="item in briefing.actions"
@@ -172,10 +178,12 @@ const updated = computed((): string | null =>
             </section>
 
             <p class="text-ink-faint text-[11.5px]">
-                <template v-if="briefing.status === 'refreshing'"
-                    >Updating with the latest figures…</template
-                >
-                <template v-else-if="updated">Updated {{ updated }}</template>
+                <template v-if="briefing.status === 'refreshing'">{{
+                    $t('Updating with the latest figures…')
+                }}</template>
+                <template v-else-if="updated">{{
+                    $t('Updated :time', { time: updated })
+                }}</template>
             </p>
         </div>
     </PanelCard>

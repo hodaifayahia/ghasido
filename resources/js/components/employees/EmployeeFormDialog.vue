@@ -124,8 +124,12 @@ const triggerClass =
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`Edit ${employee?.name ?? 'employee'}`"
-        description="Update the account details. Leave the password blank to keep the current one."
+        :title="$t('Edit :name', { name: employee?.name ?? $t('employee') })"
+        :description="
+            $t(
+                'Update the account details. Leave the password blank to keep the current one.',
+            )
+        "
     >
         <Form
             v-if="employee"
@@ -143,7 +147,7 @@ const triggerClass =
                         :for="`edit-name-${employee.id}`"
                         :class="labelClass"
                     >
-                        Full name
+                        {{ $t('Full name') }}
                     </Label>
                     <Input
                         :id="`edit-name-${employee.id}`"
@@ -162,7 +166,7 @@ const triggerClass =
                         :for="`edit-username-${employee.id}`"
                         :class="labelClass"
                     >
-                        Username
+                        {{ $t('Username') }}
                     </Label>
                     <Input
                         :id="`edit-username-${employee.id}`"
@@ -183,14 +187,14 @@ const triggerClass =
                         :for="`edit-password-${employee.id}`"
                         :class="labelClass"
                     >
-                        New password (optional)
+                        {{ $t('New password (optional)') }}
                     </Label>
                     <Input
                         :id="`edit-password-${employee.id}`"
                         name="password"
                         type="password"
                         autocomplete="new-password"
-                        placeholder="Keep current"
+                        :placeholder="$t('Keep current')"
                         :aria-invalid="errors.password ? true : undefined"
                         data-test="edit-employee-password-input"
                         :class="fieldClass"
@@ -203,7 +207,7 @@ const triggerClass =
                         :for="`edit-hotel-${employee.id}`"
                         :class="labelClass"
                     >
-                        Hotel
+                        {{ $t('Hotel') }}
                     </Label>
                     <Select
                         :model-value="hotel"
@@ -214,7 +218,7 @@ const triggerClass =
                             data-test="edit-employee-hotel-select"
                             :class="triggerClass"
                         >
-                            <SelectValue placeholder="Select hotel" />
+                            <SelectValue :placeholder="$t('Select hotel')" />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -235,7 +239,7 @@ const triggerClass =
                         :for="`edit-department-${employee.id}`"
                         :class="labelClass"
                     >
-                        Department
+                        {{ $t('Department') }}
                     </Label>
                     <Select
                         :model-value="department"
@@ -246,7 +250,9 @@ const triggerClass =
                             data-test="edit-employee-department-select"
                             :class="triggerClass"
                         >
-                            <SelectValue placeholder="Select department" />
+                            <SelectValue
+                                :placeholder="$t('Select department')"
+                            />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -267,7 +273,7 @@ const triggerClass =
                         :for="`edit-email-${employee.id}`"
                         :class="labelClass"
                     >
-                        Email address (optional)
+                        {{ $t('Email address (optional)') }}
                     </Label>
                     <Input
                         :id="`edit-email-${employee.id}`"
@@ -286,7 +292,7 @@ const triggerClass =
                         :for="`edit-status-${employee.id}`"
                         :class="labelClass"
                     >
-                        Account status
+                        {{ $t('Account status') }}
                     </Label>
                     <Select
                         :model-value="accountStatus"
@@ -323,7 +329,7 @@ const triggerClass =
                             allowReminderEmails = $event === true
                         "
                     />
-                    Allow training reminder emails
+                    {{ $t('Allow training reminder emails') }}
                 </label>
             </div>
 
@@ -337,7 +343,7 @@ const triggerClass =
                     data-test="cancel-edit-employee-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -345,7 +351,7 @@ const triggerClass =
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-employee-button"
                 >
-                    Save changes
+                    {{ $t('Save changes') }}
                 </Button>
             </div>
         </Form>

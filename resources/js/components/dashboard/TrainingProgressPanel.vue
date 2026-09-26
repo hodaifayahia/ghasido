@@ -11,6 +11,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { TrainingBreakdown, TrainingOverview } from '@/types';
 
@@ -19,9 +21,10 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const ALL = 'all';
-const ALL_LABEL = 'All Departments';
+const ALL_LABEL = tk('All Departments');
 
 const scope = ref<string>(ALL);
 
@@ -42,17 +45,17 @@ const total = computed(
 
 const segments = computed<DonutSegment[]>(() => [
     {
-        label: 'Completed',
+        label: t('Completed'),
         value: breakdown.value.completed,
         colorClass: 'text-success',
     },
     {
-        label: 'In Progress',
+        label: t('In Progress'),
         value: breakdown.value.inProgress,
         colorClass: 'text-azure',
     },
     {
-        label: 'Not Started',
+        label: t('Not Started'),
         value: breakdown.value.notStarted,
         colorClass: 'text-ink-faint/50',
     },
@@ -67,7 +70,11 @@ const summary = computed(() => {
         .map((s) => `${s.value} ${s.label} (${percentOf(s.value)}%)`)
         .join(', ');
 
-    return `${department.value?.name ?? ALL_LABEL}: ${total.value} employees. ${parts}.`;
+    return t(':scope: :total employees. :parts.', {
+        scope: department.value?.name ?? t(ALL_LABEL),
+        total: total.value,
+        parts,
+    });
 });
 
 function onScopeChange(value: AcceptableValue): void {
@@ -77,7 +84,7 @@ function onScopeChange(value: AcceptableValue): void {
 
 <template>
     <PanelCard
-        title="Training Progress Overview"
+        :title="$t('Training Progress Overview')"
         title-id="training-progress"
         class="pt-1.5"
         title-class="pb-1 text-[15px] tracking-tight max-xl:whitespace-normal"
@@ -86,7 +93,7 @@ function onScopeChange(value: AcceptableValue): void {
         <template #actions>
             <Select :model-value="scope" @update:model-value="onScopeChange">
                 <SelectTrigger
-                    aria-label="Filter by department"
+                    :aria-label="$t('Filter by department')"
                     :class="
                         cn(
                             'border-line bg-surface text-ink/80 relative min-w-[123px] shrink-0 gap-1.5 rounded-sm ps-2.5 pe-2 text-[12px] tracking-tight shadow-none',
@@ -101,7 +108,7 @@ function onScopeChange(value: AcceptableValue): void {
                 </SelectTrigger>
                 <SelectContent align="end" class="border-line shadow-pop">
                     <SelectItem :value="ALL" class="text-[13px]">
-                        {{ ALL_LABEL }}
+                        {{ $t(ALL_LABEL) }}
                     </SelectItem>
                     <SelectItem
                         v-for="d in overview.departments"
@@ -120,7 +127,7 @@ function onScopeChange(value: AcceptableValue): void {
         >
             <Donut
                 :segments="segments"
-                :label="`Training progress. ${summary}`"
+                :label="$t('Training progress. :summary', { summary })"
                 :size="164"
                 :thickness="32"
                 :gap="2"
@@ -132,7 +139,7 @@ function onScopeChange(value: AcceptableValue): void {
                     {{ total }}
                 </p>
                 <p class="text-ink/85 mt-1 text-[13px] leading-none">
-                    Employees
+                    {{ $t('Employees') }}
                 </p>
             </Donut>
 

@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { Mail, ShieldAlert } from '@lucide/vue';
 import PanelCard from '@/components/common/PanelCard.vue';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { messagesReminders } from '@/routes';
 import type { AtRiskSummary } from '@/types';
@@ -25,8 +26,8 @@ const levelPill: Record<'high' | 'medium', string> = {
 };
 
 const levelLabel: Record<'high' | 'medium', string> = {
-    high: 'High risk',
-    medium: 'Medium risk',
+    high: tk('High risk'),
+    medium: tk('Medium risk'),
 };
 
 const remindHref = messagesReminders();
@@ -34,7 +35,7 @@ const remindHref = messagesReminders();
 
 <template>
     <PanelCard
-        title="At-risk Learners"
+        :title="$t('At-risk Learners')"
         title-id="at-risk-learners"
         class="px-2.5 pt-1 pb-5"
         title-class="text-[17px]"
@@ -51,9 +52,17 @@ const remindHref = messagesReminders();
 
         <template #actions>
             <p class="text-ink/75 text-[12px]">
-                {{ atRisk.high }} high · {{ atRisk.medium }} medium
+                {{
+                    $t(':high high · :medium medium', {
+                        high: atRisk.high,
+                        medium: atRisk.medium,
+                    })
+                }}
                 <span v-if="atRisk.total > atRisk.rows.length">
-                    · top {{ atRisk.rows.length }} shown</span
+                    ·
+                    {{
+                        $t('top :count shown', { count: atRisk.rows.length })
+                    }}</span
                 >
             </p>
         </template>
@@ -62,8 +71,11 @@ const remindHref = messagesReminders();
             v-if="atRisk.rows.length === 0"
             class="bg-app-alt text-ink/80 rounded-[8px] px-3 py-4 text-[13px]"
         >
-            No learner is at risk right now. Learners appear here when they stop
-            practising, never start, or struggle with their tests or role-plays.
+            {{
+                $t(
+                    'No learner is at risk right now. Learners appear here when they stop practising, never start, or struggle with their tests or role-plays.',
+                )
+            }}
         </p>
 
         <template v-else>
@@ -73,7 +85,9 @@ const remindHref = messagesReminders();
             >
                 <table class="w-full table-fixed border-collapse">
                     <caption class="sr-only">
-                        At-risk learners and the reasons
+                        {{
+                            $t('At-risk learners and the reasons')
+                        }}
                     </caption>
                     <colgroup>
                         <col class="w-[22%]" />
@@ -85,18 +99,20 @@ const remindHref = messagesReminders();
                     <thead class="bg-app-alt">
                         <tr class="text-ink/90 h-[26px] text-[12px]">
                             <th scope="col" class="ps-2 text-start font-medium">
-                                Name
+                                {{ $t('Name') }}
                             </th>
                             <th scope="col" class="ps-2 text-start font-medium">
-                                Department
+                                {{ $t('Department') }}
                             </th>
                             <th scope="col" class="ps-2 text-start font-medium">
-                                Why
+                                {{ $t('Why') }}
                             </th>
                             <th scope="col" class="ps-2 text-start font-medium">
-                                Level
+                                {{ $t('Level') }}
                             </th>
-                            <th scope="col" class="sr-only">Action</th>
+                            <th scope="col" class="sr-only">
+                                {{ $t('Action') }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="text-[12px]">
@@ -128,15 +144,23 @@ const remindHref = messagesReminders();
                                         )
                                     "
                                 >
-                                    {{ levelLabel[learner.level] }}
+                                    {{ $t(levelLabel[learner.level]) }}
                                 </span>
                             </td>
                             <td class="py-1.5 ps-2">
                                 <Link
                                     :href="remindHref"
                                     class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 inline-flex size-[26px] items-center justify-center rounded-sm border transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                                    :aria-label="`Send a reminder to ${learner.name}`"
-                                    :title="`Send a reminder to ${learner.name}`"
+                                    :aria-label="
+                                        $t('Send a reminder to :name', {
+                                            name: learner.name,
+                                        })
+                                    "
+                                    :title="
+                                        $t('Send a reminder to :name', {
+                                            name: learner.name,
+                                        })
+                                    "
                                 >
                                     <Mail
                                         class="size-3.5"
@@ -171,7 +195,7 @@ const remindHref = messagesReminders();
                                 )
                             "
                         >
-                            {{ levelLabel[learner.level] }}
+                            {{ $t(levelLabel[learner.level]) }}
                         </span>
                     </div>
                     <p class="text-ink/75 mt-1 text-[13px]">
@@ -185,10 +209,14 @@ const remindHref = messagesReminders();
                     <Link
                         :href="remindHref"
                         class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 mt-2.5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm border text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        :aria-label="`Send a reminder to ${learner.name}`"
+                        :aria-label="
+                            $t('Send a reminder to :name', {
+                                name: learner.name,
+                            })
+                        "
                     >
                         <Mail class="size-4 shrink-0" aria-hidden="true" />
-                        Send Reminder
+                        {{ $t('Send Reminder') }}
                     </Link>
                 </li>
             </ul>

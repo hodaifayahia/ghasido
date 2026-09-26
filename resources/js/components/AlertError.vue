@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AlertCircle } from '@lucide/vue';
 import { computed } from 'vue';
+import { tk } from '@/lib/i18n';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), {
-    title: 'Something went wrong.',
+    title: tk('Something went wrong.'),
 });
 
 const uniqueErrors = computed(() => Array.from(new Set(props.errors)));
@@ -18,7 +19,7 @@ const uniqueErrors = computed(() => Array.from(new Set(props.errors)));
 <template>
     <Alert variant="destructive">
         <AlertCircle class="size-4" />
-        <AlertTitle>{{ title }}</AlertTitle>
+        <AlertTitle>{{ $t(title) }}</AlertTitle>
         <AlertDescription>
             <ul class="list-inside list-disc text-sm">
                 <li v-for="(error, index) in uniqueErrors" :key="index">

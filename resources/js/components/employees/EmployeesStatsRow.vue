@@ -61,7 +61,7 @@ const looks: Record<EmployeeMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Employee summary"
+        :aria-label="$t('Employee summary')"
         tabindex="0"
         :class="
             cn(

@@ -3,6 +3,7 @@ import { Check, Copy } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import HotelsModal from '@/components/hotels/HotelsModal.vue';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
 import type { EmployeeCredentials } from '@/types';
 
 type Props = {
@@ -14,6 +15,7 @@ const props = defineProps<Props>();
 const open = defineModel<boolean>('open', { required: true });
 
 const copied = ref(false);
+const { t } = useI18n();
 
 watch(open, () => {
     copied.value = false;
@@ -26,7 +28,7 @@ async function copy(): Promise<void> {
 
     try {
         await navigator.clipboard.writeText(
-            `Username: ${props.credentials.username}\nPassword: ${props.credentials.password}`,
+            `${t('Username')}: ${props.credentials.username}\n${t('Password')}: ${props.credentials.password}`,
         );
         copied.value = true;
     } catch {
@@ -38,15 +40,23 @@ async function copy(): Promise<void> {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`New password for ${credentials?.name ?? 'employee'}`"
-        description="Hand these to the employee now. The password is shown once and is not stored in clear anywhere."
+        :title="
+            $t('New password for :name', {
+                name: credentials?.name ?? $t('employee'),
+            })
+        "
+        :description="
+            $t(
+                'Hand these to the employee now. The password is shown once and is not stored in clear anywhere.',
+            )
+        "
     >
         <div v-if="credentials" class="mt-2 grid gap-3">
             <dl
                 class="border-line bg-app grid gap-2 rounded-md border p-4 text-[13px]"
             >
                 <div class="flex items-center justify-between gap-3">
-                    <dt class="text-ink-slate">Username</dt>
+                    <dt class="text-ink-slate">{{ $t('Username') }}</dt>
                     <dd
                         class="text-brand-900 font-semibold"
                         data-test="reset-username"
@@ -55,7 +65,7 @@ async function copy(): Promise<void> {
                     </dd>
                 </div>
                 <div class="flex items-center justify-between gap-3">
-                    <dt class="text-ink-slate">Password</dt>
+                    <dt class="text-ink-slate">{{ $t('Password') }}</dt>
                     <dd
                         class="text-brand-900 font-mono text-[15px] font-semibold tracking-[0.06em]"
                         data-test="reset-password"
@@ -78,7 +88,7 @@ async function copy(): Promise<void> {
                         class="size-4"
                         aria-hidden="true"
                     />
-                    {{ copied ? 'Copied' : 'Copy' }}
+                    {{ copied ? $t('Copied') : $t('Copy') }}
                 </Button>
                 <Button
                     type="button"
@@ -86,7 +96,7 @@ async function copy(): Promise<void> {
                     data-test="close-credentials-button"
                     @click="open = false"
                 >
-                    Done
+                    {{ $t('Done') }}
                 </Button>
             </div>
         </div>

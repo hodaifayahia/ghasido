@@ -64,7 +64,7 @@ function detailParts(details: string): string[] {
 
 <template>
     <PanelCard
-        title="Recent Activity"
+        :title="$t('Recent Activity')"
         title-id="recent-activity"
         :class="
             cn('px-4 pt-3 pb-4 md:px-2.5 md:pt-1 md:pb-[13px]', props.class)
@@ -91,7 +91,7 @@ function detailParts(details: string): string[] {
                 :href="reportsExport()"
                 class="text-brand-800 ease-brand hover:text-brand-600 focus-visible:ring-brand-600/40 -me-1 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm px-1 text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none md:min-h-7"
             >
-                View All
+                {{ $t('View All') }}
                 <ArrowRight
                     class="size-3.5 rtl:-scale-x-100"
                     aria-hidden="true"
@@ -107,7 +107,9 @@ function detailParts(details: string): string[] {
                 class="w-full table-fixed border-collapse text-xs tracking-[-0.01em]"
             >
                 <caption class="sr-only">
-                    Recent employee activity
+                    {{
+                        $t('Recent employee activity')
+                    }}
                 </caption>
                 <colgroup>
                     <col class="w-[19.1%]" />
@@ -118,19 +120,19 @@ function detailParts(details: string): string[] {
                 <thead class="bg-app-alt">
                     <tr class="text-ink/80 h-7">
                         <th scope="col" class="ps-[7px] text-start font-medium">
-                            Date &amp; Time
+                            {{ $t('Date & Time') }}
                         </th>
                         <th scope="col" class="ps-[7px] text-start font-medium">
-                            Employee
+                            {{ $t('Employee') }}
                         </th>
                         <th scope="col" class="ps-[7px] text-start font-medium">
-                            Activity
+                            {{ $t('Activity') }}
                         </th>
                         <th
                             scope="col"
                             class="border-line border-s ps-2 text-start font-medium"
                         >
-                            Details
+                            {{ $t('Details') }}
                         </th>
                     </tr>
                 </thead>

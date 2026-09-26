@@ -19,6 +19,7 @@ import {
     statusTone,
 } from '@/components/employees/employeeStatus';
 import { useCan } from '@/composables/useCan';
+import { useI18n } from '@/composables/useI18n';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { loading: false });
+const { t } = useI18n();
 
 export type EmployeeFilterValues = {
     search: string;
@@ -178,18 +180,20 @@ const iconButton =
 
 function remindTitle(employee: EmployeeRecord): string {
     if (employee.canRemind) {
-        return `Send reminder to ${employee.name}`;
+        return t('Send reminder to :name', { name: employee.name });
     }
 
     return employee.emailAddress === null
-        ? `${employee.name} has no email address`
-        : `${employee.name} has not consented to reminder emails`;
+        ? t(':name has no email address', { name: employee.name })
+        : t(':name has not consented to reminder emails', {
+              name: employee.name,
+          });
 }
 </script>
 
 <template>
     <section
-        aria-label="Employees directory"
+        :aria-label="$t('Employees directory')"
         class="border-line bg-surface shadow-card rounded-lg border p-2.5"
     >
         <div class="flex flex-col gap-2 xl:flex-row xl:items-center">
@@ -201,8 +205,8 @@ function remindTitle(employee: EmployeeRecord): string {
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search by name, username or email..."
-                    aria-label="Search employees"
+                    :placeholder="$t('Search by name, username or email...')"
+                    :aria-label="$t('Search employees')"
                     data-test="employees-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
@@ -214,7 +218,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     @update:model-value="onSelect('hotel', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by hotel"
+                        :aria-label="$t('Filter by hotel')"
                         data-test="employees-hotel-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -237,7 +241,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     @update:model-value="onSelect('department', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by department"
+                        :aria-label="$t('Filter by department')"
                         data-test="employees-department-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[156px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -260,7 +264,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by status"
+                        :aria-label="$t('Filter by status')"
                         data-test="employees-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[138px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -286,7 +290,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
-                    Reset
+                    {{ $t('Reset') }}
                 </Button>
             </div>
 
@@ -308,38 +312,38 @@ function remindTitle(employee: EmployeeRecord): string {
                             <th class="w-9 px-3 py-2 text-center">
                                 <Checkbox
                                     :model-value="allVisibleSelected"
-                                    aria-label="Select all employees"
+                                    :aria-label="$t('Select all employees')"
                                     data-test="select-all-employees"
                                     @update:model-value="toggleAll"
                                 />
                             </th>
                             <th class="w-10 ps-1 pe-2 text-start">#</th>
                             <th class="w-[108px] px-2 py-[7px] text-start">
-                                Name
+                                {{ $t('Name') }}
                             </th>
                             <th class="w-[74px] px-2 py-[7px] text-start">
-                                Username
+                                {{ $t('Username') }}
                             </th>
                             <th class="w-[94px] px-2 py-[7px] text-start">
-                                Hotel
+                                {{ $t('Hotel') }}
                             </th>
                             <th class="w-[92px] px-2 py-[7px] text-start">
-                                Department
+                                {{ $t('Department') }}
                             </th>
                             <th class="w-[142px] px-2 py-[7px] text-start">
-                                Email
+                                {{ $t('Email') }}
                             </th>
                             <th class="w-[100px] px-2 py-[7px] text-start">
-                                Progress
+                                {{ $t('Progress') }}
                             </th>
                             <th class="w-[86px] px-2 py-[7px] text-start">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th class="w-[78px] px-2 py-[7px] text-start">
-                                Last Login
+                                {{ $t('Last Login') }}
                             </th>
                             <th class="w-[118px] px-2 py-[7px] text-start">
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -352,7 +356,11 @@ function remindTitle(employee: EmployeeRecord): string {
                             <td class="px-3 py-[6px] text-center align-middle">
                                 <Checkbox
                                     :model-value="selectedSet.has(employee.id)"
-                                    :aria-label="`Select ${employee.name}`"
+                                    :aria-label="
+                                        $t('Select :name', {
+                                            name: employee.name,
+                                        })
+                                    "
                                     @update:model-value="
                                         setRowSelection(employee.id, $event)
                                     "
@@ -406,7 +414,11 @@ function remindTitle(employee: EmployeeRecord): string {
                                     <ProgressBar
                                         :value="employee.progress"
                                         :tone="progressTone[employee.status]"
-                                        :label="`${employee.name} progress`"
+                                        :label="
+                                            $t(':name progress', {
+                                                name: employee.name,
+                                            })
+                                        "
                                         class="h-[6px] w-[56px]"
                                     />
                                 </div>
@@ -420,7 +432,7 @@ function remindTitle(employee: EmployeeRecord): string {
                                         )
                                     "
                                 >
-                                    {{ statusText[employee.status] }}
+                                    {{ $t(statusText[employee.status]) }}
                                 </span>
                             </td>
                             <td
@@ -433,7 +445,11 @@ function remindTitle(employee: EmployeeRecord): string {
                                     <button
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`View ${employee.name}`"
+                                        :aria-label="
+                                            $t('View :name', {
+                                                name: employee.name,
+                                            })
+                                        "
                                         :data-test="`employee-${employee.id}-view-button`"
                                         @click="
                                             emit('action', 'view', employee)
@@ -448,7 +464,11 @@ function remindTitle(employee: EmployeeRecord): string {
                                         <button
                                             type="button"
                                             :class="cn(iconButton, 'size-6.5')"
-                                            :aria-label="`Edit ${employee.name}`"
+                                            :aria-label="
+                                                $t('Edit :name', {
+                                                    name: employee.name,
+                                                })
+                                            "
                                             :data-test="`employee-${employee.id}-edit-button`"
                                             @click="
                                                 emit('action', 'edit', employee)
@@ -496,7 +516,7 @@ function remindTitle(employee: EmployeeRecord): string {
                                 colspan="11"
                                 class="text-ink-muted px-4 py-8 text-center text-[13px]"
                             >
-                                No employees match these filters.
+                                {{ $t('No employees match these filters.') }}
                             </td>
                         </tr>
                     </tbody>
@@ -524,7 +544,9 @@ function remindTitle(employee: EmployeeRecord): string {
                         </div>
                         <Checkbox
                             :model-value="selectedSet.has(employee.id)"
-                            :aria-label="`Select ${employee.name}`"
+                            :aria-label="
+                                $t('Select :name', { name: employee.name })
+                            "
                             class="size-5"
                             @update:model-value="
                                 setRowSelection(employee.id, $event)
@@ -536,27 +558,27 @@ function remindTitle(employee: EmployeeRecord): string {
                         class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
                     >
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Hotel:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Hotel:')
+                            }}</span>
                             {{ employee.hotel }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Department:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Department:')
+                            }}</span>
                             {{ employee.department }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Email:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Email:')
+                            }}</span>
                             {{ employee.email }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Last Login:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Last Login:')
+                            }}</span>
                             {{ employee.lastLogin }}
                         </p>
                     </div>
@@ -568,7 +590,9 @@ function remindTitle(employee: EmployeeRecord): string {
                         <ProgressBar
                             :value="employee.progress"
                             :tone="progressTone[employee.status]"
-                            :label="`${employee.name} progress`"
+                            :label="
+                                $t(':name progress', { name: employee.name })
+                            "
                             class="h-2 flex-1"
                         />
                     </div>
@@ -582,14 +606,16 @@ function remindTitle(employee: EmployeeRecord): string {
                                 )
                             "
                         >
-                            {{ statusText[employee.status] }}
+                            {{ $t(statusText[employee.status]) }}
                         </span>
 
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
                                 :class="cn(iconButton, 'size-9')"
-                                :aria-label="`View ${employee.name}`"
+                                :aria-label="
+                                    $t('View :name', { name: employee.name })
+                                "
                                 @click="emit('action', 'view', employee)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
@@ -598,7 +624,11 @@ function remindTitle(employee: EmployeeRecord): string {
                                 <button
                                     type="button"
                                     :class="cn(iconButton, 'size-9')"
-                                    :aria-label="`Edit ${employee.name}`"
+                                    :aria-label="
+                                        $t('Edit :name', {
+                                            name: employee.name,
+                                        })
+                                    "
                                     @click="emit('action', 'edit', employee)"
                                 >
                                     <Pencil class="size-4" aria-hidden="true" />
@@ -626,7 +656,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     v-if="employees.length === 0"
                     class="text-ink-muted bg-surface p-6 text-center text-[13px]"
                 >
-                    No employees match these filters.
+                    {{ $t('No employees match these filters.') }}
                 </li>
             </ul>
         </div>
@@ -635,12 +665,17 @@ function remindTitle(employee: EmployeeRecord): string {
             class="text-ink-muted mt-2.5 flex flex-col gap-2 text-[12.5px] leading-5 lg:flex-row lg:items-center lg:justify-between"
         >
             <p>
-                Showing {{ pagination.from }}-{{ pagination.to }} of
-                {{ pagination.total }} employees
+                {{
+                    $t('Showing :from-:to of :total employees', {
+                        from: pagination.from,
+                        to: pagination.to,
+                        total: pagination.total,
+                    })
+                }}
             </p>
 
             <nav
-                aria-label="Employees pagination"
+                :aria-label="$t('Employees pagination')"
                 class="flex flex-wrap items-center gap-1.5"
             >
                 <button
@@ -651,7 +686,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     @click="goTo(pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
-                    Previous
+                    {{ $t('Previous') }}
                 </button>
 
                 <template
@@ -691,7 +726,7 @@ function remindTitle(employee: EmployeeRecord): string {
                     data-test="employees-next-page"
                     @click="goTo(pagination.currentPage + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                     <ChevronRight class="size-3.5" aria-hidden="true" />
                 </button>
             </nav>

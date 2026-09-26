@@ -30,9 +30,9 @@ const props = defineProps<Props>();
         <p class="text-[12.5px] leading-4 whitespace-nowrap">
             <span class="text-brand-600 font-semibold">GHASIDO</span>
             <span class="text-ink-faint mx-[15px]" aria-hidden="true">|</span>
-            <span class="text-ink-faint"
-                >Real English for a Warmer Welcome</span
-            >
+            <span class="text-ink-faint">{{
+                $t('Real English for a Warmer Welcome')
+            }}</span>
         </p>
 
         <p
@@ -48,7 +48,7 @@ const props = defineProps<Props>();
                 draggable="false"
                 class="pointer-events-none -mb-1.5 h-auto w-[140px] opacity-65 select-none"
             />
-            <span>Hotel People. Brighter Futures.</span>
+            <span>{{ $t('Hotel People. Brighter Futures.') }}</span>
         </p>
     </footer>
 </template>

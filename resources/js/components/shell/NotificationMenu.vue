@@ -10,6 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { intlLocale } from '@/lib/i18n';
 import { subscriptions } from '@/routes';
 import { messages } from '@/routes/learn';
 import type { AppNotification } from '@/types';
@@ -91,7 +92,7 @@ function markRead(notification: AppNotification): void {
 }
 
 function sentTime(value: string): string {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(intlLocale(), {
         hour: 'numeric',
         minute: '2-digit',
     }).format(new Date(value));
@@ -105,8 +106,8 @@ function sentTime(value: string): string {
                 type="button"
                 :aria-label="
                     unread > 0
-                        ? `Notifications, ${unread} unread`
-                        : 'Notifications, none unread'
+                        ? $t('Notifications, :count unread', { count: unread })
+                        : $t('Notifications, none unread')
                 "
                 class="text-brand-800/85 hover:bg-brand-50 focus-visible:ring-brand-600/40 data-[state=open]:bg-brand-50 flex size-11 shrink-0 items-center justify-center rounded-md transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none"
                 data-test="notification-menu-trigger"
@@ -133,13 +134,13 @@ function sentTime(value: string): string {
                 class="flex items-center justify-between gap-2 px-4 py-3"
             >
                 <span class="font-heading text-brand-800 text-sm font-semibold">
-                    Notifications
+                    {{ $t('Notifications') }}
                 </span>
                 <span
                     v-if="unread > 0"
                     class="rounded-pill bg-danger-tint text-danger-text px-2 py-0.5 text-xs font-semibold"
                 >
-                    {{ unread }} unread
+                    {{ $t(':count unread', { count: unread }) }}
                 </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator class="mx-0 my-0" />
@@ -178,13 +179,13 @@ function sentTime(value: string): string {
                             v-if="!item.read"
                             class="text-brand-600 mt-1 inline-block text-[11px] font-semibold"
                         >
-                            New
+                            {{ $t('New') }}
                         </span>
                     </div>
                 </DropdownMenuItem>
             </div>
             <p v-else class="text-ink-slate px-4 py-5 text-center text-sm">
-                You’re all caught up.
+                {{ $t('You’re all caught up.') }}
             </p>
 
             <DropdownMenuSeparator class="mx-0 my-0" />
@@ -195,8 +196,8 @@ function sentTime(value: string): string {
                 >
                     {{
                         isSuperAdmin
-                            ? 'Review point requests'
-                            : 'View all notifications'
+                            ? $t('Review point requests')
+                            : $t('View all notifications')
                     }}
                 </Link>
             </DropdownMenuItem>

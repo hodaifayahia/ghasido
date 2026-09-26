@@ -24,7 +24,7 @@ function formatPoints(points: number): string {
 
 <template>
     <PanelCard
-        title="AI cost and points this month"
+        :title="$t('AI cost and points this month')"
         title-id="dashboard-ai-point-spend-title"
         class="min-w-0"
         body-class="mt-2"
@@ -36,7 +36,7 @@ function formatPoints(points: number): string {
                 <p
                     class="text-ink-slate text-xs font-semibold tracking-wide uppercase"
                 >
-                    Voice agent
+                    {{ $t('Voice agent') }}
                 </p>
                 <p
                     class="font-heading text-brand-800 mt-1 text-2xl leading-7 font-bold"
@@ -44,16 +44,20 @@ function formatPoints(points: number): string {
                     {{ formatUsd(summary.voiceAgent.costUsd) }}
                 </p>
                 <p class="text-ink-slate mt-0.5 text-xs">
-                    Estimated provider cost
+                    {{ $t('Estimated provider cost') }}
                 </p>
                 <p class="text-ink-indigo mt-2 text-sm font-medium">
-                    {{ formatPoints(summary.voiceAgent.points) }} points used
+                    {{
+                        $t(':points points used', {
+                            points: formatPoints(summary.voiceAgent.points),
+                        })
+                    }}
                 </p>
                 <p
                     v-if="!summary.voiceAgent.priceComplete"
                     class="text-sunset mt-1 text-xs"
                 >
-                    Some voice usage has no saved provider price.
+                    {{ $t('Some voice usage has no saved provider price.') }}
                 </p>
             </article>
 
@@ -63,7 +67,7 @@ function formatPoints(points: number): string {
                 <p
                     class="text-ink-slate text-xs font-semibold tracking-wide uppercase"
                 >
-                    LLM
+                    {{ $t('LLM') }}
                 </p>
                 <p
                     class="font-heading text-brand-800 mt-1 text-2xl leading-7 font-bold"
@@ -71,22 +75,29 @@ function formatPoints(points: number): string {
                     {{ formatUsd(summary.llm.costUsd) }}
                 </p>
                 <p class="text-ink-slate mt-0.5 text-xs">
-                    Estimated provider cost
+                    {{ $t('Estimated provider cost') }}
                 </p>
                 <p class="text-ink-indigo mt-2 text-sm font-medium">
-                    {{ formatPoints(summary.llm.points) }} points used
+                    {{
+                        $t(':points points used', {
+                            points: formatPoints(summary.llm.points),
+                        })
+                    }}
                 </p>
                 <p
                     v-if="!summary.llm.priceComplete"
                     class="text-sunset mt-1 text-xs"
                 >
-                    Some LLM usage has no saved provider price.
+                    {{ $t('Some LLM usage has no saved provider price.') }}
                 </p>
             </article>
         </div>
         <p class="text-ink-slate mt-2 text-xs leading-4">
-            USD cost uses configured provider prices. Points show employee AI
-            allowance usage.
+            {{
+                $t(
+                    'USD cost uses configured provider prices. Points show employee AI allowance usage.',
+                )
+            }}
         </p>
     </PanelCard>
 </template>

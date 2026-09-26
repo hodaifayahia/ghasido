@@ -34,7 +34,7 @@ const props = withDefaults(defineProps<Props>(), {
     <span
         v-else
         role="img"
-        aria-label="GHASIDO — English for Hotel Staff"
+        :aria-label="$t('GHASIDO — English for Hotel Staff')"
         :class="cn('flex shrink-0 items-center', props.class)"
     >
         <img

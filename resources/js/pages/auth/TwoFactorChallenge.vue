@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Form, Head, setLayoutProps } from '@inertiajs/vue3';
 import { computed, ref, watchEffect } from 'vue';
+import TransText from '@/components/common/TransText.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from '@/components/ui/input-otp';
+import { tk } from '@/lib/i18n';
 import { store } from '@/routes/two-factor/login';
 import type { TwoFactorConfigContent } from '@/types';
 
@@ -18,18 +20,20 @@ const code = ref<string>('');
 const authConfigContent = computed<TwoFactorConfigContent>(() => {
     if (showRecoveryInput.value) {
         return {
-            title: 'Recovery code',
-            description:
+            title: tk('Recovery code'),
+            description: tk(
                 'Please confirm access to your account by entering one of your emergency recovery codes.',
-            buttonText: 'login using an authentication code',
+            ),
+            buttonText: tk('login using an authentication code'),
         };
     }
 
     return {
-        title: 'Authentication code',
-        description:
+        title: tk('Authentication code'),
+        description: tk(
             'Enter the authentication code provided by your authenticator application.',
-        buttonText: 'login using a recovery code',
+        ),
+        buttonText: tk('login using a recovery code'),
     };
 });
 
@@ -48,7 +52,7 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
 </script>
 
 <template>
-    <Head title="Two-factor authentication" />
+    <Head :title="$t('Two-factor authentication')" />
 
     <div class="space-y-6">
         <template v-if="!showRecoveryInput">
@@ -82,18 +86,21 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
                     </div>
                     <InputError :message="errors.code" />
                 </div>
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
-                >
+                <Button type="submit" class="w-full" :disabled="processing">{{
+                    $t('Continue')
+                }}</Button>
                 <div class="text-muted-foreground text-center text-sm">
-                    <span>or you can </span>
-                    <button
-                        type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                        @click="() => toggleRecoveryMode(clearErrors)"
-                    >
-                        {{ authConfigContent.buttonText }}
-                    </button>
+                    <TransText text="or you can :action">
+                        <template #action>
+                            <button
+                                type="button"
+                                class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                @click="() => toggleRecoveryMode(clearErrors)"
+                            >
+                                {{ $t(authConfigContent.buttonText) }}
+                            </button>
+                        </template>
+                    </TransText>
                 </div>
             </Form>
         </template>
@@ -108,24 +115,27 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
                 <Input
                     name="recovery_code"
                     type="text"
-                    placeholder="Enter recovery code"
+                    :placeholder="$t('Enter recovery code')"
                     :autofocus="showRecoveryInput"
                     required
                 />
                 <InputError :message="errors.recovery_code" />
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
-                >
+                <Button type="submit" class="w-full" :disabled="processing">{{
+                    $t('Continue')
+                }}</Button>
 
                 <div class="text-muted-foreground text-center text-sm">
-                    <span>or you can </span>
-                    <button
-                        type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                        @click="() => toggleRecoveryMode(clearErrors)"
-                    >
-                        {{ authConfigContent.buttonText }}
-                    </button>
+                    <TransText text="or you can :action">
+                        <template #action>
+                            <button
+                                type="button"
+                                class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                @click="() => toggleRecoveryMode(clearErrors)"
+                            >
+                                {{ $t(authConfigContent.buttonText) }}
+                            </button>
+                        </template>
+                    </TransText>
                 </div>
             </Form>
         </template>

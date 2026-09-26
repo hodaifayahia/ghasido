@@ -103,14 +103,18 @@ const fieldClass =
         @click="open = true"
     >
         <UserPlus class="size-4" aria-hidden="true" />
-        Add New Employee
+        {{ $t('Add New Employee') }}
     </Button>
 
     <!-- Account creation stays server-authorized and quota-checked (SUB-02). -->
     <HotelsModal
         v-model:open="open"
-        title="Add New Employee"
-        description="Create an employee account and assign it to a hotel and department."
+        :title="$t('Add New Employee')"
+        :description="
+            $t(
+                'Create an employee account and assign it to a hotel and department.',
+            )
+        "
         class="sm:max-w-[600px]"
     >
         <Form
@@ -127,12 +131,12 @@ const fieldClass =
                     for="employee-full-name"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Full Name <span class="text-danger">*</span>
+                    {{ $t('Full Name') }} <span class="text-danger">*</span>
                 </Label>
                 <Input
                     id="employee-full-name"
                     name="name"
-                    placeholder="Enter full name"
+                    :placeholder="$t('Enter full name')"
                     autocomplete="off"
                     required
                     :aria-invalid="errors.name ? true : undefined"
@@ -147,12 +151,12 @@ const fieldClass =
                     for="employee-username"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Username <span class="text-danger">*</span>
+                    {{ $t('Username') }} <span class="text-danger">*</span>
                 </Label>
                 <Input
                     id="employee-username"
                     name="username"
-                    placeholder="Enter username"
+                    :placeholder="$t('Enter username')"
                     autocomplete="off"
                     autocapitalize="none"
                     spellcheck="false"
@@ -170,7 +174,7 @@ const fieldClass =
                         for="employee-password"
                         class="text-brand-900 text-[12.5px] font-semibold"
                     >
-                        Password <span class="text-danger">*</span>
+                        {{ $t('Password') }} <span class="text-danger">*</span>
                     </Label>
                     <button
                         type="button"
@@ -178,7 +182,7 @@ const fieldClass =
                         data-test="generate-password-button"
                         @click="fillGeneratedPassword"
                     >
-                        Generate
+                        {{ $t('Generate') }}
                     </button>
                 </div>
                 <div class="relative">
@@ -186,7 +190,7 @@ const fieldClass =
                         id="employee-password"
                         v-model="password"
                         :type="showPassword ? 'text' : 'password'"
-                        placeholder="Enter password"
+                        :placeholder="$t('Enter password')"
                         autocomplete="new-password"
                         required
                         :aria-invalid="errors.password ? true : undefined"
@@ -197,7 +201,9 @@ const fieldClass =
                         type="button"
                         class="text-ink-faint hover:text-brand-700 absolute end-3 top-1/2 -translate-y-1/2"
                         :aria-label="
-                            showPassword ? 'Hide password' : 'Show password'
+                            showPassword
+                                ? $t('Hide password')
+                                : $t('Show password')
                         "
                         :aria-pressed="showPassword"
                         @click="showPassword = !showPassword"
@@ -217,7 +223,7 @@ const fieldClass =
                     for="employee-hotel"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Hotel <span class="text-danger">*</span>
+                    {{ $t('Hotel') }} <span class="text-danger">*</span>
                 </Label>
                 <Select
                     :model-value="hotel"
@@ -228,7 +234,7 @@ const fieldClass =
                         data-test="employee-hotel-select"
                         class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[12.5px] shadow-none"
                     >
-                        <SelectValue placeholder="Select hotel" />
+                        <SelectValue :placeholder="$t('Select hotel')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -249,7 +255,7 @@ const fieldClass =
                     for="employee-department"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Department <span class="text-danger">*</span>
+                    {{ $t('Department') }} <span class="text-danger">*</span>
                 </Label>
                 <Select
                     :model-value="department"
@@ -260,7 +266,7 @@ const fieldClass =
                         data-test="employee-department-select"
                         class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[12.5px] shadow-none"
                     >
-                        <SelectValue placeholder="Select department" />
+                        <SelectValue :placeholder="$t('Select department')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -281,13 +287,13 @@ const fieldClass =
                     for="employee-email"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Email Address
+                    {{ $t('Email Address') }}
                 </Label>
                 <Input
                     id="employee-email"
                     name="email"
                     type="email"
-                    placeholder="Enter email (optional)"
+                    :placeholder="$t('Enter email (optional)')"
                     autocomplete="off"
                     :aria-invalid="errors.email ? true : undefined"
                     data-test="employee-email-input"
@@ -306,7 +312,7 @@ const fieldClass =
                     @update:model-value="allowReminderEmails = $event === true"
                 />
                 <span class="flex min-w-0 items-center gap-1.5">
-                    <span>Allow training reminder emails</span>
+                    <span>{{ $t('Allow training reminder emails') }}</span>
                     <Info
                         class="text-ink-faint size-3.5 shrink-0"
                         aria-hidden="true"
@@ -319,7 +325,7 @@ const fieldClass =
                     for="employee-status"
                     class="text-brand-900 text-[12.5px] font-semibold"
                 >
-                    Account Status
+                    {{ $t('Account Status') }}
                 </Label>
                 <Select
                     :model-value="accountStatus"
@@ -353,7 +359,7 @@ const fieldClass =
                 data-test="create-employee-button"
             >
                 <Plus class="size-4.5" aria-hidden="true" />
-                Create Employee
+                {{ $t('Create Employee') }}
             </Button>
         </Form>
     </HotelsModal>

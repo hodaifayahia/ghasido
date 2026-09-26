@@ -4,6 +4,8 @@ import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
 import { formatCount, formatUsd } from '@/components/owner/format';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { AiCreditAccount, ApiAccountState } from '@/types';
 
@@ -19,13 +21,14 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const stateLabel: Record<ApiAccountState, string> = {
-    unlimited: 'No limit set',
-    active: 'Active',
-    low: 'Running low',
-    exhausted: 'Out of credit',
-    paused: 'Paused',
+    unlimited: tk('No limit set'),
+    active: tk('Active'),
+    low: tk('Running low'),
+    exhausted: tk('Out of credit'),
+    paused: tk('Paused'),
 };
 
 const stateTone: Record<ApiAccountState, string> = {
@@ -38,18 +41,26 @@ const stateTone: Record<ApiAccountState, string> = {
 
 function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
     if (meter.meter === 'seconds') {
-        return `${formatCount(Math.floor(meter.left / 60))} of ${formatCount(Math.floor(meter.granted / 60))} minutes left`;
+        return t(':left of :granted minutes left', {
+            left: formatCount(Math.floor(meter.left / 60)),
+            granted: formatCount(Math.floor(meter.granted / 60)),
+        });
     }
 
-    const noun = meter.meter === 'tokens' ? 'tokens' : 'characters';
+    const counts = {
+        left: formatCount(meter.left),
+        granted: formatCount(meter.granted),
+    };
 
-    return `${formatCount(meter.left)} of ${formatCount(meter.granted)} ${noun} left`;
+    return meter.meter === 'tokens'
+        ? t(':left of :granted tokens left', counts)
+        : t(':left of :granted characters left', counts);
 }
 </script>
 
 <template>
     <PanelCard
-        title="AI credit"
+        :title="$t('AI credit')"
         title-id="ai-credit-title"
         :class="props.class"
         body-class="mt-2"
@@ -83,7 +94,7 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                             )
                         "
                     >
-                        {{ stateLabel[item.state] }}
+                        {{ $t(stateLabel[item.state]) }}
                     </span>
                 </div>
 
@@ -96,7 +107,11 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                         <span
                             class="text-ink-slate font-sans text-xs font-normal"
                         >
-                            left of {{ formatUsd(item.creditUsd) }}
+                            {{
+                                $t('left of :amount', {
+                                    amount: formatUsd(item.creditUsd),
+                                })
+                            }}
                         </span>
                     </p>
                     <ProgressBar
@@ -104,7 +119,11 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                         :tone="
                             (item.shareLeft ?? 0) < 0.2 ? 'warning' : 'brand'
                         "
-                        :label="`${item.service} credit left`"
+                        :label="
+                            $t(':service credit left', {
+                                service: item.service,
+                            })
+                        "
                     />
                     <p
                         v-for="meter in item.meters"
@@ -115,8 +134,11 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                     </p>
                 </template>
                 <p v-else class="text-ink-slate text-xs">
-                    No limit set: the platform owner has not added a credit for
-                    this service yet.
+                    {{
+                        $t(
+                            'No limit set: the platform owner has not added a credit for this service yet.',
+                        )
+                    }}
                 </p>
 
                 <p
@@ -127,10 +149,11 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                         class="mt-px size-3.5 shrink-0"
                         aria-hidden="true"
                     />
-                    <span
-                        >AI features that use this service are paused. Ask the
-                        platform owner to recharge.</span
-                    >
+                    <span>{{
+                        $t(
+                            'AI features that use this service are paused. Ask the platform owner to recharge.',
+                        )
+                    }}</span>
                 </p>
                 <p
                     v-else-if="item.state === 'low'"
@@ -140,10 +163,11 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                         class="mt-px size-3.5 shrink-0"
                         aria-hidden="true"
                     />
-                    <span
-                        >Running low. Ask the platform owner to recharge
-                        soon.</span
-                    >
+                    <span>{{
+                        $t(
+                            'Running low. Ask the platform owner to recharge soon.',
+                        )
+                    }}</span>
                 </p>
             </article>
         </div>

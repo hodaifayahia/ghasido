@@ -31,7 +31,7 @@ function toneFor(percent: number): ProgressTone {
 
 <template>
     <PanelCard
-        title="Progress by Department"
+        :title="$t('Progress by Department')"
         title-id="department-progress"
         class="pe-3.5 pt-1.5"
         title-class="pb-1 text-[14px] tracking-tight"
@@ -43,7 +43,7 @@ function toneFor(percent: number): ProgressTone {
                 :href="reportsExport()"
                 class="text-brand-700 hover:text-brand-600 focus-visible:ring-brand-600/40 relative -mx-1 mb-1 inline-flex shrink-0 items-center gap-1 rounded-sm px-1 text-[12px] font-medium tracking-tight transition-colors before:absolute before:-inset-x-2 before:-inset-y-3 focus-visible:ring-2 focus-visible:outline-none md:before:hidden"
             >
-                View Details
+                {{ $t('View Details') }}
                 <ArrowRight
                     class="size-3"
                     :stroke-width="2.25"
@@ -66,7 +66,11 @@ function toneFor(percent: number): ProgressTone {
                 <ProgressBar
                     :value="department.percent"
                     :tone="toneFor(department.percent)"
-                    :label="`${department.name} training progress`"
+                    :label="
+                        $t(':department training progress', {
+                            department: department.name,
+                        })
+                    "
                     class="bg-line h-2.5"
                 />
                 <span

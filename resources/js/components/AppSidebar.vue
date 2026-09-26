@@ -36,6 +36,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
     aiScenarios,
@@ -113,62 +114,62 @@ const outline = 'stroke-[2.25]';
 // Sections without a route yet have no href: NavMain renders them as buttons
 // that announce "coming soon" instead of failing silently.
 const mainNavItems: SidebarNavItem[] = [
-    { title: 'Dashboard', href: dashboard(), icon: SolidHouseIcon },
+    { title: tk('Dashboard'), href: dashboard(), icon: SolidHouseIcon },
     {
-        title: 'Hotels',
+        title: tk('Hotels'),
         href: hotels(),
         icon: SolidBuildingIcon,
         permission: 'hotels.view',
     },
     {
-        title: 'Subscriptions',
+        title: tk('Subscriptions'),
         href: subscriptions(),
         icon: CreditCard,
         permission: 'subscriptions.manage',
     },
     {
-        title: 'Departments',
+        title: tk('Departments'),
         href: departments(),
         icon: SolidUsersGroupIcon,
         permission: 'departments.view',
     },
     {
-        title: 'Employees',
+        title: tk('Employees'),
         href: employees(),
         icon: User,
         iconClass: solid,
         permission: 'employees.view',
     },
     {
-        title: 'AI Points',
+        title: tk('AI Points'),
         href: aiPointsRoute(),
         icon: Coins,
         roles: ['admin', 'manager'],
         permission: 'ai_points.manage',
     },
     {
-        title: 'Lessons & Content',
+        title: tk('Lessons & Content'),
         href: lessonsContent(),
         icon: BookOpen,
         iconClass: outline,
         permission: 'lessons.view',
     },
     {
-        title: 'AI Scenarios',
+        title: tk('AI Scenarios'),
         href: aiScenarios(),
         icon: Bot,
         iconClass: `${solid} [&>path:first-child]:fill-none [&>path:nth-last-child(-n+2)]:stroke-surface`,
         permission: 'scenarios.view',
     },
     {
-        title: 'Pre-test & Post-test',
+        title: tk('Pre-test & Post-test'),
         href: tests(),
         icon: ClipboardCheck,
         iconClass: `${solid} [&>path:last-child]:fill-none [&>path:last-child]:stroke-surface`,
         permission: 'tests.view',
     },
     {
-        title: 'Messages & Reminders',
+        title: tk('Messages & Reminders'),
         href: messagesReminders(),
         icon: SolidMailIcon,
         // The longest label: a touch tighter so it stays on one line in the
@@ -177,7 +178,7 @@ const mainNavItems: SidebarNavItem[] = [
         permission: 'messages.view',
     },
     {
-        title: 'Reports & Export',
+        title: tk('Reports & Export'),
         href: reportsExport(),
         icon: SolidBarsIcon,
         permission: 'reports.view',
@@ -187,36 +188,36 @@ const mainNavItems: SidebarNavItem[] = [
         // a collapsible group that opens to the full learner navigation.
         // Shown only to managers; the Super Admin previews training through
         // the CMS, and every learner route is authorized on the server.
-        title: 'My Training',
+        title: tk('My Training'),
         icon: GraduationCap,
         iconClass: outline,
         roles: ['manager'],
         children: [
-            { title: 'Home', href: learnHome(), icon: SolidHouseIcon },
+            { title: tk('Home'), href: learnHome(), icon: SolidHouseIcon },
             {
-                title: 'My Lessons',
+                title: tk('My Lessons'),
                 href: learnLessons(),
                 icon: BookOpen,
                 iconClass: outline,
             },
             {
-                title: 'My Phrasebook',
+                title: tk('My Phrasebook'),
                 href: learnPhrasebook(),
                 icon: Star,
                 iconClass: solid,
             },
             {
-                title: 'My Progress',
+                title: tk('My Progress'),
                 href: learnProgress(),
                 icon: SolidBarsIcon,
             },
             {
-                title: 'Messages',
+                title: tk('Messages'),
                 href: learnMessages(),
                 icon: SolidMailIcon,
             },
             {
-                title: 'Certificate',
+                title: tk('Certificate'),
                 href: learnCertificate(),
                 icon: Award,
                 iconClass: outline,
@@ -224,7 +225,7 @@ const mainNavItems: SidebarNavItem[] = [
         ],
     },
     {
-        title: 'Roles & Permissions',
+        title: tk('Roles & Permissions'),
         href: roles(),
         icon: ShieldCheck,
         iconClass: outline,
@@ -233,7 +234,7 @@ const mainNavItems: SidebarNavItem[] = [
         permission: 'roles.view',
     },
     {
-        title: 'Users',
+        title: tk('Users'),
         href: '/users',
         icon: User,
         iconClass: solid,
@@ -241,7 +242,7 @@ const mainNavItems: SidebarNavItem[] = [
         permission: 'users.view',
     },
     {
-        title: 'Website Management',
+        title: tk('Website Management'),
         href: editLandingPage(),
         icon: Globe,
         iconClass: outline,
@@ -253,19 +254,24 @@ const mainNavItems: SidebarNavItem[] = [
 
 const accountNavItems: SidebarNavItem[] = [
     {
-        title: 'Settings',
+        title: tk('Settings'),
         href: editProfile(),
         activeFor: [editSecurity(), editAppearance()],
         icon: Settings,
         iconClass: `${solid} [&>circle]:fill-surface [&>circle]:stroke-none`,
     },
     {
-        title: 'Help',
+        title: tk('Help'),
         href: '/help',
         icon: CircleQuestionMark,
         iconClass: `${solid} [&>path]:fill-none [&>path]:stroke-surface`,
     },
-    { title: 'Log out', icon: LogOut, action: 'logout', iconClass: outline },
+    {
+        title: tk('Log out'),
+        icon: LogOut,
+        action: 'logout',
+        iconClass: outline,
+    },
 ];
 
 const adminNav: SidebarNav = {
@@ -325,7 +331,7 @@ function closeMobileSidebar(): void {
                 )
             "
         >
-            <nav aria-label="Main" class="flex shrink-0 flex-col">
+            <nav :aria-label="$t('Main')" class="flex shrink-0 flex-col">
                 <NavMain :items="nav.main.items" :class="nav.main.class" />
                 <SidebarSeparator
                     :class="cn(separatorClass, nav.separatorClass)"

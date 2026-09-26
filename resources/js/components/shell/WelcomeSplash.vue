@@ -167,13 +167,17 @@ const orbs = [
                     class="animate-fade-up text-brand-600 mt-6 flex items-center gap-2 text-[13px] font-bold tracking-[0.16em] uppercase [animation-delay:550ms] motion-reduce:animate-none"
                 >
                     <Sparkles class="size-4" aria-hidden="true" />
-                    Your first sign-in
+                    {{ $t('Your first sign-in') }}
                 </p>
                 <h2
                     id="welcome-splash-title"
                     class="animate-fade-up font-heading text-ink-royal mt-3 text-[clamp(2rem,6vw,3rem)] leading-[1.1] font-bold tracking-[-0.03em] [animation-delay:700ms] motion-reduce:animate-none"
                 >
-                    Welcome{{ firstName ? `, ${firstName}` : '' }}!
+                    {{
+                        firstName
+                            ? $t('Welcome, :name!', { name: firstName })
+                            : $t('Welcome!')
+                    }}
                 </h2>
                 <p
                     id="welcome-splash-text"
@@ -181,8 +185,12 @@ const orbs = [
                 >
                     {{
                         isEmployee
-                            ? 'Your hotel English journey starts today — one short step at a time.'
-                            : 'Your GHASIDO workspace is ready. Let’s help your team speak with confidence.'
+                            ? $t(
+                                  'Your hotel English journey starts today — one short step at a time.',
+                              )
+                            : $t(
+                                  'Your GHASIDO workspace is ready. Let’s help your team speak with confidence.',
+                              )
                     }}
                 </p>
 
@@ -192,7 +200,7 @@ const orbs = [
                     data-test="welcome-splash-start"
                     @click="close"
                 >
-                    Let’s begin
+                    {{ $t('Let’s begin') }}
                     <ArrowRight class="size-5" aria-hidden="true" />
                 </button>
             </div>

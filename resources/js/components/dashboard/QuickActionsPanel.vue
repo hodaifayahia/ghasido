@@ -16,6 +16,7 @@ import type { Component, HTMLAttributes } from 'vue';
 import { computed } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
     aiScenarios,
@@ -57,7 +58,7 @@ type QuickAction = {
 
 const actions: QuickAction[] = [
     {
-        label: 'Add Hotel',
+        label: tk('Add Hotel'),
         icon: Hotel,
         size: 23,
         glyphClass: '[&>path]:hidden [&>rect]:fill-current',
@@ -68,21 +69,21 @@ const actions: QuickAction[] = [
         href: hotels(),
     },
     {
-        label: 'Add Department',
+        label: tk('Add Department'),
         icon: UserPlus,
         size: 26,
         glyphClass: '[&>circle]:fill-current [&>path]:fill-current',
         href: departments(),
     },
     {
-        label: 'Add Employee',
+        label: tk('Add Employee'),
         icon: UserPlus,
         size: 26,
         glyphClass: '[&>circle]:fill-current [&>path]:fill-current',
         href: employees(),
     },
     {
-        label: 'Create Lesson',
+        label: tk('Create Lesson'),
         icon: BookOpen,
         glyphClass: '[&>path]:fill-current [&>path:first-child]:hidden',
         overlayClass: '[&>path]:stroke-surface [&>path:last-child]:hidden',
@@ -90,7 +91,7 @@ const actions: QuickAction[] = [
         href: lessonsContent(),
     },
     {
-        label: 'Add AI Scenario',
+        label: tk('Add AI Scenario'),
         icon: Bot,
         size: 28,
         glyphClass:
@@ -99,7 +100,7 @@ const actions: QuickAction[] = [
         href: aiScenarios(),
     },
     {
-        label: 'Manage Tests',
+        label: tk('Manage Tests'),
         icon: ClipboardList,
         size: 25,
         glyphClass:
@@ -108,21 +109,21 @@ const actions: QuickAction[] = [
         permission: 'tests.view',
     },
     {
-        label: 'Send Reminder',
+        label: tk('Send Reminder'),
         icon: Mail,
         glyphClass: '[&>path]:hidden [&>rect]:fill-current',
         overlayClass: '[&>path]:stroke-surface [&>rect]:hidden',
         href: messagesReminders(),
     },
     {
-        label: 'View Reports',
+        label: tk('View Reports'),
         icon: ChartNoAxesColumnIncreasing,
         size: 22,
         strokeWidth: 5.8,
         href: reportsExport(),
     },
     {
-        label: 'System Settings',
+        label: tk('System Settings'),
         icon: Settings,
         glyphClass:
             '[&>circle]:fill-surface [&>circle]:stroke-none [&>path]:fill-current',
@@ -137,7 +138,7 @@ const visibleActions = computed(() =>
 
 <template>
     <PanelCard
-        title="Quick Actions"
+        :title="$t('Quick Actions')"
         title-id="quick-actions"
         :class="cn('px-2.5 pt-1.5 pb-2', props.class)"
         title-class="ps-1 text-[15px] tracking-tight"
@@ -185,7 +186,7 @@ const visibleActions = computed(() =>
                     <span
                         class="text-ink/80 text-[11px] leading-[14px] font-medium tracking-tight xl:text-[10px]"
                     >
-                        {{ action.label }}
+                        {{ $t(action.label) }}
                     </span>
                 </component>
             </li>

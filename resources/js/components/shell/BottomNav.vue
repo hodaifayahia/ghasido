@@ -4,6 +4,7 @@ import { BookOpen, Star, TrendingUp, UserRound } from '@lucide/vue';
 import type { Component } from 'vue';
 import SolidHouseIcon from '@/components/icons/SolidHouseIcon.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { home, lessons, phrasebook, progress } from '@/routes/learn';
 import { edit as editProfile } from '@/routes/profile';
@@ -23,11 +24,11 @@ type Tab = {
 };
 
 const tabs: Tab[] = [
-    { title: 'Home', href: home(), icon: SolidHouseIcon, exact: true },
-    { title: 'Lessons', href: lessons(), icon: BookOpen },
-    { title: 'Phrasebook', href: phrasebook(), icon: Star },
-    { title: 'Progress', href: progress(), icon: TrendingUp },
-    { title: 'Profile', href: editProfile(), icon: UserRound },
+    { title: tk('Home'), href: home(), icon: SolidHouseIcon, exact: true },
+    { title: tk('Lessons'), href: lessons(), icon: BookOpen },
+    { title: tk('Phrasebook'), href: phrasebook(), icon: Star },
+    { title: tk('Progress'), href: progress(), icon: TrendingUp },
+    { title: tk('Profile'), href: editProfile(), icon: UserRound },
 ];
 
 const { isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
@@ -39,7 +40,7 @@ function isActive(tab: Tab): boolean {
 
 <template>
     <nav
-        aria-label="Primary"
+        :aria-label="$t('Primary')"
         class="bg-surface border-line h-bottomnav fixed inset-x-0 bottom-0 z-20 flex border-t md:hidden"
     >
         <Link
@@ -69,7 +70,7 @@ function isActive(tab: Tab): boolean {
                 "
                 aria-hidden="true"
             />
-            {{ tab.title }}
+            {{ $t(tab.title) }}
         </Link>
     </nav>
 </template>

@@ -5,6 +5,7 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { tk } from '@/lib/i18n';
 import { toUrl } from '@/lib/utils';
 import { edit as editAiModels } from '@/routes/ai-models';
 import { index as aiUsage } from '@/routes/ai-usage';
@@ -24,22 +25,22 @@ const isWideSettingsPage = computed(
 // everyone else, so hiding it here is presentation (API-04, ROLE-01).
 const sidebarNavItems = computed((): NavItem[] => [
     {
-        title: 'Profile',
+        title: tk('Profile'),
         href: editProfile(),
     },
     {
-        title: 'Security',
+        title: tk('Security'),
         href: editSecurity(),
     },
     {
-        title: 'Appearance',
+        title: tk('Appearance'),
         href: editAppearance(),
     },
     ...(page.props.auth.user?.role === 'super_admin'
         ? [
-              { title: 'AI models', href: editAiModels() },
-              { title: 'AI usage', href: aiUsage() },
-              { title: 'Landing page', href: '/settings/landing-page' },
+              { title: tk('AI models'), href: editAiModels() },
+              { title: tk('AI usage'), href: aiUsage() },
+              { title: tk('Landing page'), href: '/settings/landing-page' },
           ]
         : []),
 ]);
@@ -50,15 +51,15 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            :title="$t('Settings')"
+            :description="$t('Manage your profile and account settings')"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav
                     class="flex flex-col space-y-1 space-x-0"
-                    aria-label="Settings"
+                    :aria-label="$t('Settings')"
                 >
                     <Button
                         v-for="item in sidebarNavItems"
@@ -72,7 +73,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                     >
                         <Link :href="item.href">
                             <component :is="item.icon" class="h-4 w-4" />
-                            {{ item.title }}
+                            {{ $t(item.title) }}
                         </Link>
                     </Button>
                 </nav>

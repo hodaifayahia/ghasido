@@ -1,4 +1,5 @@
 import type { ProgressTone } from '@/components/data/ProgressBar.vue';
+import { tk } from '@/lib/i18n';
 import type { EmployeeStatus } from '@/types';
 
 /**
@@ -6,10 +7,10 @@ import type { EmployeeStatus } from '@/types';
  * table, the mobile cards and the View dialog (11-components.md §11.3).
  */
 export const statusText: Record<EmployeeStatus, string> = {
-    completed: 'Completed',
-    in_progress: 'In Progress',
-    not_started: 'Not Started',
-    inactive: 'Inactive',
+    completed: tk('Completed'),
+    in_progress: tk('In Progress'),
+    not_started: tk('Not Started'),
+    inactive: tk('Inactive'),
 };
 
 export const statusTone: Record<EmployeeStatus, string> = {
