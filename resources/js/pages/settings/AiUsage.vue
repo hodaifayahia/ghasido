@@ -6,6 +6,7 @@ import AiCreditPanel from '@/components/common/AiCreditPanel.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import Heading from '@/components/Heading.vue';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index as aiUsageIndex } from '@/routes/ai-usage';
 import type { AiCreditAccount, AiUsageReport } from '@/types';
@@ -29,7 +30,7 @@ const props = defineProps<Props>();
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'AI usage', href: aiUsageIndex() }],
+        breadcrumbs: [{ title: tk('AI usage'), href: aiUsageIndex() }],
     },
 });
 
@@ -80,14 +81,18 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
 </script>
 
 <template>
-    <Head title="AI usage" />
-    <h1 class="sr-only">AI usage</h1>
+    <Head :title="$t('AI usage')" />
+    <h1 class="sr-only">{{ $t('AI usage') }}</h1>
 
     <div class="flex min-w-0 flex-col space-y-6">
         <Heading
             variant="small"
-            title="AI usage"
-            description="What the platform's AI calls cost, by feature, model, hotel and day, at the platform owner's prices."
+            :title="$t('AI usage')"
+            :description="
+                $t(
+                    'What the platform\'s AI calls cost, by feature, model, hotel and day, at the platform owner\'s prices.',
+                )
+            "
         />
 
         <AiCreditPanel :accounts="aiCredit" />
@@ -96,7 +101,7 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             <div
                 class="border-line bg-surface inline-flex rounded-md border p-0.5"
                 role="group"
-                aria-label="Period"
+                :aria-label="$t('Period')"
             >
                 <button
                     v-for="period in periods"
@@ -113,16 +118,16 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                     "
                     @click="filter(period, hotel)"
                 >
-                    {{ period }} days
+                    {{ $tc(':count day|:count days', period) }}
                 </button>
             </div>
-            <label for="usage-hotel" class="sr-only">Hotel</label>
+            <label for="usage-hotel" class="sr-only">{{ $t('Hotel') }}</label>
             <select
                 id="usage-hotel"
                 v-model="hotel"
                 :class="cn(fieldClass, 'w-auto min-w-48')"
             >
-                <option value="">All hotels and platform</option>
+                <option value="">{{ $t('All hotels and platform') }}</option>
                 <option
                     v-for="item in hotels"
                     :key="item.id"
@@ -136,8 +141,8 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
         <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
                 :value="report.totals.calls"
-                label="AI calls"
-                :detail="`Last ${report.period} days`"
+                :label="$t('AI calls')"
+                :detail="$tc('Last :count day|Last :count days', report.period)"
                 tone="brand"
             >
                 <template #icon
@@ -153,8 +158,13 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                     )
                 "
                 unit="k"
-                label="Tokens and characters"
-                :detail="`${number.format(report.totals.promptTokens)} in · ${number.format(report.totals.completionTokens)} out`"
+                :label="$t('Tokens and characters')"
+                :detail="
+                    $t(':in in · :out out', {
+                        in: number.format(report.totals.promptTokens),
+                        out: number.format(report.totals.completionTokens),
+                    })
+                "
                 tone="azure"
             >
                 <template #icon
@@ -163,10 +173,12 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             </StatCard>
             <StatCard
                 :value="Math.round(report.totals.cost)"
-                label="Estimated cost"
+                :label="$t('Estimated cost')"
                 :detail="
                     report.totals.estimated
-                        ? `${money.format(report.totals.cost)} · partly at current prices`
+                        ? $t(':cost · partly at current prices', {
+                              cost: money.format(report.totals.cost),
+                          })
                         : money.format(report.totals.cost)
                 "
                 tone="warning"
@@ -177,8 +189,8 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             </StatCard>
             <StatCard
                 :value="report.totals.points"
-                label="Learner AI points spent"
-                detail="From hotels' monthly allowances"
+                :label="$t('Learner AI points spent')"
+                :detail="$t('From hotels\' monthly allowances')"
                 tone="ai"
             >
                 <template #icon
@@ -192,22 +204,34 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             class="bg-warning-tint text-warning-text rounded-md px-3 py-2 text-[12.5px]"
             data-test="unpriced-models"
         >
-            No price yet for {{ report.unpricedModels.join(', ') }}: their calls
-            count as free until the platform owner adds one.
+            {{
+                $t(
+                    'No price yet for :models: their calls count as free until the platform owner adds one.',
+                    { models: report.unpricedModels.join(', ') },
+                )
+            }}
         </p>
 
-        <PanelCard title="Cost per day" title-id="usage-daily">
+        <PanelCard :title="$t('Cost per day')" title-id="usage-daily">
             <p
                 v-if="report.totals.calls === 0"
                 class="text-ink-slate text-[13px]"
             >
-                No AI calls in this period.
+                {{ $t('No AI calls in this period.') }}
             </p>
             <div
                 v-else
                 class="flex h-40 items-end gap-[3px]"
                 role="img"
-                :aria-label="`${chartByCost ? 'Cost' : 'Calls'} per day over the last ${report.period} days`"
+                :aria-label="
+                    chartByCost
+                        ? $t('Cost per day over the last :count days', {
+                              count: report.period,
+                          })
+                        : $t('Calls per day over the last :count days', {
+                              count: report.period,
+                          })
+                "
             >
                 <div
                     v-for="day in report.daily"
@@ -216,7 +240,13 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                     :style="{
                         height: `${Math.max(2, (chartByCost ? day.cost / maxDaily : day.calls / maxDailyCalls) * 100)}%`,
                     }"
-                    :title="`${day.label}: ${day.calls} calls · ${money.format(day.cost)}`"
+                    :title="
+                        $t(':date: :calls calls · :cost', {
+                            date: day.label,
+                            calls: day.calls,
+                            cost: money.format(day.cost),
+                        })
+                    "
                 />
             </div>
             <div
@@ -229,16 +259,18 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
         </PanelCard>
 
         <div class="grid min-w-0 gap-4 xl:grid-cols-2">
-            <PanelCard title="By feature" title-id="usage-feature">
+            <PanelCard :title="$t('By feature')" title-id="usage-feature">
                 <table class="w-full table-fixed border-collapse">
                     <thead class="bg-app-alt">
                         <tr class="h-[26px]">
-                            <th scope="col" :class="head">Feature</th>
+                            <th scope="col" :class="head">
+                                {{ $t('Feature') }}
+                            </th>
                             <th scope="col" :class="cn(head, 'w-20 text-end')">
-                                Calls
+                                {{ $t('Calls') }}
                             </th>
                             <th scope="col" :class="cn(head, 'w-24 text-end')">
-                                Cost
+                                {{ $t('Cost') }}
                             </th>
                         </tr>
                     </thead>
@@ -259,14 +291,16 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                             </td>
                         </tr>
                         <tr v-if="report.byFeature.length === 0">
-                            <td colspan="3" :class="cell">No calls yet.</td>
+                            <td colspan="3" :class="cell">
+                                {{ $t('No calls yet.') }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </PanelCard>
 
             <PanelCard
-                :title="report.hotel === null ? 'By hotel' : 'By model'"
+                :title="report.hotel === null ? $t('By hotel') : $t('By model')"
                 title-id="usage-hotel-model"
             >
                 <table
@@ -275,12 +309,12 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                 >
                     <thead class="bg-app-alt">
                         <tr class="h-[26px]">
-                            <th scope="col" :class="head">Hotel</th>
+                            <th scope="col" :class="head">{{ $t('Hotel') }}</th>
                             <th scope="col" :class="cn(head, 'w-20 text-end')">
-                                Calls
+                                {{ $t('Calls') }}
                             </th>
                             <th scope="col" :class="cn(head, 'w-24 text-end')">
-                                Cost
+                                {{ $t('Cost') }}
                             </th>
                         </tr>
                     </thead>
@@ -301,19 +335,21 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                             </td>
                         </tr>
                         <tr v-if="report.byHotel.length === 0">
-                            <td colspan="3" :class="cell">No calls yet.</td>
+                            <td colspan="3" :class="cell">
+                                {{ $t('No calls yet.') }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
                 <table v-else class="w-full table-fixed border-collapse">
                     <thead class="bg-app-alt">
                         <tr class="h-[26px]">
-                            <th scope="col" :class="head">Model</th>
+                            <th scope="col" :class="head">{{ $t('Model') }}</th>
                             <th scope="col" :class="cn(head, 'w-20 text-end')">
-                                Calls
+                                {{ $t('Calls') }}
                             </th>
                             <th scope="col" :class="cn(head, 'w-24 text-end')">
-                                Cost
+                                {{ $t('Cost') }}
                             </th>
                         </tr>
                     </thead>
@@ -341,24 +377,26 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
             </PanelCard>
         </div>
 
-        <PanelCard title="By model" title-id="usage-model">
+        <PanelCard :title="$t('By model')" title-id="usage-model">
             <div class="overflow-x-auto">
                 <table class="w-full min-w-[640px] border-collapse">
                     <thead class="bg-app-alt">
                         <tr class="h-[26px]">
-                            <th scope="col" :class="head">Model</th>
-                            <th scope="col" :class="head">Provider</th>
-                            <th scope="col" :class="cn(head, 'text-end')">
-                                Calls
+                            <th scope="col" :class="head">{{ $t('Model') }}</th>
+                            <th scope="col" :class="head">
+                                {{ $t('Provider') }}
                             </th>
                             <th scope="col" :class="cn(head, 'text-end')">
-                                In
+                                {{ $t('Calls') }}
                             </th>
                             <th scope="col" :class="cn(head, 'text-end')">
-                                Out
+                                {{ $t('In') }}
                             </th>
                             <th scope="col" :class="cn(head, 'text-end')">
-                                Cost
+                                {{ $t('Out') }}
+                            </th>
+                            <th scope="col" :class="cn(head, 'text-end')">
+                                {{ $t('Cost') }}
                             </th>
                         </tr>
                     </thead>
@@ -386,7 +424,9 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                             </td>
                         </tr>
                         <tr v-if="report.byModel.length === 0">
-                            <td colspan="6" :class="cell">No calls yet.</td>
+                            <td colspan="6" :class="cell">
+                                {{ $t('No calls yet.') }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>

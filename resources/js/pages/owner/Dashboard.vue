@@ -8,6 +8,7 @@ import OwnerAccountCard from '@/components/owner/OwnerAccountCard.vue';
 import OwnerPriceTable from '@/components/owner/OwnerPriceTable.vue';
 import { formatCount, formatUsd } from '@/components/owner/format';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { ApiAccountCard, OwnerConsolePayload } from '@/types';
 
 /*
@@ -17,6 +18,7 @@ import type { ApiAccountCard, OwnerConsolePayload } from '@/types';
 type Props = OwnerConsolePayload;
 
 const props = defineProps<Props>();
+const { t } = useI18n();
 
 const qwen = computed(() =>
     props.accounts.find((card) => card.account === 'qwen'),
@@ -50,8 +52,8 @@ function balanceLabel(card: ApiAccountCard | undefined): string {
     const name = card?.label ?? '';
 
     return card?.mode === 'none'
-        ? `${name}: no limit, cost ($)`
-        : `Her ${name} balance ($)`;
+        ? t(':name: no limit, cost ($)', { name })
+        : t('Her :name balance ($)', { name });
 }
 
 function balanceDetail(card: ApiAccountCard | undefined): string {
@@ -60,12 +62,15 @@ function balanceDetail(card: ApiAccountCard | undefined): string {
     }
 
     if (card.state === 'paused') {
-        return 'Paused';
+        return t('Paused');
     }
 
     return card.mode === 'none'
-        ? 'Recharge to set a limit'
-        : `${formatUsd(card.client.remainingUsd ?? 0)} of ${formatUsd(card.client.creditUsd)}`;
+        ? t('Recharge to set a limit')
+        : t(':remaining of :credit', {
+              remaining: formatUsd(card.client.remainingUsd ?? 0),
+              credit: formatUsd(card.client.creditUsd),
+          });
 }
 
 const tokens = computed(() =>
@@ -115,12 +120,16 @@ watch(
 </script>
 
 <template>
-    <Head title="Owner console" />
+    <Head :title="$t('Owner console')" />
 
     <div class="flex min-w-0 flex-col gap-5">
         <PageHeader
-            title="API accounts"
-            description="Keys, credit and prices for the paid AI services GHASIDO runs on."
+            :title="$t('API accounts')"
+            :description="
+                $t(
+                    'Keys, credit and prices for the paid AI services GHASIDO runs on.',
+                )
+            "
         />
 
         <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -143,12 +152,17 @@ watch(
                 "
                 unit="k"
                 :label="
-                    tokens?.limited ? 'Qwen tokens left' : 'Qwen tokens used'
+                    tokens?.limited
+                        ? $t('Qwen tokens left')
+                        : $t('Qwen tokens used')
                 "
                 :detail="
                     tokens?.limited
-                        ? `${formatCount(tokensLeft)} of ${formatCount(tokens.granted)}`
-                        : 'No token limit set'
+                        ? $t(':remaining of :credit', {
+                              remaining: formatCount(tokensLeft),
+                              credit: formatCount(tokens.granted),
+                          })
+                        : $t('No token limit set')
                 "
                 :tone="creditTone(qwen, 'brand')"
             >
@@ -168,8 +182,12 @@ watch(
             </StatCard>
             <StatCard
                 :value="Math.round(totalCost)"
-                label="Your cost ($)"
-                :detail="`${formatUsd(totalCost)} at provider prices`"
+                :label="$t('Your cost ($)')"
+                :detail="
+                    $t(':cost at provider prices', {
+                        cost: formatUsd(totalCost),
+                    })
+                "
                 tone="success"
             >
                 <template #icon

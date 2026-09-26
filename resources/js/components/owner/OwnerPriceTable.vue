@@ -4,6 +4,7 @@ import { Plus, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import InputError from '@/components/InputError.vue';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { update as updatePrices } from '@/routes/owner/prices';
 import type { AiPriceRow } from '@/types';
@@ -28,26 +29,26 @@ type Scale = { label: string; hint: string; factor: number; split: boolean };
 // factor: shown = stored per million × factor.
 const scales: Record<string, Scale> = {
     tokens: {
-        label: 'Tokens (text)',
-        hint: 'per 1M tokens',
+        label: tk('Tokens (text)'),
+        hint: tk('per 1M tokens'),
         factor: 1,
         split: true,
     },
     characters: {
-        label: 'Characters (speech)',
-        hint: 'per 1M characters',
+        label: tk('Characters (speech)'),
+        hint: tk('per 1M characters'),
         factor: 1,
         split: false,
     },
     seconds: {
-        label: 'Audio time',
-        hint: 'per minute',
+        label: tk('Audio time'),
+        hint: tk('per minute'),
         factor: 60 / 1_000_000,
         split: false,
     },
     images: {
-        label: 'Images',
-        hint: 'per image',
+        label: tk('Images'),
+        hint: tk('per image'),
         factor: 1 / 1_000_000,
         split: false,
     },
@@ -132,7 +133,7 @@ const grid =
 </script>
 
 <template>
-    <PanelCard title="Prices" title-id="owner-prices">
+    <PanelCard :title="$t('Prices')" title-id="owner-prices">
         <template #actions>
             <button
                 type="button"
@@ -140,17 +141,16 @@ const grid =
                 @click="addRow()"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                Add model
+                {{ $t('Add model') }}
             </button>
         </template>
 
         <p class="text-ink-slate mb-3 text-[12.5px] leading-5">
-            What each provider charges you, in dollars. These prices turn usage
-            into the spend taken off each account's credit, and the Super
-            Admin's AI usage page shows costs at them. Use the model id as the
-            app records it; end it with * to cover every model that starts the
-            same way (for example aura-2-*). Usage recorded before a price
-            existed is costed at today's price.
+            {{
+                $t(
+                    "What each provider charges you, in dollars. These prices turn usage into the spend taken off each account's credit, and the Super Admin's AI usage page shows costs at them. Use the model id as the app records it; end it with * to cover every model that starts the same way (for example aura-2-*). Usage recorded before a price existed is costed at today's price.",
+                )
+            }}
         </p>
 
         <div
@@ -158,13 +158,15 @@ const grid =
             class="bg-warning-tint text-warning-text mb-3 flex flex-wrap items-center gap-2 rounded-md px-3 py-2 text-[12.5px]"
             data-test="owner-unpriced-models"
         >
-            <span>Used with no price yet:</span>
+            <span>{{ $t('Used with no price yet:') }}</span>
             <button
                 v-for="item in missing"
                 :key="item.model"
                 type="button"
                 class="border-warning/40 bg-surface text-warning-text hover:bg-warning-tint focus-visible:ring-warning/25 inline-flex h-8 items-center gap-1 rounded-md border px-2 font-mono text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
-                :aria-label="`Add a price for ${item.model}`"
+                :aria-label="
+                    $t('Add a price for :model', { model: item.model })
+                "
                 @click="addRow(item.model, item.unit)"
             >
                 <Plus class="size-3.5" aria-hidden="true" />
@@ -183,10 +185,10 @@ const grid =
                 "
                 aria-hidden="true"
             >
-                <span>Model id</span>
-                <span>Counted in</span>
-                <span>Price</span>
-                <span>Output price</span>
+                <span>{{ $t('Model id') }}</span>
+                <span>{{ $t('Counted in') }}</span>
+                <span>{{ $t('Price') }}</span>
+                <span>{{ $t('Output price') }}</span>
                 <span />
             </div>
 
@@ -196,37 +198,41 @@ const grid =
                 :class="cn('grid gap-2 sm:items-start', grid)"
             >
                 <div>
-                    <label :for="`owner-price-model-${index}`" class="sr-only"
-                        >Model id</label
+                    <label
+                        :for="`owner-price-model-${index}`"
+                        class="sr-only"
+                        >{{ $t('Model id') }}</label
                     >
                     <input
                         :id="`owner-price-model-${index}`"
                         v-model="row.model"
                         :class="cn(fieldClass, 'font-mono')"
-                        placeholder="Model id"
+                        :placeholder="$t('Model id')"
                         maxlength="150"
                     />
                     <InputError :message="errors[`prices.${index}.model`]" />
                 </div>
                 <div>
-                    <label :for="`owner-price-unit-${index}`" class="sr-only"
-                        >Counted in</label
-                    >
+                    <label :for="`owner-price-unit-${index}`" class="sr-only">{{
+                        $t('Counted in')
+                    }}</label>
                     <select
                         :id="`owner-price-unit-${index}`"
                         v-model="row.unit"
                         :class="fieldClass"
                     >
                         <option v-for="unit in units" :key="unit" :value="unit">
-                            {{ scaleOf(unit).label }}
+                            {{ $t(scaleOf(unit).label) }}
                         </option>
                     </select>
                     <InputError :message="errors[`prices.${index}.unit`]" />
                 </div>
                 <div>
-                    <label :for="`owner-price-in-${index}`" class="sr-only"
-                        >Price {{ scaleOf(row.unit).hint }}</label
-                    >
+                    <label :for="`owner-price-in-${index}`" class="sr-only">{{
+                        $t('Price :unit', {
+                            unit: $t(scaleOf(row.unit).hint),
+                        })
+                    }}</label>
                     <div class="relative">
                         <input
                             :id="`owner-price-in-${index}`"
@@ -241,8 +247,8 @@ const grid =
                             class="text-ink-faint pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[11px]"
                             >{{
                                 scaleOf(row.unit).split
-                                    ? 'in, 1M'
-                                    : scaleOf(row.unit).hint
+                                    ? $t('in, 1M')
+                                    : $t(scaleOf(row.unit).hint)
                             }}</span
                         >
                     </div>
@@ -250,8 +256,10 @@ const grid =
                 </div>
                 <div>
                     <template v-if="scaleOf(row.unit).split">
-                        <label :for="`owner-price-out-${index}`" class="sr-only"
-                            >Output price per 1M tokens</label
+                        <label
+                            :for="`owner-price-out-${index}`"
+                            class="sr-only"
+                            >{{ $t('Output price per 1M tokens') }}</label
                         >
                         <div class="relative">
                             <input
@@ -265,7 +273,7 @@ const grid =
                             />
                             <span
                                 class="text-ink-faint pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[11px]"
-                                >out, 1M</span
+                                >{{ $t('out, 1M') }}</span
                             >
                         </div>
                         <InputError
@@ -276,13 +284,19 @@ const grid =
                         v-else
                         class="text-ink-faint hidden h-10 items-center text-[12px] sm:flex"
                     >
-                        One price
+                        {{ $t('One price') }}
                     </p>
                 </div>
                 <button
                     type="button"
                     class="text-danger hover:bg-danger-tint focus-visible:ring-danger/20 grid size-10 place-items-center rounded-md focus-visible:ring-3 focus-visible:outline-none"
-                    :aria-label="`Remove the price for ${row.model || 'this model'}`"
+                    :aria-label="
+                        row.model
+                            ? $t('Remove the price for :model', {
+                                  model: row.model,
+                              })
+                            : $t('Remove the price for this model')
+                    "
                     @click="removeRow(index)"
                 >
                     <Trash2 class="size-4" aria-hidden="true" />
@@ -290,8 +304,11 @@ const grid =
             </div>
 
             <p v-if="rows.length === 0" class="text-ink-slate text-[13px]">
-                No prices yet. Until a model has one, its usage counts as $0
-                against the dollar credit.
+                {{
+                    $t(
+                        'No prices yet. Until a model has one, its usage counts as $0 against the dollar credit.',
+                    )
+                }}
             </p>
         </div>
 
@@ -303,7 +320,7 @@ const grid =
                 data-test="owner-save-prices-button"
                 @click="save"
             >
-                Save prices
+                {{ $t('Save prices') }}
             </button>
         </div>
     </PanelCard>

@@ -6,6 +6,7 @@ import {
     LoaderCircle,
 } from '@lucide/vue';
 import { computed } from 'vue';
+import { intlLocale } from '@/lib/i18n';
 import type { AiCheckState } from '@/types';
 
 /*
@@ -21,7 +22,7 @@ const props = defineProps<Props>();
 const when = computed((): string => {
     const at = props.check?.checked_at;
 
-    return at ? new Date(at).toLocaleString() : '';
+    return at ? new Date(at).toLocaleString(intlLocale()) : '';
 });
 </script>
 
@@ -29,7 +30,7 @@ const when = computed((): string => {
     <div role="status" aria-live="polite" class="min-w-0 text-sm">
         <p v-if="!check" class="text-ink-muted flex items-center gap-2">
             <CircleDashed class="size-4 shrink-0" aria-hidden="true" />
-            Not tested yet
+            {{ $t('Not tested yet') }}
         </p>
 
         <p
@@ -40,13 +41,13 @@ const when = computed((): string => {
                 class="size-4 shrink-0 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
             />
-            {{ check.status === 'pending' ? 'Queued…' : 'Testing…' }}
+            {{ check.status === 'pending' ? $t('Queued…') : $t('Testing…') }}
         </p>
 
         <div v-else-if="check.status === 'ok'" class="grid min-w-0 gap-0.5">
             <p class="text-success-text flex items-center gap-2 font-semibold">
                 <CircleCheck class="size-4 shrink-0" aria-hidden="true" />
-                Working · {{ check.latency_ms ?? '?' }} ms
+                {{ $t('Working · :ms ms', { ms: check.latency_ms ?? '?' }) }}
             </p>
             <p class="text-ink-muted ps-6 text-xs wrap-anywhere">
                 {{ check.provider }} · {{ check.model }} — {{ check.detail }}
@@ -57,9 +58,11 @@ const when = computed((): string => {
         <div v-else class="grid min-w-0 gap-0.5">
             <p class="text-danger-text flex items-center gap-2 font-semibold">
                 <CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-                Failed<template v-if="check.latency_ms !== null">
-                    · {{ check.latency_ms }} ms</template
-                >
+                {{
+                    check.latency_ms !== null
+                        ? $t('Failed · :ms ms', { ms: check.latency_ms })
+                        : $t('Failed')
+                }}
             </p>
             <p
                 class="text-ink ps-6 font-mono text-xs wrap-anywhere whitespace-pre-wrap"

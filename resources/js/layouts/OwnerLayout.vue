@@ -35,7 +35,7 @@ const { getInitials } = useInitials();
             <span
                 class="border-line text-label text-brand-700 ms-1 hidden border-s ps-4 sm:inline"
             >
-                Owner console
+                {{ $t('Owner console') }}
             </span>
 
             <div class="ms-auto flex min-w-0 items-center gap-2 md:gap-4">
@@ -56,7 +56,7 @@ const { getInitials } = useInitials();
                         <span
                             class="text-ink-slate mt-px truncate text-[12.5px] leading-[18px] tracking-[-0.01em]"
                         >
-                            Platform owner
+                            {{ $t('Platform owner') }}
                         </span>
                     </span>
                 </div>
@@ -68,8 +68,8 @@ const { getInitials } = useInitials();
                     class="border-line bg-surface text-brand-700 shadow-card hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 inline-flex h-10 min-w-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
                 >
                     <LogOut class="size-4" aria-hidden="true" />
-                    <span class="hidden sm:inline">Sign out</span>
-                    <span class="sr-only sm:hidden">Sign out</span>
+                    <span class="hidden sm:inline">{{ $t('Sign out') }}</span>
+                    <span class="sr-only sm:hidden">{{ $t('Sign out') }}</span>
                 </Link>
             </div>
         </header>

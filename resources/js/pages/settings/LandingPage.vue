@@ -6,6 +6,7 @@ import Heading from '@/components/Heading.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
+import { intlLocale, tk } from '@/lib/i18n';
 import type { LandingContactMessage, LandingPageContent } from '@/types';
 
 const props = defineProps<{
@@ -25,7 +26,7 @@ function markRead(message: LandingContactMessage): void {
 
 function sentAt(value: string | null): string {
     return value
-        ? new Intl.DateTimeFormat('en-GB', {
+        ? new Intl.DateTimeFormat(intlLocale(), {
               dateStyle: 'medium',
               timeStyle: 'short',
           }).format(new Date(value))
@@ -45,21 +46,21 @@ const copies = [
     { value: 'ar' as const, label: 'العربية', dir: 'rtl' },
 ];
 const editorSections = [
-    { href: '#landing-editor-navigation', label: 'Navigation' },
-    { href: '#landing-editor-hero', label: 'Hero' },
-    { href: '#landing-editor-roles', label: 'Roles' },
-    { href: '#landing-editor-journey', label: 'Journey' },
-    { href: '#landing-editor-why', label: 'Why GHASIDO' },
-    { href: '#landing-editor-about', label: 'About' },
-    { href: '#landing-editor-features', label: 'Features' },
-    { href: '#landing-editor-ai', label: 'AI' },
-    { href: '#landing-editor-pricing', label: 'Plans' },
-    { href: '#landing-editor-checkout', label: 'Checkout' },
-    { href: '#landing-editor-cta', label: 'Closing CTA' },
-    { href: '#landing-editor-support', label: 'Contact details' },
-    { href: '#landing-editor-contact', label: 'Contact page' },
-    { href: '#landing-editor-messages', label: 'Messages' },
-    { href: '#landing-editor-footer', label: 'Footer' },
+    { href: '#landing-editor-navigation', label: tk('Navigation') },
+    { href: '#landing-editor-hero', label: tk('Hero') },
+    { href: '#landing-editor-roles', label: tk('Roles') },
+    { href: '#landing-editor-journey', label: tk('Journey') },
+    { href: '#landing-editor-why', label: tk('Why GHASIDO') },
+    { href: '#landing-editor-about', label: tk('About') },
+    { href: '#landing-editor-features', label: tk('Features') },
+    { href: '#landing-editor-ai', label: tk('AI') },
+    { href: '#landing-editor-pricing', label: tk('Plans') },
+    { href: '#landing-editor-checkout', label: tk('Checkout') },
+    { href: '#landing-editor-cta', label: tk('Closing CTA') },
+    { href: '#landing-editor-support', label: tk('Contact details') },
+    { href: '#landing-editor-contact', label: tk('Contact page') },
+    { href: '#landing-editor-messages', label: tk('Messages') },
+    { href: '#landing-editor-footer', label: tk('Footer') },
 ];
 
 function save(): void {
@@ -74,28 +75,30 @@ function save(): void {
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Settings', href: '/settings/profile' },
-            { title: 'Landing page', href: '/settings/landing-page' },
+            { title: tk('Settings'), href: '/settings/profile' },
+            { title: tk('Landing page'), href: '/settings/landing-page' },
         ],
     },
 });
 </script>
 
 <template>
-    <Head title="Landing page content" />
+    <Head :title="$t('Landing page content')" />
 
-    <h1 class="sr-only">Landing page content</h1>
+    <h1 class="sr-only">{{ $t('Landing page content') }}</h1>
 
     <div class="space-y-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <Heading
                 variant="small"
-                title="Landing page content"
-                description="Edit the words visitors see on GHASIDO’s public page."
+                :title="$t('Landing page content')"
+                :description="
+                    $t('Edit the words visitors see on GHASIDO’s public page.')
+                "
             />
             <Button as-child variant="outline" size="sm" class="shrink-0">
                 <Link href="/" target="_blank" rel="noreferrer">
-                    Preview page <ExternalLink class="size-3.5" />
+                    {{ $t('Preview page') }} <ExternalLink class="size-3.5" />
                 </Link>
             </Button>
         </div>
@@ -148,7 +151,7 @@ defineOptions({
         </div>
 
         <nav
-            aria-label="Landing page editor sections"
+            :aria-label="$t('Landing page editor sections')"
             class="border-line bg-surface/95 shadow-card sticky top-2 z-10 grid grid-cols-2 gap-1 rounded-lg border p-1 backdrop-blur-sm sm:grid-cols-4"
         >
             <a
@@ -157,7 +160,7 @@ defineOptions({
                 :href="section.href"
                 class="text-ink-indigo hover:bg-brand-50 focus-visible:ring-brand-600 flex min-w-0 items-center justify-center rounded-md px-2 py-2 text-center text-[12px] font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
-                {{ section.label }}
+                {{ $t(section.label) }}
             </a>
         </nav>
 
@@ -172,60 +175,60 @@ defineOptions({
             <PanelCard
                 id="landing-editor-navigation"
                 class="scroll-mt-20"
-                title="Navigation labels"
+                :title="$t('Navigation labels')"
                 title-id="landing-navigation"
             >
                 <div class="grid gap-4 sm:grid-cols-2">
                     <LessonsField
                         v-model="form.content.navigation.why_us"
-                        label="Why us link"
+                        :label="$t('Why us link')"
                         :error="form.errors['content.navigation.why_us']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.about"
-                        label="About link"
+                        :label="$t('About link')"
                         :error="form.errors['content.navigation.about']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.platform"
-                        label="Features link"
+                        :label="$t('Features link')"
                         :error="form.errors['content.navigation.platform']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.ai_practice"
-                        label="AI link"
+                        :label="$t('AI link')"
                         :error="form.errors['content.navigation.ai_practice']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.roles"
-                        label="Roles link"
+                        :label="$t('Roles link')"
                         :error="form.errors['content.navigation.roles']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.pricing"
-                        label="Plans link"
+                        :label="$t('Plans link')"
                         :error="form.errors['content.navigation.pricing']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.login"
-                        label="Log in button"
+                        :label="$t('Log in button')"
                         :error="form.errors['content.navigation.login']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.get_started"
-                        label="Get started button"
+                        :label="$t('Get started button')"
                         :error="form.errors['content.navigation.get_started']"
                     />
                     <LessonsField
                         v-model="form.content.navigation.open_dashboard"
-                        label="Signed-in button"
+                        :label="$t('Signed-in button')"
                         :error="
                             form.errors['content.navigation.open_dashboard']
                         "
                     />
                     <LessonsField
                         v-model="form.content.navigation.contact"
-                        label="Contact link"
+                        :label="$t('Contact link')"
                         :error="form.errors['content.navigation.contact']"
                     />
                 </div>
@@ -234,32 +237,32 @@ defineOptions({
             <PanelCard
                 id="landing-editor-hero"
                 class="scroll-mt-20"
-                title="Hero section"
+                :title="$t('Hero section')"
                 title-id="landing-hero"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.hero.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.hero.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.hero.title"
-                        label="Headline"
+                        :label="$t('Headline')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.hero.title']"
                     />
                     <LessonsField
                         v-model="form.content.hero.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="3"
                         :error="form.errors['content.hero.description']"
                     />
                     <LessonsField
                         v-model="form.content.hero.image_alt"
-                        label="Product screenshot description"
+                        :label="$t('Product screenshot description')"
                         :error="form.errors['content.hero.image_alt']"
                     />
                     <div class="grid gap-4 sm:grid-cols-3">
@@ -268,7 +271,9 @@ defineOptions({
                                 .proof_points"
                             :key="`proof-${index}`"
                             v-model="form.content.hero.proof_points[index]"
-                            :label="`Proof point ${index + 1}`"
+                            :label="
+                                $t('Proof point :number', { number: index + 1 })
+                            "
                             :error="
                                 form.errors[
                                     `content.hero.proof_points.${index}`
@@ -279,12 +284,12 @@ defineOptions({
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.hero.primary_cta"
-                            label="Main button"
+                            :label="$t('Main button')"
                             :error="form.errors['content.hero.primary_cta']"
                         />
                         <LessonsField
                             v-model="form.content.hero.secondary_cta"
-                            label="Second button"
+                            :label="$t('Second button')"
                             :error="form.errors['content.hero.secondary_cta']"
                         />
                     </div>
@@ -294,23 +299,23 @@ defineOptions({
             <PanelCard
                 id="landing-editor-roles"
                 class="scroll-mt-20"
-                title="Roles"
+                :title="$t('Roles')"
                 title-id="landing-roles"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.roles.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.roles.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.roles.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.roles.title']"
                     />
                     <LessonsField
                         v-model="form.content.roles.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.roles.description']"
@@ -323,7 +328,11 @@ defineOptions({
                         <div class="grid gap-3 sm:grid-cols-2">
                             <LessonsField
                                 v-model="role.title"
-                                :label="`Role ${roleIndex + 1} title`"
+                                :label="
+                                    $t('Role :number title', {
+                                        number: roleIndex + 1,
+                                    })
+                                "
                                 :error="
                                     form.errors[
                                         `content.roles.items.${roleIndex}.title`
@@ -332,7 +341,11 @@ defineOptions({
                             />
                             <LessonsField
                                 v-model="role.description"
-                                :label="`Role ${roleIndex + 1} description`"
+                                :label="
+                                    $t('Role :number description', {
+                                        number: roleIndex + 1,
+                                    })
+                                "
                                 type="textarea"
                                 :rows="2"
                                 :error="
@@ -349,7 +362,11 @@ defineOptions({
                                 ) in role.capabilities"
                                 :key="`role-${roleIndex}-capability-${capabilityIndex}`"
                                 v-model="role.capabilities[capabilityIndex]"
-                                :label="`Capability ${capabilityIndex + 1}`"
+                                :label="
+                                    $t('Capability :number', {
+                                        number: capabilityIndex + 1,
+                                    })
+                                "
                                 :error="
                                     form.errors[
                                         `content.roles.items.${roleIndex}.capabilities.${capabilityIndex}`
@@ -364,23 +381,23 @@ defineOptions({
             <PanelCard
                 id="landing-editor-journey"
                 class="scroll-mt-20"
-                title="Learner journey"
+                :title="$t('Learner journey')"
                 title-id="landing-journey"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.journey.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.journey.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.journey.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.journey.title']"
                     />
                     <LessonsField
                         v-model="form.content.journey.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.journey.description']"
@@ -392,7 +409,9 @@ defineOptions({
                     >
                         <LessonsField
                             v-model="step.title"
-                            :label="`Step ${index + 1} title`"
+                            :label="
+                                $t('Step :number title', { number: index + 1 })
+                            "
                             :error="
                                 form.errors[
                                     `content.journey.steps.${index}.title`
@@ -401,7 +420,11 @@ defineOptions({
                         />
                         <LessonsField
                             v-model="step.description"
-                            :label="`Step ${index + 1} description`"
+                            :label="
+                                $t('Step :number description', {
+                                    number: index + 1,
+                                })
+                            "
                             type="textarea"
                             :rows="2"
                             :error="
@@ -417,23 +440,23 @@ defineOptions({
             <PanelCard
                 id="landing-editor-why"
                 class="scroll-mt-20"
-                title="Why GHASIDO"
+                :title="$t('Why GHASIDO')"
                 title-id="landing-why-us"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.why_us.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.why_us.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.why_us.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.why_us.title']"
                     />
                     <LessonsField
                         v-model="form.content.why_us.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.why_us.description']"
@@ -445,7 +468,11 @@ defineOptions({
                     >
                         <LessonsField
                             v-model="item.title"
-                            :label="`Benefit ${index + 1} title`"
+                            :label="
+                                $t('Benefit :number title', {
+                                    number: index + 1,
+                                })
+                            "
                             :error="
                                 form.errors[
                                     `content.why_us.items.${index}.title`
@@ -454,7 +481,11 @@ defineOptions({
                         />
                         <LessonsField
                             v-model="item.description"
-                            :label="`Benefit ${index + 1} description`"
+                            :label="
+                                $t('Benefit :number description', {
+                                    number: index + 1,
+                                })
+                            "
                             type="textarea"
                             :rows="2"
                             :error="
@@ -470,37 +501,37 @@ defineOptions({
             <PanelCard
                 id="landing-editor-about"
                 class="scroll-mt-20"
-                title="About us"
+                :title="$t('About us')"
                 title-id="landing-about"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.about.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.about.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.about.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.about.title']"
                     />
                     <LessonsField
                         v-model="form.content.about.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="4"
                         :error="form.errors['content.about.description']"
                     />
                     <LessonsField
                         v-model="form.content.about.learner_note"
-                        label="Learner note"
+                        :label="$t('Learner note')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.about.learner_note']"
                     />
                     <LessonsField
                         v-model="form.content.about.image_alt"
-                        label="Learner screenshot description"
+                        :label="$t('Learner screenshot description')"
                         :error="form.errors['content.about.image_alt']"
                     />
                 </div>
@@ -509,23 +540,23 @@ defineOptions({
             <PanelCard
                 id="landing-editor-features"
                 class="scroll-mt-20"
-                title="Features"
+                :title="$t('Features')"
                 title-id="landing-features"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.features.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.features.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.features.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.features.title']"
                     />
                     <LessonsField
                         v-model="form.content.features.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.features.description']"
@@ -537,7 +568,11 @@ defineOptions({
                     >
                         <LessonsField
                             v-model="item.title"
-                            :label="`Feature ${index + 1} title`"
+                            :label="
+                                $t('Feature :number title', {
+                                    number: index + 1,
+                                })
+                            "
                             :error="
                                 form.errors[
                                     `content.features.items.${index}.title`
@@ -546,7 +581,11 @@ defineOptions({
                         />
                         <LessonsField
                             v-model="item.description"
-                            :label="`Feature ${index + 1} description`"
+                            :label="
+                                $t('Feature :number description', {
+                                    number: index + 1,
+                                })
+                            "
                             type="textarea"
                             :rows="2"
                             :error="
@@ -562,30 +601,30 @@ defineOptions({
             <PanelCard
                 id="landing-editor-ai"
                 class="scroll-mt-20"
-                title="AI capabilities"
+                :title="$t('AI capabilities')"
                 title-id="landing-ai"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.ai.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.ai.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.ai.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.ai.title']"
                     />
                     <LessonsField
                         v-model="form.content.ai.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.ai.description']"
                     />
                     <LessonsField
                         v-model="form.content.ai.review_note"
-                        label="AI review note"
+                        :label="$t('AI review note')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.ai.review_note']"
@@ -597,14 +636,22 @@ defineOptions({
                     >
                         <LessonsField
                             v-model="item.title"
-                            :label="`AI capability ${index + 1} title`"
+                            :label="
+                                $t('AI capability :number title', {
+                                    number: index + 1,
+                                })
+                            "
                             :error="
                                 form.errors[`content.ai.items.${index}.title`]
                             "
                         />
                         <LessonsField
                             v-model="item.description"
-                            :label="`AI capability ${index + 1} description`"
+                            :label="
+                                $t('AI capability :number description', {
+                                    number: index + 1,
+                                })
+                            "
                             type="textarea"
                             :rows="2"
                             :error="
@@ -615,8 +662,11 @@ defineOptions({
                         />
                     </div>
                     <p class="text-ink-slate text-[12px] leading-5">
-                        This note appears beside the AI capabilities to explain
-                        that generated content is reviewed before publishing.
+                        {{
+                            $t(
+                                'This note appears beside the AI capabilities to explain that generated content is reviewed before publishing.',
+                            )
+                        }}
                     </p>
                 </div>
             </PanelCard>
@@ -624,24 +674,26 @@ defineOptions({
             <PanelCard
                 id="landing-editor-pricing"
                 class="scroll-mt-20"
-                title="Subscription plans"
+                :title="$t('Subscription plans')"
                 title-id="landing-pricing"
             >
                 <div class="grid gap-4">
                     <p class="text-ink-slate text-[12px] leading-5">
-                        Plan names, prices, seat limits and AI points come from
-                        the Subscriptions screen. These fields control the
-                        public copy.
+                        {{
+                            $t(
+                                'Plan names, prices, seat limits and AI points come from the Subscriptions screen. These fields control the public copy.',
+                            )
+                        }}
                     </p>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.pricing.eyebrow"
-                            label="Eyebrow"
+                            :label="$t('Eyebrow')"
                             :error="form.errors['content.pricing.eyebrow']"
                         />
                         <LessonsField
                             v-model="form.content.pricing.featured_label"
-                            label="Featured plan badge"
+                            :label="$t('Featured plan badge')"
                             :error="
                                 form.errors['content.pricing.featured_label']
                             "
@@ -649,12 +701,12 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.pricing.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.pricing.title']"
                     />
                     <LessonsField
                         v-model="form.content.pricing.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.pricing.description']"
@@ -662,28 +714,28 @@ defineOptions({
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <LessonsField
                             v-model="form.content.pricing.monthly_label"
-                            label="Billing period label"
+                            :label="$t('Billing period label')"
                             :error="
                                 form.errors['content.pricing.monthly_label']
                             "
                         />
                         <LessonsField
                             v-model="form.content.pricing.employees_label"
-                            label="Employee limit label"
+                            :label="$t('Employee limit label')"
                             :error="
                                 form.errors['content.pricing.employees_label']
                             "
                         />
                         <LessonsField
                             v-model="form.content.pricing.ai_points_label"
-                            label="AI points label"
+                            :label="$t('AI points label')"
                             :error="
                                 form.errors['content.pricing.ai_points_label']
                             "
                         />
                         <LessonsField
                             v-model="form.content.pricing.button_text"
-                            label="Plan button"
+                            :label="$t('Plan button')"
                             :error="form.errors['content.pricing.button_text']"
                         />
                     </div>
@@ -693,7 +745,11 @@ defineOptions({
                                 .inclusions"
                             :key="`inclusion-${index}`"
                             v-model="form.content.pricing.inclusions[index]"
-                            :label="`Shared inclusion ${index + 1}`"
+                            :label="
+                                $t('Shared inclusion :number', {
+                                    number: index + 1,
+                                })
+                            "
                             :error="
                                 form.errors[
                                     `content.pricing.inclusions.${index}`
@@ -704,15 +760,19 @@ defineOptions({
                     <div class="grid gap-3 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.pricing.region_algeria"
-                            label="Algeria price switch (DZD)"
+                            :label="$t('Algeria price switch (DZD)')"
                             :error="
                                 form.errors['content.pricing.region_algeria']
                             "
                         />
                         <LessonsField
                             v-model="form.content.pricing.region_international"
-                            label="International price switch (USD)"
-                            hint="Set each plan's DZD and USD prices in Subscriptions."
+                            :label="$t('International price switch (USD)')"
+                            :hint="
+                                $t(
+                                    'Set each plan\'s DZD and USD prices in Subscriptions.',
+                                )
+                            "
                             :error="
                                 form.errors[
                                     'content.pricing.region_international'
@@ -722,7 +782,7 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.pricing.footnote"
-                        label="Approval note"
+                        :label="$t('Approval note')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.pricing.footnote']"
@@ -733,19 +793,19 @@ defineOptions({
             <PanelCard
                 id="landing-editor-checkout"
                 class="scroll-mt-20"
-                title="Checkout page"
+                :title="$t('Checkout page')"
                 title-id="landing-checkout"
             >
                 <div class="grid gap-4">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.checkout.eyebrow"
-                            label="Eyebrow"
+                            :label="$t('Eyebrow')"
                             :error="form.errors['content.checkout.eyebrow']"
                         />
                         <LessonsField
                             v-model="form.content.checkout.back_to_plans"
-                            label="Back link"
+                            :label="$t('Back link')"
                             :error="
                                 form.errors['content.checkout.back_to_plans']
                             "
@@ -753,12 +813,12 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.checkout.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.checkout.title']"
                     />
                     <LessonsField
                         v-model="form.content.checkout.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.checkout.description']"
@@ -766,26 +826,26 @@ defineOptions({
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.checkout.form_title"
-                            label="Form title"
+                            :label="$t('Form title')"
                             :error="form.errors['content.checkout.form_title']"
                         />
                         <LessonsField
                             v-model="form.content.checkout.summary_title"
-                            label="Plan summary title"
+                            :label="$t('Plan summary title')"
                             :error="
                                 form.errors['content.checkout.summary_title']
                             "
                         />
                         <LessonsField
                             v-model="form.content.checkout.payment_title"
-                            label="Payment title"
+                            :label="$t('Payment title')"
                             :error="
                                 form.errors['content.checkout.payment_title']
                             "
                         />
                         <LessonsField
                             v-model="form.content.checkout.submit_button"
-                            label="Submit button"
+                            :label="$t('Submit button')"
                             :error="
                                 form.errors['content.checkout.submit_button']
                             "
@@ -793,7 +853,7 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.checkout.payment_description"
-                        label="Payment explanation"
+                        :label="$t('Payment explanation')"
                         type="textarea"
                         :rows="2"
                         :error="
@@ -802,7 +862,7 @@ defineOptions({
                     />
                     <LessonsField
                         v-model="form.content.checkout.approval_note"
-                        label="Approval note"
+                        :label="$t('Approval note')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.checkout.approval_note']"
@@ -813,23 +873,23 @@ defineOptions({
             <PanelCard
                 id="landing-editor-cta"
                 class="scroll-mt-20"
-                title="Closing call to action"
+                :title="$t('Closing call to action')"
                 title-id="landing-cta"
             >
                 <div class="grid gap-4">
                     <LessonsField
                         v-model="form.content.call_to_action.eyebrow"
-                        label="Eyebrow"
+                        :label="$t('Eyebrow')"
                         :error="form.errors['content.call_to_action.eyebrow']"
                     />
                     <LessonsField
                         v-model="form.content.call_to_action.title"
-                        label="Heading"
+                        :label="$t('Heading')"
                         :error="form.errors['content.call_to_action.title']"
                     />
                     <LessonsField
                         v-model="form.content.call_to_action.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="
@@ -838,7 +898,7 @@ defineOptions({
                     />
                     <LessonsField
                         v-model="form.content.call_to_action.button_text"
-                        label="Button"
+                        :label="$t('Button')"
                         :error="
                             form.errors['content.call_to_action.button_text']
                         "
@@ -850,29 +910,41 @@ defineOptions({
                 v-if="editing === 'en'"
                 id="landing-editor-support"
                 class="scroll-mt-20"
-                title="Contact details"
+                :title="$t('Contact details')"
                 title-id="landing-support"
             >
                 <div class="grid gap-4 sm:grid-cols-2">
                     <LessonsField
                         v-model="form.content.support.phone"
-                        label="Phone number"
+                        :label="$t('Phone number')"
                         placeholder="+213 555 12 34 56"
-                        hint="Shown on the Contact Us page and in the footer. Leave blank to hide it."
+                        :hint="
+                            $t(
+                                'Shown on the Contact Us page and in the footer. Leave blank to hide it.',
+                            )
+                        "
                         :error="form.errors['content.support.phone']"
                     />
                     <LessonsField
                         v-model="form.content.support.email"
-                        label="Email address"
+                        :label="$t('Email address')"
                         placeholder="contact@ghasido.com"
-                        hint="Shown on the Contact Us page; contact form messages are also sent here."
+                        :hint="
+                            $t(
+                                'Shown on the Contact Us page; contact form messages are also sent here.',
+                            )
+                        "
                         :error="form.errors['content.support.email']"
                     />
                     <LessonsField
                         v-model="form.content.support.whatsapp_number"
-                        label="WhatsApp support number"
+                        :label="$t('WhatsApp support number')"
                         placeholder="+213 555 12 34 56"
-                        hint="Use the international country code. Leave blank to hide WhatsApp support from the public page."
+                        :hint="
+                            $t(
+                                'Use the international country code. Leave blank to hide WhatsApp support from the public page.',
+                            )
+                        "
                         :error="form.errors['content.support.whatsapp_number']"
                     />
                 </div>
@@ -881,25 +953,25 @@ defineOptions({
             <PanelCard
                 id="landing-editor-contact"
                 class="scroll-mt-20"
-                title="Contact Us page"
+                :title="$t('Contact Us page')"
                 title-id="landing-contact"
             >
                 <div class="grid gap-4">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.contact.eyebrow"
-                            label="Eyebrow"
+                            :label="$t('Eyebrow')"
                             :error="form.errors['content.contact.eyebrow']"
                         />
                         <LessonsField
                             v-model="form.content.contact.title"
-                            label="Heading"
+                            :label="$t('Heading')"
                             :error="form.errors['content.contact.title']"
                         />
                     </div>
                     <LessonsField
                         v-model="form.content.contact.description"
-                        label="Description"
+                        :label="$t('Description')"
                         type="textarea"
                         :rows="2"
                         :error="form.errors['content.contact.description']"
@@ -907,12 +979,12 @@ defineOptions({
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.contact.form_title"
-                            label="Form heading"
+                            :label="$t('Form heading')"
                             :error="form.errors['content.contact.form_title']"
                         />
                         <LessonsField
                             v-model="form.content.contact.submit_button"
-                            label="Send button"
+                            :label="$t('Send button')"
                             :error="
                                 form.errors['content.contact.submit_button']
                             "
@@ -920,20 +992,20 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.contact.success_message"
-                        label="Message after sending"
+                        :label="$t('Message after sending')"
                         :error="form.errors['content.contact.success_message']"
                     />
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.contact.enterprise_title"
-                            label="Enterprise block title"
+                            :label="$t('Enterprise block title')"
                             :error="
                                 form.errors['content.contact.enterprise_title']
                             "
                         />
                         <LessonsField
                             v-model="form.content.contact.enterprise_subtitle"
-                            label="Enterprise block subtitle"
+                            :label="$t('Enterprise block subtitle')"
                             :error="
                                 form.errors[
                                     'content.contact.enterprise_subtitle'
@@ -943,7 +1015,7 @@ defineOptions({
                     </div>
                     <LessonsField
                         v-model="form.content.contact.enterprise_description"
-                        label="Enterprise block description"
+                        :label="$t('Enterprise block description')"
                         type="textarea"
                         :rows="2"
                         :error="
@@ -960,7 +1032,11 @@ defineOptions({
                             v-model="
                                 form.content.contact.enterprise_points[index]
                             "
-                            :label="`Enterprise point ${index + 1}`"
+                            :label="
+                                $t('Enterprise point :number', {
+                                    number: index + 1,
+                                })
+                            "
                             :error="
                                 form.errors[
                                     `content.contact.enterprise_points.${index}`
@@ -971,14 +1047,14 @@ defineOptions({
                     <div class="grid gap-4 sm:grid-cols-2">
                         <LessonsField
                             v-model="form.content.contact.enterprise_button"
-                            label="Enterprise button"
+                            :label="$t('Enterprise button')"
                             :error="
                                 form.errors['content.contact.enterprise_button']
                             "
                         />
                         <LessonsField
                             v-model="form.content.contact.enterprise_note"
-                            label="Text under the button"
+                            :label="$t('Text under the button')"
                             :error="
                                 form.errors['content.contact.enterprise_note']
                             "
@@ -990,15 +1066,24 @@ defineOptions({
             <PanelCard
                 id="landing-editor-messages"
                 class="scroll-mt-20"
-                :title="`Contact messages${unreadMessages ? ` (${unreadMessages} new)` : ''}`"
+                :title="
+                    unreadMessages
+                        ? $t('Contact messages (:count new)', {
+                              count: unreadMessages,
+                          })
+                        : $t('Contact messages')
+                "
                 title-id="landing-messages"
             >
                 <p
                     v-if="contactMessages.length === 0"
                     class="text-ink-slate text-[13px]"
                 >
-                    No messages yet. Messages sent from the Contact Us page
-                    appear here.
+                    {{
+                        $t(
+                            'No messages yet. Messages sent from the Contact Us page appear here.',
+                        )
+                    }}
                 </p>
                 <ul v-else class="grid gap-3">
                     <li
@@ -1028,7 +1113,11 @@ defineOptions({
                                         v-if="message.employees"
                                         class="text-ink-slate font-normal"
                                         >·
-                                        {{ message.employees }} employees</span
+                                        {{
+                                            $t(':count employees', {
+                                                count: message.employees,
+                                            })
+                                        }}</span
                                     >
                                 </p>
                                 <p
@@ -1065,12 +1154,12 @@ defineOptions({
                                 variant="outline"
                                 @click="markRead(message)"
                             >
-                                Mark as read
+                                {{ $t('Mark as read') }}
                             </Button>
                             <span
                                 v-else
                                 class="text-ink-slate text-[12px] font-semibold"
-                                >Read</span
+                                >{{ $t('Read') }}</span
                             >
                         </div>
                         <p
@@ -1085,12 +1174,12 @@ defineOptions({
             <PanelCard
                 id="landing-editor-footer"
                 class="scroll-mt-20"
-                title="Footer"
+                :title="$t('Footer')"
                 title-id="landing-footer"
             >
                 <LessonsField
                     v-model="form.content.footer.tagline"
-                    label="Footer tagline"
+                    :label="$t('Footer tagline')"
                     :error="form.errors['content.footer.tagline']"
                 />
             </PanelCard>
@@ -1106,10 +1195,10 @@ defineOptions({
             >
                 {{
                     form.processing
-                        ? 'Saving changes…'
+                        ? $t('Saving changes…')
                         : form.isDirty
-                          ? 'Unsaved changes'
-                          : 'Changes saved'
+                          ? $t('Unsaved changes')
+                          : $t('Changes saved')
                 }}
             </p>
             <Button
@@ -1120,10 +1209,10 @@ defineOptions({
                 <Save class="size-4" />
                 {{
                     form.processing
-                        ? 'Saving…'
+                        ? $t('Saving…')
                         : form.isDirty
-                          ? 'Save changes'
-                          : 'Saved'
+                          ? $t('Save changes')
+                          : $t('Saved')
                 }}
             </Button>
         </div>
