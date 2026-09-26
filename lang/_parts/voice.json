@@ -1,0 +1,13 @@
+{
+    "You have reached today’s AI practice limit. The call will end now.": "لقد بلغت حد التدريب بالذكاء الاصطناعي لهذا اليوم. ستنتهي المكالمة الآن.",
+    "Voice call warning.": "تنبيه في المكالمة الصوتية.",
+    "The voice call hit a problem.": "حدثت مشكلة في المكالمة الصوتية.",
+    "This browser cannot make voice calls. Please use the text chat instead.": "لا يستطيع هذا المتصفح إجراء مكالمات صوتية. يرجى استخدام المحادثة النصية بدلاً من ذلك.",
+    "Microphone access was blocked. Allow the microphone in your browser settings, then try again, or use the text chat.": "تم حظر الوصول إلى الميكروفون. اسمح باستخدام الميكروفون من إعدادات المتصفح ثم حاول مجدداً، أو استخدم المحادثة النصية.",
+    "The voice call could not start.": "تعذّر بدء المكالمة الصوتية.",
+    "Your browser could not start the audio.": "تعذّر على المتصفح تشغيل الصوت.",
+    "Time is up. The call has ended.": "انتهى الوقت. انتهت المكالمة.",
+    "The connection to the voice service failed.": "فشل الاتصال بخدمة الصوت.",
+    "The voice call was disconnected.": "انقطعت المكالمة الصوتية.",
+    "We need your microphone so the guest can hear you. Your voice is sent live to the voice service and only the written transcript is saved.": "نحتاج إلى الميكروفون ليسمعك الضيف. يُرسل صوتك مباشرة إلى خدمة الصوت ولا يُحفظ إلا النص المكتوب للمحادثة."
+}
