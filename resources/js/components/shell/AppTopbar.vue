@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AiPointsMeter from '@/components/shell/AiPointsMeter.vue';
+import LanguageSelect from '@/components/shell/LanguageSelect.vue';
 import NotificationMenu from '@/components/shell/NotificationMenu.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -157,6 +158,10 @@ const iconButtonClass =
                     <UserMenuContent :user="user" />
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- The approved language box (AGENTS.md §0.4): English or
+                 Arabic interface (I18N-02). -->
+            <LanguageSelect />
         </div>
     </header>
 </template>

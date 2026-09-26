@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, ChevronDown, CircleUserRound, Star } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import LanguageSelect from '@/components/shell/LanguageSelect.vue';
 import NotificationMenu from '@/components/shell/NotificationMenu.vue';
 import SolidHouseIcon from '@/components/icons/SolidHouseIcon.vue';
 import {
@@ -125,6 +126,9 @@ const linkClass =
                     <UserMenuContent :user="user" />
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- The lesson bar's smaller language box (I18N-02). -->
+            <LanguageSelect compact class="ms-0 md:ms-0" />
         </nav>
     </header>
 </template>

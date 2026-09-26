@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import AppLogo from '@/components/AppLogo.vue';
+import LanguageToggle from '@/components/landing/LanguageToggle.vue';
 import { tk } from '@/lib/i18n';
 import { home } from '@/routes';
 
@@ -75,6 +76,11 @@ const highlights = [
                 class="border-line bg-surface shadow-pop relative mx-auto w-full max-w-[560px] min-w-0 overflow-hidden rounded-xl border p-4 sm:p-5 lg:max-w-none lg:p-6 xl:p-7"
             >
                 <div class="bg-grad-brand absolute inset-x-0 top-0 h-1" />
+
+                <!-- English / Arabic before signing in (I18N-02). -->
+                <LanguageToggle
+                    class="absolute end-2 top-2 z-10 sm:end-3 sm:top-3"
+                />
 
                 <Link
                     :href="home()"
