@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonInOrder;
 use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\RoleplayStatus;
@@ -105,7 +106,8 @@ class RoleplayAttempt extends Model
             'status' => RoleplayStatus::class,
             'transcript' => 'array',
             'pending_reply' => 'boolean',
-            'criteria_scores' => 'array',
+            // The evaluator's criteria order, kept on MySQL too.
+            'criteria_scores' => JsonInOrder::class.':-,pronunciation,grammar,vocabulary,fluency,politeness',
             'overall_score' => 'integer',
             'original_overall_score' => 'integer',
             'score_overridden_at' => 'datetime',

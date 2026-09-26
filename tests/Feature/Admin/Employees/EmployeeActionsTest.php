@@ -172,7 +172,7 @@ class EmployeeActionsTest extends TestCase
         $this->assertSame('Amine B.', $employee->name);
         $this->assertNull($employee->email_consent_at);
         $audit = $this->assertOneAuditRow($employee, 'employee.updated');
-        $this->assertSame(['from' => 'Amine Ben Ali', 'to' => 'Amine B.'], $audit->changes['attributes']['name'] ?? null);
+        $this->assertEquals(['from' => 'Amine Ben Ali', 'to' => 'Amine B.'], $audit->changes['attributes']['name'] ?? null);
     }
 
     public function test_editing_with_a_new_password_never_logs_the_hash()

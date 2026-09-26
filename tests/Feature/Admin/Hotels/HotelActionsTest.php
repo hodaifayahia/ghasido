@@ -120,7 +120,7 @@ class HotelActionsTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $log = $this->assertOneAuditRow($hotel, 'hotel.updated');
-        $this->assertSame(['from' => 'Algiers', 'to' => 'Oran'], $log->changes['attributes']['city'] ?? null);
+        $this->assertEquals(['from' => 'Algiers', 'to' => 'Oran'], $log->changes['attributes']['city'] ?? null);
         $this->assertSame($this->owner->id, $log->actor_id);
     }
 
@@ -333,7 +333,7 @@ class HotelActionsTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $log = $this->assertOneAuditRow($hotel, 'hotel.seats_updated');
-        $this->assertSame([
+        $this->assertEquals([
             $reception->id => ['from' => 8, 'to' => 10],
             $kitchen->id => ['from' => 0, 'to' => 4],
         ], $log->changes['quotas'] ?? null);

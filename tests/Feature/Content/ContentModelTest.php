@@ -299,7 +299,7 @@ class ContentModelTest extends TestCase
         $this->assertSame(1, $activity->current_version);
         $this->assertCount(1, $activity->versions);
         $this->assertSame(1, $activity->currentVersion?->version);
-        $this->assertSame($activity->payload, $activity->currentVersion?->payload);
+        $this->assertEquals($activity->payload, $activity->currentVersion?->payload);
     }
 
     public function test_changing_the_payload_or_scoring_writes_a_new_version_and_keeps_the_old_one()

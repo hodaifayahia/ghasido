@@ -1,5 +1,7 @@
 # Deploying Guesvia to Hostinger
 
+> **Moving to MySQL (2026-09-26):** the code runs on MySQL and the one-time move of the live data is ready. Follow [`mysql.md`](mysql.md).
+
 First deployed 2026-09-25 to **https://lightgrey-dinosaur-781122.hostingersite.com** (Hostinger Cloud Startup, account `u673635734`, SSH `89.117.116.239:65002`). Scripts are in [`scripts/`](scripts/); they hold no secrets.
 
 ## Layout on the server
