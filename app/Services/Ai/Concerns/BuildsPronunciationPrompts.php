@@ -59,7 +59,7 @@ trait BuildsPronunciationPrompts
     {
         return [[
             'role' => 'user',
-            'content' => sprintf("Accent: %s\nText: %s", $accent->label(), trim($text)),
+            'content' => sprintf("Accent: %s\nText: %s", $accent->label('en'), trim($text)),
         ]];
     }
 
@@ -125,7 +125,7 @@ trait BuildsPronunciationPrompts
         return implode(' ', [
             'You are a warm, adult English pronunciation coach for hotel staff whose first language is Arabic.',
             RoleplayPrompt::learnerLine($level),
-            'The learner practised saying a sentence in '.$accent->label().'. You receive the automatic check as JSON: each word with its status',
+            'The learner practised saying a sentence in '.$accent->label('en').'. You receive the automatic check as JSON: each word with its status',
             '(correct; unclear = recognised but not clearly; almost = only recognised when the listener expected it; mispronounced = heard as another word, with the sound that changed;',
             'different = heard as an unrelated word; missed = not heard; skipped = not judged), what was heard instead, the scores, hesitations and long pauses, and the guide for the weak words.',
             'Sounds these learners often find hard: '.self::ARABIC_SPEAKER_SOUNDS,

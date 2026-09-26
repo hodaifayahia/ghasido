@@ -7,7 +7,8 @@ use Symfony\Component\Finder\Finder;
 /**
  * Every interface string the code asks to translate (I18N-02): `$t()`,
  * `t()`, `$tc()`, `tc()`, `tk()` and `<TransText text>` in the Vue and
- * TypeScript sources, and `__()` / `trans_choice()` in the PHP. The keys are
+ * TypeScript sources, and `__()` / `trans_choice()` (and DashboardStats'
+ * `$this->text()`) in the PHP. The keys are
  * the English strings themselves, looked up in `lang/ar.json`.
  */
 final class TranslationKeys
@@ -16,7 +17,8 @@ final class TranslationKeys
 
     private const string TRANS_TEXT = '/<TransText\b[^>]*?\stext="([^"]*)"/s';
 
-    private const string PHP_CALL = '/(?<![\w>$:])(?:__|trans_choice)\(\s*([\'"])((?:\\\\.|(?!\1).)*?)\1\s*[,)]/s';
+    // `__()`, `trans_choice()`, and DashboardStats' `$this->text()` wrapper.
+    private const string PHP_CALL = '/(?:(?<![\w>$:])(?:__|trans_choice)|\$this->text)\(\s*([\'"])((?:\\\\.|(?!\1).)*?)\1\s*[,)]/s';
 
     /** @return list<string> sorted, distinct keys */
     public static function all(): array

@@ -18,13 +18,18 @@ final class OwnerConsole
     /** How many recharges each account lists. */
     public const int HISTORY = 12;
 
-    private const array CHECK_LABELS = [
-        'ai' => 'Text model',
-        'fast' => 'Fast text model',
-        'image' => 'Images',
-        'tts' => 'Speech (text to speech)',
-        'stt' => 'Transcription (speech to text)',
-    ];
+    /** A connection check's label in the interface language (I18N-02). */
+    private static function checkLabel(string $capability): string
+    {
+        return match ($capability) {
+            'ai' => __('Text model'),
+            'fast' => __('Fast text model'),
+            'image' => __('Images'),
+            'tts' => __('Speech (text to speech)'),
+            'stt' => __('Transcription (speech to text)'),
+            default => $capability,
+        };
+    }
 
     public function __construct(
         private readonly ApiCredit $credit,
@@ -107,7 +112,7 @@ final class OwnerConsole
             'checks' => array_map(
                 fn (string $capability): array => [
                     'capability' => $capability,
-                    'label' => self::CHECK_LABELS[$capability] ?? $capability,
+                    'label' => self::checkLabel($capability),
                     'state' => $checks[$capability] ?? null,
                 ],
                 $account->checks(),

@@ -73,7 +73,7 @@ class VoiceAgentLlmController extends Controller
         // (spec 0007, D7).
         if (! app(ApiCredit::class)->isAvailable(ApiAccount::Qwen)
             || (! $attempt->is_preview && $user !== null && ! $meter->isWithinLimits($user, AiFeature::RoleplayTurn))) {
-            return $this->reply(__('I am sorry, we need to finish our call here. Thank you for your help!'), $model, $stream);
+            return $this->reply('I am sorry, we need to finish our call here. Thank you for your help!', $model, $stream);
         }
 
         $body = [

@@ -155,7 +155,7 @@ const rowClass =
                                 {{
                                     lesson.completed
                                         ? $t('Completed')
-                                        : $t('Open')
+                                        : $t('Open (lesson status)')
                                 }}
                             </span>
                             <ArrowRight

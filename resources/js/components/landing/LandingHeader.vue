@@ -49,39 +49,39 @@ const mobileMenuOpen = ref(false);
             </Link>
 
             <nav
-                class="text-ink-indigo hidden items-center gap-5 text-[12px] font-semibold lg:flex xl:gap-7"
+                class="text-ink-indigo hidden items-center gap-4 text-[12px] font-semibold lg:flex xl:gap-7"
                 :aria-label="$t('Main navigation')"
             >
                 <a
                     :href="`${anchorBase}#ai`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.ai_practice }}</a
                 >
                 <a
                     :href="`${anchorBase}#about`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.about }}</a
                 >
                 <a
                     :href="`${anchorBase}#roles`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.roles }}</a
                 >
                 <a
                     :href="`${anchorBase}#platform`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.platform }}</a
                 >
                 <a
                     :href="`${anchorBase}#pricing`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.pricing }}</a
                 >
                 <Link
                     :href="contact()"
                     :class="
                         cn(
-                            'hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                            'hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
                             active === 'contact' && 'text-brand-600',
                         )
                     "
@@ -91,7 +91,7 @@ const mobileMenuOpen = ref(false);
             </nav>
 
             <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-                <LanguageToggle class="hidden sm:inline-flex" />
+                <LanguageToggle compact class="hidden sm:inline-flex" />
                 <InstallAppButton variant="nav" class="hidden sm:inline-flex" />
                 <Link
                     :href="signInHref"

@@ -226,7 +226,7 @@ class TestService
 
             if ($mediaId !== null) {
                 $media = MediaAsset::query()->findOrFail($mediaId);
-                abort_unless($media->kind->value === $kind, 422, 'The selected media type does not match the question slot.');
+                abort_unless($media->kind->value === $kind, 422, __('The selected media type does not match the question slot.'));
             }
 
             $payload = $activity->payload;

@@ -90,6 +90,10 @@ const iconButtonClass =
             <AppLogo variant="mark" class="size-10" />
         </Link>
 
+        <!-- The handwritten tagline sits where the Lessons & Content mockup
+             draws it: its text starts 195px after the sidebar, clear of the
+             bell, account and language box at the end (logical, so it
+             mirrors in Arabic). -->
         <img
             v-if="props.topbarTaglineSrc"
             :src="props.topbarTaglineSrc"
@@ -98,7 +102,7 @@ const iconButtonClass =
             width="513"
             height="72"
             draggable="false"
-            class="h-topbar pointer-events-none absolute top-0 left-1/2 hidden w-[314px] -translate-x-1/2 mix-blend-multiply select-none xl:block"
+            class="h-topbar pointer-events-none absolute start-[173px] top-0 hidden w-[314px] mix-blend-multiply select-none xl:block"
         />
 
         <div class="ms-auto flex min-w-0 items-center">

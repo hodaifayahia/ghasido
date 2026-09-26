@@ -8,6 +8,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveTrainingDepartment;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\UseEnglishForData;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -55,6 +56,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'training.department' => ResolveTrainingDepartment::class,
             // The platform owner's console (spec 0007): the `owner` guard.
             'owner' => EnsureOwnerAuthenticated::class,
+            // Exports and import templates stay English (I18N-02, REP-06).
+            'english-data' => UseEnglishForData::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

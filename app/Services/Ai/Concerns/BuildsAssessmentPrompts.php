@@ -32,7 +32,7 @@ trait BuildsAssessmentPrompts
     {
         $learner = $level === null
             ? 'The employee is hotel staff with a low English level. Judge the answer on the standard scale below, the same for every employee and every sitting, and pitch the model answer at simple, clear English.'
-            : 'The employee is '.$level->label().' level: judge the answer against what is realistic at that level, and pitch the model answer at it.';
+            : 'The employee is '.$level->label('en').' level: judge the answer against what is realistic at that level, and pitch the model answer at it.';
 
         return $learner.' '.RoleplayPrompt::SCORING_ANCHORS;
     }

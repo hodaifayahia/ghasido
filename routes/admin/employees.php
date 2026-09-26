@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(Permission::EmployeesView->middleware())->group(function () {
     Route::get('employees', [EmployeesController::class, 'index'])->name('employees');
     // Declared before employees/{employee} so "export" is never read as an id.
-    Route::get('employees/export', [EmployeeExportController::class, 'download'])->name('employees.export');
+    Route::get('employees/export', [EmployeeExportController::class, 'download'])
+        ->middleware('english-data')
+        ->name('employees.export');
 });
 
 // Adding an account is its own capability: a Manager may edit but not create

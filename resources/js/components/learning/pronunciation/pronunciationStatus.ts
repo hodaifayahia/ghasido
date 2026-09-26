@@ -21,7 +21,11 @@ const wrong = 'bg-danger-tint text-danger-text';
 const neutral = 'bg-tint-grid text-ink-slate';
 
 export const WORD_STATUS: Record<PronunciationWordStatus, StatusStyle> = {
-    correct: { label: tk('Clear'), icon: CircleCheck, chip: good },
+    correct: {
+        label: tk('Clear (pronunciation)'),
+        icon: CircleCheck,
+        chip: good,
+    },
     unclear: { label: tk('Not clear'), icon: CircleAlert, chip: close },
     almost: { label: tk('Almost'), icon: CircleAlert, chip: close },
     mispronounced: {

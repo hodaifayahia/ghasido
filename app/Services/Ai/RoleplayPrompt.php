@@ -171,7 +171,7 @@ final class RoleplayPrompt
     {
         $learner = $level === null
             ? 'The employee has a low English level.'
-            : 'The employee is '.$level->label().' level: judge what they achieved against what is realistic at that level.';
+            : 'The employee is '.$level->label('en').' level: judge what they achieved against what is realistic at that level.';
 
         return implode("\n\n", [
             'You are an encouraging English coach for hotel staff. Evaluate the EMPLOYEE\'s side of the role-play below. Reward communicative success over grammatical perfection; the tone is adult, warm and professional, never childish (RP-08, RP-09).',

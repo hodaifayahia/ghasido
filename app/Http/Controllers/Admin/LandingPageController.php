@@ -188,7 +188,7 @@ final class LandingPageController extends Controller
                     $digits = preg_replace('/\D/', '', $value) ?? '';
 
                     if (! preg_match('/^\+?[0-9().\s-]+$/', $value) || strlen($digits) < 7 || strlen($digits) > 15) {
-                        $fail('Enter a valid WhatsApp number with 7 to 15 digits.');
+                        $fail(__('Enter a valid WhatsApp number with 7 to 15 digits.'));
                     }
                 },
             ],

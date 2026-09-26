@@ -179,7 +179,7 @@ final class SubscriptionsController extends Controller
             ]);
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Payment method added.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment method added.')]);
 
         return back();
     }
@@ -196,7 +196,7 @@ final class SubscriptionsController extends Controller
             $paymentMethod->save();
         });
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Payment method settings saved.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment method settings saved.')]);
 
         return back();
     }

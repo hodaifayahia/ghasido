@@ -21,11 +21,11 @@ enum TestQuestionSkill: string
     public function label(): string
     {
         return match ($this) {
-            self::MultipleChoice => 'Multiple choice',
-            self::Listening => 'Listening',
-            self::Speaking => 'Speaking',
-            self::Writing => 'Writing',
-            self::Ordering => 'Ordering',
+            self::MultipleChoice => __('Multiple choice'),
+            self::Listening => __('Listening'),
+            self::Speaking => __('Speaking'),
+            self::Writing => __('Writing'),
+            self::Ordering => __('Ordering'),
         };
     }
 

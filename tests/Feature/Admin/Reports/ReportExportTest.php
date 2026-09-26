@@ -49,6 +49,28 @@ class ReportExportTest extends TestCase
         $this->assertSame((string) $world->hotelA->id, (string) ($audit->changes['filters']['hotel'] ?? ''));
     }
 
+    public function test_an_admin_using_the_arabic_interface_still_exports_english_research_data()
+    {
+        $world = ReportsWorld::build();
+        $admin = User::factory()->superAdmin()->create(['locale' => 'ar']);
+
+        $csv = $this->actingAs($admin)
+            ->get(route('reports.export', ['dataset' => 'answers', 'format' => 'csv', 'hotel' => $world->hotelA->id]))
+            ->assertOk()
+            ->streamedContent();
+
+        // Same columns and values for every admin (REP-06, I18N-02).
+        $this->assertStringContainsString('"Answer ID","Participant code",Employee,Username,Email,Hotel,Department,Context', $csv);
+        $this->assertDoesNotMatchRegularExpression('/\p{Arabic}/u', $csv);
+
+        // The printable report's translated title stays English too.
+        $this->actingAs($admin)
+            ->get(route('reports.export', ['dataset' => 'answers', 'format' => 'pdf', 'hotel' => $world->hotelA->id]))
+            ->assertOk()
+            ->assertSee('Detailed Answers')
+            ->assertDontSee('الإجابات التفصيلية');
+    }
+
     public function test_xlsx_export_downloads_a_workbook()
     {
         ReportsWorld::build();

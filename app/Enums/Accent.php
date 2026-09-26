@@ -14,11 +14,11 @@ enum Accent: string
     case British = 'en-GB';
     case American = 'en-US';
 
-    public function label(): string
+    public function label(?string $locale = null): string
     {
         return match ($this) {
-            self::British => 'British English',
-            self::American => 'American English',
+            self::British => __('British English', [], $locale),
+            self::American => __('American English', [], $locale),
         };
     }
 

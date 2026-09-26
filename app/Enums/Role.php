@@ -90,10 +90,10 @@ enum Role: string
     public function label(): string
     {
         return match ($this) {
-            self::SuperAdmin => 'Super Admin',
-            self::Admin => 'Hotel Admin',
-            self::Manager => 'Hotel Manager',
-            self::Employee => 'Employee',
+            self::SuperAdmin => __('Super Admin'),
+            self::Admin => __('Hotel Admin'),
+            self::Manager => __('Hotel Manager'),
+            self::Employee => __('Employee'),
         };
     }
 

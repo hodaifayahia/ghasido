@@ -14,7 +14,6 @@ use App\Models\LexiconItem;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /**
  * Shapes one block for the step page (LESSON-01, LESSON-06, CTRL-01..03,
@@ -345,21 +344,16 @@ class BlockPresenter
     private function summaryRow(Block $block, Lesson $lesson, User $user): ?array
     {
         return match ($block->type) {
-            BlockType::Situation => ['type' => 'situation', 'title' => 'Scenario', 'subtitle' => $lesson->title],
-            BlockType::Vocabulary => ['type' => 'vocabulary', 'title' => 'Key Vocabulary', 'subtitle' => $this->countLabel($block->lexiconItems()->count(), 'word')],
-            BlockType::Expressions => ['type' => 'expressions', 'title' => 'Useful Expressions', 'subtitle' => $this->countLabel($block->lexiconItems()->count(), 'expression')],
-            BlockType::ListenRepeat => ['type' => 'listen_repeat', 'title' => 'Listening', 'subtitle' => 'Completed'],
-            BlockType::Dialogue => ['type' => 'dialogue', 'title' => 'Dialogue Practice', 'subtitle' => 'Completed'],
-            BlockType::Video => ['type' => 'video', 'title' => 'Video', 'subtitle' => 'Completed'],
-            BlockType::Practice => ['type' => 'practice', 'title' => 'Practice', 'subtitle' => 'Completed'],
-            BlockType::AiRoleplay => ['type' => 'ai_roleplay', 'title' => 'AI Role-play', 'subtitle' => $this->roleplaySubtitle($block, $user)],
+            BlockType::Situation => ['type' => 'situation', 'title' => __('Scenario'), 'subtitle' => $lesson->title],
+            BlockType::Vocabulary => ['type' => 'vocabulary', 'title' => __('Key Vocabulary'), 'subtitle' => trans_choice(':count word|:count words', $block->lexiconItems()->count())],
+            BlockType::Expressions => ['type' => 'expressions', 'title' => __('Useful Expressions'), 'subtitle' => trans_choice(':count expression|:count expressions', $block->lexiconItems()->count())],
+            BlockType::ListenRepeat => ['type' => 'listen_repeat', 'title' => __('Listening'), 'subtitle' => __('Completed')],
+            BlockType::Dialogue => ['type' => 'dialogue', 'title' => __('Dialogue Practice'), 'subtitle' => __('Completed')],
+            BlockType::Video => ['type' => 'video', 'title' => __('Video'), 'subtitle' => __('Completed')],
+            BlockType::Practice => ['type' => 'practice', 'title' => __('Practice'), 'subtitle' => __('Completed')],
+            BlockType::AiRoleplay => ['type' => 'ai_roleplay', 'title' => __('AI Role-play'), 'subtitle' => $this->roleplaySubtitle($block, $user)],
             default => null,
         };
-    }
-
-    private function countLabel(int $count, string $noun): string
-    {
-        return $count.' '.Str::plural($noun, $count);
     }
 
     private function roleplaySubtitle(Block $block, User $user): string
@@ -367,7 +361,7 @@ class BlockPresenter
         $ids = $block->scenarioIds();
 
         if ($ids === []) {
-            return 'Completed';
+            return __('Completed');
         }
 
         $allowed = (int) AiScenario::query()->whereIn('id', $ids)->max('attempts_allowed');
@@ -377,7 +371,7 @@ class BlockPresenter
             ->whereIn('ai_scenario_id', $ids)
             ->count();
 
-        return sprintf('%d of %d attempts completed', min($used, max($allowed, 1)), max($allowed, 1));
+        return __(':used of :allowed attempts completed', ['used' => min($used, max($allowed, 1)), 'allowed' => max($allowed, 1)]);
     }
 
     /**

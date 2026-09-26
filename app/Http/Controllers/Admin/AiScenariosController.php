@@ -378,21 +378,15 @@ class AiScenariosController extends Controller
                     'width' => 245,
                     'height' => 94,
                 ],
-                'description' => __(
-                    'The guest arrives at the hotel. They want to check in, ask about the room, and get some information about hotel facilities.'
-                ),
+                'description' => 'The guest arrives at the hotel. They want to check in, ask about the room, and get some information about hotel facilities.',
                 'descriptionCount' => '104/500',
-                'guestRole' => __(
-                    'You are an international guest. You are polite and friendly. You want to check in, ask some questions and make a special request.'
-                ),
-                'employeeRole' => __(
-                    'You are a hotel receptionist. Welcome the guest, check their reservation, provide information, and respond to their requests professionally.'
-                ),
+                'guestRole' => 'You are an international guest. You are polite and friendly. You want to check in, ask some questions and make a special request.',
+                'employeeRole' => 'You are a hotel receptionist. Welcome the guest, check their reservation, provide information, and respond to their requests professionally.',
                 'objectives' => [
-                    __('Use polite greetings and welcoming language'),
-                    __('Ask and answer questions about the reservation'),
-                    __('Provide information about hotel facilities'),
-                    __('Handle special requests politely'),
+                    'Use polite greetings and welcoming language',
+                    'Ask and answer questions about the reservation',
+                    'Provide information about hotel facilities',
+                    'Handle special requests politely',
                 ],
                 'usedInLessons' => [],
             ]),
@@ -401,12 +395,12 @@ class AiScenariosController extends Controller
                     [
                         'id' => 1,
                         'actor' => 'guest',
-                        'text' => __('Good afternoon! I have a reservation under the name Smith.'),
+                        'text' => 'Good afternoon! I have a reservation under the name Smith.',
                     ],
                     [
                         'id' => 2,
                         'actor' => 'employee',
-                        'text' => __('Good afternoon, Mr. Smith! Welcome to our hotel. Let me check your reservation, please.'),
+                        'text' => 'Good afternoon, Mr. Smith! Welcome to our hotel. Let me check your reservation, please.',
                         'avatarCrop' => [
                             'x' => 1173,
                             'y' => 274,
@@ -417,12 +411,12 @@ class AiScenariosController extends Controller
                     [
                         'id' => 3,
                         'actor' => 'guest',
-                        'text' => __('Thank you. Can you tell me what time the breakfast is?'),
+                        'text' => 'Thank you. Can you tell me what time the breakfast is?',
                     ],
                     [
                         'id' => 4,
                         'actor' => 'employee',
-                        'text' => __('Of course. Breakfast is served from 6:30 a.m. to 10:00 a.m. in our main restaurant.'),
+                        'text' => 'Of course. Breakfast is served from 6:30 a.m. to 10:00 a.m. in our main restaurant.',
                         'avatarCrop' => [
                             'x' => 1173,
                             'y' => 387,
@@ -526,7 +520,7 @@ class AiScenariosController extends Controller
                 ],
             ],
             'instructions' => [
-                'systemPrompt' => __("You are role-playing a specific hotel situation to help a hotel employee practise English.\n\nStay completely in character as {{ai_role}}. Never say you are an AI or offer help outside the scenario. Keep every reply short, natural and easy to understand for a basic English level. Guide the conversation towards the objective: {{objective}}. End the conversation once the objective is met or after {{max_turns}} turns."),
+                'systemPrompt' => "You are role-playing a specific hotel situation to help a hotel employee practise English.\n\nStay completely in character as {{ai_role}}. Never say you are an AI or offer help outside the scenario. Keep every reply short, natural and easy to understand for a basic English level. Guide the conversation towards the objective: {{objective}}. End the conversation once the objective is met or after {{max_turns}} turns.",
                 'systemPromptCount' => '486/2000',
                 'tone' => 'encouraging',
                 'toneOptions' => [
@@ -541,11 +535,11 @@ class AiScenariosController extends Controller
                     ['value' => 'strict', 'label' => __('Strict language accuracy')],
                 ],
                 'guardrails' => [
-                    ['id' => 'in-character', 'text' => __('Never break character or act as a general assistant.')],
-                    ['id' => 'scope', 'text' => __("Stay inside the hotel situation and the employee's role.")],
-                    ['id' => 'level', 'text' => __('Use short, clear sentences suited to A1–A2 learners.')],
-                    ['id' => 'success', 'text' => __('Reward getting the message across over perfect grammar.')],
-                    ['id' => 'safety', 'text' => __('Never request personal data or leave the training context.')],
+                    ['id' => 'in-character', 'text' => 'Never break character or act as a general assistant.'],
+                    ['id' => 'scope', 'text' => "Stay inside the hotel situation and the employee's role."],
+                    ['id' => 'level', 'text' => 'Use short, clear sentences suited to A1–A2 learners.'],
+                    ['id' => 'success', 'text' => 'Reward getting the message across over perfect grammar.'],
+                    ['id' => 'safety', 'text' => 'Never request personal data or leave the training context.'],
                 ],
                 'variables' => [
                     ['token' => '{{ai_role}}', 'description' => __('The character the AI plays')],

@@ -597,6 +597,12 @@
     html:lang(ar) body * {
         letter-spacing: normal;
     }
+
+    /* Arabic letters rise and fall further than Latin ones; the tight line
+       heights set for English display headings would clip or crowd them. */
+    html:lang(ar) :is(h1, h2) {
+        line-height: 1.3;
+    }
 }
 
 /* Icons that point along the reading direction (next, back, "View all",
