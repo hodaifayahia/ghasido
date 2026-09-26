@@ -64,7 +64,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head :title="`Feedback – ${scenario.title}`" />
+    <Head :title="$t('Feedback – :title', { title: scenario.title })" />
 
     <section class="mx-auto grid max-w-3xl content-start gap-6 p-4 md:p-6">
         <div
@@ -75,10 +75,10 @@ onUnmounted(() => {
                 class="border-brand-200 border-t-brand-600 size-10 animate-spin rounded-full border-4"
             />
             <p class="text-ink-royal font-heading text-[18px] font-semibold">
-                Evaluating your conversation…
+                {{ $t('Evaluating your conversation…') }}
             </p>
             <p class="text-ink-slate text-[13.5px]">
-                This takes a moment. Your transcript is saved.
+                {{ $t('This takes a moment. Your transcript is saved.') }}
             </p>
         </div>
 
@@ -87,15 +87,19 @@ onUnmounted(() => {
             class="border-line bg-surface shadow-card grid justify-items-center gap-3 rounded-lg border p-10 text-center"
         >
             <p class="text-danger-text font-heading text-[18px] font-semibold">
-                The evaluation could not finish.
+                {{ $t('The evaluation could not finish.') }}
             </p>
             <p class="text-ink-slate text-[13.5px]">
-                Your conversation is saved. Please try again in a moment.
+                {{
+                    $t(
+                        'Your conversation is saved. Please try again in a moment.',
+                    )
+                }}
             </p>
             <Link
                 :href="lessonUrl"
                 class="text-brand-700 text-[14px] font-semibold"
-                >Back to the lesson</Link
+                >{{ $t('Back to the lesson') }}</Link
             >
         </div>
 
@@ -111,7 +115,7 @@ onUnmounted(() => {
                 <h1
                     class="font-heading text-ink-royal text-[26px] font-bold tracking-[-0.02em]"
                 >
-                    {{ attempt.feedback?.summary_label ?? 'Well done!' }}
+                    {{ attempt.feedback?.summary_label ?? $t('Well done!') }}
                 </h1>
                 <p
                     v-if="attempt.feedback?.summary_text"
@@ -133,7 +137,7 @@ onUnmounted(() => {
                 <h2
                     class="font-heading text-ink-royal text-[15px] font-semibold"
                 >
-                    How you did
+                    {{ $t('How you did') }}
                 </h2>
                 <div
                     v-for="criterion in scenario.criteria"
@@ -142,7 +146,7 @@ onUnmounted(() => {
                 >
                     <div class="flex items-center justify-between text-[13px]">
                         <span class="text-ink font-medium">{{
-                            criterion.label
+                            $t(criterion.label)
                         }}</span>
                         <span class="text-ink-slate"
                             >{{
@@ -172,7 +176,7 @@ onUnmounted(() => {
                         class="text-success-text flex items-center gap-2 text-[14px] font-semibold"
                     >
                         <CircleCheck class="size-4" aria-hidden="true" />
-                        What you did well
+                        {{ $t('What you did well') }}
                     </h2>
                     <ul class="grid gap-1.5">
                         <li
@@ -196,7 +200,7 @@ onUnmounted(() => {
                         class="text-warning-text flex items-center gap-2 text-[14px] font-semibold"
                     >
                         <Lightbulb class="size-4" aria-hidden="true" />
-                        To improve
+                        {{ $t('To improve') }}
                     </h2>
                     <ul class="grid gap-2">
                         <li
@@ -223,16 +227,16 @@ onUnmounted(() => {
                     class="text-ai flex items-center gap-2 text-[14px] font-semibold"
                 >
                     <Sparkles class="size-4" aria-hidden="true" />
-                    A better way to say it
+                    {{ $t('A better way to say it') }}
                 </h2>
                 <p class="text-ink-slate text-[13px]">
-                    You said:
+                    {{ $t('You said:') }}
                     <span class="italic"
                         >“{{ attempt.feedback.better_expression.yours }}”</span
                     >
                 </p>
                 <p class="text-ink text-[13.5px] font-medium">
-                    Try:
+                    {{ $t('Try:') }}
                     <span class="text-ai"
                         >“{{ attempt.feedback.better_expression.better }}”</span
                     >
@@ -245,7 +249,7 @@ onUnmounted(() => {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-[14px] font-semibold text-white active:scale-[.97]"
                 >
                     <BookOpen class="size-4" aria-hidden="true" />
-                    Back to the lesson
+                    {{ $t('Back to the lesson') }}
                     <ArrowRight class="size-4" aria-hidden="true" />
                 </Link>
                 <Link
@@ -254,7 +258,7 @@ onUnmounted(() => {
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-11 items-center justify-center gap-2 rounded-md border px-5 text-[14px] font-semibold shadow-none"
                 >
                     <RotateCcw class="size-4" aria-hidden="true" />
-                    Try again ({{ attemptsLeft }} left)
+                    {{ $t('Try again (:count left)', { count: attemptsLeft }) }}
                 </Link>
             </div>
         </template>

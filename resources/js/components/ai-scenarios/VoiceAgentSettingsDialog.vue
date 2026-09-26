@@ -13,6 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import type {
     VoiceAgentScenario,
     VoiceAgentSettingsPayload,
@@ -59,9 +60,9 @@ watch(open, (value) => {
 });
 
 const thinkLabels: Record<string, string> = {
-    open_ai: 'OpenAI (billed by Deepgram)',
-    anthropic: 'Anthropic (billed by Deepgram)',
-    google: 'Google (billed by Deepgram)',
+    open_ai: tk('OpenAI (billed by Deepgram)'),
+    anthropic: tk('Anthropic (billed by Deepgram)'),
+    google: tk('Google (billed by Deepgram)'),
 };
 
 const modelSuggestions = computed(
@@ -123,8 +124,12 @@ function saveScenario(): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Voice call settings"
-        description="Control how the live AI guest listens, thinks and speaks in every voice call."
+        :title="$t('Voice call settings')"
+        :description="
+            $t(
+                'Control how the live AI guest listens, thinks and speaks in every voice call.',
+            )
+        "
         size="lg"
     >
         <form class="mt-5 grid gap-5" @submit.prevent="saveGlobal">
@@ -134,8 +139,11 @@ function saveScenario(): void {
                 role="status"
             >
                 <Info class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                No Deepgram key is set on the server (DEEPGRAM_API_KEY), so
-                learners will not be offered voice calls yet.
+                {{
+                    $t(
+                        'No Deepgram key is set on the server (DEEPGRAM_API_KEY), so learners will not be offered voice calls yet.',
+                    )
+                }}
             </p>
 
             <!-- Listening -->
@@ -144,11 +152,13 @@ function saveScenario(): void {
                     class="text-brand-900 flex items-center gap-2 px-1 text-sm font-semibold"
                 >
                     <Ear class="text-brand-600 size-4" aria-hidden="true" />
-                    Listening
+                    {{ $t('Listening') }}
                 </legend>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Speech model</Label>
+                        <Label :class="labelClass">{{
+                            $t('Speech model')
+                        }}</Label>
                         <Select v-model="form.listenModel">
                             <SelectTrigger :class="fieldClass">
                                 <SelectValue />
@@ -167,7 +177,11 @@ function saveScenario(): void {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="va-eot" :class="labelClass">
-                            End-of-turn confidence ({{ form.eotThreshold }})
+                            {{
+                                $t('End-of-turn confidence (:value)', {
+                                    value: form.eotThreshold,
+                                })
+                            }}
                         </Label>
                         <input
                             id="va-eot"
@@ -183,7 +197,7 @@ function saveScenario(): void {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="va-keyterms" :class="labelClass">
-                        Key terms (comma separated)
+                        {{ $t('Key terms (comma separated)') }}
                     </Label>
                     <Input
                         id="va-keyterms"
@@ -192,8 +206,11 @@ function saveScenario(): void {
                         :class="fieldClass"
                     />
                     <p class="text-ink-slate text-[11.5px]">
-                        Words the listener should expect, like room types or the
-                        hotel's name.
+                        {{
+                            $t(
+                                "Words the listener should expect, like room types or the hotel's name.",
+                            )
+                        }}
                     </p>
                 </div>
             </fieldset>
@@ -207,11 +224,13 @@ function saveScenario(): void {
                         class="text-brand-600 size-4"
                         aria-hidden="true"
                     />
-                    Guest voice
+                    {{ $t('Guest voice') }}
                 </legend>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Voice provider</Label>
+                        <Label :class="labelClass">{{
+                            $t('Voice provider')
+                        }}</Label>
                         <Select v-model="form.speakProvider">
                             <SelectTrigger :class="fieldClass">
                                 <SelectValue />
@@ -230,7 +249,7 @@ function saveScenario(): void {
                         v-if="form.speakProvider === 'deepgram'"
                         class="grid gap-1.5"
                     >
-                        <Label :class="labelClass">Voice</Label>
+                        <Label :class="labelClass">{{ $t('Voice') }}</Label>
                         <Select v-model="form.speakModel">
                             <SelectTrigger
                                 :class="fieldClass"
@@ -256,7 +275,7 @@ function saveScenario(): void {
                 >
                     <div class="grid gap-1.5">
                         <Label for="va-eleven-model" :class="labelClass">
-                            ElevenLabs model id
+                            {{ $t('ElevenLabs model id') }}
                         </Label>
                         <Input
                             id="va-eleven-model"
@@ -266,7 +285,7 @@ function saveScenario(): void {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="va-eleven-voice" :class="labelClass">
-                            ElevenLabs voice id
+                            {{ $t('ElevenLabs voice id') }}
                         </Label>
                         <Input
                             id="va-eleven-voice"
@@ -283,25 +302,31 @@ function saveScenario(): void {
                     class="text-brand-900 flex items-center gap-2 px-1 text-sm font-semibold"
                 >
                     <Brain class="text-brand-600 size-4" aria-hidden="true" />
-                    Guest brain
+                    {{ $t('Guest brain') }}
                 </legend>
                 <div class="grid gap-1.5">
-                    <Label :class="labelClass">Language model</Label>
+                    <Label :class="labelClass">{{
+                        $t('Language model')
+                    }}</Label>
                     <Select v-model="form.thinkMode">
                         <SelectTrigger :class="fieldClass">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="managed">
-                                Deepgram-managed model
+                                {{ $t('Deepgram-managed model') }}
                             </SelectItem>
                             <SelectItem
                                 value="qwen_proxy"
                                 :disabled="!settings.qwenProxyAvailable"
                             >
-                                Qwen ({{
-                                    settings.qwenModel ?? 'server model'
-                                }}) through GHASIDO
+                                {{
+                                    $t('Qwen (:model) through GHASIDO', {
+                                        model:
+                                            settings.qwenModel ??
+                                            $t('server model'),
+                                    })
+                                }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -309,7 +334,11 @@ function saveScenario(): void {
                         v-if="!settings.qwenProxyAvailable"
                         class="text-ink-slate text-[11.5px]"
                     >
-                        Qwen is unavailable: {{ settings.qwenProxyReason }}
+                        {{
+                            $t('Qwen is unavailable: :reason', {
+                                reason: settings.qwenProxyReason ?? '',
+                            })
+                        }}
                     </p>
                     <p
                         v-if="errors.thinkMode"
@@ -323,7 +352,7 @@ function saveScenario(): void {
                     class="grid gap-3 sm:grid-cols-2"
                 >
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Provider</Label>
+                        <Label :class="labelClass">{{ $t('Provider') }}</Label>
                         <Select v-model="form.thinkProvider">
                             <SelectTrigger :class="fieldClass">
                                 <SelectValue />
@@ -335,14 +364,18 @@ function saveScenario(): void {
                                     :key="provider"
                                     :value="provider"
                                 >
-                                    {{ thinkLabels[provider] ?? provider }}
+                                    {{
+                                        thinkLabels[provider]
+                                            ? $t(thinkLabels[provider])
+                                            : provider
+                                    }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="va-think-model" :class="labelClass">
-                            Model
+                            {{ $t('Model') }}
                         </Label>
                         <Input
                             id="va-think-model"
@@ -367,7 +400,11 @@ function saveScenario(): void {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="va-temperature" :class="labelClass">
-                        Creativity ({{ form.temperature }})
+                        {{
+                            $t('Creativity (:value)', {
+                                value: form.temperature,
+                            })
+                        }}
                     </Label>
                     <input
                         id="va-temperature"
@@ -390,11 +427,11 @@ function saveScenario(): void {
                         class="text-brand-600 size-4"
                         aria-hidden="true"
                     />
-                    Conversation
+                    {{ $t('Conversation') }}
                 </legend>
                 <div class="grid gap-1.5">
                     <Label for="va-greeting" :class="labelClass">
-                        Default greeting (the guest's first line)
+                        {{ $t("Default greeting (the guest's first line)") }}
                     </Label>
                     <Input
                         id="va-greeting"
@@ -411,7 +448,7 @@ function saveScenario(): void {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="va-prompt" :class="labelClass">
-                        Extra instructions for voice calls
+                        {{ $t('Extra instructions for voice calls') }}
                     </Label>
                     <textarea
                         id="va-prompt"
@@ -419,17 +456,24 @@ function saveScenario(): void {
                         rows="3"
                         maxlength="3000"
                         :class="textareaClass"
-                        placeholder="e.g. Speak a little slower and use simple words."
+                        :placeholder="
+                            $t(
+                                'e.g. Speak a little slower and use simple words.',
+                            )
+                        "
                     />
                     <p class="text-ink-slate text-[11.5px]">
-                        Added after the scenario brief and the AI Instructions
-                        tab. The role-play guard always applies.
+                        {{
+                            $t(
+                                'Added after the scenario brief and the AI Instructions tab. The role-play guard always applies.',
+                            )
+                        }}
                     </p>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-3">
                     <div class="grid gap-1.5">
                         <Label for="va-max" :class="labelClass">
-                            Max call length (seconds)
+                            {{ $t('Max call length (seconds)') }}
                         </Label>
                         <Input
                             id="va-max"
@@ -442,7 +486,9 @@ function saveScenario(): void {
                         />
                     </div>
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Mic sample rate</Label>
+                        <Label :class="labelClass">{{
+                            $t('Mic sample rate')
+                        }}</Label>
                         <Select v-model="form.inputSampleRate">
                             <SelectTrigger :class="fieldClass">
                                 <SelectValue />
@@ -460,7 +506,9 @@ function saveScenario(): void {
                         </Select>
                     </div>
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Voice sample rate</Label>
+                        <Label :class="labelClass">{{
+                            $t('Voice sample rate')
+                        }}</Label>
                         <Select v-model="form.outputSampleRate">
                             <SelectTrigger :class="fieldClass">
                                 <SelectValue />
@@ -487,7 +535,7 @@ function saveScenario(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 h-11 rounded-md px-4 text-xs font-semibold sm:h-10"
                     @click="open = false"
                 >
-                    Close
+                    {{ $t('Close') }}
                 </Button>
                 <Button
                     type="submit"
@@ -495,7 +543,7 @@ function saveScenario(): void {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-11 rounded-md px-4 text-xs font-semibold text-white sm:h-10"
                     data-test="save-voice-agent-settings-button"
                 >
-                    Save voice call settings
+                    {{ $t('Save voice call settings') }}
                 </Button>
             </div>
         </form>
@@ -507,18 +555,18 @@ function saveScenario(): void {
             @submit.prevent="saveScenario"
         >
             <p class="text-brand-900 text-sm font-semibold">
-                Only for “{{ scenario.title }}”
+                {{ $t('Only for “:title”', { title: scenario.title }) }}
             </p>
             <div class="grid gap-3 sm:grid-cols-2">
                 <div class="grid gap-1.5">
-                    <Label :class="labelClass">Aura-2 voice</Label>
+                    <Label :class="labelClass">{{ $t('Aura-2 voice') }}</Label>
                     <Select v-model="scenarioVoice">
                         <SelectTrigger :class="fieldClass">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem :value="GLOBAL">
-                                Use the global voice
+                                {{ $t('Use the global voice') }}
                             </SelectItem>
                             <SelectItem
                                 v-for="voice in settings.options.voices"
@@ -532,7 +580,7 @@ function saveScenario(): void {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="va-scenario-eleven" :class="labelClass">
-                        ElevenLabs voice id (optional)
+                        {{ $t('ElevenLabs voice id (optional)') }}
                     </Label>
                     <Input
                         id="va-scenario-eleven"
@@ -543,7 +591,7 @@ function saveScenario(): void {
             </div>
             <div class="grid gap-1.5">
                 <Label for="va-scenario-greeting" :class="labelClass">
-                    Greeting (leave empty for the default)
+                    {{ $t('Greeting (leave empty for the default)') }}
                 </Label>
                 <Input
                     id="va-scenario-greeting"
@@ -560,7 +608,7 @@ function saveScenario(): void {
                     class="border-brand-600 text-brand-700 hover:bg-brand-50 h-11 rounded-md px-4 text-xs font-semibold sm:h-10"
                     data-test="save-scenario-voice-button"
                 >
-                    Save scenario voice
+                    {{ $t('Save scenario voice') }}
                 </Button>
             </div>
         </form>

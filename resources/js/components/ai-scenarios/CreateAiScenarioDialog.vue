@@ -60,8 +60,12 @@ function create(): void {
 <template>
     <LessonsModal
         :open="open"
-        title="Create New Scenario"
-        description="Start with the situation details, then build the roles and conversation objectives."
+        :title="$t('Create New Scenario')"
+        :description="
+            $t(
+                'Start with the situation details, then build the roles and conversation objectives.',
+            )
+        "
         size="md"
         @update:open="emit('update:open', $event)"
     >
@@ -71,13 +75,14 @@ function create(): void {
                     for="new-scenario-title"
                     class="text-brand-900 text-xs font-semibold"
                 >
-                    Scenario title <span class="text-danger">*</span>
+                    {{ $t('Scenario title') }}
+                    <span class="text-danger">*</span>
                 </Label>
                 <Input
                     id="new-scenario-title"
                     v-model="title"
                     autofocus
-                    placeholder="e.g. Guest Check-in"
+                    :placeholder="$t('e.g. Guest Check-in')"
                     class="border-line h-11 text-sm"
                 />
             </div>
@@ -85,11 +90,13 @@ function create(): void {
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
                     <Label class="text-brand-900 text-xs font-semibold">
-                        Department
+                        {{ $t('Department') }}
                     </Label>
                     <Select v-model="department">
                         <SelectTrigger class="border-line h-11 text-sm">
-                            <SelectValue placeholder="Choose department" />
+                            <SelectValue
+                                :placeholder="$t('Choose department')"
+                            />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
@@ -106,20 +113,22 @@ function create(): void {
                 </div>
                 <div class="space-y-1.5">
                     <Label class="text-brand-900 text-xs font-semibold">
-                        English level
+                        {{ $t('English level') }}
                     </Label>
                     <Select v-model="level">
                         <SelectTrigger class="border-line h-11 text-sm">
-                            <SelectValue placeholder="Choose level" />
+                            <SelectValue :placeholder="$t('Choose level')" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="beginner">Beginner</SelectItem>
-                            <SelectItem value="elementary"
-                                >Elementary</SelectItem
-                            >
-                            <SelectItem value="intermediate"
-                                >Intermediate</SelectItem
-                            >
+                            <SelectItem value="beginner">{{
+                                $t('Beginner')
+                            }}</SelectItem>
+                            <SelectItem value="elementary">{{
+                                $t('Elementary')
+                            }}</SelectItem>
+                            <SelectItem value="intermediate">{{
+                                $t('Intermediate')
+                            }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -133,9 +142,11 @@ function create(): void {
                     aria-hidden="true"
                 />
                 <p class="text-ink-slate text-xs leading-5">
-                    After creating it, the scenario builder will open so you can
-                    add the image, hotel roles, learning objectives and AI
-                    instructions.
+                    {{
+                        $t(
+                            'After creating it, the scenario builder will open so you can add the image, hotel roles, learning objectives and AI instructions.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -148,14 +159,14 @@ function create(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 h-10 rounded-md px-4 text-xs font-semibold"
                     @click="emit('update:open', false)"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-xs font-semibold text-white"
                     :disabled="title.trim() === ''"
                 >
-                    Create &amp; Open Builder
+                    {{ $t('Create & Open Builder') }}
                 </Button>
             </div>
         </form>

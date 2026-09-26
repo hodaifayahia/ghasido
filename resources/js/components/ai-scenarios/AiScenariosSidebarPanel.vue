@@ -120,7 +120,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
         >
             <div class="flex items-center justify-between gap-3">
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Conversation Preview (Example)
+                    {{ $t('Conversation Preview (Example)') }}
                 </h2>
                 <Button
                     type="button"
@@ -129,7 +129,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                     @click="emit('preview')"
                 >
                     <Clock class="size-3.5" aria-hidden="true" />
-                    Test Scenario
+                    {{ $t('Test Scenario') }}
                 </Button>
             </div>
 
@@ -170,7 +170,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                         "
                         :crop="message.avatarCrop"
                         src="/decor/ai-scenarios-mockup.jpg"
-                        alt="Employee avatar"
+                        :alt="$t('Employee avatar')"
                         class="border-line rounded-pill size-9 shrink-0 border"
                     />
                 </div>
@@ -188,7 +188,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                 <button
                     type="button"
                     class="text-brand-600 hover:bg-brand-50 rounded-pill inline-flex size-8 shrink-0 items-center justify-center disabled:opacity-40"
-                    aria-label="Send preview message"
+                    :aria-label="$t('Send preview message')"
                     :disabled="previewMessage.trim() === ''"
                     @click="emit('preview')"
                 >
@@ -201,13 +201,13 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <h2 class="font-heading text-brand-800 text-base font-semibold">
-                Scenario Settings
+                {{ $t('Scenario Settings') }}
             </h2>
 
             <div class="mt-3 grid gap-3 md:grid-cols-[repeat(2,minmax(0,1fr))]">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Number of Attempts
+                        {{ $t('Number of Attempts') }}
                     </label>
                     <Select
                         :model-value="attempts"
@@ -233,7 +233,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
 
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Feedback Style
+                        {{ $t('Feedback Style') }}
                     </label>
                     <Select
                         :model-value="feedbackStyle"
@@ -260,7 +260,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
 
             <div class="mt-4">
                 <h3 class="text-brand-900 text-[12px] font-semibold">
-                    Focus Areas
+                    {{ $t('Focus Areas') }}
                 </h3>
                 <div class="mt-2 grid gap-2 sm:grid-cols-2">
                     <label
@@ -300,14 +300,14 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                                     cn(
                                         'rounded-pill absolute top-1 size-4 bg-white transition-transform duration-150',
                                         allowHints
-                                            ? 'translate-x-6'
-                                            : 'translate-x-1',
+                                            ? 'translate-x-6 rtl:-translate-x-6'
+                                            : 'translate-x-1 rtl:-translate-x-1',
                                     )
                                 "
                             />
                         </span>
                         <span class="text-brand-900 text-[12px] font-medium">
-                            Allow hints during conversation
+                            {{ $t('Allow hints during conversation') }}
                         </span>
                     </span>
                     <CircleQuestionMark
@@ -338,14 +338,14 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                                     cn(
                                         'rounded-pill absolute top-1 size-4 bg-white transition-transform duration-150',
                                         showSuggestions
-                                            ? 'translate-x-6'
-                                            : 'translate-x-1',
+                                            ? 'translate-x-6 rtl:-translate-x-6'
+                                            : 'translate-x-1 rtl:-translate-x-1',
                                     )
                                 "
                             />
                         </span>
                         <span class="text-brand-900 text-[12px] font-medium">
-                            Show suggested language after completion
+                            {{ $t('Show suggested language after completion') }}
                         </span>
                     </span>
                     <CircleQuestionMark
@@ -357,14 +357,14 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
 
             <div class="mt-4">
                 <h3 class="text-brand-900 text-[12px] font-semibold">
-                    Tags (Keywords)
+                    {{ $t('Tags (Keywords)') }}
                 </h3>
                 <div class="mt-2 flex flex-wrap gap-2">
                     <button
                         v-for="tag in tags"
                         :key="tag"
                         type="button"
-                        :aria-label="`Remove ${tag}`"
+                        :aria-label="$t('Remove :item', { item: tag })"
                         @click="removeTag(tag)"
                         class="rounded-pill bg-brand-50 text-brand-700 inline-flex min-h-7 items-center px-2.5 text-[11px] font-medium"
                     >
@@ -375,14 +375,14 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                         class="border-line text-brand-700 hover:bg-brand-50 inline-flex min-h-7 items-center rounded-md border px-2.5 text-[11px] font-semibold"
                         @click="addingTag = !addingTag"
                     >
-                        + Add Tag
+                        {{ $t('+ Add Tag') }}
                     </button>
                 </div>
                 <div v-if="addingTag" class="mt-2 flex gap-2">
                     <Input
                         v-model="newTag"
                         autofocus
-                        placeholder="e.g. check-in"
+                        :placeholder="$t('e.g. check-in')"
                         class="border-line h-8 text-xs"
                         @keyup.enter="addTag"
                     />
@@ -391,7 +391,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                         class="bg-brand-600 hover:bg-brand-700 h-8 px-3 text-xs font-semibold text-white"
                         @click="addTag"
                     >
-                        Add
+                        {{ $t('Add') }}
                     </Button>
                 </div>
             </div>
@@ -404,7 +404,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                     @click="emit('preview')"
                 >
                     <Eye class="size-3.5" aria-hidden="true" />
-                    Preview
+                    {{ $t('Preview') }}
                 </Button>
                 <Button
                     type="button"
@@ -412,14 +412,14 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
                     class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
                     @click="emit('save', settingsPayload())"
                 >
-                    Save as Draft
+                    {{ $t('Save as Draft') }}
                 </Button>
                 <Button
                     type="button"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-3 text-[12px] font-semibold text-white"
                     @click="emit('update', settingsPayload())"
                 >
-                    Update Scenario
+                    {{ $t('Update Scenario') }}
                 </Button>
             </div>
         </section>

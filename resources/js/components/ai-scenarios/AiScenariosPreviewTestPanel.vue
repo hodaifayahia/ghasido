@@ -184,11 +184,14 @@ function titleCase(value: string): string {
                     <h2
                         class="font-heading text-brand-800 text-base font-semibold"
                     >
-                        Preview &amp; Test
+                        {{ $t('Preview & Test') }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12.5px]">
-                        Run a real AI conversation to test a scenario before you
-                        publish it.
+                        {{
+                            $t(
+                                'Run a real AI conversation to test a scenario before you publish it.',
+                            )
+                        }}
                     </p>
                 </div>
             </div>
@@ -196,7 +199,7 @@ function titleCase(value: string): string {
             <template v-if="attempt === null">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Scenario
+                        {{ $t('Scenario') }}
                     </label>
                     <Select
                         :model-value="selected"
@@ -205,7 +208,9 @@ function titleCase(value: string): string {
                         <SelectTrigger
                             class="border-line text-ink bg-surface h-10 rounded-md px-3 text-[12.5px] shadow-none"
                         >
-                            <SelectValue placeholder="Choose a scenario" />
+                            <SelectValue
+                                :placeholder="$t('Choose a scenario')"
+                            />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -229,7 +234,11 @@ function titleCase(value: string): string {
                     <span
                         class="rounded-pill bg-ai-tint text-ai inline-flex min-h-6 items-center px-2.5 text-[11px] font-medium"
                     >
-                        Level: {{ selectedScenario.level }}
+                        {{
+                            $t('Level: :level', {
+                                level: $t(selectedScenario.level),
+                            })
+                        }}
                     </span>
                     <span
                         :class="
@@ -243,8 +252,8 @@ function titleCase(value: string): string {
                     >
                         {{
                             selectedScenario.status === 'published'
-                                ? 'Published'
-                                : 'Draft'
+                                ? $t('Published')
+                                : $t('Draft')
                         }}
                     </span>
                 </div>
@@ -254,14 +263,14 @@ function titleCase(value: string): string {
                     class="border-line bg-app-alt grid gap-3 rounded-md border p-3"
                 >
                     <h3 class="text-brand-900 text-[12px] font-semibold">
-                        Get Ready
+                        {{ $t('Get Ready') }}
                     </h3>
                     <dl class="grid gap-2.5">
                         <div class="grid gap-0.5">
                             <dt
                                 class="text-ink-faint text-[11px] font-semibold uppercase"
                             >
-                                Situation
+                                {{ $t('Situation') }}
                             </dt>
                             <dd class="text-ink text-[12.5px] leading-[1.45]">
                                 {{ selectedScenario.situation }}
@@ -271,7 +280,7 @@ function titleCase(value: string): string {
                             <dt
                                 class="text-ink-faint text-[11px] font-semibold uppercase"
                             >
-                                AI Role
+                                {{ $t('AI Role') }}
                             </dt>
                             <dd class="text-ink text-[12.5px] leading-[1.45]">
                                 {{ selectedScenario.aiRole }}
@@ -281,7 +290,7 @@ function titleCase(value: string): string {
                             <dt
                                 class="text-ink-faint text-[11px] font-semibold uppercase"
                             >
-                                Your Role
+                                {{ $t('Your Role') }}
                             </dt>
                             <dd class="text-ink text-[12.5px] leading-[1.45]">
                                 {{ selectedScenario.employeeRole }}
@@ -291,7 +300,7 @@ function titleCase(value: string): string {
                             <dt
                                 class="text-ink-faint text-[11px] font-semibold uppercase"
                             >
-                                Objective
+                                {{ $t('Objective') }}
                             </dt>
                             <dd class="text-ink text-[12.5px] leading-[1.45]">
                                 {{ selectedScenario.objective }}
@@ -321,7 +330,9 @@ function titleCase(value: string): string {
                         aria-hidden="true"
                     />
                     <Play v-else class="size-4" aria-hidden="true" />
-                    {{ starting ? 'Starting…' : 'Run Test Conversation' }}
+                    {{
+                        starting ? $t('Starting…') : $t('Run Test Conversation')
+                    }}
                 </Button>
             </template>
 
@@ -331,8 +342,15 @@ function titleCase(value: string): string {
                         {{ attempt.scenarioTitle }}
                     </p>
                     <p class="text-ink-slate mt-0.5 text-[11.5px]">
-                        {{ attempt.employeeTurns }} of {{ attempt.minTurns }}
-                        replies · testing as an employee
+                        {{
+                            $t(
+                                ':turns of :min replies · testing as an employee',
+                                {
+                                    turns: attempt.employeeTurns,
+                                    min: attempt.minTurns,
+                                },
+                            )
+                        }}
                     </p>
                 </div>
 
@@ -353,7 +371,7 @@ function titleCase(value: string): string {
                         @click="end"
                     >
                         <Check class="size-4" aria-hidden="true" />
-                        End &amp; get feedback
+                        {{ $t('End & get feedback') }}
                     </Button>
                     <Button
                         type="button"
@@ -362,7 +380,7 @@ function titleCase(value: string): string {
                         @click="reset"
                     >
                         <RotateCcw class="size-3.5" aria-hidden="true" />
-                        Start a new test
+                        {{ $t('Start a new test') }}
                     </Button>
                 </div>
             </template>
@@ -374,7 +392,7 @@ function titleCase(value: string): string {
                 class="border-line bg-surface shadow-card flex min-h-[360px] flex-col rounded-lg border p-4 md:p-5"
             >
                 <h3 class="font-heading text-brand-800 text-base font-semibold">
-                    Test Conversation
+                    {{ $t('Test Conversation') }}
                 </h3>
 
                 <div
@@ -387,8 +405,11 @@ function titleCase(value: string): string {
                         <Sparkles class="size-6" aria-hidden="true" />
                     </span>
                     <p class="text-[12.5px]">
-                        Pick a scenario and start the test to chat with the AI
-                        guest.
+                        {{
+                            $t(
+                                'Pick a scenario and start the test to chat with the AI guest.',
+                            )
+                        }}
                     </p>
                 </div>
 
@@ -432,7 +453,7 @@ function titleCase(value: string): string {
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    Listen
+                                    {{ $t('Listen') }}
                                 </button>
                             </div>
 
@@ -460,7 +481,7 @@ function titleCase(value: string): string {
                                     class="size-3.5 animate-spin"
                                     aria-hidden="true"
                                 />
-                                The guest is replying…
+                                {{ $t('The guest is replying…') }}
                             </div>
                         </div>
                     </div>
@@ -477,8 +498,11 @@ function titleCase(value: string): string {
                             aria-hidden="true"
                         />
                         <p class="text-[11.5px] leading-[1.45]">
-                            The AI could not reply. Start a new test to try
-                            again.
+                            {{
+                                $t(
+                                    'The AI could not reply. Start a new test to try again.',
+                                )
+                            }}
                         </p>
                     </div>
 
@@ -490,7 +514,7 @@ function titleCase(value: string): string {
                             class="size-4 animate-spin"
                             aria-hidden="true"
                         />
-                        Scoring the conversation…
+                        {{ $t('Scoring the conversation…') }}
                     </div>
 
                     <div
@@ -508,7 +532,7 @@ function titleCase(value: string): string {
                             type="button"
                             :disabled="isBusy || draft.trim() === ''"
                             class="text-brand-600 hover:bg-brand-50 rounded-pill inline-flex size-8 shrink-0 items-center justify-center disabled:opacity-40"
-                            aria-label="Send message"
+                            :aria-label="$t('Send message')"
                             @click="send"
                         >
                             <Send class="size-4" aria-hidden="true" />
@@ -529,7 +553,7 @@ function titleCase(value: string): string {
                     <h3
                         class="font-heading text-brand-800 text-base font-semibold"
                     >
-                        AI Feedback
+                        {{ $t('AI Feedback') }}
                     </h3>
                     <span
                         v-if="attempt.overallScore !== null"
@@ -556,7 +580,7 @@ function titleCase(value: string): string {
                             class="flex items-center justify-between gap-2 text-[11.5px]"
                         >
                             <span class="text-ink font-medium">
-                                {{ titleCase(String(key)) }}
+                                {{ $t(titleCase(String(key))) }}
                             </span>
                             <span class="text-brand-700 font-semibold">
                                 {{ score }}/100
@@ -580,7 +604,7 @@ function titleCase(value: string): string {
                             class="text-success-text flex items-center gap-1.5 text-[11.5px] font-semibold"
                         >
                             <Check class="size-3.5" aria-hidden="true" />
-                            What you did well
+                            {{ $t('What you did well') }}
                         </p>
                         <ul
                             class="text-ink mt-1 list-disc space-y-0.5 ps-4 text-[12px] leading-[1.45]"
@@ -602,7 +626,7 @@ function titleCase(value: string): string {
                             class="text-warning-text flex items-center gap-1.5 text-[11.5px] font-semibold"
                         >
                             <Lightbulb class="size-3.5" aria-hidden="true" />
-                            What to improve
+                            {{ $t('What to improve') }}
                         </p>
                         <ul
                             class="text-ink mt-1 list-disc space-y-0.5 ps-4 text-[12px] leading-[1.45]"
@@ -624,7 +648,7 @@ function titleCase(value: string): string {
                             class="text-brand-700 flex items-center gap-1.5 text-[11.5px] font-semibold"
                         >
                             <Sparkles class="size-3.5" aria-hidden="true" />
-                            Better expression
+                            {{ $t('Better expression') }}
                         </p>
                         <p class="text-ink mt-1 text-[12px] leading-[1.45]">
                             “{{ attempt.feedback.better_expression.better }}”
@@ -638,7 +662,7 @@ function titleCase(value: string): string {
                             class="text-ai flex items-center gap-1.5 text-[11.5px] font-semibold"
                         >
                             <Star class="size-3.5" aria-hidden="true" />
-                            Key phrase to remember
+                            {{ $t('Key phrase to remember') }}
                         </p>
                         <p class="text-ink mt-1 text-[12px] leading-[1.45]">
                             {{ attempt.feedback.key_phrase }}

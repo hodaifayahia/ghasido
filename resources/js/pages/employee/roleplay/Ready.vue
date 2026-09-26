@@ -64,7 +64,7 @@ function start(): void {
 </script>
 
 <template>
-    <Head :title="`Get ready – ${scenario.title}`" />
+    <Head :title="$t('Get ready – :title', { title: scenario.title })" />
 
     <section
         class="max-w-content mx-auto grid gap-6 p-4 md:p-6 xl:grid-cols-[minmax(0,1fr)_360px]"
@@ -80,10 +80,10 @@ function start(): void {
                     <h1
                         class="font-heading text-ink-royal text-[26px] font-bold tracking-[-0.02em]"
                     >
-                        AI Role-play
+                        {{ $t('AI Role-play') }}
                     </h1>
                     <p class="text-ink-slate text-[15px]">
-                        Get ready for your conversation.
+                        {{ $t('Get ready for your conversation.') }}
                     </p>
                 </div>
             </header>
@@ -95,8 +95,12 @@ function start(): void {
                     <span
                         class="text-ink shrink-0 text-[13px] font-semibold whitespace-nowrap"
                     >
-                        Attempt {{ scenario.attemptsUsed + 1 }} of
-                        {{ scenario.attemptsAllowed }}
+                        {{
+                            $t('Attempt :current of :total', {
+                                current: scenario.attemptsUsed + 1,
+                                total: scenario.attemptsAllowed,
+                            })
+                        }}
                     </span>
                     <div
                         class="flex min-w-0 flex-wrap items-center justify-end gap-1.5"
@@ -143,7 +147,7 @@ function start(): void {
                         />
                         <div class="grid gap-0.5">
                             <dt class="text-ink text-[13px] font-semibold">
-                                Your role
+                                {{ $t('Your role') }}
                             </dt>
                             <dd class="text-ink-slate text-[13px]">
                                 {{ scenario.yourRole }}
@@ -157,7 +161,7 @@ function start(): void {
                         />
                         <div class="grid gap-0.5">
                             <dt class="text-ink text-[13px] font-semibold">
-                                The guest (AI)
+                                {{ $t('The guest (AI)') }}
                             </dt>
                             <dd class="text-ink-slate text-[13px]">
                                 {{ scenario.guestRole }}
@@ -171,7 +175,7 @@ function start(): void {
                         />
                         <div class="grid gap-1">
                             <dt class="text-ink text-[13px] font-semibold">
-                                Your goals
+                                {{ $t('Your goals') }}
                             </dt>
                             <dd>
                                 <ul class="grid gap-1">
@@ -199,7 +203,7 @@ function start(): void {
                         class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-11 items-center justify-center gap-2 rounded-md border px-5 text-[14px] font-semibold shadow-none"
                     >
                         <ArrowLeft class="size-4" aria-hidden="true" />
-                        Back to Scenarios
+                        {{ $t('Back to Scenarios') }}
                     </Link>
                     <div class="flex flex-col gap-3 sm:flex-row">
                         <button
@@ -211,7 +215,7 @@ function start(): void {
                             @click="voiceCallOpen = true"
                         >
                             <Video class="size-4" aria-hidden="true" />
-                            Start voice call
+                            {{ $t('Start voice call') }}
                         </button>
                         <button
                             type="button"
@@ -220,14 +224,20 @@ function start(): void {
                             @click="start"
                         >
                             <Phone class="size-4" aria-hidden="true" />
-                            Start Role-play
+                            {{ $t('Start Role-play') }}
                             <ArrowRight class="size-4" aria-hidden="true" />
                         </button>
                     </div>
                 </div>
                 <p v-if="!canStart" class="text-danger-text text-[12.5px]">
-                    You have used all {{ scenario.attemptsAllowed }} attempts
-                    for this scenario.
+                    {{
+                        $t(
+                            'You have used all :count attempts for this scenario.',
+                            {
+                                count: scenario.attemptsAllowed,
+                            },
+                        )
+                    }}
                 </p>
             </div>
         </div>
@@ -250,7 +260,7 @@ function start(): void {
                 <h2
                     class="font-heading text-ink-royal text-[15px] font-semibold"
                 >
-                    Useful phrases
+                    {{ $t('Useful phrases') }}
                 </h2>
                 <ul class="grid gap-1.5">
                     <li

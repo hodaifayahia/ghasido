@@ -13,6 +13,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 
 type Callout = {
     number: string;
@@ -42,17 +43,19 @@ const currentIndex = ref(0);
 const steps: GuideStep[] = [
     {
         number: '1',
-        kicker: 'Start in the Scenario Library',
-        title: 'Create a new scenario',
-        description:
+        kicker: tk('Start in the Scenario Library'),
+        title: tk('Create a new scenario'),
+        description: tk(
             'Open AI Role-play Scenarios and click Create New Scenario. Give the practice conversation a clear hotel situation, then choose its department and English level.',
-        caption:
+        ),
+        caption: tk(
             'A scenario starts as a draft, so you can safely complete and review it before employees see it.',
+        ),
         screen: 'library',
         callouts: [
             {
                 number: '1',
-                label: 'Scenario Library',
+                label: tk('Scenario Library'),
                 targetX: 27,
                 targetY: 25,
                 labelX: 13,
@@ -60,7 +63,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Search and filters',
+                label: tk('Search and filters'),
                 targetX: 29,
                 targetY: 42,
                 labelX: 13,
@@ -68,7 +71,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Create New Scenario',
+                label: tk('Create New Scenario'),
                 targetX: 82,
                 targetY: 80,
                 labelX: 78,
@@ -76,26 +79,33 @@ const steps: GuideStep[] = [
             },
         ],
         notes: [
-            { title: 'Good title', text: 'Handling a late check-out request' },
             {
-                title: 'Choose one department',
-                text: 'Employees only see scenarios assigned to their department.',
+                title: tk('Good title'),
+                text: 'Handling a late check-out request',
+            },
+            {
+                title: tk('Choose one department'),
+                text: tk(
+                    'Employees only see scenarios assigned to their department.',
+                ),
             },
         ],
     },
     {
         number: '2',
-        kicker: 'Write the scenario brief',
-        title: 'Set the situation and level',
-        description:
+        kicker: tk('Write the scenario brief'),
+        title: tk('Set the situation and level'),
+        description: tk(
             'Complete the title, department, level, cover image, and short description. Describe one realistic hotel moment in simple English so the AI can keep the conversation focused.',
-        caption:
+        ),
+        caption: tk(
             'Keep the description practical: who the guest is, what they need, and what the employee should achieve.',
+        ),
         screen: 'brief',
         callouts: [
             {
                 number: '1',
-                label: 'Scenario title',
+                label: tk('Scenario title'),
                 targetX: 48,
                 targetY: 29,
                 labelX: 25,
@@ -103,7 +113,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Department + level',
+                label: tk('Department + level'),
                 targetX: 50,
                 targetY: 42,
                 labelX: 21,
@@ -111,7 +121,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Description',
+                label: tk('Description'),
                 targetX: 53,
                 targetY: 75,
                 labelX: 82,
@@ -120,28 +130,32 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Short is better',
-                text: 'Use one clear situation instead of several different problems.',
+                title: tk('Short is better'),
+                text: tk(
+                    'Use one clear situation instead of several different problems.',
+                ),
             },
             {
-                title: 'Cover image',
-                text: 'Use a relevant hotel image at 1200 × 628 px.',
+                title: tk('Cover image'),
+                text: tk('Use a relevant hotel image at 1200 × 628 px.'),
             },
         ],
     },
     {
         number: '3',
-        kicker: 'Define both roles',
-        title: 'Make the conversation clear',
-        description:
+        kicker: tk('Define both roles'),
+        title: tk('Make the conversation clear'),
+        description: tk(
             'Describe the AI guest and the employee role. Then add the learning objectives employees should practise and use Edit AI Instructions when the guest needs special behaviour.',
-        caption:
+        ),
+        caption: tk(
             'The employee role is the learner’s point of view. The AI role is the guest the learner will speak with.',
+        ),
         screen: 'roles',
         callouts: [
             {
                 number: '1',
-                label: 'AI Role (Guest)',
+                label: tk('AI Role (Guest)'),
                 targetX: 34,
                 targetY: 40,
                 labelX: 17,
@@ -149,7 +163,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Employee Role',
+                label: tk('Employee Role'),
                 targetX: 68,
                 targetY: 40,
                 labelX: 84,
@@ -157,7 +171,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Learning objectives',
+                label: tk('Learning objectives'),
                 targetX: 52,
                 targetY: 75,
                 labelX: 81,
@@ -166,28 +180,32 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Objective example',
+                title: tk('Objective example'),
                 text: 'Offer a polite solution and confirm the guest’s request.',
             },
             {
-                title: 'AI instructions',
-                text: 'Keep replies short, natural, and appropriate for the selected level.',
+                title: tk('AI instructions'),
+                text: tk(
+                    'Keep replies short, natural, and appropriate for the selected level.',
+                ),
             },
         ],
     },
     {
         number: '4',
-        kicker: 'Choose coaching rules',
-        title: 'Set attempts and feedback',
-        description:
+        kicker: tk('Choose coaching rules'),
+        title: tk('Set attempts and feedback'),
+        description: tk(
             'In Scenario Settings, choose the number of attempts, feedback style, focus areas, hints, suggestions, and tags. These settings shape the practice experience without changing the scenario brief.',
-        caption:
+        ),
+        caption: tk(
             'Communicative success is the goal. Choose the criteria that matter for this hotel situation.',
+        ),
         screen: 'settings',
         callouts: [
             {
                 number: '1',
-                label: 'Attempts + feedback',
+                label: tk('Attempts + feedback'),
                 targetX: 73,
                 targetY: 31,
                 labelX: 53,
@@ -195,7 +213,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Focus Areas',
+                label: tk('Focus Areas'),
                 targetX: 72,
                 targetY: 54,
                 labelX: 89,
@@ -203,7 +221,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Hints and suggestions',
+                label: tk('Hints and suggestions'),
                 targetX: 70,
                 targetY: 73,
                 labelX: 48,
@@ -212,28 +230,32 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Default practice',
-                text: 'Three attempts gives employees room to try again.',
+                title: tk('Default practice'),
+                text: tk('Three attempts gives employees room to try again.'),
             },
             {
-                title: 'Useful focus areas',
-                text: 'Task completion, fluency, pronunciation, vocabulary, and grammar.',
+                title: tk('Useful focus areas'),
+                text: tk(
+                    'Task completion, fluency, pronunciation, vocabulary, and grammar.',
+                ),
             },
         ],
     },
     {
         number: '5',
-        kicker: 'Test before employees practise',
-        title: 'Preview, save, then publish',
-        description:
+        kicker: tk('Test before employees practise'),
+        title: tk('Preview, save, then publish'),
+        description: tk(
             'Use Preview & Test to run a complete conversation and check the feedback. Save as Draft while the scenario is unfinished. Publish only after the roles, objectives, settings, and wording are ready.',
-        caption:
+        ),
+        caption: tk(
             'AI output is a draft for review. Check the conversation yourself before publishing it to a department.',
+        ),
         screen: 'preview',
         callouts: [
             {
                 number: '1',
-                label: 'Test Scenario',
+                label: tk('Test Scenario'),
                 targetX: 21,
                 targetY: 37,
                 labelX: 13,
@@ -241,7 +263,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Conversation preview',
+                label: tk('Conversation preview'),
                 targetX: 61,
                 targetY: 49,
                 labelX: 78,
@@ -249,7 +271,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Save Draft / Update',
+                label: tk('Save Draft / Update'),
                 targetX: 82,
                 targetY: 83,
                 labelX: 80,
@@ -258,12 +280,16 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Preview is safe',
-                text: 'Testing does not create an employee attempt or progress record.',
+                title: tk('Preview is safe'),
+                text: tk(
+                    'Testing does not create an employee attempt or progress record.',
+                ),
             },
             {
-                title: 'Publish last',
-                text: 'Published scenarios can be attached to lessons or offered in AI Role-play.',
+                title: tk('Publish last'),
+                text: tk(
+                    'Published scenarios can be attached to lessons or offered in AI Role-play.',
+                ),
             },
         ],
     },
@@ -292,8 +318,12 @@ watch(open, (value) => {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="How to create an AI role-play scenario"
-        description="A visual walkthrough of the GHASIDO scenario builder, from a new draft to a tested conversation."
+        :title="$t('How to create an AI role-play scenario')"
+        :description="
+            $t(
+                'A visual walkthrough of the GHASIDO scenario builder, from a new draft to a tested conversation.',
+            )
+        "
         size="xl"
     >
         <div class="mt-2 grid gap-3">
@@ -303,11 +333,14 @@ watch(open, (value) => {
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <p class="text-[12px] font-semibold">
-                            Follow the real workflow
+                            {{ $t('Follow the real workflow') }}
                         </p>
                         <p class="text-ink-slate mt-1 text-[11.5px]">
-                            Library > Brief > Roles > Settings > Preview >
-                            Publish
+                            {{
+                                $t(
+                                    'Library > Brief > Roles > Settings > Preview > Publish',
+                                )
+                            }}
                         </p>
                     </div>
                     <span
@@ -327,10 +360,10 @@ watch(open, (value) => {
                 >
                     <div class="min-w-0">
                         <p class="text-brand-100 text-[10.5px] font-semibold">
-                            {{ currentStep.kicker }}
+                            {{ $t(currentStep.kicker) }}
                         </p>
                         <h3 class="mt-0.5 truncate text-[14px] font-semibold">
-                            {{ currentStep.title }}
+                            {{ $t(currentStep.title) }}
                         </h3>
                     </div>
                     <div class="flex shrink-0 items-center gap-1.5">
@@ -339,7 +372,7 @@ watch(open, (value) => {
                             variant="outline"
                             :disabled="currentIndex === 0"
                             class="border-brand-200/40 text-brand-100 hover:bg-brand-800 h-8 w-8 rounded-md p-0 shadow-none"
-                            aria-label="Previous visual guide step"
+                            :aria-label="$t('Previous visual guide step')"
                             @click="previous"
                         >
                             <ArrowLeft class="size-3.5" aria-hidden="true" />
@@ -350,7 +383,7 @@ watch(open, (value) => {
                             :disabled="currentIndex === steps.length - 1"
                             @click="next"
                         >
-                            Next
+                            {{ $t('Next') }}
                             <ArrowRight class="size-3.5" aria-hidden="true" />
                         </Button>
                     </div>
@@ -377,12 +410,14 @@ watch(open, (value) => {
                                     </span>
                                     <span
                                         class="text-brand-900 text-[7px] font-bold sm:text-[11px]"
-                                        >AI Role-play Scenarios</span
+                                        >{{
+                                            $t('AI Role-play Scenarios')
+                                        }}</span
                                     >
                                 </div>
                                 <span
                                     class="text-ink-muted hidden text-[8px] sm:block"
-                                    >Admin workspace</span
+                                    >{{ $t('Admin workspace') }}</span
                                 >
                             </div>
 
@@ -400,11 +435,13 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="text-brand-900 text-[8px] font-bold sm:text-[13px]"
-                                                >Scenario Library</span
+                                                >{{
+                                                    $t('Scenario Library')
+                                                }}</span
                                             >
                                             <span
                                                 class="text-ink-muted text-[6px] sm:text-[9px]"
-                                                >12 scenarios</span
+                                                >{{ $t('12 scenarios') }}</span
                                             >
                                         </div>
                                         <div
@@ -412,15 +449,19 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="border-line bg-surface text-ink-muted rounded border px-1.5 py-1 text-[6px] sm:text-[9px]"
-                                                >Search scenarios...</span
+                                                >{{
+                                                    $t('Search scenarios...')
+                                                }}</span
                                             >
                                             <span
                                                 class="border-line bg-surface rounded border px-1.5 py-1 text-[6px] sm:text-[9px]"
-                                                >All Departments</span
+                                                >{{
+                                                    $t('All Departments')
+                                                }}</span
                                             >
                                             <span
                                                 class="border-line bg-surface rounded border px-1.5 py-1 text-[6px] sm:text-[9px]"
-                                                >All Statuses</span
+                                                >{{ $t('All Statuses') }}</span
                                             >
                                         </div>
                                         <div class="mt-[10%] grid gap-1">
@@ -455,17 +496,25 @@ watch(open, (value) => {
                                             <div>
                                                 <span
                                                     class="text-ink-muted text-[7px] sm:text-[10px]"
-                                                    >AI Role-play</span
+                                                    >{{
+                                                        $t('AI Role-play')
+                                                    }}</span
                                                 >
                                                 <p
                                                     class="text-brand-900 mt-0.5 text-[10px] font-bold sm:text-[16px]"
                                                 >
-                                                    Build realistic practice
+                                                    {{
+                                                        $t(
+                                                            'Build realistic practice',
+                                                        )
+                                                    }}
                                                 </p>
                                             </div>
                                             <span
                                                 class="bg-brand-600 rounded px-2 py-1 text-[6px] font-semibold text-white sm:text-[9px]"
-                                                >Create New Scenario</span
+                                                >{{
+                                                    $t('Create New Scenario')
+                                                }}</span
                                             >
                                         </div>
                                         <div
@@ -488,7 +537,7 @@ watch(open, (value) => {
                                     >
                                         <span
                                             class="text-brand-900 text-[8px] font-bold sm:text-[13px]"
-                                            >Scenario Library</span
+                                            >{{ $t('Scenario Library') }}</span
                                         >
                                         <div class="mt-[14%] grid gap-2">
                                             <span
@@ -511,10 +560,10 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="text-brand-900 text-[10px] font-bold sm:text-[15px]"
-                                                >Edit Scenario</span
+                                                >{{ $t('Edit Scenario') }}</span
                                             ><span
                                                 class="bg-warning-tint text-warning-text rounded px-1.5 py-0.5 text-[6px] font-semibold sm:text-[9px]"
-                                                >draft</span
+                                                >{{ $t('draft') }}</span
                                             >
                                         </div>
                                         <div class="mt-[5%] grid gap-[4%]">
@@ -523,7 +572,9 @@ watch(open, (value) => {
                                             >
                                                 <span
                                                     class="text-ink-muted block text-[6px] sm:text-[9px]"
-                                                    >Scenario Title *</span
+                                                    >{{
+                                                        $t('Scenario Title *')
+                                                    }}</span
                                                 ><span
                                                     class="text-ink mt-1 block text-[7px] sm:text-[11px]"
                                                     >Handling a late check-out
@@ -536,7 +587,9 @@ watch(open, (value) => {
                                                 >
                                                     <span
                                                         class="text-ink-muted block text-[6px] sm:text-[9px]"
-                                                        >Department *</span
+                                                        >{{
+                                                            $t('Department *')
+                                                        }}</span
                                                     ><span
                                                         class="text-ink mt-1 block text-[7px] sm:text-[11px]"
                                                         >Reception</span
@@ -547,10 +600,14 @@ watch(open, (value) => {
                                                 >
                                                     <span
                                                         class="text-ink-muted block text-[6px] sm:text-[9px]"
-                                                        >Level *</span
+                                                        >{{
+                                                            $t('Level *')
+                                                        }}</span
                                                     ><span
                                                         class="text-ink mt-1 block text-[7px] sm:text-[11px]"
-                                                        >Elementary</span
+                                                        >{{
+                                                            $t('Elementary')
+                                                        }}</span
                                                     >
                                                 </div>
                                             </div>
@@ -570,8 +627,11 @@ watch(open, (value) => {
                                                 >
                                                     <span
                                                         class="text-ink-muted block text-[6px] sm:text-[9px]"
-                                                        >Scenario Description
-                                                        *</span
+                                                        >{{
+                                                            $t(
+                                                                'Scenario Description *',
+                                                            )
+                                                        }}</span
                                                     ><span
                                                         class="text-ink mt-1 block text-[7px] leading-tight sm:text-[10px]"
                                                         >The guest asks for a
@@ -593,14 +653,14 @@ watch(open, (value) => {
                                     >
                                         <span
                                             class="text-brand-900 text-[8px] font-bold sm:text-[13px]"
-                                            >Edit Scenario</span
+                                            >{{ $t('Edit Scenario') }}</span
                                         >
                                         <div class="mt-[15%] grid gap-2">
                                             <span
                                                 v-for="item in [
-                                                    'Brief',
-                                                    'Roles',
-                                                    'Objectives',
+                                                    $t('Brief'),
+                                                    $t('Roles'),
+                                                    $t('Objectives'),
                                                 ]"
                                                 :key="item"
                                                 class="bg-brand-50 text-brand-700 rounded px-2 py-1.5 text-[6px] font-semibold sm:text-[9px]"
@@ -617,7 +677,9 @@ watch(open, (value) => {
                                             >
                                                 <span
                                                     class="text-ai text-[7px] font-bold sm:text-[11px]"
-                                                    >AI Role (Guest)</span
+                                                    >{{
+                                                        $t('AI Role (Guest)')
+                                                    }}</span
                                                 ><span
                                                     class="bg-ai/12 text-ai mx-auto mt-[12%] grid size-7 place-items-center rounded-full sm:size-11"
                                                     ><Sparkles
@@ -629,7 +691,11 @@ watch(open, (value) => {
                                                     check-out.</span
                                                 ><span
                                                     class="border-line text-brand-700 mt-[10%] block rounded border px-1 py-1 text-center text-[6px] font-semibold sm:text-[9px]"
-                                                    >Edit AI Instructions</span
+                                                    >{{
+                                                        $t(
+                                                            'Edit AI Instructions',
+                                                        )
+                                                    }}</span
                                                 >
                                             </div>
                                             <div
@@ -637,7 +703,11 @@ watch(open, (value) => {
                                             >
                                                 <span
                                                     class="text-success-text text-[7px] font-bold sm:text-[11px]"
-                                                    >Employee Role (User)</span
+                                                    >{{
+                                                        $t(
+                                                            'Employee Role (User)',
+                                                        )
+                                                    }}</span
                                                 ><span
                                                     class="bg-success/20 text-success mx-auto mt-[12%] grid size-7 place-items-center rounded-full sm:size-11"
                                                     ><User
@@ -653,7 +723,9 @@ watch(open, (value) => {
                                         <div class="mt-[5%]">
                                             <span
                                                 class="text-brand-900 text-[8px] font-bold sm:text-[11px]"
-                                                >Learning Objectives</span
+                                                >{{
+                                                    $t('Learning Objectives')
+                                                }}</span
                                             >
                                             <div class="mt-1 grid gap-1">
                                                 <span
@@ -683,14 +755,14 @@ watch(open, (value) => {
                                     >
                                         <span
                                             class="text-brand-900 text-[8px] font-bold sm:text-[13px]"
-                                            >Edit Scenario</span
+                                            >{{ $t('Edit Scenario') }}</span
                                         >
                                         <div class="mt-[15%] grid gap-2">
                                             <span
                                                 v-for="item in [
-                                                    'Scenario brief',
-                                                    'Roles & objectives',
-                                                    'Scenario Settings',
+                                                    $t('Scenario brief'),
+                                                    $t('Roles & objectives'),
+                                                    $t('Scenario Settings'),
                                                 ]"
                                                 :key="item"
                                                 class="border-line text-ink-muted rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
@@ -706,38 +778,50 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="text-brand-900 text-[10px] font-bold sm:text-[15px]"
-                                                >Scenario Settings</span
+                                                >{{
+                                                    $t('Scenario Settings')
+                                                }}</span
                                             ><span
                                                 class="bg-ai-tint text-ai rounded px-1.5 py-0.5 text-[6px] font-semibold sm:text-[9px]"
-                                                >coaching</span
+                                                >{{ $t('coaching') }}</span
                                             >
                                         </div>
                                         <div class="mt-[5%] grid gap-[3%]">
                                             <div class="grid grid-cols-2 gap-2">
                                                 <span
                                                     class="border-line rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
-                                                    >Attempts: 3</span
+                                                    >{{
+                                                        $t('Attempts: 3')
+                                                    }}</span
                                                 ><span
                                                     class="border-line rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
-                                                    >Feedback: Encouraging</span
+                                                    >{{
+                                                        $t(
+                                                            'Feedback: Encouraging',
+                                                        )
+                                                    }}</span
                                                 >
                                             </div>
                                             <div>
                                                 <span
                                                     class="text-ink-muted text-[6px] sm:text-[9px]"
-                                                    >Focus Areas</span
+                                                    >{{
+                                                        $t('Focus Areas')
+                                                    }}</span
                                                 >
                                                 <div
                                                     class="mt-1 grid grid-cols-3 gap-1"
                                                 >
                                                     <span
                                                         v-for="item in [
-                                                            'Fluency',
-                                                            'Task completion',
-                                                            'Pronunciation',
-                                                            'Vocabulary',
-                                                            'Grammar',
-                                                            'Tone',
+                                                            $t('Fluency'),
+                                                            $t(
+                                                                'Task completion',
+                                                            ),
+                                                            $t('Pronunciation'),
+                                                            $t('Vocabulary'),
+                                                            $t('Grammar'),
+                                                            $t('Tone'),
                                                         ]"
                                                         :key="item"
                                                         class="bg-brand-50 text-brand-700 rounded px-1 py-1 text-[5.5px] sm:text-[8px]"
@@ -748,15 +832,23 @@ watch(open, (value) => {
                                             <div class="grid grid-cols-2 gap-2">
                                                 <span
                                                     class="border-line rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
-                                                    >Allow hints: On</span
+                                                    >{{
+                                                        $t('Allow hints: On')
+                                                    }}</span
                                                 ><span
                                                     class="border-line rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
-                                                    >Suggestions: On</span
+                                                    >{{
+                                                        $t('Suggestions: On')
+                                                    }}</span
                                                 >
                                             </div>
                                             <span
                                                 class="border-line text-ink-muted rounded border p-1.5 text-[6px] sm:p-2 sm:text-[9px]"
-                                                >Tags: reception, requests</span
+                                                >{{
+                                                    $t('Tags: :tags', {
+                                                        tags: 'reception, requests',
+                                                    })
+                                                }}</span
                                             >
                                         </div>
                                     </div>
@@ -768,18 +860,24 @@ watch(open, (value) => {
                                     >
                                         <span
                                             class="text-brand-900 text-[8px] font-bold sm:text-[13px]"
-                                            >Preview & Test</span
+                                            >{{ $t('Preview & Test') }}</span
                                         ><span
                                             class="bg-brand-600 mt-[15%] block rounded px-2 py-1.5 text-center text-[6px] font-semibold text-white sm:text-[9px]"
-                                            >Test Scenario</span
+                                            >{{ $t('Test Scenario') }}</span
                                         >
                                         <div class="mt-3 grid gap-1">
                                             <span
                                                 class="border-line text-ink-muted rounded border p-1.5 text-[6px] sm:text-[9px]"
-                                                >Select scenario</span
+                                                >{{
+                                                    $t('Select scenario')
+                                                }}</span
                                             ><span
                                                 class="border-line text-ink-muted rounded border p-1.5 text-[6px] sm:text-[9px]"
-                                                >Run a conversation safely</span
+                                                >{{
+                                                    $t(
+                                                        'Run a conversation safely',
+                                                    )
+                                                }}</span
                                             >
                                         </div>
                                     </div>
@@ -791,10 +889,12 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="text-brand-900 text-[10px] font-bold sm:text-[15px]"
-                                                >Conversation Preview</span
+                                                >{{
+                                                    $t('Conversation Preview')
+                                                }}</span
                                             ><span
                                                 class="bg-success-tint text-success-text rounded px-1.5 py-0.5 text-[6px] font-semibold sm:text-[9px]"
-                                                >Not saved</span
+                                                >{{ $t('Not saved') }}</span
                                             >
                                         </div>
                                         <div class="mt-[7%] grid gap-2">
@@ -820,13 +920,15 @@ watch(open, (value) => {
                                         >
                                             <span
                                                 class="border-line text-brand-700 rounded border px-1 py-1 text-center text-[5.5px] font-semibold sm:text-[8px]"
-                                                >Preview</span
+                                                >{{ $t('Preview') }}</span
                                             ><span
                                                 class="border-line text-brand-700 rounded border px-1 py-1 text-center text-[5.5px] font-semibold sm:text-[8px]"
-                                                >Save as Draft</span
+                                                >{{ $t('Save as Draft') }}</span
                                             ><span
                                                 class="bg-brand-600 rounded px-1 py-1 text-center text-[5.5px] font-semibold text-white sm:text-[8px]"
-                                                >Update Scenario</span
+                                                >{{
+                                                    $t('Update Scenario')
+                                                }}</span
                                             >
                                         </div>
                                     </div>
@@ -883,7 +985,7 @@ watch(open, (value) => {
                                 ><span
                                     class="bg-danger text-surface grid size-4 shrink-0 place-items-center rounded-full text-[9px]"
                                     >{{ callout.number }}</span
-                                >{{ callout.label }}</span
+                                >{{ $t(callout.label) }}</span
                             >
                         </div>
                     </div>
@@ -891,12 +993,12 @@ watch(open, (value) => {
 
                 <div class="grid gap-2 px-3 py-3 sm:px-4">
                     <p class="text-ink-slate text-[12px] leading-5">
-                        {{ currentStep.description }}
+                        {{ $t(currentStep.description) }}
                     </p>
                     <p
                         class="text-ai bg-ai-tint/45 rounded-md px-3 py-2 text-[11px] leading-5"
                     >
-                        {{ currentStep.caption }}
+                        {{ $t(currentStep.caption) }}
                     </p>
                     <div class="grid gap-2 sm:grid-cols-2">
                         <div
@@ -907,12 +1009,12 @@ watch(open, (value) => {
                             <p
                                 class="text-brand-900 text-[11.5px] font-semibold"
                             >
-                                {{ note.title }}
+                                {{ $t(note.title) }}
                             </p>
                             <p
                                 class="text-ink-slate mt-1 text-[11px] leading-4.5"
                             >
-                                {{ note.text }}
+                                {{ $t(note.text) }}
                             </p>
                         </div>
                     </div>
@@ -924,7 +1026,11 @@ watch(open, (value) => {
                     v-for="(step, index) in steps"
                     :key="step.number"
                     type="button"
-                    :aria-label="`Open visual guide step ${step.number}`"
+                    :aria-label="
+                        $t('Open visual guide step :number', {
+                            number: step.number,
+                        })
+                    "
                     :aria-current="currentIndex === index ? 'step' : undefined"
                     :class="[
                         'grid size-6 place-items-center rounded-full text-[10px] font-semibold transition-colors',
@@ -946,9 +1052,11 @@ watch(open, (value) => {
                     aria-hidden="true"
                 />
                 <p class="text-ink-slate text-[12px] leading-5">
-                    Save as Draft while you work. Test the complete
-                    conversation, review the feedback, and publish only when the
-                    scenario is ready for the selected department.
+                    {{
+                        $t(
+                            'Save as Draft while you work. Test the complete conversation, review the feedback, and publish only when the scenario is ready for the selected department.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -958,7 +1066,7 @@ watch(open, (value) => {
                     variant="outline"
                     data-test="close-ai-scenario-creation-tutorial"
                     @click="open = false"
-                    >Close</Button
+                    >{{ $t('Close') }}</Button
                 >
             </div>
         </div>

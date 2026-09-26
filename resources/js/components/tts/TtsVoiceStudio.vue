@@ -7,6 +7,7 @@ import { generateAll as generateAllAudio } from '@/routes/audio';
 import { update } from '@/routes/tts/settings';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { TtsSettings, TtsVoice } from '@/types';
 
@@ -31,6 +32,7 @@ const characteristic = ref('');
 const saving = ref(false);
 const generatingAll = ref(false);
 const { can } = useCan();
+const { t } = useI18n();
 const editable = computed(() => can('scenarios.manage'));
 
 watch(
@@ -84,19 +86,21 @@ const filteredVoices = computed(() =>
 const statusLabel = computed(() =>
     props.settings.provider === 'deepgram'
         ? props.settings.apiConfigured
-            ? 'Deepgram connected'
-            : 'Deepgram key missing'
-        : `Provider: ${props.settings.provider}`,
+            ? t('Deepgram connected')
+            : t('Deepgram key missing')
+        : t('Provider: :provider', { provider: props.settings.provider }),
 );
 
 const title = computed(() =>
-    props.compact ? 'AI Role-play Voice' : 'Deepgram Voice Studio',
+    props.compact ? t('AI Role-play Voice') : t('Deepgram Voice Studio'),
 );
 
 const subtitle = computed(() =>
     props.compact
-        ? `${statusLabel.value} · guest replies and lesson audio`
-        : `${statusLabel.value} · stored lesson audio`,
+        ? t(':status · guest replies and lesson audio', {
+              status: statusLabel.value,
+          })
+        : t(':status · stored lesson audio', { status: statusLabel.value }),
 );
 
 function save(): void {
@@ -176,7 +180,12 @@ function generateAllLessons(): void {
             <span
                 class="bg-success-tint text-success-text rounded-pill shrink-0 px-2 py-1 text-[10px] font-semibold"
             >
-                {{ props.settings.voices.length }} voices
+                {{
+                    $tc(
+                        ':count voice|:count voices',
+                        props.settings.voices.length,
+                    )
+                }}
             </span>
         </div>
 
@@ -185,15 +194,15 @@ function generateAllLessons(): void {
             :class="compact ? 'sm:grid-cols-2' : 'md:grid-cols-3'"
         >
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Gender</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Gender')
+                }}</span>
                 <select
                     v-model="gender"
                     :disabled="!editable"
                     class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="">All genders</option>
+                    <option value="">{{ $t('All genders') }}</option>
                     <option
                         v-for="item in props.settings.filters.genders"
                         :key="item"
@@ -204,15 +213,15 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Accent</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Accent')
+                }}</span>
                 <select
                     v-model="accent"
                     :disabled="!editable"
                     class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="">All accents</option>
+                    <option value="">{{ $t('All accents') }}</option>
                     <option
                         v-for="item in props.settings.filters.accents"
                         :key="item"
@@ -223,15 +232,15 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Age</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Age')
+                }}</span>
                 <select
                     v-model="age"
                     :disabled="!editable"
                     class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="">All ages</option>
+                    <option value="">{{ $t('All ages') }}</option>
                     <option
                         v-for="item in props.settings.filters.ages"
                         :key="item"
@@ -242,15 +251,15 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Use case</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Use case')
+                }}</span>
                 <select
                     v-model="useCase"
                     :disabled="!editable"
                     class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="">All use cases</option>
+                    <option value="">{{ $t('All use cases') }}</option>
                     <option
                         v-for="item in props.settings.filters.use_cases"
                         :key="item"
@@ -261,15 +270,15 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Character</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Character')
+                }}</span>
                 <select
                     v-model="characteristic"
                     :disabled="!editable"
                     class="border-line text-ink bg-surface h-9 w-full min-w-0 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="">All characteristics</option>
+                    <option value="">{{ $t('All characteristics') }}</option>
                     <option
                         v-for="item in props.settings.filters.characteristics"
                         :key="item"
@@ -285,9 +294,9 @@ function generateAllLessons(): void {
             class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
         >
             <label class="grid min-w-0 gap-1">
-                <span class="text-brand-900 text-[11px] font-semibold"
-                    >Selected voice</span
-                >
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Selected voice')
+                }}</span>
                 <select
                     v-model="voice"
                     :disabled="!editable"
@@ -310,7 +319,7 @@ function generateAllLessons(): void {
                 @click="save"
             >
                 <Save class="size-3.5" aria-hidden="true" />
-                {{ saving ? 'Saving…' : 'Save voice' }}
+                {{ saving ? $t('Saving…') : $t('Save voice') }}
             </Button>
         </div>
 
@@ -346,10 +355,12 @@ function generateAllLessons(): void {
             data-test="tts-accent-voices"
         >
             <p class="text-brand-900 text-[11px] font-semibold sm:col-span-2">
-                Lesson voices by accent
+                {{ $t('Lesson voices by accent') }}
             </p>
             <label class="grid min-w-0 gap-1">
-                <span class="text-ink-slate text-[11px]">British English</span>
+                <span class="text-ink-slate text-[11px]">{{
+                    $t('British English')
+                }}</span>
                 <select
                     v-model="britishVoice"
                     :disabled="!editable"
@@ -366,7 +377,9 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <label class="grid min-w-0 gap-1">
-                <span class="text-ink-slate text-[11px]">American English</span>
+                <span class="text-ink-slate text-[11px]">{{
+                    $t('American English')
+                }}</span>
                 <select
                     v-model="americanVoice"
                     :disabled="!editable"
@@ -383,8 +396,11 @@ function generateAllLessons(): void {
                 </select>
             </label>
             <p class="text-ink-faint text-[10.5px] leading-4 sm:col-span-2">
-                Each lesson plays in the voice of its accent (lesson Settings →
-                Accent). Learners' pronunciation is checked against it.
+                {{
+                    $t(
+                        "Each lesson plays in the voice of its accent (lesson Settings → Accent). Learners' pronunciation is checked against it.",
+                    )
+                }}
             </p>
         </div>
 
@@ -393,15 +409,15 @@ function generateAllLessons(): void {
                 <label
                     class="text-brand-900 text-[11px] font-semibold"
                     for="tts-expressivity"
-                    >Expressivity</label
+                    >{{ $t('Expressivity') }}</label
                 >
                 <span class="text-ink-slate text-[11px]"
                     >{{
                         expressivity === 0
-                            ? 'Default'
+                            ? $t('Default')
                             : expressivity < 0
-                              ? 'Calm'
-                              : 'Animated'
+                              ? $t('Calm')
+                              : $t('Animated')
                     }}
                     ({{ expressivity }})</span
                 >
@@ -417,8 +433,9 @@ function generateAllLessons(): void {
                 class="accent-brand-600 mt-1 w-full"
             />
             <div class="text-ink-faint flex justify-between text-[10px]">
-                <span>Calm</span><span>Production default</span
-                ><span>Animated</span>
+                <span>{{ $t('Calm') }}</span
+                ><span>{{ $t('Production default') }}</span
+                ><span>{{ $t('Animated') }}</span>
             </div>
         </div>
 
@@ -429,11 +446,14 @@ function generateAllLessons(): void {
         >
             <div class="min-w-0">
                 <p class="text-brand-900 text-[11px] font-semibold">
-                    Generate audio for all lessons
+                    {{ $t('Generate audio for all lessons') }}
                 </p>
                 <p class="text-ink-slate text-[10.5px] leading-4">
-                    Saves Normal and Slow clips for every existing lesson using
-                    the saved voice and expressivity.
+                    {{
+                        $t(
+                            'Saves Normal and Slow clips for every existing lesson using the saved voice and expressivity.',
+                        )
+                    }}
                 </p>
             </div>
             <Button
@@ -452,10 +472,10 @@ function generateAllLessons(): void {
                 <Volume2 class="size-3.5" aria-hidden="true" />
                 {{
                     settingsDirty
-                        ? 'Save voice first'
+                        ? $t('Save voice first')
                         : generatingAll
-                          ? 'Queueing…'
-                          : 'Generate all audio'
+                          ? $t('Queueing…')
+                          : $t('Generate all audio')
                 }}
             </Button>
         </div>
@@ -463,11 +483,11 @@ function generateAllLessons(): void {
         <div v-if="!compact" class="mt-3">
             <div class="mb-2 flex items-center justify-between gap-2">
                 <p class="text-brand-900 text-[11px] font-semibold">
-                    Voice catalog
+                    {{ $t('Voice catalog') }}
                 </p>
-                <span class="text-ink-faint text-[10px]"
-                    >{{ filteredVoices.length }} matching</span
-                >
+                <span class="text-ink-faint text-[10px]">{{
+                    $t(':count matching', { count: filteredVoices.length })
+                }}</span>
             </div>
             <div
                 class="grid max-h-56 gap-2 overflow-y-auto pe-1 sm:grid-cols-2"
@@ -519,9 +539,11 @@ function generateAllLessons(): void {
         </div>
 
         <p class="text-ink-faint mt-3 text-[10.5px] leading-4">
-            Normal and Slow clips are generated and stored server-side. Changing
-            the voice does not delete old audio; regenerate a lesson's missing
-            clips to render it with this voice.
+            {{
+                $t(
+                    "Normal and Slow clips are generated and stored server-side. Changing the voice does not delete old audio; regenerate a lesson's missing clips to render it with this voice.",
+                )
+            }}
         </p>
     </section>
 </template>

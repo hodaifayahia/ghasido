@@ -10,6 +10,8 @@ import {
 import { computed, ref, watch } from 'vue';
 import type { Component } from 'vue';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { save } from '@/routes/translations';
 import type { TranslationRow, TranslationState } from '@/types';
@@ -22,6 +24,8 @@ import type { TranslationRow, TranslationState } from '@/types';
 type Props = { row: TranslationRow; canEdit: boolean };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const arabic = ref(props.row.arabic ?? '');
 const saving = ref(false);
@@ -43,23 +47,23 @@ const states: Record<
     { label: string; icon: Component; class: string }
 > = {
     missing: {
-        label: 'No meaning yet',
+        label: tk('No meaning yet'),
         icon: CircleAlert,
         class: 'bg-warning-tint text-warning-text',
     },
     drafting: {
-        label: 'AI is drafting',
+        label: tk('AI is drafting'),
         icon: LoaderCircle,
         class: 'bg-brand-50 text-brand-700',
     },
     failed: {
-        label: 'AI draft failed',
+        label: tk('AI draft failed'),
         icon: Hourglass,
         class: 'bg-danger-tint text-danger-text',
     },
-    ai: { label: 'AI draft', icon: Bot, class: 'bg-ai-tint text-ai' },
+    ai: { label: tk('AI draft'), icon: Bot, class: 'bg-ai-tint text-ai' },
     manual: {
-        label: 'Written by hand',
+        label: tk('Written by hand'),
         icon: PenLine,
         class: 'bg-success-tint text-success-text',
     },
@@ -67,7 +71,7 @@ const states: Record<
 
 function submit(): void {
     if (arabic.value.trim() === '') {
-        error.value = 'Write the Arabic meaning first.';
+        error.value = t('Write the Arabic meaning first.');
 
         return;
     }
@@ -87,7 +91,7 @@ function submit(): void {
             },
             onError: (errors) => {
                 error.value =
-                    errors.arabic ?? errors.text ?? 'Could not save it.';
+                    errors.arabic ?? errors.text ?? t('Could not save it.');
             },
         },
     );
@@ -121,7 +125,7 @@ function submit(): void {
                     "
                     aria-hidden="true"
                 />
-                {{ states[row.state].label }}
+                {{ $t(states[row.state].label) }}
                 <span v-if="row.updatedAt" class="font-normal opacity-80"
                     >· {{ row.updatedAt }}</span
                 >
@@ -129,7 +133,9 @@ function submit(): void {
         </div>
 
         <label class="min-w-0">
-            <span class="sr-only">Arabic meaning of: {{ row.text }}</span>
+            <span class="sr-only">{{
+                $t('Arabic meaning of: :text', { text: row.text })
+            }}</span>
             <textarea
                 v-model="arabic"
                 dir="rtl"
@@ -152,7 +158,7 @@ function submit(): void {
             data-test="save-translation-button"
             @click="submit"
         >
-            {{ saving ? 'Saving…' : 'Save' }}
+            {{ saving ? $t('Saving…') : $t('Save') }}
         </Button>
     </li>
 </template>

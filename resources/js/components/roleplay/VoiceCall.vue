@@ -13,7 +13,9 @@ import {
 import { useScrollLock } from '@vueuse/core';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
+import { useI18n } from '@/composables/useI18n';
 import { useVoiceAgent } from '@/composables/useVoiceAgent';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { VoiceCallState } from '@/types';
 
@@ -42,6 +44,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const open = defineModel<boolean>('open', { required: true });
 
+const { t } = useI18n();
+
 const call = useVoiceAgent({ startUrl: () => props.startUrl });
 const { state, captions, errorMessage, elapsedSeconds, maxSeconds, muted } =
     call;
@@ -57,15 +61,15 @@ const inCall = computed(() =>
 );
 
 const stateLabel: Record<VoiceCallState, string> = {
-    idle: 'Ready',
-    requesting: 'Waiting for your microphone…',
-    denied: 'Microphone blocked',
-    connecting: 'Connecting…',
-    listening: 'Listening',
-    thinking: 'The guest is thinking…',
-    speaking: 'The guest is speaking',
-    ending: 'Ending the call…',
-    error: 'Call failed',
+    idle: tk('Ready'),
+    requesting: tk('Waiting for your microphone…'),
+    denied: tk('Microphone blocked'),
+    connecting: tk('Connecting…'),
+    listening: tk('Listening'),
+    thinking: tk('The guest is thinking…'),
+    speaking: tk('The guest is speaking'),
+    ending: tk('Ending the call…'),
+    error: tk('Call failed'),
 };
 
 const dotTone = computed(() => {
@@ -103,7 +107,9 @@ async function startCamera(): Promise<void> {
         await attachCamera();
     } catch {
         cameraOn.value = false;
-        toast.info('Camera unavailable. The call continues with audio only.');
+        toast.info(
+            t('Camera unavailable. The call continues with audio only.'),
+        );
     }
 }
 
@@ -205,12 +211,12 @@ onBeforeUnmount(stopCamera);
                         :class="cn('size-2 shrink-0 rounded-full', dotTone)"
                         aria-hidden="true"
                     />
-                    {{ stateLabel[state] }}
+                    {{ $t(stateLabel[state]) }}
                     <span
                         v-if="preview"
                         class="bg-ai-tint text-ai rounded-pill px-2 py-0.5 text-[11px] font-semibold"
                     >
-                        Test call
+                        {{ $t('Test call') }}
                     </span>
                 </p>
             </div>
@@ -225,7 +231,7 @@ onBeforeUnmount(stopCamera);
                     v-if="!inCall"
                     type="button"
                     class="hover:bg-brand-900 focus-visible:ring-brand-300 grid size-11 place-items-center rounded-md focus-visible:ring-3 focus-visible:outline-none"
-                    aria-label="Close"
+                    :aria-label="$t('Close')"
                     data-test="voice-call-close"
                     @click="close"
                 >
@@ -252,10 +258,10 @@ onBeforeUnmount(stopCamera);
                         <p
                             class="font-heading text-ink-royal text-[18px] font-semibold"
                         >
-                            Voice call with the guest
+                            {{ $t('Voice call with the guest') }}
                         </p>
                         <p class="text-ink-slate text-[13px]">
-                            Speak naturally, as you would at work.
+                            {{ $t('Speak naturally, as you would at work.') }}
                         </p>
                     </div>
                 </div>
@@ -267,8 +273,12 @@ onBeforeUnmount(stopCamera);
                         class="text-brand-600 mt-0.5 size-4 shrink-0"
                         aria-hidden="true"
                     />
-                    {{ call.explanation }} Your camera, if you turn it on, is
-                    only shown to you and is never recorded.
+                    {{ $t(call.explanation) }}
+                    {{
+                        $t(
+                            'Your camera, if you turn it on, is only shown to you and is never recorded.',
+                        )
+                    }}
                 </p>
 
                 <p
@@ -276,7 +286,7 @@ onBeforeUnmount(stopCamera);
                     class="bg-danger-tint text-danger-text rounded-md p-3 text-[13px]"
                     role="alert"
                 >
-                    {{ errorMessage }}
+                    {{ $t(errorMessage) }}
                 </p>
 
                 <div
@@ -287,7 +297,7 @@ onBeforeUnmount(stopCamera);
                         class="border-line text-brand-700 hover:bg-brand-50 bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 inline-flex h-11 items-center justify-center rounded-md border px-5 text-[14px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
                         @click="close"
                     >
-                        Not now
+                        {{ $t('Not now') }}
                     </button>
                     <button
                         type="button"
@@ -299,10 +309,10 @@ onBeforeUnmount(stopCamera);
                         <Mic class="size-4" aria-hidden="true" />
                         {{
                             state === 'requesting'
-                                ? 'Allow the microphone…'
+                                ? $t('Allow the microphone…')
                                 : errorMessage
-                                  ? 'Try again'
-                                  : 'Start call'
+                                  ? $t('Try again')
+                                  : $t('Start call')
                         }}
                     </button>
                 </div>
@@ -344,7 +354,7 @@ onBeforeUnmount(stopCamera);
                         </div>
                         <div class="grid max-w-lg gap-1 px-6 text-center">
                             <p class="font-heading text-[18px] font-semibold">
-                                Guest (AI)
+                                {{ $t('Guest (AI)') }}
                             </p>
                             <p
                                 v-if="guestRole"
@@ -359,7 +369,7 @@ onBeforeUnmount(stopCamera);
                     <ol
                         class="grid shrink-0 gap-1.5 px-3 pb-3 empty:hidden md:ps-6 md:pe-60 md:pb-5"
                         aria-live="polite"
-                        aria-label="Live captions"
+                        :aria-label="$t('Live captions')"
                     >
                         <li
                             v-for="caption in recentCaptions"
@@ -375,7 +385,9 @@ onBeforeUnmount(stopCamera);
                         >
                             <span class="font-semibold">
                                 {{
-                                    caption.role === 'agent' ? 'Guest' : 'You'
+                                    caption.role === 'agent'
+                                        ? $t('Guest')
+                                        : $t('You')
                                 }}:
                             </span>
                             {{ caption.text }}
@@ -393,7 +405,9 @@ onBeforeUnmount(stopCamera);
                             muted
                             playsinline
                             class="size-full -scale-x-100 object-cover"
-                            aria-label="Your camera (only visible to you)"
+                            :aria-label="
+                                $t('Your camera (only visible to you)')
+                            "
                         />
                         <VideoOff
                             v-if="!cameraOn"
@@ -411,7 +425,7 @@ onBeforeUnmount(stopCamera);
                     type="button"
                     :aria-pressed="muted"
                     :aria-label="
-                        muted ? 'Unmute microphone' : 'Mute microphone'
+                        muted ? $t('Unmute microphone') : $t('Mute microphone')
                     "
                     :class="
                         cn(
@@ -431,7 +445,7 @@ onBeforeUnmount(stopCamera);
                     type="button"
                     :aria-pressed="cameraOn"
                     :aria-label="
-                        cameraOn ? 'Turn camera off' : 'Turn camera on'
+                        cameraOn ? $t('Turn camera off') : $t('Turn camera on')
                     "
                     :class="
                         cn(
@@ -455,7 +469,7 @@ onBeforeUnmount(stopCamera);
                     @click="hangUp"
                 >
                     <PhoneOff class="size-5" aria-hidden="true" />
-                    End call
+                    {{ $t('End call') }}
                 </button>
             </footer>
         </template>
