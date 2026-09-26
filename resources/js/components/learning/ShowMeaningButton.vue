@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Eye, EyeOff } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -26,6 +27,10 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{ toggle: [] }>();
+
+// The button already carries the Arabic label; in the Arabic interface the
+// English second line would only repeat it (I18N-02).
+const { locale } = useI18n();
 </script>
 
 <template>
@@ -69,6 +74,7 @@ const emit = defineEmits<{ toggle: [] }>();
                 {{ shown ? 'إخفاء المعنى' : 'إظهار المعنى' }}
             </span>
             <span
+                v-if="locale === 'en'"
                 :class="
                     cn(
                         'text-ink-slate',
@@ -76,7 +82,7 @@ const emit = defineEmits<{ toggle: [] }>();
                     )
                 "
             >
-                {{ shown ? 'Hide Meaning' : 'Show Meaning' }}
+                {{ shown ? $t('Hide Meaning') : $t('Show Meaning') }}
             </span>
         </span>
     </button>

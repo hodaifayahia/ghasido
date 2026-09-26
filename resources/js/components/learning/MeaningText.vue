@@ -46,7 +46,7 @@ const { shown, toggle } = useShowMeaning(hasMeaning);
                 :aria-expanded="shown"
                 :aria-controls="`${id}-meaning`"
                 class="bg-tint-grid text-ink-graphite hover:bg-line focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:outline-none"
-                :title="shown ? 'Hide Meaning' : 'Show Meaning'"
+                :title="shown ? $t('Hide Meaning') : $t('Show Meaning')"
                 @click="toggle"
             >
                 <component
@@ -55,7 +55,7 @@ const { shown, toggle } = useShowMeaning(hasMeaning);
                     aria-hidden="true"
                 />
                 <span class="sr-only">{{
-                    shown ? 'Hide Meaning' : 'Show Meaning'
+                    shown ? $t('Hide Meaning') : $t('Show Meaning')
                 }}</span>
             </button>
         </div>

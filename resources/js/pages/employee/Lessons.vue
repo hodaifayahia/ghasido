@@ -21,24 +21,33 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Head title="My Lessons" />
-    <h1 class="sr-only">My Lessons</h1>
+    <Head :title="$t('My Lessons')" />
+    <h1 class="sr-only">{{ $t('My Lessons') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="My Lessons"
+            :title="$t('My Lessons')"
             :description="
                 journey.lessonsUnlocked
-                    ? `${journey.lessonsCompleted} of ${journey.lessonsTotal} lessons completed`
-                    : 'Your lessons unlock as soon as you have taken the Pre-test.'
+                    ? $t(':completed of :total lessons completed', {
+                          completed: journey.lessonsCompleted,
+                          total: journey.lessonsTotal,
+                      })
+                    : $t(
+                          'Your lessons unlock as soon as you have taken the Pre-test.',
+                      )
             "
         />
 
         <LearnerEmptyState
             v-if="courses.length === 0"
             :icon="BookOpen"
-            text="No lessons have been published for your department yet. Please check back soon."
-            :action="{ label: 'Back to Home', href: home() }"
+            :text="
+                $t(
+                    'No lessons have been published for your department yet. Please check back soon.',
+                )
+            "
+            :action="{ label: $t('Back to Home'), href: home() }"
         />
 
         <CourseOutlineCard

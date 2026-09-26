@@ -39,21 +39,26 @@ const props = defineProps<Props>();
         v-slot="{ errors, processing }"
     >
         <p class="text-ink-graphite text-base leading-7">
-            Welcome, {{ user.name }}.
-            <template v-if="hotelName">
-                You are training with {{ hotelName
-                }}<template v-if="departmentName">
-                    in the {{ departmentName }} department</template
-                >.
+            {{ $t('Welcome, :name.', { name: user.name }) }}
+            <template v-if="hotelName && departmentName">
+                {{
+                    $t(
+                        'You are training with :hotel in the :department department.',
+                        { hotel: hotelName, department: departmentName },
+                    )
+                }}
             </template>
-            Two quick things before you start.
+            <template v-else-if="hotelName">
+                {{ $t('You are training with :hotel.', { hotel: hotelName }) }}
+            </template>
+            {{ $t('Two quick things before you start.') }}
         </p>
 
         <div class="grid gap-2">
             <Label for="email">
-                Email address
+                {{ $t('Email address') }}
                 <span class="text-ink-slate font-normal">
-                    {{ requireEmail ? '(required)' : '(optional)' }}
+                    {{ requireEmail ? $t('(required)') : $t('(optional)') }}
                 </span>
             </Label>
             <Input
@@ -67,8 +72,11 @@ const props = defineProps<Props>();
                 class="h-11"
             />
             <p class="text-ink-slate text-sm">
-                Used only for reminders about your training and to reset your
-                password.
+                {{
+                    $t(
+                        'Used only for reminders about your training and to reset your password.',
+                    )
+                }}
             </p>
             <InputError :message="errors.email" />
         </div>
@@ -84,8 +92,11 @@ const props = defineProps<Props>();
                 for="reminder_consent"
                 class="text-ink leading-6 font-normal"
             >
-                Yes, send me reminders about my training by email. I can change
-                this at any time from my profile.
+                {{
+                    $t(
+                        'Yes, send me reminders about my training by email. I can change this at any time from my profile.',
+                    )
+                }}
             </Label>
         </div>
 
@@ -97,13 +108,14 @@ const props = defineProps<Props>();
                 id="research-notice"
                 class="font-heading text-brand-700 text-base font-semibold"
             >
-                About your data
+                {{ $t('About your data') }}
             </h2>
             <p class="text-ink-graphite text-sm leading-6">
-                Your answers, recordings and progress are recorded so your
-                trainer can follow your training, and are used for research on
-                English training for hotel staff. Personal details are limited
-                to your name, username, email, hotel and department.
+                {{
+                    $t(
+                        'Your answers, recordings and progress are recorded so your trainer can follow your training, and are used for research on English training for hotel staff. Personal details are limited to your name, username, email, hotel and department.',
+                    )
+                }}
             </p>
             <div class="flex items-start gap-3">
                 <Checkbox
@@ -116,7 +128,7 @@ const props = defineProps<Props>();
                     for="research_notice_acknowledged"
                     class="text-ink leading-6 font-normal"
                 >
-                    I have read this notice.
+                    {{ $t('I have read this notice.') }}
                 </Label>
             </div>
             <InputError :message="errors.research_notice_acknowledged" />
@@ -129,7 +141,7 @@ const props = defineProps<Props>();
                 class="bg-brand-600 font-heading shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/40 inline-flex h-12 items-center rounded-md px-6 text-base font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] disabled:opacity-60"
                 data-test="complete-first-login-button"
             >
-                Continue to my training
+                {{ $t('Continue to my training') }}
             </button>
         </div>
     </Form>

@@ -19,23 +19,28 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Head title="Messages" />
-    <h1 class="sr-only">Messages</h1>
+    <Head :title="$t('Messages')" />
+    <h1 class="sr-only">{{ $t('Messages') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Messages"
+            :title="$t('Messages')"
             :description="
                 unread > 0
-                    ? `${unread} unread ${unread === 1 ? 'message' : 'messages'}`
-                    : 'You are up to date.'
+                    ? $tc(
+                          ':count unread message|:count unread messages',
+                          unread,
+                      )
+                    : $t('You are up to date.')
             "
         />
 
         <LearnerEmptyState
             v-if="messages.length === 0"
             :icon="Inbox"
-            text="Reminders and messages from your trainer will appear here."
+            :text="
+                $t('Reminders and messages from your trainer will appear here.')
+            "
         />
 
         <MessageCard

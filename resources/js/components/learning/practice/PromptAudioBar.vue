@@ -30,7 +30,9 @@ const disabled = computed(() => !props.src);
         <button
             type="button"
             :disabled="disabled"
-            :aria-label="text ? `Play &quot;${text}&quot;` : 'Play the prompt'"
+            :aria-label="
+                text ? $t('Play “:text”', { text }) : $t('Play the prompt')
+            "
             :class="
                 cn(
                     'bg-brand-600 shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/30 grid size-[72px] shrink-0 place-items-center rounded-full text-white transition focus-visible:ring-3 focus-visible:outline-none active:scale-95 disabled:opacity-50',

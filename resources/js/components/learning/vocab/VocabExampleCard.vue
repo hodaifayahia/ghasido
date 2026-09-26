@@ -66,7 +66,7 @@ const segments = computed(() => {
         <div class="bg-brand-50 flex items-center gap-2 px-5 py-3">
             <MessageSquare class="text-brand-600 size-5" aria-hidden="true" />
             <span class="text-brand-700 font-heading text-base font-semibold">
-                Example
+                {{ $t('Example') }}
             </span>
         </div>
 

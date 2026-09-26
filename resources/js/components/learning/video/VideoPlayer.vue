@@ -100,7 +100,7 @@ function fullscreen(): void {
         <button
             v-if="!playing"
             type="button"
-            :aria-label="disabled ? 'Video coming soon' : 'Play video'"
+            :aria-label="disabled ? $t('Video coming soon') : $t('Play video')"
             :disabled="disabled"
             class="absolute inset-0 grid place-items-center focus-visible:outline-none disabled:cursor-not-allowed"
             @click="toggle"
@@ -117,7 +117,7 @@ function fullscreen(): void {
         >
             <button
                 type="button"
-                :aria-label="playing ? 'Pause' : 'Play'"
+                :aria-label="playing ? $t('Pause') : $t('Play')"
                 :disabled="disabled"
                 class="grid size-9 shrink-0 place-items-center rounded-full hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none disabled:opacity-60"
                 @click="toggle"
@@ -139,14 +139,14 @@ function fullscreen(): void {
                 :max="Number.isFinite(duration) && duration > 0 ? duration : 0"
                 :value="currentTime"
                 :disabled="disabled"
-                aria-label="Seek"
+                :aria-label="$t('Seek')"
                 class="accent-brand-500 h-1 min-w-0 flex-1 cursor-pointer disabled:cursor-not-allowed"
                 @input="onSeek"
             />
 
             <button
                 type="button"
-                :aria-label="muted ? 'Unmute' : 'Mute'"
+                :aria-label="muted ? $t('Unmute') : $t('Mute')"
                 :disabled="disabled"
                 class="grid size-9 shrink-0 place-items-center rounded-full hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none disabled:opacity-60"
                 @click="toggleMute"
@@ -160,7 +160,7 @@ function fullscreen(): void {
 
             <button
                 type="button"
-                aria-label="Fullscreen"
+                :aria-label="$t('Fullscreen')"
                 :disabled="disabled"
                 class="grid size-9 shrink-0 place-items-center rounded-full hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none disabled:opacity-60"
                 @click="fullscreen"

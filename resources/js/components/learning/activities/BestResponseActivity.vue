@@ -78,25 +78,29 @@ function onCheck(): void {
         tone="sunset"
         :number="number"
         :label="activity.label"
-        subtitle="Listen to the guest and choose the most appropriate response."
+        :subtitle="
+            $t('Listen to the guest and choose the most appropriate response.')
+        "
         :department="lesson.department.name"
         :lesson-number="lesson.positionInCourse"
         :lesson-count="lesson.courseLessonCount"
         :side-photo="activity.sideImage ?? lesson.cover"
-        tip="Listen carefully. Think about a polite and helpful response."
+        :tip="
+            $t('Listen carefully. Think about a polite and helpful response.')
+        "
         :total="runner.total.value"
         :current="runner.current.value"
         :answered="runner.answeredIndexes.value"
         :can-check="runner.canCheck.value"
         :has-result="result !== null"
-        :check-label="result !== null ? 'Back to Practice' : 'Check'"
+        :check-label="result !== null ? $t('Back to Practice') : $t('Check')"
         @check="onCheck"
         @prev="runner.prev()"
         @select="runner.goto($event)"
     >
         <template v-if="item && item.situation" #side>
             <TaskCard
-                title="Situation"
+                :title="$t('Situation')"
                 :text="item.situation"
                 :icon="ClipboardList"
             />
@@ -108,7 +112,7 @@ function onCheck(): void {
             >
                 <button
                     type="button"
-                    aria-label="Play the guest"
+                    :aria-label="$t('Play the guest')"
                     :class="
                         cn(
                             'bg-brand-600 shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/30 grid size-12 shrink-0 place-items-center rounded-full text-white transition focus-visible:ring-3 focus-visible:outline-none active:scale-95',
@@ -124,7 +128,7 @@ function onCheck(): void {
                     />
                 </button>
                 <p class="text-ink text-lg font-semibold">
-                    Listen to the guest. What is the best response?
+                    {{ $t('Listen to the guest. What is the best response?') }}
                 </p>
             </div>
 
@@ -196,7 +200,8 @@ function onCheck(): void {
                         "
                         class="text-success-text inline-flex shrink-0 items-center gap-1 text-sm font-semibold"
                     >
-                        <Check class="size-4" aria-hidden="true" /> Correct
+                        <Check class="size-4" aria-hidden="true" />
+                        {{ $t('Correct') }}
                     </span>
                     <span
                         v-else-if="
@@ -205,7 +210,8 @@ function onCheck(): void {
                         "
                         class="text-danger inline-flex shrink-0 items-center gap-1 text-sm font-semibold"
                     >
-                        <X class="size-4" aria-hidden="true" /> Not quite
+                        <X class="size-4" aria-hidden="true" />
+                        {{ $t('Not quite') }}
                     </span>
                 </button>
             </div>

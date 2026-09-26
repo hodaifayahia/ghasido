@@ -27,7 +27,7 @@ const base =
 <template>
     <div
         role="radiogroup"
-        aria-label="Playback speed"
+        :aria-label="$t('Playback speed')"
         :class="cn('flex gap-3', props.class)"
     >
         <button
@@ -44,7 +44,7 @@ const base =
             @click="emit('update:modelValue', 'normal')"
         >
             <Gauge class="text-brand-600 size-6" aria-hidden="true" />
-            Normal Speed
+            {{ $t('Normal Speed') }}
         </button>
         <button
             type="button"
@@ -63,7 +63,7 @@ const base =
                 class="text-success size-[26px] fill-current"
                 aria-hidden="true"
             />
-            Slower Speed
+            {{ $t('Slower Speed') }}
         </button>
     </div>
 </template>

@@ -121,7 +121,12 @@ watch(expired, (isExpired) => {
                 </p>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-ink-slate text-[14px]">
-                        Question {{ question.number }} of {{ question.total }}
+                        {{
+                            $t('Question :current of :total', {
+                                current: question.number,
+                                total: question.total,
+                            })
+                        }}
                     </span>
                     <span class="text-brand-700 text-[13px] font-semibold"
                         >{{ percent }}%</span
@@ -156,7 +161,7 @@ watch(expired, (isExpired) => {
                     @click="go(question.number - 1)"
                 >
                     <ArrowLeft class="size-4" aria-hidden="true" />
-                    Previous Question
+                    {{ $t('Previous Question') }}
                 </Button>
                 <Button
                     v-if="!isLast"
@@ -165,7 +170,7 @@ watch(expired, (isExpired) => {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-11 gap-2 rounded-md px-5 text-[14px] font-semibold text-white active:scale-[.97]"
                     @click="go(question.number + 1)"
                 >
-                    Next Question
+                    {{ $t('Next Question') }}
                     <ArrowRight class="size-4" aria-hidden="true" />
                 </Button>
                 <Button
@@ -176,7 +181,7 @@ watch(expired, (isExpired) => {
                     @click="finish"
                 >
                     <Flag class="size-4" aria-hidden="true" />
-                    Finish Test
+                    {{ $t('Finish Test') }}
                 </Button>
             </div>
         </div>
@@ -189,7 +194,7 @@ watch(expired, (isExpired) => {
                     class="text-ink-slate flex items-center gap-2 text-[12.5px] font-semibold tracking-[0.02em] uppercase"
                 >
                     <Clock class="text-brand-700 size-4" aria-hidden="true" />
-                    Time Remaining
+                    {{ $t('Time Remaining') }}
                 </span>
                 <span
                     :class="
@@ -209,7 +214,7 @@ watch(expired, (isExpired) => {
                 <span
                     class="text-ink-slate text-[12.5px] font-semibold tracking-[0.02em] uppercase"
                 >
-                    Questions
+                    {{ $t('Questions') }}
                 </span>
                 <div class="grid grid-cols-5 gap-2">
                     <button

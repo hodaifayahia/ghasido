@@ -7,6 +7,7 @@ import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useShowMeaning } from '@/composables/useShowMeaning';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { PronunciationResult, PronunciationWord } from '@/types';
 import { LEVEL_STYLE, WORD_STATUS, weakWordHint } from './pronunciationStatus';
@@ -54,9 +55,9 @@ type ScoreRow = { label: string; value: number };
 const scores = computed<ScoreRow[]>(() => {
     const rows: ScoreRow[] = [];
     const parts: [string, number | null][] = [
-        ['Words', props.result.scores.words],
-        ['Clarity', props.result.scores.clarity],
-        ['Flow', props.result.scores.flow],
+        [tk('Words'), props.result.scores.words],
+        [tk('Clarity'), props.result.scores.clarity],
+        [tk('Flow'), props.result.scores.flow],
     ];
 
     for (const [label, value] of parts) {
@@ -94,7 +95,7 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
                     class="size-4 shrink-0"
                     aria-hidden="true"
                 />
-                {{ result.levelLabel ?? level.label }}
+                {{ result.levelLabel ?? $t(level.label) }}
             </span>
             <p
                 v-if="result.score !== null && result.level !== 'not_heard'"
@@ -110,7 +111,7 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
 
         <div>
             <p class="text-ink-slate mb-2 text-sm font-medium">
-                {{ result.isDrill ? 'Your word' : 'Your sentence' }}
+                {{ result.isDrill ? $t('Your word') : $t('Your sentence') }}
             </p>
             <ul class="flex flex-wrap gap-2">
                 <li v-for="word in result.words" :key="word.index">
@@ -123,7 +124,12 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
                                 WORD_STATUS[word.status].chip,
                             )
                         "
-                        :aria-label="`${word.text}: ${WORD_STATUS[word.status].label}. Practise this word`"
+                        :aria-label="
+                            $t(':word: :status. Practise this word', {
+                                word: word.text,
+                                status: $t(WORD_STATUS[word.status].label),
+                            })
+                        "
                         :data-test="`pronunciation-word-${word.index}`"
                         @click="emit('drill', word)"
                     >
@@ -142,7 +148,12 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
                                 WORD_STATUS[word.status].chip,
                             )
                         "
-                        :aria-label="`${word.text}: ${WORD_STATUS[word.status].label}`"
+                        :aria-label="
+                            $t(':word: :status', {
+                                word: word.text,
+                                status: $t(WORD_STATUS[word.status].label),
+                            })
+                        "
                     >
                         <component
                             :is="WORD_STATUS[word.status].icon"
@@ -171,7 +182,7 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
                 — {{ weakWordHint(word.status, word.heard, word.sound) }}
             </li>
             <li class="text-brand-700 text-sm font-medium">
-                Tap a word to practise it on its own.
+                {{ $t('Tap a word to practise it on its own.') }}
             </li>
         </ul>
 
@@ -181,11 +192,11 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
                 :key="row.label"
                 class="grid grid-cols-[4.5rem_minmax(0,1fr)_2.5rem] items-center gap-3"
             >
-                <dt class="text-ink-slate text-sm">{{ row.label }}</dt>
+                <dt class="text-ink-slate text-sm">{{ $t(row.label) }}</dt>
                 <dd class="contents">
                     <ProgressBar
                         :value="row.value"
-                        :label="`${row.label} score`"
+                        :label="$t(':name score', { name: $t(row.label) })"
                         :tone="
                             row.value >= 75
                                 ? 'success'
@@ -202,7 +213,9 @@ const coaching = computed(() => props.result.feedbackStatus === 'pending');
         </dl>
 
         <div v-if="coaching" class="flex flex-col gap-2">
-            <p class="text-ink-slate text-sm">Your coach is preparing a tip…</p>
+            <p class="text-ink-slate text-sm">
+                {{ $t('Your coach is preparing a tip…') }}
+            </p>
             <Skeleton class="h-4 w-3/4 rounded-sm" />
             <Skeleton class="h-4 w-1/2 rounded-sm" />
         </div>

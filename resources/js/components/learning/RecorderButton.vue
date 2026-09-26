@@ -3,6 +3,7 @@ import { Mic, RotateCcw, Square } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { useRecorder } from '@/composables/useRecorder';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -38,6 +39,7 @@ const emit = defineEmits<{
 }>();
 
 const recorder = useRecorder({ maxSeconds: props.maxSeconds });
+const { t } = useI18n();
 
 watch(recorder.state, (state) => {
     if (
@@ -68,19 +70,25 @@ const counter = computed(
 const hint = computed((): string => {
     switch (recorder.state.value) {
         case 'idle':
-            return recorder.explanation;
+            return t(recorder.explanation);
         case 'requesting':
-            return 'Waiting for your permission…';
+            return t('Waiting for your permission…');
         case 'recording':
-            return 'Recording… tap to stop.';
+            return t('Recording… tap to stop.');
         case 'recorded':
-            return 'Recorded. Tap the arrow to record again.';
+            return t('Recorded. Tap the arrow to record again.');
         case 'denied':
-            return 'Microphone access was refused. Allow the microphone for this site in your browser settings, then try again — or type your answer instead.';
+            return t(
+                'Microphone access was refused. Allow the microphone for this site in your browser settings, then try again — or type your answer instead.',
+            );
         case 'unsupported':
-            return 'This browser cannot record audio. Please use Chrome or Safari, or type your answer instead.';
+            return t(
+                'This browser cannot record audio. Please use Chrome or Safari, or type your answer instead.',
+            );
         default:
-            return 'Recording failed. Please try again or type your answer instead.';
+            return t(
+                'Recording failed. Please try again or type your answer instead.',
+            );
     }
 });
 
@@ -107,8 +115,8 @@ function again(): void {
                 type="button"
                 :aria-label="
                     recorder.state.value === 'recording'
-                        ? 'Stop recording'
-                        : 'Start recording'
+                        ? $t('Stop recording')
+                        : $t('Start recording')
                 "
                 :aria-pressed="recorder.state.value === 'recording'"
                 :disabled="
@@ -138,7 +146,7 @@ function again(): void {
             <button
                 v-if="recorder.state.value === 'recorded'"
                 type="button"
-                aria-label="Record again"
+                :aria-label="$t('Record again')"
                 class="bg-tint-grid text-ink hover:bg-line focus-visible:ring-brand-600/40 grid size-11 place-items-center rounded-full focus-visible:ring-3 focus-visible:outline-none"
                 @click="again"
             >

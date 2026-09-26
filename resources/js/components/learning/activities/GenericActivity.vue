@@ -10,6 +10,7 @@ import RecorderButton from '@/components/learning/RecorderButton.vue';
 import RecordingPlayer from '@/components/learning/RecordingPlayer.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
+import { useI18n } from '@/composables/useI18n';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import { store as storeRecording } from '@/routes/learn/recordings';
@@ -48,6 +49,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const isTest = computed(() => props.activity.mode === 'test');
 const meaning = useShowMeaning(
@@ -352,7 +355,7 @@ async function onRecorded(
     } catch {
         form.setError(
             'answers',
-            'The recording could not be uploaded. Please try again.',
+            t('The recording could not be uploaded. Please try again.'),
         );
     } finally {
         uploading.value = false;
@@ -574,7 +577,11 @@ function letter(index: number): string {
                         :value="pairs(item)[prompt.id] ?? ''"
                         :disabled="locked"
                         class="border-line-strong text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 bg-surface min-h-11 rounded-sm border px-3 text-base focus-visible:ring-3 focus-visible:outline-none"
-                        :aria-label="`Match ${prompt.audio_text}`"
+                        :aria-label="
+                            $t('Match :word', {
+                                word: prompt.audio_text ?? '',
+                            })
+                        "
                         @change="
                             setPair(
                                 item,
@@ -583,7 +590,7 @@ function letter(index: number): string {
                             )
                         "
                     >
-                        <option value="" disabled>Choose…</option>
+                        <option value="" disabled>{{ $t('Choose…') }}</option>
                         <option
                             v-for="target in targets(item)"
                             :key="target.id"
@@ -633,7 +640,7 @@ function letter(index: number): string {
                     <button
                         type="button"
                         :disabled="locked || position === 0"
-                        aria-label="Move up"
+                        :aria-label="$t('Move up')"
                         class="bg-tint-grid text-ink hover:bg-line focus-visible:ring-brand-600/40 grid size-11 place-items-center rounded-md focus-visible:ring-3 focus-visible:outline-none disabled:opacity-40"
                         @click="move(item, entry.id, -1)"
                     >
@@ -645,7 +652,7 @@ function letter(index: number): string {
                             locked ||
                             position === orderedEntries(item).length - 1
                         "
-                        aria-label="Move down"
+                        :aria-label="$t('Move down')"
                         class="bg-tint-grid text-ink hover:bg-line focus-visible:ring-brand-600/40 grid size-11 place-items-center rounded-md focus-visible:ring-3 focus-visible:outline-none disabled:opacity-40"
                         @click="move(item, entry.id, 1)"
                     >
@@ -676,7 +683,7 @@ function letter(index: number): string {
                     class="text-ink-slate text-sm"
                     aria-live="polite"
                 >
-                    Uploading your recording…
+                    {{ $t('Uploading your recording…') }}
                 </p>
             </div>
 
@@ -686,9 +693,13 @@ function letter(index: number): string {
                     :for="`writing-${item.id}`"
                     class="text-ink text-sm font-semibold"
                 >
-                    Your reply
+                    {{ $t('Your reply') }}
                     <span class="text-ink-slate font-normal">
-                        (at least {{ loose(item)['min_words'] ?? 20 }} words)
+                        {{
+                            $t('(at least :count words)', {
+                                count: String(loose(item)['min_words'] ?? 20),
+                            })
+                        }}
                     </span>
                 </label>
                 <textarea
@@ -734,10 +745,10 @@ function letter(index: number): string {
                 />
                 {{
                     result.perItem[item.id] === true
-                        ? 'Correct'
+                        ? $t('Correct')
                         : result.perItem[item.id] === false
-                          ? 'Not quite'
-                          : 'Answer saved'
+                          ? $t('Not quite')
+                          : $t('Answer saved')
                 }}
             </p>
         </div>
@@ -751,7 +762,7 @@ function letter(index: number): string {
                     class="text-brand-600 min-h-11 px-2 text-sm font-semibold disabled:opacity-40"
                     @click="current = Math.max(0, current - 1)"
                 >
-                    Previous item
+                    {{ $t('Previous item') }}
                 </button>
                 <ActivityDots
                     v-if="items.length > 1"
@@ -766,7 +777,7 @@ function letter(index: number): string {
                     class="text-brand-600 min-h-11 px-2 text-sm font-semibold disabled:opacity-40"
                     @click="current = Math.min(items.length - 1, current + 1)"
                 >
-                    Next item
+                    {{ $t('Next item') }}
                 </button>
             </div>
 
@@ -775,9 +786,12 @@ function letter(index: number): string {
                     v-if="activity.attemptsLeft !== null"
                     class="text-ink-slate text-sm"
                 >
-                    {{ activity.attemptsLeft }} of
-                    {{ activity.attemptsAllowed }}
-                    attempts left
+                    {{
+                        $t(':left of :total attempts left', {
+                            left: activity.attemptsLeft,
+                            total: activity.attemptsAllowed,
+                        })
+                    }}
                 </span>
                 <CheckButton
                     v-if="!isTest"

@@ -19,13 +19,15 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Head title="Welcome" />
-    <h1 class="sr-only">Welcome</h1>
+    <Head :title="$t('Welcome')" />
+    <h1 class="sr-only">{{ $t('Welcome') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Welcome to GHASIDO"
-            description="A moment to set up your account before your first lesson."
+            :title="$t('Welcome to GHASIDO')"
+            :description="
+                $t('A moment to set up your account before your first lesson.')
+            "
         />
 
         <FirstLoginForm

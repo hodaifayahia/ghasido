@@ -88,7 +88,10 @@ const props = defineProps<Props>();
         />
 
         <StepFooterNav
-            :prev="{ label: `Back to ${block.heading}`, href: backUrl }"
+            :prev="{
+                label: $t('Back to :step', { step: block.heading }),
+                href: backUrl,
+            }"
             :next="null"
         />
     </template>

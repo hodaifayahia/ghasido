@@ -102,7 +102,7 @@ function onRecordAgain(): void {
                     :caption="current.text"
                     class="h-64 md:h-[326px]"
                 />
-                <TipCard v-if="tip" title="Tip" :text="tip" />
+                <TipCard v-if="tip" :title="$t('Tip')" :text="tip" />
             </div>
 
             <div
@@ -115,11 +115,11 @@ function onRecordAgain(): void {
                             aria-hidden="true"
                         />
                         <h3 class="text-ink font-heading text-lg font-semibold">
-                            Step 1: Listen
+                            {{ $t('Step 1: Listen') }}
                         </h3>
                     </div>
                     <p class="text-ink-slate mt-1">
-                        Click the button to hear the sentence.
+                        {{ $t('Click the button to hear the sentence.') }}
                     </p>
                     <div class="mt-3 flex gap-3">
                         <AudioButton
@@ -143,11 +143,13 @@ function onRecordAgain(): void {
                     <div class="flex items-center gap-2">
                         <Mic class="text-brand-600 size-6" aria-hidden="true" />
                         <h3 class="text-ink font-heading text-lg font-semibold">
-                            Step 2: Repeat
+                            {{ $t('Step 2: Repeat') }}
                         </h3>
                     </div>
                     <p class="text-ink-slate mt-1">
-                        Click the microphone and repeat the sentence.
+                        {{
+                            $t('Click the microphone and repeat the sentence.')
+                        }}
                     </p>
 
                     <div
@@ -169,7 +171,7 @@ function onRecordAgain(): void {
                                 <p
                                     class="text-ink-slate mb-2 text-sm font-medium"
                                 >
-                                    Your recording
+                                    {{ $t('Your recording') }}
                                 </p>
                                 <RecordingPlayer
                                     :src="currentRecording.url"
@@ -184,7 +186,7 @@ function onRecordAgain(): void {
                                 data-test="pronunciation-checking"
                             >
                                 <Spinner class="size-4" />
-                                Checking your pronunciation…
+                                {{ $t('Checking your pronunciation…') }}
                             </p>
                             <p
                                 v-else-if="check.error.value"
@@ -225,7 +227,7 @@ function onRecordAgain(): void {
                 v-for="(item, i) in items"
                 :key="i"
                 type="button"
-                :aria-label="`Sentence ${i + 1}`"
+                :aria-label="$t('Sentence :number', { number: i + 1 })"
                 :aria-current="i === index"
                 class="focus-visible:ring-brand-600/40 size-3 rounded-full focus-visible:ring-3 focus-visible:outline-none"
                 :class="i === index ? 'bg-brand-600' : 'bg-brand-100'"

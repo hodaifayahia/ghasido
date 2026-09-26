@@ -3,6 +3,7 @@ import { Turtle, Volume2 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { useAudio } from '@/composables/useAudio';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -30,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { play, isPlaying } = useAudio();
+const { t } = useI18n();
 
 const fallbackPlaying = ref(false);
 let stopFallback: (() => void) | null = null;
@@ -43,17 +45,23 @@ const browserSpeechAvailable = computed(
 );
 const playing = computed(() => isPlaying(props.src) || fallbackPlaying.value);
 const disabled = computed(() => !props.src && !browserSpeechAvailable.value);
-const label = computed(() => (props.variant === 'slow' ? 'Slow' : 'Normal'));
+const label = computed(() =>
+    props.variant === 'slow' ? t('Slow') : t('Normal'),
+);
 const ariaLabel = computed(() =>
-    props.text
-        ? `Play "${props.text}" at ${props.variant} speed`
-        : `Play at ${props.variant} speed`,
+    props.variant === 'slow'
+        ? props.text
+            ? t('Play ":text" at slow speed', { text: props.text })
+            : t('Play at slow speed')
+        : props.text
+          ? t('Play ":text" at normal speed', { text: props.text })
+          : t('Play at normal speed'),
 );
 const title = computed(() =>
     disabled.value
-        ? 'Audio is unavailable until a speech provider is configured'
+        ? t('Audio is unavailable until a speech provider is configured')
         : !props.src
-          ? 'Using browser speech while the stored audio is unavailable'
+          ? t('Using browser speech while the stored audio is unavailable')
           : undefined,
 );
 

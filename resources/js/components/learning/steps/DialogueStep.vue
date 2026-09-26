@@ -67,14 +67,21 @@ function go(to: number): void {
                 >
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-ink font-heading font-semibold">
-                            Step {{ index + 1 }} / {{ total }}
+                            {{
+                                $t('Step :current / :total', {
+                                    current: index + 1,
+                                    total,
+                                })
+                            }}
                         </span>
                         <div class="flex items-center gap-2">
                             <button
                                 v-for="(line, i) in lines"
                                 :key="i"
                                 type="button"
-                                :aria-label="`Line ${i + 1}`"
+                                :aria-label="
+                                    $t('Line :number', { number: i + 1 })
+                                "
                                 :aria-current="i === index"
                                 class="focus-visible:ring-brand-600/40 size-2.5 rounded-full focus-visible:ring-3 focus-visible:outline-none"
                                 :class="
@@ -87,7 +94,7 @@ function go(to: number): void {
                         </div>
                         <button
                             type="button"
-                            aria-label="Next line"
+                            :aria-label="$t('Next line')"
                             class="bg-brand-50 text-brand-600 hover:bg-brand-100 focus-visible:ring-brand-600/40 grid size-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:outline-none active:scale-[.97]"
                             :disabled="index >= total - 1"
                             @click="go(index + 1)"
@@ -104,7 +111,9 @@ function go(to: number): void {
                             v-if="image"
                             :src="image.url"
                             :alt="
-                                current.speaker === 'guest' ? 'Guest' : 'Staff'
+                                current.speaker === 'guest'
+                                    ? $t('Guest')
+                                    : $t('Staff')
                             "
                             loading="lazy"
                             decoding="async"
@@ -153,7 +162,7 @@ function go(to: number): void {
                     </template>
                 </div>
 
-                <TipCard v-if="tip" title="Tip" :text="tip" />
+                <TipCard v-if="tip" :title="$t('Tip')" :text="tip" />
             </div>
         </div>
     </div>

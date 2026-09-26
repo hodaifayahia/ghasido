@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Check, Circle } from '@lucide/vue';
+import { computed } from 'vue';
 import CertificateSheet from '@/components/learning/CertificateSheet.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { useI18n } from '@/composables/useI18n';
 import type {
     CertificateEligibility,
     CertificateView,
@@ -22,45 +24,54 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 // With no published Pre-test for the learner's department the lessons are
 // open from the start (JOURNEY-01), so there is no Pre-test step to list.
 const hasPreTestStep =
     props.eligibility.preTestSubmitted || !props.journey.lessonsUnlocked;
 
-const checklist = [
+const checklist = computed(() => [
     ...(hasPreTestStep
         ? [
               {
-                  label: 'Take the Pre-test',
+                  label: t('Take the Pre-test'),
                   done: () => props.eligibility.preTestSubmitted,
               },
           ]
         : []),
     {
-        label: `Complete every lesson (${props.eligibility.lessonsCompleted} of ${props.eligibility.lessonsTotal})`,
+        label: t('Complete every lesson (:completed of :total)', {
+            completed: props.eligibility.lessonsCompleted,
+            total: props.eligibility.lessonsTotal,
+        }),
         done: () =>
             props.eligibility.lessonsTotal > 0 &&
             props.eligibility.lessonsCompleted >=
                 props.eligibility.lessonsTotal,
     },
     {
-        label: 'Take the Post-test',
+        label: t('Take the Post-test'),
         done: () => props.eligibility.postTestSubmitted,
     },
-];
+]);
 </script>
 
 <template>
-    <Head title="Certificate" />
-    <h1 class="sr-only">Certificate</h1>
+    <Head :title="$t('Certificate')" />
+    <h1 class="sr-only">{{ $t('Certificate') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Certificate"
+            :title="$t('Certificate')"
             :description="
                 certificate
-                    ? `Issued for ${certificate.course.title}`
-                    : 'Your certificate is issued when your training is complete.'
+                    ? $t('Issued for :course', {
+                          course: certificate.course.title,
+                      })
+                    : $t(
+                          'Your certificate is issued when your training is complete.',
+                      )
             "
         />
 
@@ -69,7 +80,7 @@ const checklist = [
         <section
             v-else
             class="border-line bg-surface shadow-card flex min-w-0 flex-col gap-3 rounded-lg border p-5"
-            aria-label="What is left to do"
+            :aria-label="$t('What is left to do')"
         >
             <ul class="flex list-none flex-col gap-3">
                 <li
@@ -95,7 +106,7 @@ const checklist = [
                     <span class="text-ink text-base">
                         {{ item.label }}
                         <span class="text-ink-slate text-sm">
-                            — {{ item.done() ? 'done' : 'to do' }}
+                            — {{ item.done() ? $t('done') : $t('to do') }}
                         </span>
                     </span>
                 </li>

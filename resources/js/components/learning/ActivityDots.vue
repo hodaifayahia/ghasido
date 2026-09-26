@@ -23,7 +23,12 @@ const props = withDefaults(defineProps<Props>(), { answered: () => [] });
         role="status"
         :class="cn('flex items-center justify-center gap-2', props.class)"
     >
-        <span class="sr-only">Item {{ current + 1 }} of {{ count }}</span>
+        <span class="sr-only">{{
+            $t('Item :current of :total', {
+                current: current + 1,
+                total: count,
+            })
+        }}</span>
         <span
             v-for="index in count"
             :key="index"

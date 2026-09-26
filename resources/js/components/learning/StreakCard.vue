@@ -2,6 +2,8 @@
 import { Check, Flame } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { StreakSummary } from '@/types';
 
@@ -18,20 +20,31 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
+// The short weekday in the interface language ("Mon", "الاثنين").
+function weekday(date: string, fallback: string): string {
+    const day = new Date(`${date}T00:00:00`);
+
+    return Number.isNaN(day.getTime())
+        ? fallback
+        : day.toLocaleDateString(intlLocale(), { weekday: 'short' });
+}
+
 const message = computed((): string => {
     const { current, activeToday } = props.streak;
 
     if (current === 0) {
-        return 'Finish one step today to start your streak.';
+        return t('Finish one step today to start your streak.');
     }
 
     if (!activeToday) {
-        return 'Practise today to keep your streak going.';
+        return t('Practise today to keep your streak going.');
     }
 
     return current === 1
-        ? 'Great start. Come back tomorrow to build it.'
-        : 'You practised today. Keep it going!';
+        ? t('Great start. Come back tomorrow to build it.')
+        : t('You practised today. Keep it going!');
 });
 </script>
 
@@ -43,7 +56,7 @@ const message = computed((): string => {
                 props.class,
             )
         "
-        aria-label="Your streak"
+        :aria-label="$t('Your streak')"
         data-test="streak-card"
     >
         <header class="bg-brand-50 flex h-[38px] items-center gap-3 ps-5 pe-4">
@@ -54,13 +67,13 @@ const message = computed((): string => {
             <h2
                 class="font-heading text-ink-cobalt text-[17px] leading-6 font-semibold"
             >
-                Your streak
+                {{ $t('Your streak') }}
             </h2>
             <span
                 v-if="streak.best > streak.current"
                 class="text-ink-slate ms-auto text-[12px]"
             >
-                Best: {{ streak.best }} days
+                {{ $tc('Best: :count day|Best: :count days', streak.best) }}
             </span>
         </header>
 
@@ -72,7 +85,7 @@ const message = computed((): string => {
                 >
                 <div class="min-w-0">
                     <p class="text-ink text-[15px] leading-5 font-semibold">
-                        {{ streak.current === 1 ? 'day' : 'days' }} in a row
+                        {{ $tc('day in a row|days in a row', streak.current) }}
                     </p>
                     <p class="text-ink-slate text-[13px] leading-5">
                         {{ message }}
@@ -80,7 +93,10 @@ const message = computed((): string => {
                 </div>
             </div>
 
-            <ol class="grid grid-cols-7 gap-1.5" aria-label="The last 7 days">
+            <ol
+                class="grid grid-cols-7 gap-1.5"
+                :aria-label="$t('The last 7 days')"
+            >
                 <li
                     v-for="day in streak.week"
                     :key="day.date"
@@ -114,10 +130,14 @@ const message = computed((): string => {
                             )
                         "
                     >
-                        {{ day.today ? 'Today' : day.label }}
+                        {{
+                            day.today
+                                ? $t('Today')
+                                : weekday(day.date, day.label)
+                        }}
                     </span>
                     <span class="sr-only">{{
-                        day.active ? 'practised' : 'no practice'
+                        day.active ? $t('practised') : $t('no practice')
                     }}</span>
                 </li>
             </ol>

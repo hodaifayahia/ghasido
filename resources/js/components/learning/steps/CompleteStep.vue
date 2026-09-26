@@ -22,6 +22,7 @@ import type { Component } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import Celebration from '@/components/learning/Celebration.vue';
 import ProgressRing from '@/components/learning/ProgressRing.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { BlockType, LessonSummary, StepBlockOf } from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
@@ -43,6 +44,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const summary = computed(() => props.block.summary);
 const settings = computed(() => props.block.settings);
 
@@ -52,11 +55,12 @@ const encouragement = computed(() => settings.value.encouragement ?? null);
 const closingQuote = computed(() => settings.value.closing_quote ?? null);
 const subtitle = computed(
     () =>
-        settings.value.subtitle ?? 'Great job! You have finished this lesson.',
+        settings.value.subtitle ??
+        t('Great job! You have finished this lesson.'),
 );
 
 const heading = computed(
-    () => `${props.number ? `${props.number}. ` : ''}Lesson Completed!`,
+    () => `${props.number ? `${props.number}. ` : ''}${t('Lesson Completed!')}`,
 );
 
 const percent = computed(() => {
@@ -179,7 +183,7 @@ onMounted(async () => {
                         aria-hidden="true"
                     />
                     <h2 class="text-ink font-heading text-lg font-semibold">
-                        Lesson Summary
+                        {{ $t('Lesson Summary') }}
                     </h2>
                 </div>
 
@@ -234,7 +238,7 @@ onMounted(async () => {
                         <h2
                             class="text-ink font-heading text-base font-semibold"
                         >
-                            Your Progress
+                            {{ $t('Your Progress') }}
                         </h2>
                         <Info
                             class="text-ink-faint size-4"
@@ -256,12 +260,21 @@ onMounted(async () => {
                         </div>
                         <div class="min-w-0">
                             <p class="text-ink font-semibold">
-                                {{ summary?.lessonsCompleted ?? 0 }} of
-                                {{ summary?.lessonsTotal ?? 0 }} lessons
-                                completed
+                                {{
+                                    $t(
+                                        ':completed of :total lessons completed',
+                                        {
+                                            completed:
+                                                summary?.lessonsCompleted ?? 0,
+                                            total: summary?.lessonsTotal ?? 0,
+                                        },
+                                    )
+                                }}
                             </p>
                             <p class="text-ink-slate mt-1 text-sm">
-                                Keep going! You're on the right track.
+                                {{
+                                    $t("Keep going! You're on the right track.")
+                                }}
                             </p>
                         </div>
                     </div>
@@ -290,7 +303,7 @@ onMounted(async () => {
                         <h2
                             class="text-ink font-heading text-base font-semibold"
                         >
-                            What's Next?
+                            {{ $t("What's Next?") }}
                         </h2>
                     </div>
                     <Link
@@ -298,7 +311,7 @@ onMounted(async () => {
                         title="الانتقال إلى الدرس التالي"
                         class="bg-brand-600 hover:bg-brand-700 shadow-btn focus-visible:ring-brand-600/30 font-heading flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97]"
                     >
-                        Continue to Next Lesson
+                        {{ $t('Continue to Next Lesson') }}
                         <ArrowRight class="size-4" aria-hidden="true" />
                     </Link>
                     <Link
@@ -307,15 +320,18 @@ onMounted(async () => {
                         class="border-line text-ink hover:bg-app-alt focus-visible:ring-brand-600/30 mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold focus-visible:ring-3 focus-visible:outline-none"
                     >
                         <House class="size-4" aria-hidden="true" />
-                        Back to My Lessons
+                        {{ $t('Back to My Lessons') }}
                     </Link>
                 </div>
                 <div
                     v-else
                     class="border-line bg-brand-50/40 text-ink-slate rounded-lg border border-dashed p-5 text-center text-sm"
                 >
-                    Preview complete. Return to the lesson editor to continue
-                    managing this lesson.
+                    {{
+                        $t(
+                            'Preview complete. Return to the lesson editor to continue managing this lesson.',
+                        )
+                    }}
                 </div>
             </div>
         </div>

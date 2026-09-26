@@ -3,6 +3,8 @@ import { Printer } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import TransText from '@/components/common/TransText.vue';
+import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { CertificateView } from '@/types';
 
@@ -20,7 +22,7 @@ type Props = {
 const props = defineProps<Props>();
 
 const issued = computed(() =>
-    new Date(props.certificate.issuedAt).toLocaleDateString('en-GB', {
+    new Date(props.certificate.issuedAt).toLocaleDateString(intlLocale(), {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -36,38 +38,57 @@ function print(): void {
     <div :class="cn('flex min-w-0 flex-col gap-4', props.class)">
         <section
             class="border-brand-200 bg-surface shadow-card flex flex-col items-center gap-6 rounded-lg border-4 px-6 py-10 text-center md:px-12 md:py-14 print:border-2 print:shadow-none"
-            aria-label="Certificate"
+            :aria-label="$t('Certificate')"
         >
             <AppLogo />
             <p
                 class="text-ink-slate text-sm font-semibold tracking-[0.2em] uppercase"
             >
-                Certificate of {{ certificate.typeLabel }}
+                {{ certificate.typeLabel }}
             </p>
-            <p class="text-ink-graphite text-lg">This certifies that</p>
+            <p class="text-ink-graphite text-lg">
+                {{ $t('This certifies that') }}
+            </p>
             <p
                 class="font-heading text-ink-royal text-[34px] leading-10 font-bold tracking-[-0.02em]"
             >
                 {{ certificate.employee.name }}
             </p>
             <p class="text-ink-graphite max-w-xl text-lg leading-7">
-                <template v-if="certificate.type === 'completion'">
-                    has successfully completed
-                </template>
-                <template v-else>has taken part in</template>
-                <strong class="text-ink font-semibold">
-                    {{ certificate.course.title }}
-                </strong>
+                <TransText
+                    :text="
+                        certificate.type === 'completion'
+                            ? 'has successfully completed :course'
+                            : 'has taken part in :course'
+                    "
+                >
+                    <template #course>
+                        <strong class="text-ink font-semibold">
+                            {{ certificate.course.title }}
+                        </strong>
+                    </template>
+                </TransText>
                 <template v-if="certificate.department">
-                    for the {{ certificate.department }} department
+                    {{
+                        ' ' +
+                        $t('for the :department department', {
+                            department: certificate.department,
+                        })
+                    }}
                 </template>
                 <template v-if="certificate.hotel">
-                    at {{ certificate.hotel }}
+                    {{ ' ' + $t('at :hotel', { hotel: certificate.hotel }) }}
                 </template>
             </p>
-            <p class="text-ink-slate text-sm">Issued {{ issued }}</p>
+            <p class="text-ink-slate text-sm">
+                {{ $t('Issued :date', { date: issued }) }}
+            </p>
             <p class="text-ink-faint font-mono text-xs">
-                Verification ID {{ certificate.verificationId }}
+                {{
+                    $t('Verification ID :id', {
+                        id: certificate.verificationId,
+                    })
+                }}
             </p>
         </section>
 
@@ -79,7 +100,7 @@ function print(): void {
                 @click="print"
             >
                 <Printer class="size-5" aria-hidden="true" />
-                Print or save as PDF
+                {{ $t('Print or save as PDF') }}
             </button>
         </div>
     </div>

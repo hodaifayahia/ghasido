@@ -18,6 +18,7 @@ import TrainingDepartmentSwitcher from '@/components/learning/TrainingDepartment
 import BottomNav from '@/components/shell/BottomNav.vue';
 import WelcomeSplash from '@/components/shell/WelcomeSplash.vue';
 import AppSidebarLayout from '@/layouts/app/AppSidebarLayout.vue';
+import { tk } from '@/lib/i18n';
 import {
     certificate,
     home,
@@ -44,32 +45,32 @@ const solid = 'fill-current';
 const outline = 'stroke-[2.25]';
 
 const mainItems: SidebarNavItem[] = [
-    { title: 'Home', href: home(), icon: SolidHouseIcon },
+    { title: tk('Home'), href: home(), icon: SolidHouseIcon },
     {
-        title: 'My Lessons',
+        title: tk('My Lessons'),
         href: lessons(),
         icon: BookOpen,
         iconClass: outline,
     },
     {
-        title: 'My Phrasebook',
+        title: tk('My Phrasebook'),
         href: phrasebook(),
         icon: Star,
         iconClass: solid,
     },
-    { title: 'My Progress', href: progress(), icon: SolidBarsIcon },
-    { title: 'Messages', href: messages(), icon: SolidMailIcon },
+    { title: tk('My Progress'), href: progress(), icon: SolidBarsIcon },
+    { title: tk('Messages'), href: messages(), icon: SolidMailIcon },
 ];
 
 const journeyItems: SidebarNavItem[] = [
     {
-        title: 'Pre-test',
+        title: tk('Pre-test'),
         href: home(),
         icon: ClipboardCheck,
         iconClass: `${solid} [&>path:last-child]:fill-none [&>path:last-child]:stroke-surface`,
     },
     {
-        title: 'Training',
+        title: tk('Training'),
         href: lessons(),
         icon: GraduationCap,
         iconClass: outline,
@@ -77,13 +78,13 @@ const journeyItems: SidebarNavItem[] = [
     {
         // Resumes an open sitting, opens the intro once every lesson is
         // done, or says what is left (spec 0005 §3.1).
-        title: 'Post-test',
+        title: tk('Post-test'),
         href: postTest(),
         icon: ClipboardCheck,
         iconClass: `${solid} [&>path:last-child]:fill-none [&>path:last-child]:stroke-surface`,
     },
     {
-        title: 'Certificate',
+        title: tk('Certificate'),
         href: certificate(),
         icon: Award,
         iconClass: outline,
@@ -92,12 +93,17 @@ const journeyItems: SidebarNavItem[] = [
 
 const accountItems: SidebarNavItem[] = [
     {
-        title: 'Help',
+        title: tk('Help'),
         href: '/help',
         icon: CircleQuestionMark,
         iconClass: `${solid} [&>path]:fill-none [&>path]:stroke-surface`,
     },
-    { title: 'Log out', icon: LogOut, action: 'logout', iconClass: outline },
+    {
+        title: tk('Log out'),
+        icon: LogOut,
+        action: 'logout',
+        iconClass: outline,
+    },
 ];
 
 // 11px and 14px gaps at 853px, shrinking with the sidebar's --sb-unit

@@ -6,6 +6,8 @@ import CoachCard from '@/components/learning/CoachCard.vue';
 import ProgressCourseCard from '@/components/learning/ProgressCourseCard.vue';
 import TestResultCard from '@/components/learning/TestResultCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/lib/i18n';
 import type {
     CoachSummary,
     JourneyState,
@@ -30,33 +32,43 @@ type Props = {
 
 defineProps<Props>();
 
+const { t } = useI18n();
+
 function since(iso: string | null): string {
     return iso
-        ? new Date(iso).toLocaleDateString('en-GB', {
+        ? new Date(iso).toLocaleDateString(intlLocale(), {
               day: 'numeric',
               month: 'short',
               year: 'numeric',
           })
-        : 'Not started yet';
+        : t('Not started yet');
 }
 </script>
 
 <template>
-    <Head title="My Progress" />
-    <h1 class="sr-only">My Progress</h1>
+    <Head :title="$t('My Progress')" />
+    <h1 class="sr-only">{{ $t('My Progress') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="My Progress"
-            :description="`Training started ${since(stats.trainingStartedAt)}`"
+            :title="$t('My Progress')"
+            :description="
+                $t('Training started :date', {
+                    date: since(stats.trainingStartedAt),
+                })
+            "
         />
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
                 :value="stats.percent"
                 unit="%"
-                label="Overall progress"
-                :detail="`Last activity ${since(stats.lastActivityAt)}`"
+                :label="$t('Overall progress')"
+                :detail="
+                    $t('Last activity :date', {
+                        date: since(stats.lastActivityAt),
+                    })
+                "
                 tone="brand"
             >
                 <template #icon>
@@ -65,8 +77,8 @@ function since(iso: string | null): string {
             </StatCard>
             <StatCard
                 :value="stats.lessonsCompleted"
-                label="Lessons completed"
-                :detail="`of ${stats.lessonsTotal} lessons`"
+                :label="$t('Lessons completed')"
+                :detail="$t('of :total lessons', { total: stats.lessonsTotal })"
                 tone="success"
             >
                 <template #icon>
@@ -75,13 +87,13 @@ function since(iso: string | null): string {
             </StatCard>
             <StatCard
                 :value="journey.certificateAvailable ? 1 : 0"
-                label="Certificate"
+                :label="$t('Certificate')"
                 :detail="
                     journey.certificateAvailable
-                        ? 'Ready to view'
+                        ? $t('Ready to view')
                         : journey.postTestUnlocked
-                          ? 'Take the Post-test to earn it'
-                          : 'Finish every lesson first'
+                          ? $t('Take the Post-test to earn it')
+                          : $t('Finish every lesson first')
                 "
                 tone="warning"
             >
@@ -91,11 +103,15 @@ function since(iso: string | null): string {
             </StatCard>
             <StatCard
                 :value="streak.current"
-                label="Day streak"
+                :label="$t('Day streak')"
                 :detail="
                     streak.activeToday
-                        ? `You practised today · best ${streak.best}`
-                        : `Practise today to keep it · best ${streak.best}`
+                        ? $t('You practised today · best :best', {
+                              best: streak.best,
+                          })
+                        : $t('Practise today to keep it · best :best', {
+                              best: streak.best,
+                          })
                 "
                 tone="ai"
             >
@@ -108,8 +124,8 @@ function since(iso: string | null): string {
         <CoachCard :coach="coach" />
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2">
-            <TestResultCard title="Pre-test" :result="tests.pre" />
-            <TestResultCard title="Post-test" :result="tests.post" />
+            <TestResultCard :title="$t('Pre-test')" :result="tests.pre" />
+            <TestResultCard :title="$t('Post-test')" :result="tests.post" />
         </div>
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2">

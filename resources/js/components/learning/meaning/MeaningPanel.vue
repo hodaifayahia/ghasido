@@ -2,6 +2,7 @@
 import { CircleAlert, Info, LoaderCircle } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import type { MeaningState } from '@/composables/useMeaning';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -20,6 +21,10 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), { id: undefined });
 
 const emit = defineEmits<{ retry: [] }>();
+
+// The Arabic echo beside an English status line only helps the English
+// interface; in the Arabic one the line itself is already Arabic.
+const { locale } = useI18n();
 </script>
 
 <template>
@@ -48,8 +53,10 @@ const emit = defineEmits<{ retry: [] }>();
             class="text-ink-slate flex flex-wrap items-center gap-2 text-sm"
         >
             <Info class="size-4 shrink-0" aria-hidden="true" />
-            <span>The meaning of this text has not been added yet.</span>
-            <span lang="ar" dir="rtl" class="font-arabic"
+            <span>{{
+                $t('The meaning of this text has not been added yet.')
+            }}</span>
+            <span v-if="locale === 'en'" lang="ar" dir="rtl" class="font-arabic"
                 >لم تُضف الترجمة بعد.</span
             >
         </p>
@@ -58,13 +65,13 @@ const emit = defineEmits<{ retry: [] }>();
             class="text-danger-text flex flex-wrap items-center gap-2 text-sm"
         >
             <CircleAlert class="size-4 shrink-0" aria-hidden="true" />
-            <span>The meaning is not available right now.</span>
+            <span>{{ $t('The meaning is not available right now.') }}</span>
             <button
                 type="button"
                 class="text-brand-600 min-h-8 font-semibold underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
                 @click.stop.prevent="emit('retry')"
             >
-                Try again
+                {{ $t('Try again') }}
             </button>
         </p>
         <p
@@ -75,8 +82,10 @@ const emit = defineEmits<{ retry: [] }>();
                 class="size-4 shrink-0 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
             />
-            <span>Finding the meaning…</span>
-            <span lang="ar" dir="rtl" class="font-arabic">جارٍ الترجمة…</span>
+            <span>{{ $t('Finding the meaning…') }}</span>
+            <span v-if="locale === 'en'" lang="ar" dir="rtl" class="font-arabic"
+                >جارٍ الترجمة…</span
+            >
         </p>
     </div>
 </template>

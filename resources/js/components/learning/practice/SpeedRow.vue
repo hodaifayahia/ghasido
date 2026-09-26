@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Eye, Gauge, Turtle } from '@lucide/vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -23,6 +24,10 @@ const emit = defineEmits<{
     toggleMeaning: [];
 }>();
 
+// The button already carries the Arabic label; the Arabic interface does
+// not repeat it in English (I18N-02).
+const { locale } = useI18n();
+
 const base =
     'ease-brand focus-visible:ring-brand-600/40 flex h-14 items-center justify-center gap-2 rounded-md text-base font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none active:scale-[.98] motion-reduce:transition-none';
 </script>
@@ -43,7 +48,7 @@ const base =
             @click="emit('update:speed', 'normal')"
         >
             <Gauge class="size-5" aria-hidden="true" />
-            Normal Speed
+            {{ $t('Normal Speed') }}
         </button>
 
         <button
@@ -60,7 +65,7 @@ const base =
             @click="emit('update:speed', 'slow')"
         >
             <Turtle class="size-5 fill-current" aria-hidden="true" />
-            Slower Speed
+            {{ $t('Slower Speed') }}
         </button>
 
         <button
@@ -83,7 +88,9 @@ const base =
                 <span class="font-arabic text-sm" dir="rtl" lang="ar">
                     إظهار المعنى
                 </span>
-                <span class="text-xs">Show Meaning</span>
+                <span v-if="locale === 'en'" class="text-xs">{{
+                    $t('Show Meaning')
+                }}</span>
             </span>
         </button>
     </div>

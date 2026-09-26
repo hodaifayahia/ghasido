@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import ExpressionFeaturedCard from '@/components/learning/vocab/ExpressionFeaturedCard.vue';
 import ExpressionsList from '@/components/learning/vocab/ExpressionsList.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { LessonSummary, StepBlock } from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
@@ -18,6 +19,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const items = computed(() => props.block.lexicon);
 
@@ -38,7 +41,7 @@ const related = computed(() =>
 
 const subtitle = computed(() => props.block.settings.subtitle ?? null);
 const sideTitle = computed(
-    () => props.block.settings.side_title ?? 'More Useful Expressions',
+    () => props.block.settings.side_title ?? t('More Useful Expressions'),
 );
 const tip = computed(() => props.block.settings.tip ?? null);
 </script>

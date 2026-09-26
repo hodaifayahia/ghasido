@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { Check, Star } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import { store } from '@/routes/learn/phrasebook';
 
@@ -35,10 +36,12 @@ const props = withDefaults(defineProps<Props>(), {
     size: 'md',
 });
 
+const { t } = useI18n();
+
 const busy = ref(false);
 
 const label = computed(() =>
-    props.saved ? 'Saved to Phrasebook' : 'Save to Phrasebook',
+    props.saved ? t('Saved to Phrasebook') : t('Save to Phrasebook'),
 );
 const canToggle = computed(() => !props.saved || props.removeUrl !== null);
 

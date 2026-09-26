@@ -125,12 +125,20 @@ const rowClass =
                                     {{ lesson.title }}
                                 </span>
                                 <span class="text-ink-slate block text-sm">
-                                    {{ lesson.stepCount }} steps<template
+                                    {{
+                                        $tc(
+                                            ':count step|:count steps',
+                                            lesson.stepCount,
+                                        )
+                                    }}<template
                                         v-if="lesson.estimatedMinutes"
-                                    >
-                                        · about
-                                        {{ lesson.estimatedMinutes }}
-                                        min</template
+                                        >{{
+                                            ' · ' +
+                                            $t('about :minutes min', {
+                                                minutes:
+                                                    lesson.estimatedMinutes,
+                                            })
+                                        }}</template
                                     >
                                 </span>
                             </span>
@@ -144,7 +152,11 @@ const rowClass =
                                     )
                                 "
                             >
-                                {{ lesson.completed ? 'Completed' : 'Open' }}
+                                {{
+                                    lesson.completed
+                                        ? $t('Completed')
+                                        : $t('Open')
+                                }}
                             </span>
                             <ArrowRight
                                 class="text-brand-600 size-5 shrink-0"
@@ -168,19 +180,23 @@ const rowClass =
                                     {{ lesson.title }}
                                 </span>
                                 <span class="text-ink-slate block text-sm">
-                                    Locked — complete the Pre-test first.
+                                    {{
+                                        $t(
+                                            'Locked — complete the Pre-test first.',
+                                        )
+                                    }}
                                     <Link
                                         :href="home()"
                                         class="text-brand-600 font-semibold underline-offset-4 hover:underline"
                                     >
-                                        Go to the Pre-test
+                                        {{ $t('Go to the Pre-test') }}
                                     </Link>
                                 </span>
                             </span>
                             <span
                                 class="rounded-pill bg-danger-tint text-danger-text px-2.5 py-1 text-xs font-semibold"
                             >
-                                Locked
+                                {{ $t('Locked') }}
                             </span>
                         </div>
                     </MeaningRow>
