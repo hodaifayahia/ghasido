@@ -8,6 +8,7 @@ use App\Contracts\SpeechToTextProvider;
 use App\Contracts\TtsProvider;
 use App\Enums\Role;
 use App\Models\User;
+use App\Observers\MeaningHooks;
 use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\AnthropicAiProvider;
 use App\Services\Ai\FakeAiProvider;
@@ -185,6 +186,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureSuperAdmin();
+
+        // Show Meaning drafts are made when content is written (2026-09-26).
+        MeaningHooks::register();
     }
 
     /**

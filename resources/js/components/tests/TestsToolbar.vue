@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import {
     ChartColumn,
     CirclePlus,
     ClipboardList,
+    Languages,
     ListChecks,
     Settings,
     Upload,
 } from '@lucide/vue';
 import type { Component, HTMLAttributes } from 'vue';
 import { Button } from '@/components/ui/button';
+import { translations } from '@/routes';
 import { cn } from '@/lib/utils';
 import type { TestsTab, TestsTabKey } from '@/types';
 
@@ -83,6 +86,20 @@ const tabIcons: Record<TestsTabKey, Component> = {
             >
                 <Upload class="size-4" aria-hidden="true" />
                 Import Questions
+            </Button>
+            <!-- Show Meaning translations (user request 2026-09-26). -->
+            <Button
+                as-child
+                variant="outline"
+                class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
+            >
+                <Link
+                    :href="translations()"
+                    data-test="tests-translations-link"
+                >
+                    <Languages class="size-4" aria-hidden="true" />
+                    Translations
+                </Link>
             </Button>
         </div>
     </div>

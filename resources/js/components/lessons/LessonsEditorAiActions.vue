@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Sparkles, Users } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { Languages, Sparkles, Users } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { cn } from '@/lib/utils';
+import { translations } from '@/routes';
 import type { LessonEditor, LessonsFilters } from '@/types';
 
 /*
@@ -79,6 +81,25 @@ const visibleTo = computed((): string | null => {
         >
             <Sparkles class="size-3.5" aria-hidden="true" />
             Generate with AI
+        </Button>
+        <!-- This lesson's Show Meaning translations (user request 2026-09-26). -->
+        <Button
+            v-if="manage && editor.id !== null"
+            as-child
+            variant="outline"
+            class="border-line text-brand-700 hover:bg-brand-50 h-11 gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none md:h-8"
+        >
+            <Link
+                :href="
+                    translations({
+                        query: { content: `lesson:${editor.id}` },
+                    })
+                "
+                data-test="lesson-translations-link"
+            >
+                <Languages class="size-3.5" aria-hidden="true" />
+                Translations
+            </Link>
         </Button>
     </div>
 </template>

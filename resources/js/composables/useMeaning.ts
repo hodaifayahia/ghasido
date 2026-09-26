@@ -5,16 +5,18 @@ import { meaning as meaningRoute } from '@/routes';
 
 /*
  * Show Meaning for any English text (CTRL-01..03; client decision
- * 2026-09-26). The Arabic is never in the page: the first tap asks the
- * server, which translates the text once for everybody and caches it; the
- * button polls until it is ready (PERF-04). A test page switches the whole
+ * 2026-09-26). The Arabic is never in the page: a tap asks the server for
+ * the translation made when the content was written (an AI draft or the
+ * admin's own text; a tap never calls the AI). While a fresh draft is still
+ * on its way the button polls (PERF-04); a text nobody has translated yet
+ * says so. A test page switches the whole
  * mechanism off through MEANING_ENABLED when its admin chose so (CTRL-04),
  * and the server refuses the request then too.
  */
 export const MEANING_ENABLED: InjectionKey<Ref<boolean> | boolean> =
     Symbol('meaning-enabled');
 
-export type MeaningState = 'idle' | 'loading' | 'ready' | 'error';
+export type MeaningState = 'idle' | 'loading' | 'ready' | 'missing' | 'error';
 
 export type UseMeaningReturn = {
     shown: Ref<boolean>;
@@ -101,6 +103,12 @@ export function useMeaning(text: () => string): UseMeaningReturn {
                 cache.set(keyOf(value), reply.arabic);
                 arabic.value = reply.arabic;
                 state.value = 'ready';
+
+                return;
+            }
+
+            if (reply.status === 'missing') {
+                state.value = 'missing';
 
                 return;
             }

@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\GenerationStatus;
 use App\Enums\TestAttemptStatus;
-use App\Jobs\TranslateText;
 use App\Models\TestAttempt;
 use App\Models\TextTranslation;
 use App\Models\User;
+use App\Services\Meaning\MeaningTranslations;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,16 +16,19 @@ use Illuminate\Http\Request;
  * decision 2026-09-26): course, unit and lesson titles, descriptions,
  * objectives, instructions, activity and test questions.
  *
+ * Read-only for the learner (user request 2026-09-26): translations are made
+ * when the content is written, by an AI draft or by the admin, never by a
+ * tap. A text nobody has translated yet is noted for the admin and the
+ * learner is told the meaning is not ready; no AI call is made.
+ *
  * The Arabic never ships in the page: it leaves the server only here, after
- * the learner's tap (CTRL-02). The first tap on a text queues its
- * translation; the button polls this same endpoint until it is done. While
- * the learner sits a test whose admin switched Show Meaning off, every
- * request is refused, so a hidden button is never the only guard (CTRL-04,
- * SEC-01).
+ * the learner's tap (CTRL-02). While the learner sits a test whose admin
+ * switched Show Meaning off, every request is refused, so a hidden button is
+ * never the only guard (CTRL-04, SEC-01).
  */
 final class MeaningController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, MeaningTranslations $translations): JsonResponse
     {
         $data = $request->validate([
             'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
@@ -40,30 +43,19 @@ final class MeaningController extends Controller
 
         abort_if($text === '' || ! preg_match('/\p{L}/u', $text), 422, __('There is nothing to translate.'));
 
-        $translation = TextTranslation::query()->firstOrCreate(
-            ['hash' => TextTranslation::hashOf($text)],
-            [
-                'source_text' => $text,
-                'status' => GenerationStatus::Pending,
-                'source' => 'ai',
-                'requested_by' => $user->id,
-            ],
-        );
+        $translation = TextTranslation::query()->where('hash', TextTranslation::hashOf($text))->first()
+            ?? $translations->request($text, $user);
 
-        if ($translation->wasRecentlyCreated) {
-            TranslateText::dispatch($translation->id);
-        } elseif ($translation->status === GenerationStatus::Failed && $translation->updated_at?->lt(now()->subMinute())) {
-            // One retry a minute at most, so a provider outage is not hammered.
-            $translation->forceFill(['status' => GenerationStatus::Pending, 'failed_reason' => null])->save();
-            TranslateText::dispatch($translation->id);
+        if ($translation->status === GenerationStatus::Done) {
+            return response()->json(['status' => 'done', 'arabic' => $translation->arabic]);
         }
 
-        $translation->refresh();
+        // An AI draft is on its way: the button waits for it.
+        if ($translation->source === MeaningTranslations::SOURCE_AI && in_array($translation->status, [GenerationStatus::Pending, GenerationStatus::Running], true)) {
+            return response()->json(['status' => 'pending', 'arabic' => null], 202);
+        }
 
-        return response()->json([
-            'status' => $translation->status->value,
-            'arabic' => $translation->status === GenerationStatus::Done ? $translation->arabic : null,
-        ], $translation->status === GenerationStatus::Done ? 200 : 202);
+        return response()->json(['status' => 'missing', 'arabic' => null]);
     }
 
     private function sittingWithoutMeaning(User $user): bool

@@ -60,7 +60,8 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
     {
         $translation = TextTranslation::query()->find($this->translationId);
 
-        if ($translation === null || $translation->status === GenerationStatus::Done) {
+        // Done, or written by an admin in the meantime: never overwrite it.
+        if ($translation === null || $translation->status === GenerationStatus::Done || $translation->source === 'manual') {
             return;
         }
 

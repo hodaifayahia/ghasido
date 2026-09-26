@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Learn;
 
-use App\Enums\AiFeature;
 use App\Enums\GenerationStatus;
 use App\Enums\TestAttemptStatus;
 use App\Jobs\TranslateText;
@@ -11,14 +10,16 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\TextTranslation;
 use App\Models\User;
+use App\Services\Meaning\MeaningTranslations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
  * Show Meaning on any English text (CTRL-01..03; client decision
- * 2026-09-26): the Arabic leaves the server only on request, each distinct
- * text is translated once, and a test whose admin switched Show Meaning off
+ * 2026-09-26): the Arabic leaves the server only on request, a learner's
+ * tap only reads what the content's author stored (never the AI; user
+ * request 2026-09-26), and a test whose admin switched Show Meaning off
  * refuses it server-side (CTRL-04).
  */
 class MeaningTest extends TestCase
@@ -40,40 +41,56 @@ class MeaningTest extends TestCase
         $this->assertDatabaseCount('text_translations', 0);
     }
 
-    public function test_a_learner_gets_the_arabic_of_any_text_and_it_is_cached()
+    public function test_a_learner_reads_a_stored_meaning_whatever_the_spacing_or_case()
     {
         $learner = $this->learner();
+        $this->translated('Check-in basics', 'أساسيات تسجيل الوصول');
 
-        $this->actingAs($learner)
-            ->postJson(route('meaning'), ['text' => 'Check-in basics'])
-            ->assertOk()
-            ->assertJsonPath('status', 'done')
-            ->assertJsonPath('arabic', '(ترجمة تجريبية) Check-in basics');
-
-        // Same text, different spacing and case: the same row, no new call.
         $this->actingAs($learner)
             ->postJson(route('meaning'), ['text' => '  check-in   BASICS '])
             ->assertOk()
-            ->assertJsonPath('arabic', '(ترجمة تجريبية) Check-in basics');
+            ->assertJsonPath('status', 'done')
+            ->assertJsonPath('arabic', 'أساسيات تسجيل الوصول');
 
         $this->assertDatabaseCount('text_translations', 1);
-        $this->assertSame(1, AiUsage::query()->where('feature', AiFeature::Translation->value)->count());
-        $this->assertSame(0, (int) AiUsage::query()->sum('points_charged'));
     }
 
-    public function test_the_first_request_queues_the_translation_and_reports_pending()
+    public function test_a_tap_never_calls_the_ai_and_notes_the_text_for_the_admin()
     {
         Queue::fake();
         $learner = $this->learner();
 
         $this->actingAs($learner)
             ->postJson(route('meaning'), ['text' => 'Room service'])
-            ->assertStatus(202)
-            ->assertJsonPath('status', 'pending')
+            ->assertOk()
+            ->assertJsonPath('status', 'missing')
             ->assertJsonPath('arabic', null);
 
-        Queue::assertPushed(TranslateText::class, 1);
-        $this->assertSame(GenerationStatus::Pending, TextTranslation::query()->sole()->status);
+        // Tapping again, or by another learner, still calls nothing.
+        $this->actingAs($this->learner(['username' => 'karim']))
+            ->postJson(route('meaning'), ['text' => 'Room service'])
+            ->assertJsonPath('status', 'missing');
+
+        Queue::assertNotPushed(TranslateText::class);
+        $this->assertSame(0, AiUsage::query()->count());
+        $translation = TextTranslation::query()->sole();
+        $this->assertSame(MeaningTranslations::SOURCE_REQUESTED, $translation->source);
+        $this->assertSame($learner->id, $translation->requested_by);
+    }
+
+    public function test_a_learner_waits_for_a_draft_the_content_save_already_queued()
+    {
+        TextTranslation::query()->create([
+            'hash' => TextTranslation::hashOf('Room service'),
+            'source_text' => 'Room service',
+            'status' => GenerationStatus::Pending,
+            'source' => MeaningTranslations::SOURCE_AI,
+        ]);
+
+        $this->actingAs($this->learner())
+            ->postJson(route('meaning'), ['text' => 'Room service'])
+            ->assertStatus(202)
+            ->assertJsonPath('status', 'pending');
     }
 
     public function test_text_without_letters_or_too_long_is_refused()
@@ -112,6 +129,17 @@ class MeaningTest extends TestCase
     {
         $this->assertTrue((new Test(['settings' => []]))->showsMeaning());
         $this->assertFalse((new Test(['settings' => ['show_meaning' => false]]))->showsMeaning());
+    }
+
+    private function translated(string $text, string $arabic): TextTranslation
+    {
+        return TextTranslation::query()->create([
+            'hash' => TextTranslation::hashOf($text),
+            'source_text' => $text,
+            'arabic' => $arabic,
+            'status' => GenerationStatus::Done,
+            'source' => MeaningTranslations::SOURCE_AI,
+        ]);
     }
 
     /**

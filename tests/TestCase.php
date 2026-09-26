@@ -26,6 +26,9 @@ abstract class TestCase extends BaseTestCase
             'services.ai.image_provider' => 'fake',
             'services.tts.provider' => 'fake',
             'services.stt.provider' => 'fake',
+            // Saving content would queue Show Meaning drafts; the tests of
+            // that switch it back on themselves.
+            'guesvia.meaning.auto_translate' => false,
         ]);
 
         $this->seed(RolesAndPermissionsSeeder::class);
