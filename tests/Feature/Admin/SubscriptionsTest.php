@@ -66,6 +66,7 @@ class SubscriptionsTest extends TestCase
                 'name' => 'Gold Plus',
                 'employee_limit' => 8,
                 'price_dzd' => 27500,
+                'price_usd' => 199.5,
                 'points_per_employee' => 2500,
                 'bonus_points_per_employee' => 1250,
                 'voice_points_per_10_minutes' => 125,
@@ -80,6 +81,7 @@ class SubscriptionsTest extends TestCase
         $this->assertSame('gold', $plan->slug);
         $this->assertSame(8, $plan->employee_limit);
         $this->assertSame(27500, $plan->price_dzd);
+        $this->assertSame(199.5, $plan->price_usd);
         $this->assertSame(2500, $plan->points_per_employee);
         $this->assertSame(1250, $plan->bonus_points_per_employee);
         $this->assertSame(125, $plan->voice_points_per_10_minutes);
@@ -250,6 +252,7 @@ class SubscriptionsTest extends TestCase
             'name' => $plan->name,
             'employee_limit' => $plan->employee_limit,
             'price_dzd' => $plan->price_dzd,
+            'price_usd' => $plan->price_usd,
             'points_per_employee' => $plan->points_per_employee,
             'bonus_points_per_employee' => $plan->bonus_points_per_employee,
             'voice_points_per_10_minutes' => $plan->voice_points_per_10_minutes,

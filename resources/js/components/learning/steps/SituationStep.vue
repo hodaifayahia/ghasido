@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import type { Component } from 'vue';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, ObjectiveIcon, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 1, "Situation (Intro)" (LESSON-06; spec 0003 B.10, G.3), measured on
@@ -83,23 +84,23 @@ const chip: Record<
             :aria-label="lesson.title"
         >
             <div class="px-[6px]">
-                <h2
+                <MeaningText
+                    as="h2"
+                    :text="lesson.title"
                     class="font-heading text-ink-night text-[30px] leading-9 font-bold tracking-[-0.02em]"
-                >
-                    {{ lesson.title }}
-                </h2>
-                <p
+                />
+                <MeaningText
                     v-if="lesson.introduction"
-                    class="text-ink-graphite mt-[7px] text-base leading-[25px]"
-                >
-                    {{ lesson.introduction }}
-                </p>
+                    :text="lesson.introduction"
+                    class="text-ink-graphite text-base leading-[25px]"
+                    wrapper-class="mt-[7px]"
+                />
 
                 <ul class="mt-[23px] flex list-none flex-col gap-2">
                     <li
                         v-for="objective in objectives"
                         :key="objective.text"
-                        class="flex h-[60px] items-center"
+                        class="flex min-h-[60px] items-center"
                     >
                         <span
                             :class="
@@ -115,11 +116,12 @@ const chip: Record<
                                 aria-hidden="true"
                             />
                         </span>
-                        <span
-                            class="text-ink-graphite ms-[23px] text-[17px] leading-6"
-                        >
-                            {{ objective.text }}
-                        </span>
+                        <MeaningText
+                            as="span"
+                            :text="objective.text"
+                            class="text-ink-graphite block text-[17px] leading-6"
+                            wrapper-class="ms-[23px]"
+                        />
                     </li>
                 </ul>
             </div>
@@ -128,7 +130,12 @@ const chip: Record<
                 v-if="block.settings.quote"
                 class="bg-tint-quote font-quote text-ink-graphite mt-auto flex min-h-[77px] items-center justify-center rounded-md px-6 py-[13px] text-center text-lg leading-[25px] italic"
             >
-                {{ block.settings.quote }}
+                <MeaningText
+                    as="span"
+                    :text="block.settings.quote"
+                    class="block"
+                    panel-class="not-italic"
+                />
             </blockquote>
         </section>
     </div>

@@ -24,6 +24,7 @@ type Plan = {
     slug: string;
     employeeLimit: number;
     priceDzd: number;
+    priceUsd: number;
     pointsPerEmployee: number;
     bonusPointsPerEmployee: number;
     voicePointsPer10Minutes: number;
@@ -55,7 +56,10 @@ type PaymentMethod = {
 
 type Props = {
     plans: Plan[];
-    activePlans: Pick<Plan, 'id' | 'name' | 'employeeLimit' | 'priceDzd'>[];
+    activePlans: Pick<
+        Plan,
+        'id' | 'name' | 'employeeLimit' | 'priceDzd' | 'priceUsd'
+    >[];
     hotels: HotelRow[];
     paymentMethods: PaymentMethod[];
 };
@@ -78,6 +82,7 @@ const form = useForm({
     name: '',
     employee_limit: 1,
     price_dzd: 0,
+    price_usd: 0,
     points_per_employee: 2000,
     bonus_points_per_employee: 1000,
     voice_points_per_10_minutes: 100,
@@ -118,11 +123,20 @@ function formatDzd(value: number): string {
     return `${new Intl.NumberFormat('fr-DZ', { maximumFractionDigits: 0 }).format(value)} DZD`;
 }
 
+function formatUsd(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
 function editPlan(plan: Plan): void {
     editing.value = plan;
     form.name = plan.name;
     form.employee_limit = plan.employeeLimit;
     form.price_dzd = plan.priceDzd;
+    form.price_usd = plan.priceUsd;
     form.points_per_employee = plan.pointsPerEmployee;
     form.bonus_points_per_employee = plan.bonusPointsPerEmployee;
     form.voice_points_per_10_minutes = plan.voicePointsPer10Minutes;
@@ -331,6 +345,10 @@ function savePaymentMethod(): void {
                     </p>
                     <span class="text-ink-muted text-[11px]">/ month</span>
                 </div>
+                <p class="text-ink-slate mt-1 text-[12px] font-semibold">
+                    International: {{ formatUsd(plan.priceUsd) }}
+                    <span class="text-ink-muted font-normal">/ month</span>
+                </p>
                 <div class="mt-4 grid grid-cols-2 gap-2">
                     <div class="border-line/80 rounded-md border p-2.5">
                         <div class="text-ink-slate flex items-center gap-1.5">
@@ -605,7 +623,7 @@ function savePaymentMethod(): void {
     <HotelsModal
         v-model:open="editorOpen"
         :title="`Customize ${editing?.name ?? 'subscription'} plan`"
-        description="Seat limits, DZD price, and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are."
+        description="Seat limits, DZD and USD prices, and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are."
         class="sm:max-w-[620px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePlan">
@@ -643,6 +661,19 @@ function savePaymentMethod(): void {
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     />
                     <InputError :message="form.errors.price_dzd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Monthly price for international customers (USD)</span
+                    >
+                    <input
+                        v-model.number="form.price_usd"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.price_usd" />
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"

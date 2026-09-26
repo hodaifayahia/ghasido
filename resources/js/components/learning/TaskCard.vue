@@ -2,6 +2,7 @@
 import type { Component, HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 import type { CourseTone } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * A white card with a tinted icon chip and a title: the instruction /
@@ -59,14 +60,17 @@ const chip: Record<CourseTone, string> = {
                 <component :is="icon" class="size-[22px]" aria-hidden="true" />
             </span>
             <div class="min-w-0">
-                <h2
+                <MeaningText
+                    as="h2"
+                    :text="title"
                     class="font-heading text-ink-night text-xl leading-7 font-semibold"
-                >
-                    {{ title }}
-                </h2>
-                <p v-if="text" class="text-ink-slate text-sm leading-5">
-                    {{ text }}
-                </p>
+                />
+                <MeaningText
+                    as="p"
+                    :text="text"
+                    v-if="text"
+                    class="text-ink-slate text-sm leading-5"
+                />
             </div>
         </header>
         <div v-if="$slots.default" :class="cn('mt-4 min-w-0', bodyClass)">

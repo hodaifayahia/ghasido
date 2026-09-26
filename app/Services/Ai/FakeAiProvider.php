@@ -18,6 +18,7 @@ use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
+use App\Contracts\TextTranslationDraft;
 use App\Contracts\WritingEvaluation;
 use App\Enums\Accent;
 use App\Enums\EnglishLevel;
@@ -171,6 +172,14 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
             hotelExampleArabic: sprintf('(مثال تجريبي) %s', $english),
             ipa: null,
             partOfSpeech: $isWord ? 'n' : 'phrase',
+            usage: AiUsageInfo::none(),
+        );
+    }
+
+    public function translateText(string $english): TextTranslationDraft
+    {
+        return new TextTranslationDraft(
+            arabic: sprintf('(ترجمة تجريبية) %s', trim($english)),
             usage: AiUsageInfo::none(),
         );
     }

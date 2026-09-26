@@ -1,13 +1,34 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ExternalLink, Save } from '@lucide/vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { ExternalLink, Mail, Phone, Save } from '@lucide/vue';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
-import type { LandingPageContent } from '@/types';
+import type { LandingContactMessage, LandingPageContent } from '@/types';
 
-const props = defineProps<{ content: LandingPageContent }>();
+const props = defineProps<{
+    content: LandingPageContent;
+    contactMessages: LandingContactMessage[];
+}>();
+
+const unreadMessages = computed(
+    () => props.contactMessages.filter((message) => !message.read).length,
+);
+
+function markRead(message: LandingContactMessage): void {
+    router.patch(message.readUrl, {}, { preserveScroll: true });
+}
+
+function sentAt(value: string | null): string {
+    return value
+        ? new Intl.DateTimeFormat('en-GB', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(new Date(value))
+        : '';
+}
 
 const form = useForm({ content: props.content });
 const editorSections = [
@@ -22,7 +43,9 @@ const editorSections = [
     { href: '#landing-editor-pricing', label: 'Plans' },
     { href: '#landing-editor-checkout', label: 'Checkout' },
     { href: '#landing-editor-cta', label: 'Closing CTA' },
-    { href: '#landing-editor-support', label: 'Support' },
+    { href: '#landing-editor-support', label: 'Contact details' },
+    { href: '#landing-editor-contact', label: 'Contact page' },
+    { href: '#landing-editor-messages', label: 'Messages' },
     { href: '#landing-editor-footer', label: 'Footer' },
 ];
 
@@ -127,6 +150,11 @@ defineOptions({
                     v-model="form.content.navigation.open_dashboard"
                     label="Signed-in button"
                     :error="form.errors['content.navigation.open_dashboard']"
+                />
+                <LessonsField
+                    v-model="form.content.navigation.contact"
+                    label="Contact link"
+                    :error="form.errors['content.navigation.contact']"
                 />
             </div>
         </PanelCard>
@@ -574,6 +602,21 @@ defineOptions({
                         "
                     />
                 </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.pricing.region_algeria"
+                        label="Algeria price switch (DZD)"
+                        :error="form.errors['content.pricing.region_algeria']"
+                    />
+                    <LessonsField
+                        v-model="form.content.pricing.region_international"
+                        label="International price switch (USD)"
+                        hint="Set each plan's DZD and USD prices in Subscriptions."
+                        :error="
+                            form.errors['content.pricing.region_international']
+                        "
+                    />
+                </div>
                 <LessonsField
                     v-model="form.content.pricing.footnote"
                     label="Approval note"
@@ -689,16 +732,218 @@ defineOptions({
         <PanelCard
             id="landing-editor-support"
             class="scroll-mt-20"
-            title="Support contact"
+            title="Contact details"
             title-id="landing-support"
         >
-            <LessonsField
-                v-model="form.content.support.whatsapp_number"
-                label="WhatsApp support number"
-                placeholder="+213 555 12 34 56"
-                hint="Use the international country code. Leave blank to hide WhatsApp support from the public page."
-                :error="form.errors['content.support.whatsapp_number']"
-            />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <LessonsField
+                    v-model="form.content.support.phone"
+                    label="Phone number"
+                    placeholder="+213 555 12 34 56"
+                    hint="Shown on the Contact Us page and in the footer. Leave blank to hide it."
+                    :error="form.errors['content.support.phone']"
+                />
+                <LessonsField
+                    v-model="form.content.support.email"
+                    label="Email address"
+                    placeholder="contact@ghasido.com"
+                    hint="Shown on the Contact Us page; contact form messages are also sent here."
+                    :error="form.errors['content.support.email']"
+                />
+                <LessonsField
+                    v-model="form.content.support.whatsapp_number"
+                    label="WhatsApp support number"
+                    placeholder="+213 555 12 34 56"
+                    hint="Use the international country code. Leave blank to hide WhatsApp support from the public page."
+                    :error="form.errors['content.support.whatsapp_number']"
+                />
+            </div>
+        </PanelCard>
+
+        <PanelCard
+            id="landing-editor-contact"
+            class="scroll-mt-20"
+            title="Contact Us page"
+            title-id="landing-contact"
+        >
+            <div class="grid gap-4">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.contact.eyebrow"
+                        label="Eyebrow"
+                        :error="form.errors['content.contact.eyebrow']"
+                    />
+                    <LessonsField
+                        v-model="form.content.contact.title"
+                        label="Heading"
+                        :error="form.errors['content.contact.title']"
+                    />
+                </div>
+                <LessonsField
+                    v-model="form.content.contact.description"
+                    label="Description"
+                    type="textarea"
+                    :rows="2"
+                    :error="form.errors['content.contact.description']"
+                />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.contact.form_title"
+                        label="Form heading"
+                        :error="form.errors['content.contact.form_title']"
+                    />
+                    <LessonsField
+                        v-model="form.content.contact.submit_button"
+                        label="Send button"
+                        :error="form.errors['content.contact.submit_button']"
+                    />
+                </div>
+                <LessonsField
+                    v-model="form.content.contact.success_message"
+                    label="Message after sending"
+                    :error="form.errors['content.contact.success_message']"
+                />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.contact.enterprise_title"
+                        label="Enterprise block title"
+                        :error="form.errors['content.contact.enterprise_title']"
+                    />
+                    <LessonsField
+                        v-model="form.content.contact.enterprise_subtitle"
+                        label="Enterprise block subtitle"
+                        :error="
+                            form.errors['content.contact.enterprise_subtitle']
+                        "
+                    />
+                </div>
+                <LessonsField
+                    v-model="form.content.contact.enterprise_description"
+                    label="Enterprise block description"
+                    type="textarea"
+                    :rows="2"
+                    :error="
+                        form.errors['content.contact.enterprise_description']
+                    "
+                />
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <LessonsField
+                        v-for="(_, index) in form.content.contact
+                            .enterprise_points"
+                        :key="`enterprise-${index}`"
+                        v-model="form.content.contact.enterprise_points[index]"
+                        :label="`Enterprise point ${index + 1}`"
+                        :error="
+                            form.errors[
+                                `content.contact.enterprise_points.${index}`
+                            ]
+                        "
+                    />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.contact.enterprise_button"
+                        label="Enterprise button"
+                        :error="
+                            form.errors['content.contact.enterprise_button']
+                        "
+                    />
+                    <LessonsField
+                        v-model="form.content.contact.enterprise_note"
+                        label="Text under the button"
+                        :error="form.errors['content.contact.enterprise_note']"
+                    />
+                </div>
+            </div>
+        </PanelCard>
+
+        <PanelCard
+            id="landing-editor-messages"
+            class="scroll-mt-20"
+            :title="`Contact messages${unreadMessages ? ` (${unreadMessages} new)` : ''}`"
+            title-id="landing-messages"
+        >
+            <p
+                v-if="contactMessages.length === 0"
+                class="text-ink-slate text-[13px]"
+            >
+                No messages yet. Messages sent from the Contact Us page appear
+                here.
+            </p>
+            <ul v-else class="grid gap-3">
+                <li
+                    v-for="message in contactMessages"
+                    :key="message.id"
+                    :class="
+                        message.read
+                            ? 'border-line bg-surface'
+                            : 'border-brand-200 bg-brand-50'
+                    "
+                    class="rounded-md border p-4"
+                >
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-2"
+                    >
+                        <div class="min-w-0">
+                            <p class="text-ink-night text-[14px] font-semibold">
+                                {{ message.name }}
+                                <span
+                                    v-if="message.organisation"
+                                    class="text-ink-slate font-normal"
+                                    >· {{ message.organisation }}</span
+                                >
+                                <span
+                                    v-if="message.employees"
+                                    class="text-ink-slate font-normal"
+                                    >· {{ message.employees }} employees</span
+                                >
+                            </p>
+                            <p
+                                class="text-ink-slate mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12px]"
+                            >
+                                <a
+                                    :href="`mailto:${message.email}`"
+                                    class="text-brand-700 inline-flex items-center gap-1 hover:underline"
+                                >
+                                    <Mail class="size-3.5" aria-hidden="true" />
+                                    {{ message.email }}
+                                </a>
+                                <a
+                                    v-if="message.phone"
+                                    :href="`tel:${message.phone}`"
+                                    class="text-brand-700 inline-flex items-center gap-1 hover:underline"
+                                    dir="ltr"
+                                >
+                                    <Phone
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    {{ message.phone }}
+                                </a>
+                                <span>{{ sentAt(message.sentAt) }}</span>
+                            </p>
+                        </div>
+                        <Button
+                            v-if="!message.read"
+                            size="sm"
+                            variant="outline"
+                            @click="markRead(message)"
+                        >
+                            Mark as read
+                        </Button>
+                        <span
+                            v-else
+                            class="text-ink-slate text-[12px] font-semibold"
+                            >Read</span
+                        >
+                    </div>
+                    <p
+                        class="text-ink mt-3 text-[13px] leading-6 whitespace-pre-line"
+                    >
+                        {{ message.message }}
+                    </p>
+                </li>
+            </ul>
         </PanelCard>
 
         <PanelCard

@@ -40,6 +40,7 @@ class UpdateTestRequest extends FormRequest
             'results_visibility' => ['required', Rule::enum(ResultsVisibility::class)],
             'show_answers' => ['sometimes', 'boolean'],
             'motivational_message' => ['sometimes', 'boolean'],
+            'show_meaning' => ['sometimes', 'boolean'],
             'pass_mark' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['sometimes', Rule::in(['draft', 'published'])],
         ];
@@ -70,6 +71,9 @@ class UpdateTestRequest extends FormRequest
             'results_visibility' => (string) $validated['results_visibility'],
             'show_answers' => (bool) ($validated['show_answers'] ?? false),
             'motivational_message' => (bool) ($validated['motivational_message'] ?? false),
+            // Show Meaning on questions (client decision 2026-09-26): on
+            // unless the admin switches it off for this test.
+            'show_meaning' => (bool) ($validated['show_meaning'] ?? true),
             'pass_score' => $validated['pass_mark'] === null ? null : (float) $validated['pass_mark'],
             'on_timeout' => 'submit',
         ];
@@ -84,6 +88,7 @@ class UpdateTestRequest extends FormRequest
             $validated['results_visibility'],
             $validated['show_answers'],
             $validated['motivational_message'],
+            $validated['show_meaning'],
             $validated['pass_mark'],
             $validated['time_limit_seconds'],
         );

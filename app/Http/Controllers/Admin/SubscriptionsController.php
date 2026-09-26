@@ -43,6 +43,7 @@ final class SubscriptionsController extends Controller
                 'slug' => $plan->slug,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
+                'priceUsd' => $plan->price_usd,
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
@@ -65,6 +66,7 @@ final class SubscriptionsController extends Controller
                 'name' => $plan->name,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
+                'priceUsd' => $plan->price_usd,
             ])->values()->all(),
             'paymentMethods' => SubscriptionPaymentMethod::query()
                 ->orderBy('sort_order')

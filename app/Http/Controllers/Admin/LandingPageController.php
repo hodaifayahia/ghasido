@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Models\ContactMessage;
 use App\Models\User;
 use App\Services\Landing\LandingPageContentStore;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,32 @@ final class LandingPageController extends Controller
 
         return Inertia::render('settings/LandingPage', [
             'content' => $content->current(),
+            'contactMessages' => ContactMessage::query()
+                ->latest()
+                ->limit(50)
+                ->get()
+                ->map(fn (ContactMessage $message): array => [
+                    'id' => $message->id,
+                    'name' => $message->name,
+                    'email' => $message->email,
+                    'phone' => $message->phone,
+                    'organisation' => $message->organisation,
+                    'employees' => $message->employees,
+                    'message' => $message->message,
+                    'read' => $message->read_at !== null,
+                    'sentAt' => $message->created_at?->toIso8601String(),
+                    'readUrl' => route('contact-messages.read', $message),
+                ])->values()->all(),
         ]);
+    }
+
+    public function markContactMessageRead(Request $request, ContactMessage $contactMessage): RedirectResponse
+    {
+        abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
+
+        $contactMessage->forceFill(['read_at' => $contactMessage->read_at ?? now()])->save();
+
+        return back();
     }
 
     public function update(Request $request, LandingPageContentStore $content): RedirectResponse
@@ -27,8 +53,9 @@ final class LandingPageController extends Controller
         abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
 
         $validated = $request->validate([
-            'content' => ['required', 'array:navigation,roles,journey,hero,why_us,about,features,ai,pricing,checkout,call_to_action,footer,support'],
-            'content.navigation' => ['required', 'array:why_us,about,platform,ai_practice,roles,pricing,login,get_started,open_dashboard'],
+            'content' => ['required', 'array:navigation,roles,journey,hero,why_us,about,features,ai,pricing,checkout,call_to_action,footer,support,contact'],
+            'content.navigation' => ['required', 'array:why_us,about,platform,ai_practice,roles,pricing,login,get_started,open_dashboard,contact'],
+            'content.navigation.contact' => ['required', 'string', 'max:40'],
             'content.navigation.why_us' => ['required', 'string', 'max:40'],
             'content.navigation.about' => ['required', 'string', 'max:40'],
             'content.navigation.platform' => ['required', 'string', 'max:40'],
@@ -96,7 +123,9 @@ final class LandingPageController extends Controller
             'content.ai.items.*' => ['required', 'array:title,description'],
             'content.ai.items.*.title' => ['required', 'string', 'max:120'],
             'content.ai.items.*.description' => ['required', 'string', 'max:400'],
-            'content.pricing' => ['required', 'array:eyebrow,title,description,monthly_label,employees_label,ai_points_label,button_text,featured_label,inclusions,footnote'],
+            'content.pricing' => ['required', 'array:eyebrow,title,description,monthly_label,employees_label,ai_points_label,button_text,featured_label,inclusions,footnote,region_algeria,region_international'],
+            'content.pricing.region_algeria' => ['required', 'string', 'max:40'],
+            'content.pricing.region_international' => ['required', 'string', 'max:40'],
             'content.pricing.eyebrow' => ['required', 'string', 'max:100'],
             'content.pricing.title' => ['required', 'string', 'max:180'],
             'content.pricing.description' => ['required', 'string', 'max:600'],
@@ -126,7 +155,23 @@ final class LandingPageController extends Controller
             'content.call_to_action.button_text' => ['required', 'string', 'max:60'],
             'content.footer' => ['required', 'array:tagline'],
             'content.footer.tagline' => ['required', 'string', 'max:160'],
-            'content.support' => ['required', 'array:whatsapp_number'],
+            'content.support' => ['required', 'array:whatsapp_number,phone,email'],
+            'content.support.phone' => ['nullable', 'string', 'max:40', 'regex:/^\+?[0-9().\s-]{6,}$/'],
+            'content.support.email' => ['nullable', 'string', 'email', 'max:180'],
+            'content.contact' => ['required', 'array:eyebrow,title,description,form_title,submit_button,success_message,enterprise_title,enterprise_subtitle,enterprise_description,enterprise_points,enterprise_button,enterprise_note'],
+            'content.contact.eyebrow' => ['required', 'string', 'max:100'],
+            'content.contact.title' => ['required', 'string', 'max:180'],
+            'content.contact.description' => ['required', 'string', 'max:600'],
+            'content.contact.form_title' => ['required', 'string', 'max:100'],
+            'content.contact.submit_button' => ['required', 'string', 'max:60'],
+            'content.contact.success_message' => ['required', 'string', 'max:300'],
+            'content.contact.enterprise_title' => ['required', 'string', 'max:100'],
+            'content.contact.enterprise_subtitle' => ['required', 'string', 'max:120'],
+            'content.contact.enterprise_description' => ['required', 'string', 'max:400'],
+            'content.contact.enterprise_points' => ['required', 'array', 'min:1', 'max:6'],
+            'content.contact.enterprise_points.*' => ['required', 'string', 'max:120'],
+            'content.contact.enterprise_button' => ['required', 'string', 'max:60'],
+            'content.contact.enterprise_note' => ['required', 'string', 'max:160'],
             'content.support.whatsapp_number' => [
                 'nullable',
                 'string',
@@ -146,6 +191,8 @@ final class LandingPageController extends Controller
         ]);
 
         $validated['content']['support']['whatsapp_number'] = trim((string) ($validated['content']['support']['whatsapp_number'] ?? ''));
+        $validated['content']['support']['phone'] = trim((string) ($validated['content']['support']['phone'] ?? ''));
+        $validated['content']['support']['email'] = trim((string) ($validated['content']['support']['email'] ?? ''));
 
         /** @var User $actor */
         $actor = $request->user();

@@ -315,6 +315,7 @@ final class AiUsageReport
             AiFeature::PronunciationGuide => __('Pronunciation guides'),
             AiFeature::PronunciationCoach => __('Pronunciation coaching'),
             AiFeature::VoiceCall => __('Live voice calls'),
+            AiFeature::Translation => __('Show Meaning translations'),
         };
     }
 }

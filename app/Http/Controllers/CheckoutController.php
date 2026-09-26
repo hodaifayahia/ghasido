@@ -8,6 +8,7 @@ use App\Models\SubscriptionPlan;
 use App\Services\Hotels\HotelService;
 use App\Services\Landing\LandingPageContentStore;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,6 +19,7 @@ use Inertia\Response;
 final class CheckoutController extends Controller
 {
     public function show(
+        Request $request,
         SubscriptionPlan $plan,
         LandingPageContentStore $content,
     ): Response {
@@ -27,6 +29,9 @@ final class CheckoutController extends Controller
             'content' => $content->current(),
             'plan' => $this->planData($plan),
             'paymentMethods' => $this->paymentMethods(),
+            // DZD for Algeria, USD for international customers (client
+            // decision 2026-09-26), as chosen on the pricing switch.
+            'region' => $request->query('region') === 'intl' ? 'intl' : 'dz',
         ]);
     }
 
@@ -40,6 +45,7 @@ final class CheckoutController extends Controller
         $hotels->requestAccess(
             [...$request->hotelData(), 'subscription_plan_id' => $plan->id],
             $request->managerData(),
+            $request->input('region') === 'intl' ? 'intl' : 'dz',
         );
 
         return to_route('login')->with('status', __('Your :plan plan request has been received. We will contact you to confirm payment and activate your manager account.', [
@@ -47,7 +53,7 @@ final class CheckoutController extends Controller
         ]));
     }
 
-    /** @return array{id: int, name: string, slug: string, employeeLimit: int, priceDzd: int, pointsPool: int} */
+    /** @return array{id: int, name: string, slug: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int} */
     private function planData(SubscriptionPlan $plan): array
     {
         return [
@@ -56,6 +62,7 @@ final class CheckoutController extends Controller
             'slug' => $plan->slug,
             'employeeLimit' => $plan->employee_limit,
             'priceDzd' => $plan->price_dzd,
+            'priceUsd' => $plan->price_usd,
             'pointsPool' => $plan->pointsPool(),
         ];
     }

@@ -37,10 +37,11 @@ class HotelService
      *
      * @param  array{name: string, city: string, manager_name: string, manager_email: string, subscription_plan_id?: int}  $hotelData
      * @param  array{name: string, username: string, email: string, password: string}  $managerData
+     * @param  string|null  $billingRegion  `dz` (pays in DZD) or `intl` (USD), from the pricing switch
      */
-    public function requestAccess(array $hotelData, array $managerData): Hotel
+    public function requestAccess(array $hotelData, array $managerData, ?string $billingRegion = null): Hotel
     {
-        return DB::transaction(function () use ($hotelData, $managerData): Hotel {
+        return DB::transaction(function () use ($hotelData, $managerData, $billingRegion): Hotel {
             $hotel = new Hotel;
             $hotel->fill([
                 ...$hotelData,
@@ -54,6 +55,7 @@ class HotelService
 
             AuditLog::record($hotel, 'hotel.requested', [
                 'created' => $hotel->only(['name', 'city', 'manager_name', 'manager_email']),
+                ...($billingRegion !== null ? ['billing_region' => $billingRegion] : []),
             ]);
 
             $manager = new User;

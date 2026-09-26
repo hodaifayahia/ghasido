@@ -22,7 +22,7 @@ final class SubscriptionService
             }
 
             $before = $plan->only([
-                'name', 'employee_limit', 'price_dzd', 'points_per_employee',
+                'name', 'employee_limit', 'price_dzd', 'price_usd', 'points_per_employee',
                 'bonus_points_per_employee', 'voice_points_per_10_minutes', 'ai_action_points', 'is_active',
             ]);
             $plan->fill($data)->save();

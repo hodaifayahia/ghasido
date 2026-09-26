@@ -301,6 +301,7 @@ class TestService
             'results_visibility' => ResultsVisibility::Hidden->value,
             'show_answers' => false,
             'motivational_message' => false,
+            'show_meaning' => true,
             'pass_score' => null,
             'on_timeout' => 'submit',
         ];

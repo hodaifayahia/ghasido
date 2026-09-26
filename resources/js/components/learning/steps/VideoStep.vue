@@ -9,6 +9,7 @@ import VideoPlayer from '@/components/learning/video/VideoPlayer.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 6, "Video" (LESSON-06, CTRL-01..03, PERF-02; photo_6): the player on
@@ -42,9 +43,12 @@ const panelId = `video-example-${useId()}`;
 
 <template>
     <div class="mt-3 flex flex-col gap-4">
-        <p v-if="subtitle" class="text-ink-slate text-lg leading-7">
-            {{ subtitle }}
-        </p>
+        <MeaningText
+            as="p"
+            :text="subtitle"
+            v-if="subtitle"
+            class="text-ink-slate text-lg leading-7"
+        />
 
         <div class="grid gap-6 md:grid-cols-[minmax(0,54fr)_minmax(0,46fr)]">
             <div class="flex min-w-0 flex-col gap-4">

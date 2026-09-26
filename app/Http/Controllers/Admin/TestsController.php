@@ -453,6 +453,7 @@ class TestsController extends Controller
                 'results_visibility' => (string) ($settings['results_visibility'] ?? ResultsVisibility::Hidden->value),
                 'show_answers' => (bool) ($settings['show_answers'] ?? false),
                 'motivational_message' => (bool) ($settings['motivational_message'] ?? false),
+                'show_meaning' => (bool) ($settings['show_meaning'] ?? true),
                 'passMark' => (string) ($settings['pass_score'] ?? ''),
             ],
             'urls' => [
@@ -580,6 +581,7 @@ class TestsController extends Controller
                 ['key' => 'show_results', 'label' => __('Show results immediately after completion'), 'checked' => ($settings['results_visibility'] ?? ResultsVisibility::Hidden->value) !== ResultsVisibility::Hidden->value],
                 ['key' => 'show_answers', 'label' => __('Show correct answers'), 'checked' => (bool) ($settings['show_answers'] ?? false)],
                 ['key' => 'motivational_message', 'label' => __('Add motivational message at the end'), 'checked' => (bool) ($settings['motivational_message'] ?? false)],
+                ['key' => 'show_meaning', 'label' => __('Allow Show Meaning (Arabic) on questions'), 'checked' => (bool) ($settings['show_meaning'] ?? true)],
             ],
             'passMark' => (string) ($settings['pass_score'] ?? ''),
         ];

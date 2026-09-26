@@ -170,6 +170,9 @@ function saveSettings(settings: TestSettings): void {
                 settings.toggles.find(
                     (toggle) => toggle.key === 'motivational_message',
                 )?.checked ?? false,
+            show_meaning:
+                settings.toggles.find((toggle) => toggle.key === 'show_meaning')
+                    ?.checked ?? true,
             pass_mark:
                 settings.passMark === '' ? null : Number(settings.passMark),
         },

@@ -194,6 +194,7 @@ Situation → Vocabulary → Useful Expressions → Listen & Repeat → Dialogue
 2. Arabic renders **only after an explicit tap** and is re-hideable (CTRL-02). Never ship it expanded.
 3. It is a **reusable capability**, switchable per item from the CMS, usable on vocabulary, expressions, examples, dialogue lines, activity instructions and role-play briefings (CTRL-03, PRAC-06, RP-02). Build it once, not per screen.
 4. It is **disabled during Pre-test and Post-test** (CTRL-04, TEST-03). Harden beyond the letter: **do not put the Arabic text in the Inertia payload of a test page at all** — in an SPA, "disabled" is otherwise only a UI state.
+   _Client decision, 2026-09-26:_ Show Meaning is now offered on **every** English text a learner reads — course, unit and lesson titles, descriptions, objectives, instructions, activity and test questions — through `components/learning/meaning/` (`MeaningText`, `MeaningRow`) and `POST /meaning`, which translates each distinct text once (`text_translations`, AI-drafted) and returns the Arabic only after the tap. On Pre- and Post-tests it is **on by default**, and the admin can switch it off per test (`settings.show_meaning`); while a sitting of a test with it off is open, `POST /meaning` answers 403. The Arabic still never ships in a test page's payload.
 5. Audio controls need large thumb-friendly targets (CTRL-06, ACC-03).
 
 ### Invariants that must never be broken

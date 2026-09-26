@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     AudioLines,
@@ -12,20 +12,23 @@ import {
     GraduationCap,
     Headphones,
     Hotel,
+    Globe,
     Languages,
-    Menu,
     MessageCircleMore,
     Mic2,
     ShieldCheck,
     Smartphone,
     Sparkles,
     UsersRound,
-    X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
+import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
+import LandingFooter from '@/components/landing/LandingFooter.vue';
+import LandingHeader from '@/components/landing/LandingHeader.vue';
 import { Button } from '@/components/ui/button';
-import { dashboard, login } from '@/routes';
+import { cn } from '@/lib/utils';
+import { contact } from '@/routes';
 import type {
     LandingPageContent,
     LandingPaymentMethod,
@@ -38,11 +41,6 @@ const props = defineProps<{
     paymentMethods: LandingPaymentMethod[];
 }>();
 
-const page = usePage();
-const signedIn = computed(() => Boolean(page.props.auth.user));
-const signInHref = computed(() =>
-    signedIn.value ? dashboard().url : login().url,
-);
 const visibleRoles = computed(() =>
     props.content.roles.items.filter(
         (role) => role.title.trim().toLowerCase() !== 'super admin',
@@ -53,7 +51,17 @@ const rolesEyebrow = computed(() =>
         ? 'One platform, three clear experiences'
         : props.content.roles.eyebrow,
 );
-const mobileMenuOpen = ref(false);
+// Algerian hotels pay in DZD, everyone else in USD (client decision
+// 2026-09-26); both prices are set per plan by the Super Admin.
+type Region = 'dz' | 'intl';
+const region = ref<Region>('dz');
+const regions = computed((): { key: Region; label: string }[] => [
+    { key: 'dz', label: props.content.pricing.region_algeria },
+    { key: 'intl', label: props.content.pricing.region_international },
+]);
+const featuredIndex = computed(() =>
+    props.plans.length >= 4 ? 2 : Math.min(1, props.plans.length - 1),
+);
 
 const aiIcons: Component[] = [MessageCircleMore, Mic2, Sparkles, AudioLines];
 const roleIcons: Component[] = [Building2, UsersRound, GraduationCap];
@@ -72,11 +80,26 @@ const featureShots = [
 const formatDzd = (value: number): string =>
     new Intl.NumberFormat('fr-DZ').format(value);
 
-const whatsappHref = computed(() => {
-    const number = props.content.support.whatsapp_number.replace(/\D/g, '');
+const formatUsd = (value: number): string =>
+    new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+        maximumFractionDigits: 2,
+    }).format(value);
 
-    return number ? `https://wa.me/${number}` : null;
-});
+/** A plan with no USD price yet is quoted on request, never shown as $0. */
+function onRequest(plan: LandingPlan): boolean {
+    return region.value === 'intl' && plan.priceUsd <= 0;
+}
+
+function price(plan: LandingPlan): { amount: string; currency: string } {
+    if (region.value === 'dz') {
+        return { amount: formatDzd(plan.priceDzd), currency: 'DZD' };
+    }
+
+    return onRequest(plan)
+        ? { amount: 'On request', currency: '' }
+        : { amount: `$${formatUsd(plan.priceUsd)}`, currency: 'USD' };
+}
 </script>
 
 <template>
@@ -87,138 +110,7 @@ const whatsappHref = computed(() => {
     <div
         class="bg-surface text-ink min-h-screen overflow-x-clip scroll-smooth motion-reduce:scroll-auto"
     >
-        <header
-            class="border-line bg-surface/95 sticky top-0 z-40 border-b backdrop-blur-md"
-            @keydown.esc="mobileMenuOpen = false"
-        >
-            <div
-                class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-8 lg:px-10"
-            >
-                <Link href="/" aria-label="GHASIDO home" class="shrink-0">
-                    <img
-                        src="/brand/ghasido-logo.png"
-                        alt="GHASIDO — English for hotel staff"
-                        width="600"
-                        height="180"
-                        class="h-11 w-auto object-contain sm:h-13"
-                    />
-                </Link>
-
-                <nav
-                    class="text-ink-indigo hidden items-center gap-5 text-[12px] font-semibold lg:flex xl:gap-7"
-                    aria-label="Main navigation"
-                >
-                    <a
-                        href="#ai"
-                        class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >{{ content.navigation.ai_practice }}</a
-                    >
-                    <a
-                        href="#about"
-                        class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >{{ content.navigation.about }}</a
-                    >
-                    <a
-                        href="#roles"
-                        class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >{{ content.navigation.roles }}</a
-                    >
-                    <a
-                        href="#platform"
-                        class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >{{ content.navigation.platform }}</a
-                    >
-                    <a
-                        href="#pricing"
-                        class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                        >{{ content.navigation.pricing }}</a
-                    >
-                </nav>
-
-                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-                    <Link
-                        :href="signInHref"
-                        class="text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600 hidden min-h-11 items-center rounded-md px-3 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:inline-flex"
-                    >
-                        {{
-                            signedIn
-                                ? content.navigation.open_dashboard
-                                : content.navigation.login
-                        }}
-                    </Link>
-                    <Button
-                        as-child
-                        class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 h-11 rounded-md px-4 text-[12px] font-semibold sm:px-5 sm:text-[13px]"
-                    >
-                        <a href="#pricing">
-                            {{ content.navigation.get_started }}
-                            <ArrowRight class="size-4" />
-                        </a>
-                    </Button>
-                    <button
-                        type="button"
-                        class="border-line text-brand-800 hover:bg-brand-50 focus-visible:ring-brand-600 inline-flex size-11 items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden"
-                        aria-label="Toggle navigation"
-                        aria-controls="mobile-landing-navigation"
-                        :aria-expanded="mobileMenuOpen"
-                        @click="mobileMenuOpen = !mobileMenuOpen"
-                    >
-                        <X v-if="mobileMenuOpen" class="size-5" />
-                        <Menu v-else class="size-5" />
-                    </button>
-                </div>
-            </div>
-
-            <nav
-                v-if="mobileMenuOpen"
-                id="mobile-landing-navigation"
-                class="border-line bg-surface shadow-hover absolute inset-x-0 top-full border-b px-5 py-4 lg:hidden"
-                aria-label="Mobile navigation"
-            >
-                <div class="mx-auto grid max-w-7xl gap-1">
-                    <a
-                        v-for="item in [
-                            {
-                                href: '#ai',
-                                label: content.navigation.ai_practice,
-                            },
-                            {
-                                href: '#about',
-                                label: content.navigation.about,
-                            },
-                            {
-                                href: '#roles',
-                                label: content.navigation.roles,
-                            },
-                            {
-                                href: '#platform',
-                                label: content.navigation.platform,
-                            },
-                            {
-                                href: '#pricing',
-                                label: content.navigation.pricing,
-                            },
-                        ]"
-                        :key="item.href"
-                        :href="item.href"
-                        class="text-ink-indigo hover:bg-brand-50 focus-visible:ring-brand-600 flex min-h-11 items-center rounded-md px-3 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
-                        @click="mobileMenuOpen = false"
-                    >
-                        {{ item.label }}
-                    </a>
-                    <Link
-                        :href="signInHref"
-                        class="text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600 mt-1 flex min-h-11 items-center rounded-md px-3 text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none"
-                    >
-                        {{
-                            signedIn
-                                ? content.navigation.open_dashboard
-                                : content.navigation.login
-                        }}
-                    </Link>
-                </div>
-            </nav>
-        </header>
+        <LandingHeader :content="content" />
 
         <main>
             <section
@@ -903,31 +795,76 @@ const whatsappHref = computed(() => {
                         >
                             {{ content.pricing.description }}
                         </p>
+
+                        <div
+                            role="radiogroup"
+                            aria-label="Pricing region"
+                            class="border-line bg-surface shadow-card rounded-pill mx-auto mt-7 inline-grid grid-cols-2 gap-1 border p-1"
+                        >
+                            <button
+                                v-for="option in regions"
+                                :key="option.key"
+                                type="button"
+                                role="radio"
+                                :aria-checked="region === option.key"
+                                :class="
+                                    cn(
+                                        'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2.5 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-6 sm:text-[14px]',
+                                        region === option.key
+                                            ? 'bg-brand-900 text-surface shadow-btn'
+                                            : 'text-ink-indigo hover:bg-brand-50',
+                                    )
+                                "
+                                :data-test="`pricing-region-${option.key}`"
+                                @click="region = option.key"
+                            >
+                                <AlgeriaFlagIcon
+                                    v-if="option.key === 'dz'"
+                                    class="size-6 shrink-0"
+                                />
+                                <Globe
+                                    v-else
+                                    :class="
+                                        region === option.key
+                                            ? 'text-brand-200'
+                                            : 'text-brand-600'
+                                    "
+                                    class="size-5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                {{ option.label }}
+                            </button>
+                        </div>
                     </div>
 
                     <div
                         v-if="plans.length"
-                        class="mx-auto mt-10 grid max-w-6xl items-stretch gap-5 lg:mt-14 lg:grid-cols-3"
+                        :class="
+                            plans.length >= 4
+                                ? 'max-w-7xl md:grid-cols-2 xl:grid-cols-4'
+                                : 'max-w-6xl lg:grid-cols-3'
+                        "
+                        class="mx-auto mt-10 grid items-stretch gap-5 lg:mt-14"
                     >
                         <article
                             v-for="(plan, index) in plans"
                             :key="plan.id"
                             :class="
-                                index === 1
+                                index === featuredIndex
                                     ? 'border-brand-600 bg-brand-900 text-surface shadow-pop lg:-translate-y-3'
                                     : 'border-line bg-surface text-ink shadow-card'
                             "
                             class="relative flex h-full flex-col rounded-xl border p-6 sm:p-7"
                         >
                             <span
-                                v-if="index === 1"
+                                v-if="index === featuredIndex"
                                 class="bg-gold text-ink-night rounded-pill absolute top-0 right-6 -translate-y-1/2 px-3 py-1 text-[10px] font-bold tracking-[0.1em] uppercase"
                             >
                                 {{ content.pricing.featured_label }}
                             </span>
                             <h3
                                 :class="
-                                    index === 1
+                                    index === featuredIndex
                                         ? 'text-surface'
                                         : 'text-ink-night'
                                 "
@@ -939,23 +876,24 @@ const whatsappHref = computed(() => {
                                 <span
                                     class="font-heading text-[38px] leading-none font-bold tracking-[-0.04em]"
                                 >
-                                    {{ formatDzd(plan.priceDzd) }}
+                                    {{ price(plan).amount }}
                                 </span>
                                 <span
+                                    v-if="!onRequest(plan)"
                                     :class="
-                                        index === 1
+                                        index === featuredIndex
                                             ? 'text-brand-200'
                                             : 'text-ink-slate'
                                     "
                                     class="pb-0.5 text-[12px]"
-                                    >DZD /
+                                    >{{ price(plan).currency }} /
                                     {{ content.pricing.monthly_label }}</span
                                 >
                             </p>
 
                             <div
                                 :class="
-                                    index === 1
+                                    index === featuredIndex
                                         ? 'border-surface/15'
                                         : 'border-line'
                                 "
@@ -964,7 +902,7 @@ const whatsappHref = computed(() => {
                                 <div class="flex items-center gap-3">
                                     <UsersRound
                                         :class="
-                                            index === 1
+                                            index === featuredIndex
                                                 ? 'text-brand-200'
                                                 : 'text-brand-600'
                                         "
@@ -980,7 +918,7 @@ const whatsappHref = computed(() => {
                                 <div class="flex items-center gap-3">
                                     <Sparkles
                                         :class="
-                                            index === 1
+                                            index === featuredIndex
                                                 ? 'text-brand-200'
                                                 : 'text-ai'
                                         "
@@ -1000,7 +938,7 @@ const whatsappHref = computed(() => {
                                     v-for="item in content.pricing.inclusions"
                                     :key="item"
                                     :class="
-                                        index === 1
+                                        index === featuredIndex
                                             ? 'text-brand-100'
                                             : 'text-ink-slate'
                                     "
@@ -1015,20 +953,94 @@ const whatsappHref = computed(() => {
 
                             <Button
                                 as-child
-                                :variant="index === 1 ? 'secondary' : 'default'"
+                                :variant="
+                                    index === featuredIndex
+                                        ? 'secondary'
+                                        : 'default'
+                                "
                                 :class="
-                                    index === 1
+                                    index === featuredIndex
                                         ? 'bg-surface text-brand-800 hover:bg-brand-50'
                                         : 'bg-brand-600 text-surface hover:bg-brand-700'
                                 "
                                 class="mt-7 h-12 w-full rounded-md text-[13px] font-semibold"
                             >
-                                <Link :href="`/checkout/${plan.slug}`">
+                                <Link
+                                    :href="
+                                        onRequest(plan)
+                                            ? contact().url
+                                            : `/checkout/${plan.slug}${region === 'intl' ? '?region=intl' : ''}`
+                                    "
+                                >
                                     {{ content.pricing.button_text }}
                                     <ChevronRight class="size-4" />
                                 </Link>
                             </Button>
                         </article>
+                    </div>
+
+                    <!-- Hotel / Enterprise (client pricing mockup 2026-09-26):
+                         larger teams are sent to Contact Us for a quote. -->
+                    <div
+                        class="border-brand-100 bg-brand-50 shadow-card mx-auto mt-10 grid max-w-7xl gap-6 rounded-xl border p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center lg:gap-8"
+                        data-test="pricing-enterprise"
+                    >
+                        <div class="flex items-start gap-4">
+                            <span
+                                class="bg-surface text-brand-700 shadow-card grid size-16 shrink-0 place-items-center rounded-full"
+                            >
+                                <Hotel class="size-8" aria-hidden="true" />
+                            </span>
+                            <div class="min-w-0">
+                                <h3
+                                    class="font-heading text-ink-night text-[22px] leading-7 font-bold tracking-[-0.02em]"
+                                >
+                                    {{ content.contact.enterprise_title }}
+                                </h3>
+                                <p
+                                    class="text-ink-indigo mt-1 text-[16px] font-semibold"
+                                >
+                                    {{ content.contact.enterprise_subtitle }}
+                                </p>
+                                <p
+                                    class="text-ink-slate mt-2 text-[13px] leading-6"
+                                >
+                                    {{ content.contact.enterprise_description }}
+                                </p>
+                            </div>
+                        </div>
+                        <ul
+                            class="border-brand-200 space-y-2 lg:border-s lg:ps-8"
+                        >
+                            <li
+                                v-for="point in content.contact
+                                    .enterprise_points"
+                                :key="point"
+                                class="text-ink-indigo flex items-start gap-2 text-[13px] leading-5"
+                            >
+                                <Check
+                                    class="text-brand-600 mt-0.5 size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                {{ point }}
+                            </li>
+                        </ul>
+                        <div
+                            class="grid justify-items-start gap-2 lg:justify-items-center"
+                        >
+                            <Button
+                                as-child
+                                class="bg-brand-900 text-surface shadow-btn hover:bg-brand-800 rounded-pill h-12 px-7 text-[14px] font-semibold"
+                            >
+                                <Link :href="contact()">
+                                    {{ content.contact.enterprise_button }}
+                                    <ArrowRight class="size-4" />
+                                </Link>
+                            </Button>
+                            <p class="text-ink-slate text-[12px]">
+                                {{ content.contact.enterprise_note }}
+                            </p>
+                        </div>
                     </div>
 
                     <div
@@ -1109,53 +1121,6 @@ const whatsappHref = computed(() => {
             </section>
         </main>
 
-        <footer class="border-line bg-app border-t">
-            <div
-                class="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-[1fr_auto] lg:px-10"
-            >
-                <div class="max-w-sm">
-                    <img
-                        src="/brand/ghasido-logo.png"
-                        alt="GHASIDO"
-                        width="600"
-                        height="180"
-                        class="h-11 w-auto object-contain object-left"
-                    />
-                    <p class="text-ink-slate mt-4 text-[12px] leading-5">
-                        {{ content.footer.tagline }}
-                    </p>
-                </div>
-                <div
-                    class="text-ink-indigo flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] font-semibold"
-                >
-                    <a href="#ai" class="hover:text-brand-600">{{
-                        content.navigation.ai_practice
-                    }}</a>
-                    <a href="#roles" class="hover:text-brand-600">{{
-                        content.navigation.roles
-                    }}</a>
-                    <a href="#pricing" class="hover:text-brand-600">{{
-                        content.navigation.pricing
-                    }}</a>
-                    <a
-                        v-if="whatsappHref"
-                        :href="whatsappHref"
-                        target="_blank"
-                        rel="noreferrer"
-                        class="hover:text-brand-600 inline-flex items-center gap-1.5"
-                    >
-                        <MessageCircleMore class="size-4" />
-                        WhatsApp support
-                    </a>
-                    <Link :href="signInHref" class="hover:text-brand-600">
-                        {{
-                            signedIn
-                                ? content.navigation.open_dashboard
-                                : content.navigation.login
-                        }}
-                    </Link>
-                </div>
-            </div>
-        </footer>
+        <LandingFooter :content="content" />
     </div>
 </template>

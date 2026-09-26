@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight, Clock, Flag } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import GenericActivity from '@/components/learning/activities/GenericActivity.vue';
 import { Button } from '@/components/ui/button';
+import { MEANING_ENABLED } from '@/composables/useMeaning';
 import { useTimer } from '@/composables/useTimer';
 import { cn } from '@/lib/utils';
 import type { ActivityView, AnswerMap } from '@/types';
@@ -11,11 +12,19 @@ import type { ActivityView, AnswerMap } from '@/types';
 /*
  * The Pre/Post-test runner (TEST-01..06, TIME-05, CTRL-04; spec 0003 Part E,
  * photos 21–28). One question per page, the sitting timed from the server's
- * deadline, answers saved on every move. No Show Meaning, no correctness and
- * no Arabic — the payload the server sent already has none (TEST-03).
+ * deadline, answers saved on every move. No correctness and no Arabic in
+ * the payload (TEST-03). The client asked for Show Meaning on test questions
+ * (decision 2026-09-26): each text asks the server for its meaning on a
+ * tap, and only while the admin left `showMeaning` on for this test.
  */
 type Props = {
-    test: { id: number; type: string; title: string; label: string };
+    test: {
+        id: number;
+        type: string;
+        title: string;
+        label: string;
+        showMeaning: boolean;
+    };
     attempt: {
         id: number;
         deadlineAt: string | null;
@@ -31,6 +40,11 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+provide(
+    MEANING_ENABLED,
+    computed(() => props.test.showMeaning),
+);
 
 const activityRef = ref<InstanceType<typeof GenericActivity> | null>(null);
 const mountedAt = Date.now();

@@ -18,6 +18,7 @@ export type LandingPageContent = {
         login: string;
         get_started: string;
         open_dashboard: string;
+        contact: string;
     };
     roles: {
         eyebrow: string;
@@ -77,6 +78,8 @@ export type LandingPageContent = {
         featured_label: string;
         inclusions: string[];
         footnote: string;
+        region_algeria: string;
+        region_international: string;
     };
     checkout: {
         eyebrow: string;
@@ -101,7 +104,36 @@ export type LandingPageContent = {
     };
     support: {
         whatsapp_number: string;
+        phone: string;
+        email: string;
     };
+    contact: {
+        eyebrow: string;
+        title: string;
+        description: string;
+        form_title: string;
+        submit_button: string;
+        success_message: string;
+        enterprise_title: string;
+        enterprise_subtitle: string;
+        enterprise_description: string;
+        enterprise_points: string[];
+        enterprise_button: string;
+        enterprise_note: string;
+    };
+};
+
+export type LandingContactMessage = {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+    organisation: string | null;
+    employees: string | null;
+    message: string;
+    read: boolean;
+    sentAt: string | null;
+    readUrl: string;
 };
 
 export type LandingPaymentMethod = {
@@ -118,5 +150,6 @@ export type LandingPlan = {
     slug: string;
     employeeLimit: number;
     priceDzd: number;
+    priceUsd: number;
     pointsPool: number;
 };

@@ -19,6 +19,7 @@ import { computed } from 'vue';
 import type { Component } from 'vue';
 import { cn } from '@/lib/utils';
 import type { CourseTone, PracticeCard } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * One practice-hub card (photo_7): a tinted card in the activity's tone with
@@ -142,7 +143,11 @@ const style = computed(() => tones[props.card.tone]);
             </h3>
         </div>
 
-        <p class="text-ink mt-2 text-sm leading-6">{{ card.description }}</p>
+        <MeaningText
+            as="p"
+            :text="card.description"
+            class="text-ink mt-2 text-sm leading-6"
+        />
 
         <div class="my-3 flex min-h-16 items-center">
             <div

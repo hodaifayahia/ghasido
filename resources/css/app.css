@@ -170,6 +170,10 @@
     --color-tint-grid: #eef3f9; /* chart gridlines, guest dialogue bubble */
     --color-tint-step: #e2e9f3; /* upcoming step circle */
     --color-tint-note: #fff8e1; /* sticky note */
+    /* Algeria flag on the landing page's DZD/USD pricing switch (client
+       mockup 2026-09-26); the official flag colours, not brand colours. */
+    --color-flag-dz-green: #006233;
+    --color-flag-dz-red: #d21034;
 
     /* --- Gradients -> bg-grad-page / bg-grad-brand / bg-grad-header -------- */
     --background-image-grad-page: linear-gradient(

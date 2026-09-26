@@ -26,9 +26,11 @@ const props = defineProps<{
     content: LandingPageContent;
     plan: LandingPlan;
     paymentMethods: LandingPaymentMethod[];
+    region: 'dz' | 'intl';
 }>();
 
 const form = useForm({
+    region: props.region,
     name: '',
     city: '',
     manager_name: '',
@@ -40,6 +42,15 @@ const form = useForm({
 
 const formatDzd = (value: number): string =>
     new Intl.NumberFormat('fr-DZ').format(value);
+
+// Algeria pays the DZD price, international customers the USD price
+// (client decision 2026-09-26). Local payment methods are Algerian, so an
+// international request gets its payment details from the team instead.
+const isInternational = props.region === 'intl';
+const priceAmount = isInternational
+    ? `$${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(props.plan.priceUsd)}`
+    : formatDzd(props.plan.priceDzd);
+const priceCurrency = isInternational ? 'USD' : 'DZD';
 
 function submit(): void {
     form.post(`/checkout/${props.plan.slug}`, {
@@ -311,11 +322,11 @@ function submit(): void {
                                     <span
                                         class="font-heading text-[34px] leading-none font-bold"
                                     >
-                                        {{ formatDzd(plan.priceDzd) }}
+                                        {{ priceAmount }}
                                     </span>
                                     <span
                                         class="text-brand-200 pb-0.5 text-[12px]"
-                                        >DZD /
+                                        >{{ priceCurrency }} /
                                         {{
                                             content.pricing.monthly_label
                                         }}</span
@@ -386,7 +397,7 @@ function submit(): void {
                             </div>
 
                             <div
-                                v-if="paymentMethods.length"
+                                v-if="paymentMethods.length && !isInternational"
                                 class="mt-4 space-y-3"
                             >
                                 <article

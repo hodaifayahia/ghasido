@@ -2,6 +2,7 @@
 import { Lightbulb } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The bulb tip box (spec 0003 H.2): brand-50 fill, 10px radius, a 24px
@@ -35,11 +36,11 @@ const props = withDefaults(defineProps<Props>(), { title: null });
             >
                 {{ title }}
             </p>
-            <p
+            <MeaningText
+                as="p"
+                :text="text"
                 class="text-ink-slate text-[13px] leading-[21px] whitespace-pre-line"
-            >
-                {{ text }}
-            </p>
+            />
         </div>
     </aside>
 </template>

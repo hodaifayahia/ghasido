@@ -23,6 +23,7 @@ import { Link } from '@inertiajs/vue3';
 import Celebration from '@/components/learning/Celebration.vue';
 import ProgressRing from '@/components/learning/ProgressRing.vue';
 import type { BlockType, LessonSummary, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 9, "Lesson Completed!" (LESSON-05; photo_19): a trophy header, the
@@ -134,7 +135,11 @@ onMounted(async () => {
                 >
                     {{ heading }}
                 </h1>
-                <p class="text-ink-slate mt-0.5 text-base">{{ subtitle }}</p>
+                <MeaningText
+                    as="p"
+                    :text="subtitle"
+                    class="text-ink-slate mt-0.5 text-base"
+                />
             </div>
         </div>
 
@@ -156,11 +161,11 @@ onMounted(async () => {
                     v-if="quote"
                     class="absolute inset-x-0 bottom-0 p-5"
                 >
-                    <p
+                    <MeaningText
+                        as="p"
+                        :text="quote"
                         class="font-heading text-xl font-semibold text-white italic"
-                    >
-                        {{ quote }}
-                    </p>
+                    />
                     <span class="bg-gold mt-2 block h-1 w-16 rounded-full" />
                 </figcaption>
             </figure>
@@ -196,12 +201,16 @@ onMounted(async () => {
                             />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="text-ink block font-semibold">
-                                {{ row.title }}
-                            </span>
-                            <span class="text-ink-slate block text-sm">
-                                {{ row.subtitle }}
-                            </span>
+                            <MeaningText
+                                as="span"
+                                :text="row.title"
+                                class="text-ink block font-semibold"
+                            />
+                            <MeaningText
+                                as="span"
+                                :text="row.subtitle"
+                                class="text-ink-slate block text-sm"
+                            />
                         </span>
                         <span
                             v-if="row.done"
