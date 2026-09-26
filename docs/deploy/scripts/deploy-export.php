@@ -4,15 +4,16 @@
 // migrated by the current code, harden seed passwords in the copy, and list
 // the public media the data references. Reads MySQL only; writes only under
 // storage/logs/deploy/.
-require __DIR__.'/../../../vendor/autoload.php';
-$app = require __DIR__.'/../../../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+
+require __DIR__.'/../../../vendor/autoload.php';
+$app = require __DIR__.'/../../../bootstrap/app.php';
+$app->make(Kernel::class)->bootstrap();
 
 $dir = __DIR__.'/../../../storage/logs/deploy';
 @mkdir($dir, 0775, true);
