@@ -35,6 +35,7 @@ import {
     SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import {
     aiScenarios,
@@ -95,6 +96,8 @@ type Props = {
 const props = defineProps<Props>();
 
 const { isMobile, setOpenMobile } = useSidebar();
+// Arabic lays the page out right to left, sidebar on the right (I18N-02).
+const { isRtl } = useI18n();
 
 /*
  * The mockup's glyphs are solid. Lucide's outline icons are filled where their
@@ -291,7 +294,8 @@ function closeMobileSidebar(): void {
     <Sidebar
         collapsible="icon"
         variant="sidebar"
-        class="group-data-[side=left]:border-r-0"
+        :side="isRtl ? 'right' : 'left'"
+        class="group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0"
     >
         <SidebarHeader
             class="h-topbar bg-sidebar shrink-0 flex-row items-start p-0 ps-8 pt-[11px] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:ps-0 group-data-[collapsible=icon]:pt-0"

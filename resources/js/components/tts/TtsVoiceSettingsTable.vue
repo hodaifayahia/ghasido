@@ -83,7 +83,7 @@ function edit(lesson: LessonDirectoryRow): void {
             v-if="props.lessons.length > 0"
             class="border-line max-h-[300px] overflow-y-auto rounded-md border"
         >
-            <table class="w-full table-fixed text-left">
+            <table class="w-full table-fixed text-start">
                 <colgroup>
                     <col class="w-[34%]" />
                     <col class="w-[24%]" />

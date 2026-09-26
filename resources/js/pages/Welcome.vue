@@ -28,6 +28,7 @@ import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
 import InstallAppButton from '@/components/landing/InstallAppButton.vue';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import { contact } from '@/routes';
 import type {
@@ -41,6 +42,8 @@ const props = defineProps<{
     plans: LandingPlan[];
     paymentMethods: LandingPaymentMethod[];
 }>();
+
+const { t } = useI18n();
 
 const visibleRoles = computed(() =>
     props.content.roles.items.filter(
@@ -98,7 +101,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
     }
 
     return onRequest(plan)
-        ? { amount: 'On request', currency: '' }
+        ? { amount: t('On request'), currency: '' }
         : { amount: `$${formatUsd(plan.priceUsd)}`, currency: 'USD' };
 }
 </script>
@@ -119,11 +122,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 aria-labelledby="hero-title"
             >
                 <div
-                    class="bg-brand-100/80 pointer-events-none absolute -top-40 -right-32 size-[34rem] rounded-full blur-3xl"
+                    class="bg-brand-100/80 pointer-events-none absolute -end-32 -top-40 size-[34rem] rounded-full blur-3xl"
                     aria-hidden="true"
                 />
                 <div
-                    class="bg-aqua-tint/70 pointer-events-none absolute -bottom-56 -left-40 size-[30rem] rounded-full blur-3xl"
+                    class="bg-aqua-tint/70 pointer-events-none absolute -start-40 -bottom-56 size-[30rem] rounded-full blur-3xl"
                     aria-hidden="true"
                 />
 
@@ -228,11 +231,15 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         </div>
 
                         <div
-                            class="border-brand-900 bg-brand-900 shadow-pop absolute -bottom-1 left-5 w-[112px] overflow-hidden rounded-xl border-[5px] sm:-bottom-2 sm:left-8 sm:w-[150px] sm:border-[6px] lg:-left-7 lg:w-[168px]"
+                            class="border-brand-900 bg-brand-900 shadow-pop absolute start-5 -bottom-1 w-[112px] overflow-hidden rounded-xl border-[5px] sm:start-8 sm:-bottom-2 sm:w-[150px] sm:border-[6px] lg:-start-7 lg:w-[168px]"
                         >
                             <img
                                 src="/landing/employee-pretest-mobile-ghasido.png"
-                                alt="GHASIDO employee pre-test on a mobile phone"
+                                :alt="
+                                    $t(
+                                        'GHASIDO employee pre-test on a mobile phone',
+                                    )
+                                "
                                 width="390"
                                 height="844"
                                 fetchpriority="high"
@@ -241,7 +248,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         </div>
 
                         <div
-                            class="border-line bg-surface shadow-hover absolute right-3 bottom-2 hidden max-w-[220px] items-center gap-3 rounded-lg border p-3 sm:flex lg:-right-4"
+                            class="border-line bg-surface shadow-hover absolute end-3 bottom-2 hidden max-w-[220px] items-center gap-3 rounded-lg border p-3 sm:flex lg:-end-4"
                         >
                             <span
                                 class="bg-ai-tint text-ai grid size-10 shrink-0 place-items-center rounded-md"
@@ -251,8 +258,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             <p
                                 class="text-ink-indigo text-[11px] leading-4 font-semibold"
                             >
-                                Real practice. Clear progress. One connected
-                                platform.
+                                {{
+                                    $t(
+                                        'Real practice. Clear progress. One connected platform.',
+                                    )
+                                }}
                             </p>
                         </div>
                     </figure>
@@ -265,7 +275,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 aria-labelledby="ai-title"
             >
                 <div
-                    class="bg-ai/20 pointer-events-none absolute -top-40 -right-32 size-[30rem] rounded-full blur-3xl"
+                    class="bg-ai/20 pointer-events-none absolute -end-32 -top-40 size-[30rem] rounded-full blur-3xl"
                     aria-hidden="true"
                 />
                 <div class="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -312,12 +322,16 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 />
                                 <span
                                     class="text-brand-200 ms-2 text-[10px] font-semibold tracking-wide uppercase"
-                                    >AI scenario workspace</span
+                                    >{{ $t('AI scenario workspace') }}</span
                                 >
                             </div>
                             <img
                                 src="/landing/ai-roleplay-builder-ghasido.png"
-                                alt="GHASIDO AI role-play scenario builder and preview"
+                                :alt="
+                                    $t(
+                                        'GHASIDO AI role-play scenario builder and preview',
+                                    )
+                                "
                                 width="1280"
                                 height="853"
                                 loading="lazy"
@@ -394,20 +408,23 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             />
                         </div>
                         <div
-                            class="border-line bg-surface shadow-card absolute top-16 right-0 max-w-[158px] rounded-lg border p-3 sm:-right-4"
+                            class="border-line bg-surface shadow-card absolute end-0 top-16 max-w-[158px] rounded-lg border p-3 sm:-end-4"
                         >
                             <Languages class="text-brand-600 size-5" />
                             <p
                                 class="text-ink-indigo mt-2 text-[11px] leading-4 font-semibold"
                             >
-                                English first. Arabic meaning only when the
-                                learner asks.
+                                {{
+                                    $t(
+                                        'English first. Arabic meaning only when the learner asks.',
+                                    )
+                                }}
                             </p>
                         </div>
                         <img
                             src="/decor/palm-island-tagline.png"
                             alt=""
-                            class="pointer-events-none absolute -bottom-6 -left-2 w-28 opacity-70 select-none sm:w-34"
+                            class="pointer-events-none absolute -start-2 -bottom-6 w-28 opacity-70 select-none sm:w-34"
                         />
                     </figure>
 
@@ -438,7 +455,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 <p
                                     class="font-heading text-brand-900 text-[15px] font-semibold"
                                 >
-                                    Designed for adults learning at work
+                                    {{
+                                        $t(
+                                            'Designed for adults learning at work',
+                                        )
+                                    }}
                                 </p>
                                 <p
                                     class="text-ink-slate mt-1 text-[13px] leading-6"
@@ -694,7 +715,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     </span>
                                     <span
                                         class="text-brand-600 text-[11px] font-bold tracking-[0.15em] uppercase"
-                                        >Feature 0{{ index + 1 }}</span
+                                        >{{
+                                            $t('Feature :number', {
+                                                number: `0${index + 1}`,
+                                            })
+                                        }}</span
                                     >
                                 </div>
                                 <h3
@@ -711,8 +736,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     class="text-brand-700 mt-6 inline-flex items-center gap-2 text-[12px] font-semibold"
                                 >
                                     <CircleCheck class="text-success size-4" />
-                                    Connected to the same secure GHASIDO
-                                    workspace
+                                    {{
+                                        $t(
+                                            'Connected to the same secure GHASIDO workspace',
+                                        )
+                                    }}
                                 </div>
                             </div>
                         </article>
@@ -800,7 +828,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
 
                         <div
                             role="radiogroup"
-                            aria-label="Pricing region"
+                            :aria-label="$t('Pricing region')"
                             class="border-line bg-surface shadow-card rounded-pill mx-auto mt-7 inline-grid grid-cols-2 gap-1 border p-1"
                         >
                             <button
@@ -860,7 +888,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         >
                             <span
                                 v-if="index === featuredIndex"
-                                class="bg-gold text-ink-night rounded-pill absolute top-0 right-6 -translate-y-1/2 px-3 py-1 text-[10px] font-bold tracking-[0.1em] uppercase"
+                                class="bg-gold text-ink-night rounded-pill absolute end-6 top-0 -translate-y-1/2 px-3 py-1 text-[10px] font-bold tracking-[0.1em] uppercase"
                             >
                                 {{ content.pricing.featured_label }}
                             </span>
@@ -1062,7 +1090,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                     >
                         <span
                             class="text-ink-slate text-[11px] font-semibold tracking-wide uppercase"
-                            >Available payment options</span
+                            >{{ $t('Available payment options') }}</span
                         >
                         <span
                             v-for="method in paymentMethods"
@@ -1084,7 +1112,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         class="bg-brand-900 text-surface shadow-pop relative overflow-hidden rounded-xl px-6 py-10 sm:px-12 sm:py-14 lg:px-16"
                     >
                         <div
-                            class="bg-ai/25 pointer-events-none absolute -top-40 -right-20 size-96 rounded-full blur-3xl"
+                            class="bg-ai/25 pointer-events-none absolute -end-20 -top-40 size-96 rounded-full blur-3xl"
                             aria-hidden="true"
                         />
                         <div

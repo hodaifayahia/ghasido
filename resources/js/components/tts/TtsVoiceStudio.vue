@@ -470,7 +470,7 @@ function generateAllLessons(): void {
                 >
             </div>
             <div
-                class="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2"
+                class="grid max-h-56 gap-2 overflow-y-auto pe-1 sm:grid-cols-2"
             >
                 <button
                     v-for="item in filteredVoices"

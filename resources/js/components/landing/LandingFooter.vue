@@ -90,7 +90,7 @@ const whatsappHref = computed(() => {
                     class="hover:text-brand-600 inline-flex items-center gap-1.5"
                 >
                     <MessageCircleMore class="size-4" />
-                    WhatsApp support
+                    {{ $t('WhatsApp support') }}
                 </a>
                 <Link :href="signInHref" class="hover:text-brand-600">
                     {{

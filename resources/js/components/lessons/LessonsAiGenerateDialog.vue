@@ -726,7 +726,7 @@ const selectTrigger =
         <button
             v-if="generation !== null && !open"
             type="button"
-            class="border-brand-200 bg-surface text-brand-900 shadow-pop ease-brand hover:shadow-pop focus-visible:ring-brand-600/40 fixed right-4 bottom-20 z-40 inline-flex max-w-[calc(100vw_-_2rem)] items-center gap-3 rounded-full border px-3 py-2.5 text-start transition duration-200 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:right-6 md:bottom-6"
+            class="border-brand-200 bg-surface text-brand-900 shadow-pop ease-brand hover:shadow-pop focus-visible:ring-brand-600/40 fixed end-4 bottom-20 z-40 inline-flex max-w-[calc(100vw_-_2rem)] items-center gap-3 rounded-full border px-3 py-2.5 text-start transition duration-200 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:end-6 md:bottom-6"
             aria-label="Open lesson generation progress"
             title="Tap to reopen lesson generation"
             data-test="ai-generate-background-status"
@@ -744,7 +744,7 @@ const selectTrigger =
                     aria-hidden="true"
                 />
                 <Sparkles
-                    class="text-warning absolute -top-0.5 -right-0.5 size-4 motion-safe:animate-pulse motion-reduce:animate-none"
+                    class="text-warning absolute -end-0.5 -top-0.5 size-4 motion-safe:animate-pulse motion-reduce:animate-none"
                     aria-hidden="true"
                 />
             </span>

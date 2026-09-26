@@ -111,7 +111,7 @@ function editUser(account: AppAccount): void {
 
             <div class="min-w-0 overflow-hidden rounded-b-lg">
                 <table
-                    class="w-full table-fixed border-collapse text-left text-[13px]"
+                    class="w-full table-fixed border-collapse text-start text-[13px]"
                 >
                     <caption class="sr-only">
                         App users, their access roles, and account status
@@ -137,7 +137,7 @@ function editUser(account: AppAccount): void {
                             </th>
                             <th
                                 scope="col"
-                                class="px-2 py-2.5 text-right sm:px-4"
+                                class="px-2 py-2.5 text-end sm:px-4"
                             >
                                 Edit
                             </th>
@@ -151,7 +151,7 @@ function editUser(account: AppAccount): void {
                         >
                             <th
                                 scope="row"
-                                class="px-2 py-3 text-left font-normal sm:px-4"
+                                class="px-2 py-3 text-start font-normal sm:px-4"
                             >
                                 <div class="flex min-w-0 items-center gap-2">
                                     <span
@@ -210,7 +210,7 @@ function editUser(account: AppAccount): void {
                                     {{ account.status }}
                                 </span>
                             </td>
-                            <td class="px-1.5 py-3 text-right sm:px-4">
+                            <td class="px-1.5 py-3 text-end sm:px-4">
                                 <Button
                                     v-if="canManage"
                                     type="button"

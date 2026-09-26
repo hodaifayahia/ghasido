@@ -19,7 +19,9 @@ final class LandingPageController extends Controller
         abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
 
         return Inertia::render('settings/LandingPage', [
-            'content' => $content->current(),
+            'content' => $content->current('en'),
+            // The Arabic copy (I18N-02), edited in its own tab.
+            'contentAr' => $content->current('ar'),
             'contactMessages' => ContactMessage::query()
                 ->latest()
                 ->limit(50)
@@ -53,6 +55,8 @@ final class LandingPageController extends Controller
         abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
 
         $validated = $request->validate([
+            // Which copy is being saved: English or Arabic (I18N-02).
+            'locale' => ['sometimes', 'string', 'in:en,ar'],
             'content' => ['required', 'array:navigation,roles,journey,hero,why_us,about,features,ai,pricing,checkout,call_to_action,footer,support,contact'],
             'content.navigation' => ['required', 'array:why_us,about,platform,ai_practice,roles,pricing,login,get_started,open_dashboard,contact'],
             'content.navigation.contact' => ['required', 'string', 'max:40'],
@@ -196,9 +200,12 @@ final class LandingPageController extends Controller
 
         /** @var User $actor */
         $actor = $request->user();
-        $content->save($validated['content'], $actor);
+        $locale = $validated['locale'] ?? 'en';
+        $content->save($validated['content'], $actor, $locale);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Landing page content saved.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $locale === 'ar'
+            ? __('Arabic landing page content saved.')
+            : __('Landing page content saved.')]);
 
         return back();
     }

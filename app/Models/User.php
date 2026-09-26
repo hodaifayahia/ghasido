@@ -50,6 +50,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $research_notice_acknowledged_at
  * @property Carbon|null $last_login_at
  * @property Carbon|null $welcomed_at
+ * @property string|null $locale
  * @property Carbon|null $last_activity_at
  * @property Carbon|null $training_started_at
  * @property Carbon|null $training_completed_at

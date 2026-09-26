@@ -9,6 +9,7 @@ import {
 } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { computed, ref } from 'vue';
+import TransText from '@/components/common/TransText.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -92,7 +93,11 @@ async function onClick(): Promise<void> {
             aria-hidden="true"
         />
         <span :class="props.variant === 'nav' && 'sr-only xl:not-sr-only'">
-            {{ props.variant === 'nav' ? 'Download app' : 'Download the app' }}
+            {{
+                props.variant === 'nav'
+                    ? $t('Download app')
+                    : $t('Download the app')
+            }}
         </span>
     </Button>
 
@@ -113,13 +118,16 @@ async function onClick(): Promise<void> {
                     <DialogTitle
                         class="font-heading text-brand-900 text-[18px] font-semibold"
                     >
-                        Install GHASIDO
+                        {{ $t('Install GHASIDO') }}
                     </DialogTitle>
                     <DialogDescription
                         class="text-ink-slate mt-1 text-[13px] leading-5"
                     >
-                        Add the app to your home screen. It opens straight to
-                        the sign-in page.
+                        {{
+                            $t(
+                                'Add the app to your home screen. It opens straight to the sign-in page.',
+                            )
+                        }}
                     </DialogDescription>
                 </div>
             </DialogHeader>
@@ -134,9 +142,11 @@ async function onClick(): Promise<void> {
                     >
                         <Share class="size-4" aria-hidden="true" />
                     </span>
-                    <span
-                        >In Safari, tap the <strong>Share</strong> button.</span
-                    >
+                    <TransText text="In Safari, tap the :share button.">
+                        <template #share
+                            ><strong>{{ $t('Share') }}</strong></template
+                        >
+                    </TransText>
                 </li>
                 <li class="flex items-start gap-3">
                     <span
@@ -144,10 +154,16 @@ async function onClick(): Promise<void> {
                     >
                         <SquarePlus class="size-4" aria-hidden="true" />
                     </span>
-                    <span
-                        >Choose <strong>Add to Home Screen</strong>, then tap
-                        <strong>Add</strong>.</span
-                    >
+                    <TransText text="Choose :add_to_home, then tap :add.">
+                        <template #add_to_home
+                            ><strong>{{
+                                $t('Add to Home Screen')
+                            }}</strong></template
+                        >
+                        <template #add
+                            ><strong>{{ $t('Add') }}</strong></template
+                        >
+                    </TransText>
                 </li>
             </ol>
             <ol v-else class="text-ink-indigo grid gap-3 text-[14px] leading-6">
@@ -157,11 +173,18 @@ async function onClick(): Promise<void> {
                     >
                         <EllipsisVertical class="size-4" aria-hidden="true" />
                     </span>
-                    <span
-                        >On a phone, open the browser menu and choose
-                        <strong>Install app</strong> or
-                        <strong>Add to Home screen</strong>.</span
+                    <TransText
+                        text="On a phone, open the browser menu and choose :install or :add_to_home."
                     >
+                        <template #install
+                            ><strong>{{ $t('Install app') }}</strong></template
+                        >
+                        <template #add_to_home
+                            ><strong>{{
+                                $t('Add to Home screen')
+                            }}</strong></template
+                        >
+                    </TransText>
                 </li>
                 <li class="flex items-start gap-3">
                     <span
@@ -169,15 +192,20 @@ async function onClick(): Promise<void> {
                     >
                         <MonitorDown class="size-4" aria-hidden="true" />
                     </span>
-                    <span
-                        >On a computer, use Chrome or Edge and click the
-                        <strong>install</strong> icon in the address bar.</span
+                    <TransText
+                        text="On a computer, use Chrome or Edge and click the :install icon in the address bar."
                     >
+                        <template #install
+                            ><strong>{{ $t('install') }}</strong></template
+                        >
+                    </TransText>
                 </li>
             </ol>
 
             <p class="text-ink-slate text-[12.5px] leading-5">
-                Already installed? Open GHASIDO from your home screen.
+                {{
+                    $t('Already installed? Open GHASIDO from your home screen.')
+                }}
             </p>
 
             <Button
@@ -185,7 +213,7 @@ async function onClick(): Promise<void> {
                 class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 h-11 w-full rounded-md text-[14px] font-semibold"
             >
                 <Link :href="signInHref" @click="helpOpen = false">
-                    Continue to sign in
+                    {{ $t('Continue to sign in') }}
                 </Link>
             </Button>
         </DialogContent>

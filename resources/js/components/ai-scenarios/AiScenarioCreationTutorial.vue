@@ -804,7 +804,7 @@ watch(open, (value) => {
                                                 Could I check out later, please?
                                             </div>
                                             <div
-                                                class="bg-brand-100/70 text-brand-900 ml-auto max-w-[74%] rounded-xl px-2 py-1.5 text-[6px] sm:px-3 sm:py-2 sm:text-[9px]"
+                                                class="bg-brand-100/70 text-brand-900 ms-auto max-w-[74%] rounded-xl px-2 py-1.5 text-[6px] sm:px-3 sm:py-2 sm:text-[9px]"
                                             >
                                                 Of course. What time would you
                                                 prefer?

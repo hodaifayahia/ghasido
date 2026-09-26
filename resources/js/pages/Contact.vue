@@ -74,11 +74,11 @@ function submit(): void {
                 aria-labelledby="contact-title"
             >
                 <div
-                    class="bg-brand-100/80 pointer-events-none absolute -top-40 -right-32 size-[34rem] rounded-full blur-3xl"
+                    class="bg-brand-100/80 pointer-events-none absolute -end-32 -top-40 size-[34rem] rounded-full blur-3xl"
                     aria-hidden="true"
                 />
                 <div
-                    class="bg-aqua-tint/70 pointer-events-none absolute -bottom-56 -left-40 size-[30rem] rounded-full blur-3xl"
+                    class="bg-aqua-tint/70 pointer-events-none absolute -start-40 -bottom-56 size-[30rem] rounded-full blur-3xl"
                     aria-hidden="true"
                 />
 
@@ -121,7 +121,7 @@ function submit(): void {
                                     <span class="min-w-0">
                                         <span
                                             class="text-ink-slate block text-[12px] font-semibold tracking-[0.02em] uppercase"
-                                            >Phone</span
+                                            >{{ $t('Phone') }}</span
                                         >
                                         <span
                                             class="text-ink-night block text-[16px] font-semibold"
@@ -148,7 +148,7 @@ function submit(): void {
                                     <span class="min-w-0">
                                         <span
                                             class="text-ink-slate block text-[12px] font-semibold tracking-[0.02em] uppercase"
-                                            >Email</span
+                                            >{{ $t('Email') }}</span
                                         >
                                         <span
                                             class="text-ink-night block text-[16px] font-semibold break-all"
@@ -236,7 +236,9 @@ function submit(): void {
                             @submit.prevent="submit"
                         >
                             <div class="grid gap-1.5">
-                                <Label for="contact-name">Full name</Label>
+                                <Label for="contact-name">{{
+                                    $t('Full name')
+                                }}</Label>
                                 <Input
                                     id="contact-name"
                                     v-model="form.name"
@@ -248,7 +250,9 @@ function submit(): void {
                                 <InputError :message="form.errors.name" />
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="contact-email">Email</Label>
+                                <Label for="contact-email">{{
+                                    $t('Email')
+                                }}</Label>
                                 <Input
                                     id="contact-email"
                                     v-model="form.email"
@@ -262,10 +266,10 @@ function submit(): void {
                             </div>
                             <div class="grid gap-1.5">
                                 <Label for="contact-phone">
-                                    Phone
-                                    <span class="text-ink-slate font-normal"
-                                        >(optional)</span
-                                    >
+                                    {{ $t('Phone') }}
+                                    <span class="text-ink-slate font-normal">{{
+                                        $t('(optional)')
+                                    }}</span>
                                 </Label>
                                 <Input
                                     id="contact-phone"
@@ -280,10 +284,10 @@ function submit(): void {
                             </div>
                             <div class="grid gap-1.5">
                                 <Label for="contact-organisation">
-                                    Hotel or organisation
-                                    <span class="text-ink-slate font-normal"
-                                        >(optional)</span
-                                    >
+                                    {{ $t('Hotel or organisation') }}
+                                    <span class="text-ink-slate font-normal">{{
+                                        $t('(optional)')
+                                    }}</span>
                                 </Label>
                                 <Input
                                     id="contact-organisation"
@@ -300,10 +304,10 @@ function submit(): void {
                                 <legend
                                     class="text-sm leading-none font-medium"
                                 >
-                                    Team size
-                                    <span class="text-ink-slate font-normal"
-                                        >(optional)</span
-                                    >
+                                    {{ $t('Team size') }}
+                                    <span class="text-ink-slate font-normal">{{
+                                        $t('(optional)')
+                                    }}</span>
                                 </legend>
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     <button
@@ -330,7 +334,9 @@ function submit(): void {
                                 <InputError :message="form.errors.employees" />
                             </fieldset>
                             <div class="grid gap-1.5 sm:col-span-2">
-                                <Label for="contact-message">Message</Label>
+                                <Label for="contact-message">{{
+                                    $t('Message')
+                                }}</Label>
                                 <textarea
                                     id="contact-message"
                                     v-model="form.message"
@@ -343,7 +349,9 @@ function submit(): void {
                             </div>
                             <!-- Left empty by people; bots fill it in. -->
                             <div class="hidden" aria-hidden="true">
-                                <label for="contact-website">Website</label>
+                                <label for="contact-website">{{
+                                    $t('Website')
+                                }}</label>
                                 <input
                                     id="contact-website"
                                     v-model="form.website"
@@ -382,8 +390,11 @@ function submit(): void {
                                         class="text-success mt-0.5 size-4 shrink-0"
                                         aria-hidden="true"
                                     />
-                                    We only use your details to answer your
-                                    message.
+                                    {{
+                                        $t(
+                                            'We only use your details to answer your message.',
+                                        )
+                                    }}
                                 </p>
                             </div>
                         </form>

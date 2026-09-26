@@ -12,15 +12,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property array<string, mixed>|null $content
+ * @property array<string, mixed>|null $content_ar the Arabic copy (I18N-02)
  * @property int|null $updated_by
  */
-#[Fillable(['content', 'updated_by'])]
+#[Fillable(['content', 'content_ar', 'updated_by'])]
 class LandingPageContent extends Model
 {
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['content' => 'array'];
+        return ['content' => 'array', 'content_ar' => 'array'];
     }
 
     /** @return BelongsTo<User, $this> */

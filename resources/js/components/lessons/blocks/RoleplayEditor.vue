@@ -87,7 +87,7 @@ function toggle(id: number): void {
                     :aria-pressed="selected.has(scenario.id)"
                     :class="
                         cn(
-                            'flex items-center gap-2 rounded-md border px-3 py-2 text-left text-[13px] transition',
+                            'flex items-center gap-2 rounded-md border px-3 py-2 text-start text-[13px] transition',
                             selected.has(scenario.id)
                                 ? 'border-brand-600 bg-brand-50 text-brand-700'
                                 : 'border-line bg-surface text-ink hover:bg-app-alt',

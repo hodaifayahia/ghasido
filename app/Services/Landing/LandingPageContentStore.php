@@ -177,40 +177,90 @@ final class LandingPageContentStore
         ];
     }
 
-    /** @return array<string, mixed> */
-    public function current(): array
+    /**
+     * The page copy in one language: English, or Arabic (I18N-02). With no
+     * language given, the visitor's interface language decides. The contact
+     * details are the same in both languages, so Arabic takes them from the
+     * English copy.
+     *
+     * @return array<string, mixed>
+     */
+    public function current(?string $locale = null): array
     {
-        $content = LandingPageContent::query()->find(1)?->content;
+        $page = LandingPageContent::query()->find(1);
+        $english = $this->mergeWithDefaults(is_array($page?->content) ? $page->content : []);
 
-        return $this->mergeWithDefaults(is_array($content) ? $content : []);
+        if (($locale ?? app()->getLocale()) !== 'ar') {
+            return $english;
+        }
+
+        $arabic = $this->mergeKeepingLists(
+            LandingPageArabicDefaults::all(),
+            is_array($page?->content_ar) ? $page->content_ar : [],
+        );
+        $arabic['support'] = $english['support'];
+
+        return $arabic;
     }
 
     /** @param array<string, mixed> $content */
-    public function save(array $content, User $actor): LandingPageContent
+    public function save(array $content, User $actor, string $locale = 'en'): LandingPageContent
     {
-        return DB::transaction(function () use ($content, $actor): LandingPageContent {
+        return DB::transaction(function () use ($content, $actor, $locale): LandingPageContent {
             $page = LandingPageContent::query()->find(1) ?? new LandingPageContent;
             $isNew = ! $page->exists;
 
             if ($isNew) {
                 $page->id = 1;
+                // The English copy must exist before the Arabic one alone.
+                $page->content = $this->mergeWithDefaults([]);
             }
 
-            $page->content = $this->mergeWithDefaults($content);
+            if ($locale === 'ar') {
+                // Contact details live on the English copy only.
+                unset($content['support']);
+                $page->content_ar = $this->mergeKeepingLists(LandingPageArabicDefaults::all(), $content);
+            } else {
+                $page->content = $this->mergeWithDefaults($content);
+            }
+
             $page->updated_by = $actor->id;
 
             if ($isNew) {
                 $page->save();
                 AuditLog::record($page, 'landing-page.content.updated', [
+                    'locale' => $locale,
                     'sections' => array_keys($content),
                 ]);
             } else {
-                AuditLog::record($page, 'landing-page.content.updated');
+                AuditLog::record($page, 'landing-page.content.updated', ['locale' => $locale]);
                 $page->save();
             }
 
             return $page;
         });
+    }
+
+    /**
+     * Stored copy over the defaults, section by section. A list (roles,
+     * steps, bullet points) is taken whole from the stored copy, so an item
+     * the admin removed stays removed.
+     *
+     * @param  array<string, mixed>  $defaults
+     * @param  array<string, mixed>  $stored
+     * @return array<string, mixed>
+     */
+    private function mergeKeepingLists(array $defaults, array $stored): array
+    {
+        foreach ($stored as $key => $value) {
+            $default = $defaults[$key] ?? null;
+
+            $defaults[$key] = is_array($value) && is_array($default) && ! array_is_list($value) && ! array_is_list($default)
+                ? $this->mergeKeepingLists($default, $value)
+                : $value;
+        }
+
+        return $defaults;
     }
 
     /** @param array<string, mixed> $content

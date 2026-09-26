@@ -57,7 +57,7 @@ function toggle(id: number): void {
                 v-if="results.rows.length"
                 class="border-line @container overflow-x-auto rounded-md border"
             >
-                <table class="w-full min-w-[620px] border-collapse text-left">
+                <table class="w-full min-w-[620px] border-collapse text-start">
                     <thead
                         class="bg-brand-50/35 text-ink-slate text-[11px] font-semibold tracking-[0.08em] uppercase"
                     >
