@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -48,6 +49,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $first_login_completed_at
  * @property Carbon|null $research_notice_acknowledged_at
  * @property Carbon|null $last_login_at
+ * @property Carbon|null $welcomed_at
  * @property Carbon|null $last_activity_at
  * @property Carbon|null $training_started_at
  * @property Carbon|null $training_completed_at
@@ -59,6 +61,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $english_level_assessed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read IndividualSubscription|null $individualSubscription
  */
 #[Fillable([
     'name',
@@ -120,6 +123,7 @@ class User extends Authenticatable implements PasskeyUser
             'first_login_completed_at' => 'datetime',
             'research_notice_acknowledged_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'welcomed_at' => 'datetime',
             'last_activity_at' => 'datetime',
             'training_started_at' => 'datetime',
             'training_completed_at' => 'datetime',
@@ -203,6 +207,23 @@ class User extends Authenticatable implements PasskeyUser
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * An individual subscriber's own configuration: a learner with no hotel
+     * (user request 2026-09-25).
+     *
+     * @return HasOne<IndividualSubscription, $this>
+     */
+    public function individualSubscription(): HasOne
+    {
+        return $this->hasOne(IndividualSubscription::class);
+    }
+
+    /** A learner with no hotel, on their own subscription. */
+    public function isIndividual(): bool
+    {
+        return $this->hotel_id === null && $this->individualSubscription !== null;
     }
 
     /**
@@ -322,13 +343,13 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function hasSubmittedPreTest(): bool
     {
-        return $this->testAttempts()
+        return $this->oncePerRequest('pre-test-submitted', fn (): bool => $this->testAttempts()
             ->where('status', TestAttemptStatus::Submitted->value)
             ->whereHas('test', function (Builder $test): void {
                 /** @var Builder<Test> $test */
                 $test->ofType(TestType::Pre)->forLearner($this);
             })
-            ->exists();
+            ->exists());
     }
 
     /**
@@ -338,7 +359,30 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function hasPreTestToSit(): bool
     {
-        return Test::query()->forLearner($this)->ofType(TestType::Pre)->exists();
+        return $this->oncePerRequest('pre-test-to-sit', fn (): bool => Test::query()->forLearner($this)->ofType(TestType::Pre)->exists());
+    }
+
+    /**
+     * The gate checks run many times in one HTTP request (middleware,
+     * policies, the shared journey prop): answer each once per request.
+     * Kept on the request, never on the model, so the next request, a test
+     * request or a queued job reads fresh rows. A submitted test always
+     * redirects, so no request writes a sitting and then reads the gate.
+     */
+    private function oncePerRequest(string $key, \Closure $compute): bool
+    {
+        $request = request();
+        $key = 'user.'.$this->id.'.'.$key;
+
+        if ($request->route() === null) {
+            return (bool) $compute();
+        }
+
+        if (! $request->attributes->has($key)) {
+            $request->attributes->set($key, (bool) $compute());
+        }
+
+        return (bool) $request->attributes->get($key);
     }
 
     /**

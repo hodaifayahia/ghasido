@@ -110,7 +110,36 @@ class Activity extends Model
      */
     public function contentChanged(): bool
     {
-        return $this->isDirty('payload') || $this->isDirty('scoring');
+        // MySQL's JSON type returns object keys in its own order, so a value
+        // read back and saved unchanged would look "dirty" to Eloquent and
+        // mint a new version for nothing. Compare the content, not the key
+        // order (DATA-11).
+        foreach (['payload', 'scoring'] as $key) {
+            if ($this->isDirty($key)
+                && self::canonical($this->getOriginal($key)) !== self::canonical($this->getAttribute($key))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The same value with every object's keys sorted, lists left in order.
+     */
+    public static function canonical(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map(self::canonical(...), $value);
+
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
     }
 
     /**

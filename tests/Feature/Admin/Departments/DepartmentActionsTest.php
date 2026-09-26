@@ -148,8 +148,8 @@ class DepartmentActionsTest extends TestCase
         $this->assertSame($hotel->id, $department->hotel_id);
 
         $audit = $this->assertOneAuditRow($department, 'department.updated');
-        $this->assertSame(['from' => 'Old', 'to' => 'Spa welcome, treatment briefing and product upsell.'], $audit->changes['attributes']['focus'] ?? null);
-        $this->assertSame(['from' => 'Spa', 'to' => 'Spa & Wellness'], $audit->changes['attributes']['name'] ?? null);
+        $this->assertEquals(['from' => 'Old', 'to' => 'Spa welcome, treatment briefing and product upsell.'], $audit->changes['attributes']['focus'] ?? null);
+        $this->assertEquals(['from' => 'Spa', 'to' => 'Spa & Wellness'], $audit->changes['attributes']['name'] ?? null);
     }
 
     public function test_editing_a_department_to_its_own_name_is_not_a_duplicate()

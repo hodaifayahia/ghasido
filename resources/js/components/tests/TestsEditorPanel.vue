@@ -314,6 +314,7 @@ function save(settings?: TestSettings): void {
             'motivational_message',
             existingSettings.motivational_message,
         ),
+        show_meaning: toggle('show_meaning', existingSettings.show_meaning),
         pass_mark: passMark === '' ? null : Number(passMark),
     });
 }

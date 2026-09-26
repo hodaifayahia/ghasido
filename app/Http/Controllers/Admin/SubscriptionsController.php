@@ -10,7 +10,6 @@ use App\Models\AuditLog;
 use App\Models\Hotel;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
-use App\Models\User;
 use App\Services\Subscriptions\HotelAiPointTopUpService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +42,11 @@ final class SubscriptionsController extends Controller
                 'slug' => $plan->slug,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
+                'priceUsd' => $plan->price_usd,
+                'extraPointsPriceDzd' => $plan->extra_points_price_dzd,
+                'extraPointsPriceUsd' => $plan->extra_points_price_usd,
+                'extraSeatPriceDzd' => $plan->extra_seat_price_dzd,
+                'extraSeatPriceUsd' => $plan->extra_seat_price_usd,
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
@@ -58,13 +62,14 @@ final class SubscriptionsController extends Controller
                 'planId' => $hotel->subscription_plan_id,
                 'planName' => $hotel->subscriptionPlan?->name,
                 'usedEmployees' => $hotel->active_employees_count ?? $hotel->usedSeats(),
-                'employeeLimit' => $hotel->subscriptionPlan?->employee_limit ?? 0,
+                'employeeLimit' => $hotel->subscriptionPlan->employee_limit ?? 0,
             ])->values()->all(),
             'activePlans' => $plans->where('is_active', true)->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
+                'priceUsd' => $plan->price_usd,
             ])->values()->all(),
             'paymentMethods' => SubscriptionPaymentMethod::query()
                 ->orderBy('sort_order')
@@ -102,8 +107,8 @@ final class SubscriptionsController extends Controller
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
             'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
         ]);
-        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail($data['hotel_id']);
-        $plan = SubscriptionPlan::query()->findOrFail($data['plan_id']);
+        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail((int) $data['hotel_id']);
+        $plan = SubscriptionPlan::query()->findOrFail((int) $data['plan_id']);
         $subscriptions->assignPlan($hotel, $plan);
 
         Inertia::flash('toast', [
@@ -118,12 +123,14 @@ final class SubscriptionsController extends Controller
     {
         Gate::authorize(Permission::SubscriptionsManage->value);
 
-        abort_unless($request->user()?->hasRole(Role::SuperAdmin->value), 403);
+        abort_unless($request->user('web')?->hasRole(Role::SuperAdmin->value), 403);
 
         $data = $request->validate([
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
             'points' => ['required', 'integer', 'min:1', 'max:100000000'],
-            'amount_dzd' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'currency' => ['sometimes', Rule::in(['DZD', 'USD'])],
+            'amount_dzd' => ['exclude_if:currency,USD', 'required', 'integer', 'min:1', 'max:1000000000'],
+            'amount_usd' => ['exclude_unless:currency,USD', 'required', 'numeric', 'min:0.01', 'max:100000000', 'decimal:0,2'],
             'payment_method_id' => ['nullable', 'integer', 'exists:subscription_payment_methods,id'],
             'payment_reference' => ['nullable', 'string', 'max:120'],
             'payment_received' => ['accepted'],
@@ -132,14 +139,15 @@ final class SubscriptionsController extends Controller
         $hotel = Hotel::query()
             ->withoutGlobalScopes()
             ->notArchived()
-            ->findOrFail($data['hotel_id']);
+            ->findOrFail((int) $data['hotel_id']);
 
-        /** @var User $actor */
-        $actor = $request->user();
+        $actor = $request->user('web');
         $topUps->recordPayment(
             $hotel,
             (int) $data['points'],
-            (int) $data['amount_dzd'],
+            ($data['currency'] ?? 'DZD') === 'USD'
+                ? ['currency' => 'USD', 'amount' => round((float) $data['amount_usd'], 2)]
+                : ['currency' => 'DZD', 'amount' => (int) $data['amount_dzd']],
             isset($data['payment_method_id']) ? (int) $data['payment_method_id'] : null,
             $data['payment_reference'] ?? null,
             $actor,

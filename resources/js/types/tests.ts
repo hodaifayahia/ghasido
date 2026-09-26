@@ -160,6 +160,7 @@ export type TestEditorSavePayload = {
     results_visibility: 'hidden' | 'score' | 'score_breakdown';
     show_answers: boolean;
     motivational_message: boolean;
+    show_meaning: boolean;
     pass_mark: number | null;
 };
 
@@ -198,6 +199,7 @@ export type TestEditorSettings = {
     results_visibility: 'hidden' | 'score' | 'score_breakdown';
     show_answers: boolean;
     motivational_message: boolean;
+    show_meaning: boolean;
     passMark: string;
 };
 

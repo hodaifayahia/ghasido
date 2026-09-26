@@ -27,3 +27,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# SQLite file the test suite creates from DB_DATABASE=testing
+/testing
+/testing-shm
+/testing-wal
+/tests/load/users.json

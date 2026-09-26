@@ -2,6 +2,7 @@
 import { Heart } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * "Remember!" (spec 0003 G.4), measured on desginphotos/employ/photo_20 at
@@ -38,7 +39,11 @@ const props = defineProps<Props>();
             >
                 {{ title }}
             </h2>
-            <p class="text-ink-slate mt-2.5 text-sm leading-5">{{ text }}</p>
+            <MeaningText
+                :text="text"
+                class="text-ink-slate text-sm leading-5"
+                wrapper-class="mt-2.5"
+            />
         </div>
     </aside>
 </template>

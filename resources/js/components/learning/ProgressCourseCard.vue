@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 import type { ProgressCourse } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * One course's completion on My Progress (PROG-02, PROG-05): a title, the
@@ -42,11 +43,11 @@ onMounted(() => {
         :aria-label="course.title"
     >
         <div class="flex items-baseline justify-between gap-3">
-            <h2
+            <MeaningText
+                as="h2"
+                :text="course.title"
                 class="font-heading text-ink-night truncate text-lg leading-6 font-semibold"
-            >
-                {{ course.title }}
-            </h2>
+            />
             <span class="text-brand-700 font-heading text-lg font-bold">
                 {{ course.percent }}%
             </span>

@@ -12,6 +12,8 @@ import TipCard from '@/components/learning/TipCard.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { AudioPair, LessonSummary, MediaRef, StepBlock } from '@/types';
+import MeaningRow from '@/components/learning/meaning/MeaningRow.vue';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The fallback renderer for any block type without its own step component
@@ -94,9 +96,12 @@ const summary = computed(() => props.block.summary);
 
 <template>
     <div class="mt-3 flex flex-col gap-4">
-        <p v-if="subtitle" class="text-ink-graphite text-lg leading-7">
-            {{ subtitle }}
-        </p>
+        <MeaningText
+            as="p"
+            :text="subtitle"
+            v-if="subtitle"
+            class="text-ink-graphite text-lg leading-7"
+        />
 
         <div
             :class="
@@ -119,12 +124,12 @@ const summary = computed(() => props.block.summary);
                     :title="sentence ?? block.heading"
                     :text="sentence ? null : block.heading"
                 >
-                    <p
+                    <MeaningText
+                        as="p"
+                        :text="body"
                         v-if="body"
                         class="text-ink-graphite text-lg leading-7 whitespace-pre-line"
-                    >
-                        {{ body }}
-                    </p>
+                    />
                     <div v-if="sentenceAudio" class="mt-4 flex flex-wrap gap-3">
                         <AudioButton
                             :src="sentenceAudio.normal"
@@ -204,9 +209,11 @@ const summary = computed(() => props.block.summary);
                             :key="index"
                             class="flex flex-wrap items-center gap-3"
                         >
-                            <span class="text-ink flex-1 text-lg leading-7">
-                                {{ item.text }}
-                            </span>
+                            <MeaningText
+                                as="span"
+                                :text="item.text"
+                                class="text-ink flex-1 text-lg leading-7"
+                            />
                             <AudioButton
                                 size="sm"
                                 :src="item.text_audio?.normal ?? null"
@@ -286,31 +293,35 @@ const summary = computed(() => props.block.summary);
                             v-for="(card, index) in block.activities"
                             :key="card.id"
                         >
-                            <Link
-                                :href="card.url"
-                                class="border-line hover:border-brand-300 focus-visible:ring-brand-600/40 flex min-h-14 items-center gap-3 rounded-lg border px-4 py-3 focus-visible:ring-3 focus-visible:outline-none"
-                            >
-                                <span class="min-w-0 flex-1">
-                                    <span
-                                        class="text-ink block text-base font-semibold"
-                                    >
-                                        {{ index + 1 }}. {{ card.label }}
-                                    </span>
-                                    <span class="text-ink-slate block text-sm">
-                                        {{ card.description }}
-                                    </span>
-                                </span>
-                                <span
-                                    v-if="card.done"
-                                    class="rounded-pill bg-success-tint text-success-text px-2.5 py-1 text-xs font-semibold"
+                            <MeaningRow :text="card.description">
+                                <Link
+                                    :href="card.url"
+                                    class="border-line hover:border-brand-300 focus-visible:ring-brand-600/40 flex min-h-14 items-center gap-3 rounded-lg border px-4 py-3 focus-visible:ring-3 focus-visible:outline-none"
                                 >
-                                    Done
-                                </span>
-                                <ArrowRight
-                                    class="text-brand-600 size-5 shrink-0"
-                                    aria-hidden="true"
-                                />
-                            </Link>
+                                    <span class="min-w-0 flex-1">
+                                        <span
+                                            class="text-ink block text-base font-semibold"
+                                        >
+                                            {{ index + 1 }}. {{ card.label }}
+                                        </span>
+                                        <span
+                                            class="text-ink-slate block text-sm"
+                                        >
+                                            {{ card.description }}
+                                        </span>
+                                    </span>
+                                    <span
+                                        v-if="card.done"
+                                        class="rounded-pill bg-success-tint text-success-text px-2.5 py-1 text-xs font-semibold"
+                                    >
+                                        Done
+                                    </span>
+                                    <ArrowRight
+                                        class="text-brand-600 size-5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </MeaningRow>
                         </li>
                     </ul>
                 </TaskCard>
@@ -326,35 +337,39 @@ const summary = computed(() => props.block.summary);
                             v-for="scenario in block.scenarios"
                             :key="scenario.id"
                         >
-                            <Link
-                                :href="scenario.url"
-                                class="border-line hover:border-brand-300 focus-visible:ring-brand-600/40 flex min-h-14 items-center gap-3 rounded-lg border px-4 py-3 focus-visible:ring-3 focus-visible:outline-none"
-                            >
-                                <img
-                                    v-if="scenario.thumbnail"
-                                    :src="scenario.thumbnail.url"
-                                    :alt="scenario.thumbnail.alt ?? ''"
-                                    loading="lazy"
-                                    decoding="async"
-                                    class="size-14 shrink-0 rounded-sm object-cover"
-                                />
-                                <span class="min-w-0 flex-1">
-                                    <span
-                                        class="text-ink block text-base font-semibold"
-                                    >
-                                        {{ scenario.title }}
+                            <MeaningRow :text="scenario.title">
+                                <Link
+                                    :href="scenario.url"
+                                    class="border-line hover:border-brand-300 focus-visible:ring-brand-600/40 flex min-h-14 items-center gap-3 rounded-lg border px-4 py-3 focus-visible:ring-3 focus-visible:outline-none"
+                                >
+                                    <img
+                                        v-if="scenario.thumbnail"
+                                        :src="scenario.thumbnail.url"
+                                        :alt="scenario.thumbnail.alt ?? ''"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="size-14 shrink-0 rounded-sm object-cover"
+                                    />
+                                    <span class="min-w-0 flex-1">
+                                        <span
+                                            class="text-ink block text-base font-semibold"
+                                        >
+                                            {{ scenario.title }}
+                                        </span>
+                                        <span
+                                            class="text-ink-slate block text-sm"
+                                        >
+                                            {{ scenario.attemptsLeft }} of
+                                            {{ scenario.attemptsAllowed }}
+                                            attempts left
+                                        </span>
                                     </span>
-                                    <span class="text-ink-slate block text-sm">
-                                        {{ scenario.attemptsLeft }} of
-                                        {{ scenario.attemptsAllowed }} attempts
-                                        left
-                                    </span>
-                                </span>
-                                <ArrowRight
-                                    class="text-brand-600 size-5 shrink-0"
-                                    aria-hidden="true"
-                                />
-                            </Link>
+                                    <ArrowRight
+                                        class="text-brand-600 size-5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </MeaningRow>
                         </li>
                     </ul>
                 </TaskCard>
@@ -369,12 +384,12 @@ const summary = computed(() => props.block.summary);
                         You have completed {{ summary.lessonsCompleted }} of
                         {{ summary.lessonsTotal }} lessons.
                     </p>
-                    <p
+                    <MeaningText
+                        as="p"
+                        :text="quote"
                         v-if="quote"
                         class="font-quote text-ink-graphite mt-3 text-lg whitespace-pre-line italic"
-                    >
-                        {{ quote }}
-                    </p>
+                    />
                     <Link
                         v-if="summary.nextLesson"
                         :href="summary.nextLesson.url"

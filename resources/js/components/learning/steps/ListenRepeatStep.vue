@@ -15,6 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { usePronunciationCheck } from '@/composables/usePronunciationCheck';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import type { LessonSummary, PronunciationWord, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 4, "Listen & Repeat" (LESSON-06, RESP-05, TEST-07, DATA-02; photo_4):
@@ -86,9 +87,12 @@ function onRecordAgain(): void {
 
 <template>
     <div class="mt-3 flex flex-col gap-4">
-        <p v-if="subtitle" class="text-ink-slate text-lg leading-7">
-            {{ subtitle }}
-        </p>
+        <MeaningText
+            as="p"
+            :text="subtitle"
+            v-if="subtitle"
+            class="text-ink-slate text-lg leading-7"
+        />
 
         <div class="grid gap-6 md:grid-cols-[minmax(0,48fr)_minmax(0,52fr)]">
             <div class="flex min-w-0 flex-col gap-4">

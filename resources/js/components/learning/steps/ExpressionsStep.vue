@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import ExpressionFeaturedCard from '@/components/learning/vocab/ExpressionFeaturedCard.vue';
 import ExpressionsList from '@/components/learning/vocab/ExpressionsList.vue';
 import type { LessonSummary, StepBlock } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 3, "Useful Expressions" (LESSON-06, CTRL-01..03, PHRASE-02; photo_3):
@@ -44,9 +45,12 @@ const tip = computed(() => props.block.settings.tip ?? null);
 
 <template>
     <div class="mt-3 flex flex-col gap-4">
-        <p v-if="subtitle" class="text-ink-slate text-lg leading-7">
-            {{ subtitle }}
-        </p>
+        <MeaningText
+            as="p"
+            :text="subtitle"
+            v-if="subtitle"
+            class="text-ink-slate text-lg leading-7"
+        />
 
         <div class="grid gap-6 md:grid-cols-[minmax(0,58fr)_minmax(0,42fr)]">
             <ExpressionFeaturedCard

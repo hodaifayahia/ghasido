@@ -18,6 +18,7 @@ use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
+use App\Contracts\TextTranslationDraft;
 use App\Contracts\WritingEvaluation;
 use App\Enums\Accent;
 use App\Enums\EnglishLevel;
@@ -30,6 +31,7 @@ use App\Services\Ai\Concerns\BuildsLessonPrompts;
 use App\Services\Ai\Concerns\BuildsPronunciationPrompts;
 use App\Services\Ai\Concerns\BuildsReminderPrompts;
 use App\Services\Ai\Concerns\BuildsRoleplayPrompts;
+use App\Services\Ai\Concerns\BuildsTranslationPrompts;
 use App\Services\Ai\Concerns\ParsesJsonReplies;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -61,6 +63,7 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
     use BuildsPronunciationPrompts;
     use BuildsReminderPrompts;
     use BuildsRoleplayPrompts;
+    use BuildsTranslationPrompts;
     use Concerns\BuildsAssessmentPrompts;
     use ParsesJsonReplies;
 
@@ -172,6 +175,17 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
             hotelExampleArabic: $this->string($data, 'hotel_example_arabic', ''),
             ipa: $this->nullableString($data, 'ipa'),
             partOfSpeech: $this->nullableString($data, 'part_of_speech'),
+            usage: $result['usage'],
+        );
+    }
+
+    public function translateText(string $english): TextTranslationDraft
+    {
+        $result = $this->complete($this->translationSystemPrompt(), $this->translationMessages($english));
+        $data = $this->decodeJson($result['text']);
+
+        return new TextTranslationDraft(
+            arabic: $this->string($data, 'arabic', ''),
             usage: $result['usage'],
         );
     }

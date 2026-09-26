@@ -27,6 +27,7 @@ final class LandingPageContentStore
                 'login' => 'Log in',
                 'get_started' => 'Get started',
                 'open_dashboard' => 'Open dashboard',
+                'contact' => 'Contact us',
             ],
             'hero' => [
                 'eyebrow' => 'English for every hotel team',
@@ -125,6 +126,8 @@ final class LandingPageContentStore
                     'Manager progress reporting',
                 ],
                 'footnote' => 'Your request stays pending until the GHASIDO team confirms the plan and activates your hotel.',
+                'region_algeria' => 'Algeria (DZD)',
+                'region_international' => 'International (USD)',
             ],
             'checkout' => [
                 'eyebrow' => 'Complete your hotel request',
@@ -149,6 +152,27 @@ final class LandingPageContentStore
             ],
             'support' => [
                 'whatsapp_number' => '',
+                'phone' => '',
+                'email' => '',
+            ],
+            'contact' => [
+                'eyebrow' => 'Contact us',
+                'title' => 'Let’s build the right plan for your team.',
+                'description' => 'Tell us about your hotel and your team. We answer every message, usually within one working day.',
+                'form_title' => 'Send us a message',
+                'submit_button' => 'Send message',
+                'success_message' => 'Thank you. Your message has been sent and we will get back to you soon.',
+                'enterprise_title' => 'Hotel / Enterprise',
+                'enterprise_subtitle' => 'More than 15 employees?',
+                'enterprise_description' => 'We offer customised plans for hotels and large organisations. Get a tailored quote based on your team size, departments and training needs.',
+                'enterprise_points' => [
+                    'Flexible number of accounts',
+                    'Customised training paths',
+                    'Manager dashboard and detailed reports',
+                    'Ongoing support',
+                ],
+                'enterprise_button' => 'Contact us',
+                'enterprise_note' => 'Let’s build the right plan for your team.',
             ],
         ];
     }

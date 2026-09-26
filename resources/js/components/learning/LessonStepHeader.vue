@@ -2,6 +2,7 @@
 import { ConciergeBell } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The heading row of every lesson step (spec 0003 H.2), measured on
@@ -35,14 +36,19 @@ const props = defineProps<Props>();
         "
     >
         <div class="min-w-0">
-            <h1
+            <MeaningText
+                as="h1"
+                :text="heading"
                 class="font-heading text-ink-night pt-1 text-[28px] leading-10 font-bold tracking-[-0.02em]"
             >
                 <template v-if="number">{{ number }}. </template>{{ heading }}
-            </h1>
-            <p v-if="subtitle" class="text-ink-graphite mt-1 text-lg leading-7">
-                {{ subtitle }}
-            </p>
+            </MeaningText>
+            <MeaningText
+                v-if="subtitle"
+                :text="subtitle"
+                class="text-ink-graphite text-lg leading-7"
+                wrapper-class="mt-1"
+            />
         </div>
 
         <!-- The 31px space is a gap, not a margin, so on a very narrow

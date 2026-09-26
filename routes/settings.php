@@ -20,6 +20,7 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::middleware(Permission::LandingManage->middleware())->group(function (): void {
         Route::get('settings/landing-page', [LandingPageController::class, 'edit'])->name('landing-page.edit');
         Route::patch('settings/landing-page', [LandingPageController::class, 'update'])->name('landing-page.update');
+        Route::patch('settings/contact-messages/{contactMessage}/read', [LandingPageController::class, 'markContactMessageRead'])->name('contact-messages.read');
     });
 });
 

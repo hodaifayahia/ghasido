@@ -128,4 +128,11 @@ interface AiProvider
      * @param  list<string>  $words  the words of the sentence practised
      */
     public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching;
+
+    /**
+     * The Arabic meaning of one English text a learner is reading: a course
+     * title, an objective, a question (CTRL-01..03; client decision
+     * 2026-09-26). Plain translation, never a hint at the right answer.
+     */
+    public function translateText(string $english): TextTranslationDraft;
 }

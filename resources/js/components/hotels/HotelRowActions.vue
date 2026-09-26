@@ -5,6 +5,7 @@ import {
     Check,
     EllipsisVertical,
     Eye,
+    Network,
     Pause,
     Pencil,
     Play,
@@ -82,6 +83,12 @@ const items = computed<Item[]>(() => {
                 action: 'seats',
                 label: 'Manage seats',
                 icon: Users,
+                group: 'read',
+            },
+            {
+                action: 'departments',
+                label: 'Departments',
+                icon: Network,
                 group: 'read',
             },
         );

@@ -9,6 +9,7 @@ import TipCard from '@/components/learning/TipCard.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 5, "Dialogue" (LESSON-06, CTRL-01..03; photo_5): the scene photo on
@@ -46,9 +47,12 @@ function go(to: number): void {
 
 <template>
     <div class="mt-3 flex flex-col gap-4">
-        <p v-if="subtitle" class="text-ink-slate text-lg leading-7">
-            {{ subtitle }}
-        </p>
+        <MeaningText
+            as="p"
+            :text="subtitle"
+            v-if="subtitle"
+            class="text-ink-slate text-lg leading-7"
+        />
 
         <div class="grid gap-6 md:grid-cols-[minmax(0,48fr)_minmax(0,52fr)]">
             <SidePhotoCard

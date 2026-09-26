@@ -2,6 +2,7 @@
 import { CircleCheck, Lightbulb } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * "Good to know" (spec 0003 G.4), measured on desginphotos/employ/photo_20
@@ -50,9 +51,11 @@ const props = defineProps<Props>();
                     class="text-success-text [&>path]:stroke-surface size-5 shrink-0 fill-current"
                     aria-hidden="true"
                 />
-                <span class="text-ink-slate text-[13px] leading-5">{{
-                    item
-                }}</span>
+                <MeaningText
+                    as="span"
+                    :text="item"
+                    class="text-ink-slate block text-[13px] leading-5"
+                />
             </li>
         </ul>
     </section>

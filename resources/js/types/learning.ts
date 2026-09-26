@@ -450,3 +450,12 @@ export type FirstLoginUser = {
     reminderConsent: boolean;
     completed: boolean;
 };
+
+/**
+ * An admin-written Arabic meaning for one piece of lesson text
+ * (lessons.meanings, user request 2026-09-25).
+ */
+export type LessonMeaning = {
+    arabic: string;
+    explanation: string | null;
+};

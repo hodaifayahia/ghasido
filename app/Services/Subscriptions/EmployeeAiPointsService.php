@@ -58,7 +58,7 @@ final class EmployeeAiPointsService
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'username' => $employee->username,
-                'department' => $employee->department?->name ?? __('Unassigned'),
+                'department' => $employee->department->name ?? __('Unassigned'),
                 'status' => $employee->status->value,
                 'allocated' => $employee->ai_points_allocated,
                 'used' => $consumed,

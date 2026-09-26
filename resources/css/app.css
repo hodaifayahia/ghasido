@@ -170,6 +170,10 @@
     --color-tint-grid: #eef3f9; /* chart gridlines, guest dialogue bubble */
     --color-tint-step: #e2e9f3; /* upcoming step circle */
     --color-tint-note: #fff8e1; /* sticky note */
+    /* Algeria flag on the landing page's DZD/USD pricing switch (client
+       mockup 2026-09-26); the official flag colours, not brand colours. */
+    --color-flag-dz-green: #006233;
+    --color-flag-dz-red: #d21034;
 
     /* --- Gradients -> bg-grad-page / bg-grad-brand / bg-grad-header -------- */
     --background-image-grad-page: linear-gradient(
@@ -252,6 +256,62 @@
        reads its own --confetti-x/y/r offsets. */
     --animate-confetti: confetti 1100ms var(--ease-brand) both;
     --animate-pop-in: pop-in 300ms var(--ease-brand) both;
+    /* The one-time welcome after a user's first sign-in (client request
+       2026-09-26): the palm mark springs in inside a soft brand halo while
+       light orbs drift behind it; the bar fills while it plays. */
+    --animate-welcome-mark: welcome-mark 900ms var(--ease-brand) both;
+    --animate-welcome-halo: welcome-halo 2.4s var(--ease-brand) infinite;
+    --animate-welcome-float: welcome-float 7s ease-in-out infinite;
+    --animate-welcome-bar: welcome-bar 5s linear both;
+    --animate-welcome-exit: welcome-exit 420ms var(--ease-brand) both;
+
+    @keyframes welcome-mark {
+        0% {
+            opacity: 0;
+            transform: scale(0.4) rotate(-10deg);
+        }
+        60% {
+            opacity: 1;
+            transform: scale(1.08) rotate(3deg);
+        }
+        100% {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    @keyframes welcome-halo {
+        0% {
+            opacity: 0.55;
+            transform: scale(0.85);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.6);
+        }
+    }
+    @keyframes welcome-float {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+        50% {
+            transform: translate3d(0, -18px, 0);
+        }
+    }
+    @keyframes welcome-bar {
+        from {
+            transform: scaleX(0);
+        }
+        to {
+            transform: scaleX(1);
+        }
+    }
+    @keyframes welcome-exit {
+        to {
+            opacity: 0;
+            transform: scale(1.03);
+        }
+    }
 
     @keyframes confetti {
         0% {

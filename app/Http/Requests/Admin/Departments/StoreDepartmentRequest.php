@@ -43,7 +43,7 @@ class StoreDepartmentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $user = $this->user();
+        $user = $this->user('web');
         $superAdmin = $user?->hasRole(Role::SuperAdmin->value) ?? false;
         $hotelId = $this->hotelId();
 

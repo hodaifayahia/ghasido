@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     Building2,
     CreditCard,
@@ -14,7 +14,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import PanelCard from '@/components/common/PanelCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
-import { dashboard, subscriptions } from '@/routes';
+import { dashboard, individuals, subscriptions } from '@/routes';
 import { hotelPlan } from '@/routes/subscriptions';
 import { update as updatePlan } from '@/routes/subscriptions/plans';
 
@@ -24,6 +24,11 @@ type Plan = {
     slug: string;
     employeeLimit: number;
     priceDzd: number;
+    priceUsd: number;
+    extraPointsPriceDzd: number;
+    extraPointsPriceUsd: number;
+    extraSeatPriceDzd: number;
+    extraSeatPriceUsd: number;
     pointsPerEmployee: number;
     bonusPointsPerEmployee: number;
     voicePointsPer10Minutes: number;
@@ -55,7 +60,10 @@ type PaymentMethod = {
 
 type Props = {
     plans: Plan[];
-    activePlans: Pick<Plan, 'id' | 'name' | 'employeeLimit' | 'priceDzd'>[];
+    activePlans: Pick<
+        Plan,
+        'id' | 'name' | 'employeeLimit' | 'priceDzd' | 'priceUsd'
+    >[];
     hotels: HotelRow[];
     paymentMethods: PaymentMethod[];
 };
@@ -78,6 +86,11 @@ const form = useForm({
     name: '',
     employee_limit: 1,
     price_dzd: 0,
+    price_usd: 0,
+    extra_points_price_dzd: 0,
+    extra_points_price_usd: 0,
+    extra_seat_price_dzd: 0,
+    extra_seat_price_usd: 0,
     points_per_employee: 2000,
     bonus_points_per_employee: 1000,
     voice_points_per_10_minutes: 100,
@@ -103,7 +116,9 @@ const pointTopUpOpen = ref(false);
 const pointTopUpForm = useForm({
     hotel_id: 0,
     points: 5000,
+    currency: 'DZD' as 'DZD' | 'USD',
     amount_dzd: 0,
+    amount_usd: 0,
     payment_method_id: null as number | null,
     payment_reference: '',
     payment_received: false,
@@ -118,11 +133,24 @@ function formatDzd(value: number): string {
     return `${new Intl.NumberFormat('fr-DZ', { maximumFractionDigits: 0 }).format(value)} DZD`;
 }
 
+function formatUsd(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
 function editPlan(plan: Plan): void {
     editing.value = plan;
     form.name = plan.name;
     form.employee_limit = plan.employeeLimit;
     form.price_dzd = plan.priceDzd;
+    form.price_usd = plan.priceUsd;
+    form.extra_points_price_dzd = plan.extraPointsPriceDzd;
+    form.extra_points_price_usd = plan.extraPointsPriceUsd;
+    form.extra_seat_price_dzd = plan.extraSeatPriceDzd;
+    form.extra_seat_price_usd = plan.extraSeatPriceUsd;
     form.points_per_employee = plan.pointsPerEmployee;
     form.bonus_points_per_employee = plan.bonusPointsPerEmployee;
     form.voice_points_per_10_minutes = plan.voicePointsPer10Minutes;
@@ -161,13 +189,38 @@ function addPaidPoints(hotel: HotelRow): void {
     pointTopUpHotel.value = hotel;
     pointTopUpForm.hotel_id = hotel.id;
     pointTopUpForm.points = 5000;
-    pointTopUpForm.amount_dzd = 0;
+    pointTopUpForm.currency = 'DZD';
+    fillSuggestedAmount();
     pointTopUpForm.payment_method_id =
         activePaymentMethods.value[0]?.id ?? null;
     pointTopUpForm.payment_reference = '';
     pointTopUpForm.payment_received = false;
     pointTopUpForm.clearErrors();
     pointTopUpOpen.value = true;
+}
+
+/** The hotel's plan, whose extra-points prices suggest the amount due. */
+const pointTopUpPlan = computed(() =>
+    props.plans.find((plan) => plan.id === pointTopUpHotel.value?.planId),
+);
+
+/** Price of the points being added, from the plan's per-1,000 price. */
+const suggestedAmount = computed(() => {
+    const plan = pointTopUpPlan.value;
+    if (!plan) return 0;
+    const packs = (Number(pointTopUpForm.points) || 0) / 1000;
+
+    return pointTopUpForm.currency === 'USD'
+        ? Math.round(packs * plan.extraPointsPriceUsd * 100) / 100
+        : Math.round(packs * plan.extraPointsPriceDzd);
+});
+
+function fillSuggestedAmount(): void {
+    if (pointTopUpForm.currency === 'USD') {
+        pointTopUpForm.amount_usd = suggestedAmount.value;
+    } else {
+        pointTopUpForm.amount_dzd = suggestedAmount.value;
+    }
 }
 
 function savePaidPoints(): void {
@@ -229,7 +282,7 @@ function savePaymentMethod(): void {
     <div class="flex min-w-0 flex-col gap-3 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
             title="Subscriptions"
-            description="Set hotel seat limits, monthly DZD prices, and AI point rates."
+            description="Set hotel seat limits, DZD and USD prices, and AI point rates."
         />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -283,6 +336,14 @@ function savePaymentMethod(): void {
                 >
                     Payment methods
                 </button>
+                <!-- Individual subscribers have their own page (user request 2026-09-25). -->
+                <Link
+                    :href="individuals()"
+                    class="text-ink-slate hover:bg-brand-50 focus-visible:ring-brand-600/15 rounded px-3 py-2 text-[12px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                    data-test="subscriptions-individuals-link"
+                >
+                    Individuals
+                </Link>
             </div>
             <p class="text-ink-muted text-[11.5px]">
                 Changes are recorded in the audit log.
@@ -331,6 +392,10 @@ function savePaymentMethod(): void {
                     </p>
                     <span class="text-ink-muted text-[11px]">/ month</span>
                 </div>
+                <p class="text-ink-slate mt-1 text-[12px] font-semibold">
+                    International: {{ formatUsd(plan.priceUsd) }}
+                    <span class="text-ink-muted font-normal">/ month</span>
+                </p>
                 <div class="mt-4 grid grid-cols-2 gap-2">
                     <div class="border-line/80 rounded-md border p-2.5">
                         <div class="text-ink-slate flex items-center gap-1.5">
@@ -359,7 +424,25 @@ function savePaymentMethod(): void {
                         </p>
                     </div>
                 </div>
-                <p class="text-ink-muted mt-3 text-[11px] leading-4">
+                <dl
+                    class="text-ink-slate mt-3 grid gap-1 text-[11px] leading-4"
+                >
+                    <div class="flex justify-between gap-2">
+                        <dt>Extra 1,000 AI points</dt>
+                        <dd class="text-ink-indigo text-end font-semibold">
+                            {{ formatDzd(plan.extraPointsPriceDzd) }} ·
+                            {{ formatUsd(plan.extraPointsPriceUsd) }}
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <dt>Extra seat / month</dt>
+                        <dd class="text-ink-indigo text-end font-semibold">
+                            {{ formatDzd(plan.extraSeatPriceDzd) }} ·
+                            {{ formatUsd(plan.extraSeatPriceUsd) }}
+                        </dd>
+                    </div>
+                </dl>
+                <p class="text-ink-muted mt-2 text-[11px] leading-4">
                     {{ plan.hotelCount }} hotels ·
                     {{ plan.pointsPerEmployee.toLocaleString() }} base points +
                     {{ plan.bonusPointsPerEmployee.toLocaleString() }} shared
@@ -605,7 +688,7 @@ function savePaymentMethod(): void {
     <HotelsModal
         v-model:open="editorOpen"
         :title="`Customize ${editing?.name ?? 'subscription'} plan`"
-        description="Seat limits, DZD price, and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are."
+        description="Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are."
         class="sm:max-w-[620px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePlan">
@@ -634,6 +717,18 @@ function savePaymentMethod(): void {
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"
+                        >Base AI points per employee</span
+                    >
+                    <input
+                        v-model.number="form.points_per_employee"
+                        type="number"
+                        min="0"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.points_per_employee" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
                         >Monthly price (DZD)</span
                     >
                     <input
@@ -646,15 +741,66 @@ function savePaymentMethod(): void {
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"
-                        >Base AI points per employee</span
+                        >Monthly price, international (USD)</span
                     >
                     <input
-                        v-model.number="form.points_per_employee"
+                        v-model.number="form.price_usd"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.price_usd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >1,000 extra AI points (DZD)</span
+                    >
+                    <input
+                        v-model.number="form.extra_points_price_dzd"
                         type="number"
                         min="0"
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     />
-                    <InputError :message="form.errors.points_per_employee" />
+                    <InputError :message="form.errors.extra_points_price_dzd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >1,000 extra AI points (USD)</span
+                    >
+                    <input
+                        v-model.number="form.extra_points_price_usd"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.extra_points_price_usd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Extra seat per month (DZD)</span
+                    >
+                    <input
+                        v-model.number="form.extra_seat_price_dzd"
+                        type="number"
+                        min="0"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.extra_seat_price_dzd" />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold"
+                        >Extra seat per month (USD)</span
+                    >
+                    <input
+                        v-model.number="form.extra_seat_price_usd"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.extra_seat_price_usd" />
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"
@@ -739,6 +885,41 @@ function savePaymentMethod(): void {
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePaidPoints">
             <div class="grid gap-3 sm:grid-cols-2">
+                <fieldset class="grid gap-1.5 sm:col-span-2">
+                    <legend
+                        class="text-ink-slate mb-1.5 text-[11px] font-semibold"
+                    >
+                        Customer pays in
+                    </legend>
+                    <div
+                        class="border-line bg-surface inline-flex h-10 rounded-md border p-1"
+                        data-test="topup-currency"
+                    >
+                        <button
+                            v-for="currency in ['DZD', 'USD'] as const"
+                            :key="currency"
+                            type="button"
+                            class="focus-visible:ring-brand-600/15 flex-1 rounded px-3 text-[12px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                            :class="
+                                pointTopUpForm.currency === currency
+                                    ? 'bg-brand-100/70 text-brand-700'
+                                    : 'text-ink-slate hover:bg-brand-50'
+                            "
+                            :aria-pressed="pointTopUpForm.currency === currency"
+                            @click="
+                                pointTopUpForm.currency = currency;
+                                fillSuggestedAmount();
+                            "
+                        >
+                            {{
+                                currency === 'DZD'
+                                    ? 'DZD (Algeria)'
+                                    : 'USD (international)'
+                            }}
+                        </button>
+                    </div>
+                    <InputError :message="pointTopUpForm.errors.currency" />
+                </fieldset>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"
                         >Points to add this month</span
@@ -746,6 +927,7 @@ function savePaymentMethod(): void {
                     <input
                         v-model.number="pointTopUpForm.points"
                         type="number"
+                        @change="fillSuggestedAmount"
                         min="1"
                         max="100000000"
                         required
@@ -755,9 +937,10 @@ function savePaymentMethod(): void {
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"
-                        >Payment received (DZD)</span
+                        >Payment received ({{ pointTopUpForm.currency }})</span
                     >
                     <input
+                        v-if="pointTopUpForm.currency === 'DZD'"
                         v-model.number="pointTopUpForm.amount_dzd"
                         type="number"
                         min="1"
@@ -765,7 +948,33 @@ function savePaymentMethod(): void {
                         required
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     />
-                    <InputError :message="pointTopUpForm.errors.amount_dzd" />
+                    <input
+                        v-else
+                        v-model.number="pointTopUpForm.amount_usd"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max="100000000"
+                        required
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <span
+                        v-if="pointTopUpPlan && suggestedAmount > 0"
+                        class="text-ink-muted text-[10.5px]"
+                    >
+                        Plan price for these points:
+                        {{
+                            pointTopUpForm.currency === 'USD'
+                                ? formatUsd(suggestedAmount)
+                                : formatDzd(suggestedAmount)
+                        }}
+                    </span>
+                    <InputError
+                        :message="
+                            pointTopUpForm.errors.amount_dzd ??
+                            pointTopUpForm.errors.amount_usd
+                        "
+                    />
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold"

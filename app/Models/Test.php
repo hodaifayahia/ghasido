@@ -230,6 +230,17 @@ class Test extends Model
             : ResultsVisibility::Hidden;
     }
 
+    /**
+     * May the learner tap Show Meaning on this test's questions? The client
+     * asked for it on Pre- and Post-tests (decision 2026-09-26, overriding
+     * CTRL-04's default), so an unset value means yes; the admin can switch
+     * it off per test when a sitting must be taken without help.
+     */
+    public function showsMeaning(): bool
+    {
+        return (bool) ($this->setting('show_meaning') ?? true);
+    }
+
     public function shufflesQuestions(): bool
     {
         return (bool) ($this->setting('shuffle_questions') ?? false);

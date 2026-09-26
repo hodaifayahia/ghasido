@@ -70,6 +70,9 @@ class TestController extends Controller
                 'type' => $test->type->value,
                 'title' => $test->title,
                 'label' => $test->type === TestType::Post ? __('Post-test') : __('Pre-test'),
+                // Show Meaning on the questions (client decision 2026-09-26);
+                // the meaning endpoint enforces the same switch server-side.
+                'showMeaning' => $test->showsMeaning(),
             ],
             'attempt' => [
                 'id' => $attempt->id,

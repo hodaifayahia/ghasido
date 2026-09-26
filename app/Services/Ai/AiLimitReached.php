@@ -86,6 +86,17 @@ final class AiLimitReached extends RuntimeException
         );
     }
 
+    /** An individual subscriber whose own plan has no AI practice (user request 2026-09-25). */
+    public static function forIndividualPlan(AiFeature $feature): self
+    {
+        return new self(
+            __('AI practice is not included in your subscription. Your lessons and phrasebook are still open; contact us to add it.'),
+            $feature,
+            'employee',
+            0,
+        );
+    }
+
     public static function forPoints(int $required, int $available): self
     {
         return new self(

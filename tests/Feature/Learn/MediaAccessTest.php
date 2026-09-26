@@ -99,7 +99,9 @@ class MediaAccessTest extends TestCase
 
         $this->actingAs($this->learner())
             ->get(route('media.show', $asset))
-            ->assertRedirect(Storage::disk(MediaAsset::DISK_PUBLIC)->url($asset->path));
+            ->assertRedirect(is_file(public_path('storage/'.$asset->path))
+                ? Storage::disk(MediaAsset::DISK_PUBLIC)->url($asset->path)
+                : asset($asset->path));
     }
 
     public function test_a_missing_file_behind_a_private_row_is_a_404_not_a_500()

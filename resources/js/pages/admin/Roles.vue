@@ -70,7 +70,7 @@ function performDelete(): void {
         return;
     }
 
-    router.delete(destroy(String(deleteRole.value.id)).url, {
+    router.delete(destroy(deleteRole.value.id).url, {
         preserveScroll: true,
         onSuccess: () => {
             deleteOpen.value = false;

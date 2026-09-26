@@ -22,6 +22,8 @@ import type {
     MediaRef,
     RawAnswer,
 } from '@/types';
+import MeaningRow from '@/components/learning/meaning/MeaningRow.vue';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The fallback runner for any activity type without its own component yet
@@ -386,10 +388,19 @@ function letter(index: number): string {
                 {{ activity.skillLabel }}
             </p>
             <h2
+                v-if="!isTest && activity.promptArabic"
                 class="font-heading text-ink-night text-xl leading-7 font-semibold"
             >
                 {{ activity.prompt ?? activity.title }}
             </h2>
+            <!-- Every other prompt, in lessons and in tests, gets the
+                 on-demand Show Meaning (client decision 2026-09-26). -->
+            <MeaningText
+                v-else
+                as="h2"
+                :text="activity.prompt ?? activity.title ?? ''"
+                class="font-heading text-ink-night text-xl leading-7 font-semibold"
+            />
             <template v-if="!isTest && activity.promptArabic">
                 <ShowMeaningButton
                     size="sm"
@@ -413,7 +424,7 @@ function letter(index: number): string {
             class="flex flex-col gap-4"
         >
             <!-- Prompt media: picture, video poster, guest audio. -->
-            <p
+            <template
                 v-for="key in [
                     'situation',
                     'context',
@@ -423,17 +434,19 @@ function letter(index: number): string {
                     'scenario',
                     'instruction',
                 ]"
-                v-show="text(item, key)"
                 :key="key"
-                :class="
-                    cn(
-                        'text-ink text-lg leading-7',
-                        key === 'instruction' && 'text-ink-slate text-base',
-                    )
-                "
             >
-                {{ text(item, key) }}
-            </p>
+                <MeaningText
+                    v-if="text(item, key)"
+                    :text="text(item, key) ?? ''"
+                    :class="
+                        cn(
+                            'text-ink text-lg leading-7',
+                            key === 'instruction' && 'text-ink-slate text-base',
+                        )
+                    "
+                />
+            </template>
             <img
                 v-if="media(item, 'image') || media(item, 'poster')"
                 :src="(media(item, 'image') ?? media(item, 'poster'))?.url"
@@ -486,7 +499,7 @@ function letter(index: number): string {
                     v-for="(line, i) in loose(item)['information'] as string[]"
                     :key="i"
                 >
-                    {{ line }}
+                    <MeaningText as="span" :text="line" />
                 </li>
             </ul>
 
@@ -497,37 +510,43 @@ function letter(index: number): string {
                 role="radiogroup"
                 :aria-label="text(item, 'question') ?? activity.label"
             >
-                <OptionRow
+                <MeaningRow
                     v-for="(option, optionIndex) in options(item)"
-                    :id="option.id"
                     :key="option.id"
-                    :name="`item-${item.id}`"
-                    :letter="letter(optionIndex)"
-                    :selected="selected(item) === option.id"
-                    :disabled="locked"
-                    :state="rowState(item, option.id)"
-                    @select="answers[item.id] = $event"
+                    :text="
+                        option.label ?? option.text ?? option.audio_text ?? ''
+                    "
                 >
-                    <span class="flex items-center gap-3">
-                        <img
-                            v-if="option.image"
-                            :src="option.image.url"
-                            :alt="option.image.alt ?? ''"
-                            loading="lazy"
-                            decoding="async"
-                            class="size-16 shrink-0 rounded-sm object-cover"
-                        />
-                        <AudioButton
-                            v-if="option.audio_text_audio"
-                            size="sm"
-                            :src="option.audio_text_audio.normal"
-                            :text="option.audio_text"
-                        />
-                        <span>{{
-                            option.label ?? option.text ?? option.audio_text
-                        }}</span>
-                    </span>
-                </OptionRow>
+                    <OptionRow
+                        :id="option.id"
+                        :name="`item-${item.id}`"
+                        :letter="letter(optionIndex)"
+                        :selected="selected(item) === option.id"
+                        :disabled="locked"
+                        :state="rowState(item, option.id)"
+                        @select="answers[item.id] = $event"
+                    >
+                        <span class="flex items-center gap-3">
+                            <img
+                                v-if="option.image"
+                                :src="option.image.url"
+                                :alt="option.image.alt ?? ''"
+                                loading="lazy"
+                                decoding="async"
+                                class="size-16 shrink-0 rounded-sm object-cover"
+                            />
+                            <AudioButton
+                                v-if="option.audio_text_audio"
+                                size="sm"
+                                :src="option.audio_text_audio.normal"
+                                :text="option.audio_text"
+                            />
+                            <span>{{
+                                option.label ?? option.text ?? option.audio_text
+                            }}</span>
+                        </span>
+                    </OptionRow>
+                </MeaningRow>
             </div>
 
             <!-- Listen & match -->
@@ -545,9 +564,12 @@ function letter(index: number): string {
                         :src="prompt.audio_text_audio?.normal"
                         :text="prompt.audio_text"
                     />
-                    <span class="text-ink flex-1 text-base">
-                        {{ prompt.audio_text }}
-                    </span>
+                    <MeaningText
+                        as="span"
+                        :text="prompt.audio_text ?? ''"
+                        class="text-ink text-base"
+                        wrapper-class="flex-1"
+                    />
                     <select
                         :value="pairs(item)[prompt.id] ?? ''"
                         :disabled="locked"
@@ -596,9 +618,12 @@ function letter(index: number): string {
                         decoding="async"
                         class="size-16 shrink-0 rounded-sm object-cover"
                     />
-                    <span class="text-ink flex-1 text-base">
-                        {{ entry.text ?? entry.caption }}
-                    </span>
+                    <MeaningText
+                        as="span"
+                        :text="entry.text ?? entry.caption ?? ''"
+                        class="text-ink text-base"
+                        wrapper-class="flex-1"
+                    />
                     <AudioButton
                         v-if="entry.text_audio"
                         size="sm"

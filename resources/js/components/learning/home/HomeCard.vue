@@ -4,6 +4,7 @@ import type { Component, HTMLAttributes } from 'vue';
 import SolidBarsIcon from '@/components/icons/SolidBarsIcon.vue';
 import { cn } from '@/lib/utils';
 import type { PreTestFactIcon } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The big white card on Home (JOURNEY-01, JOURNEY-02; spec 0003 Part E),
@@ -75,20 +76,18 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
             >
                 {{ eyebrow }}
             </p>
-            <h2
-                class="font-heading text-ink-cobalt mt-[11px] text-[35px] leading-[41px] font-bold tracking-[-0.02em]"
-            >
-                {{ heading }}
-            </h2>
-            <p
+            <MeaningText
+                as="h2"
+                :text="heading"
+                class="font-heading text-ink-cobalt text-[35px] leading-[41px] font-bold tracking-[-0.02em]"
+                wrapper-class="mt-[11px]"
+            />
+            <MeaningText
                 v-for="(paragraph, index) in paragraphs"
                 :key="index"
-                :class="
-                    cn(
-                        'text-ink-dusk text-[17.5px] leading-[25px]',
-                        index === 0 ? 'mt-[11px]' : 'mt-[9px]',
-                    )
-                "
+                :text="paragraph"
+                class="text-ink-dusk text-[17.5px] leading-[25px]"
+                :wrapper-class="index === 0 ? 'mt-[11px]' : 'mt-[9px]'"
             >
                 <template v-for="(part, i) in parts(paragraph)" :key="i">
                     <strong v-if="part.bold" class="font-semibold">{{
@@ -96,7 +95,7 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
                     }}</strong>
                     <template v-else>{{ part.text }}</template>
                 </template>
-            </p>
+            </MeaningText>
 
             <hr class="border-line mt-2.5" />
 
@@ -121,11 +120,11 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
                         >
                             {{ fact.label }}
                         </span>
-                        <span
+                        <MeaningText
+                            as="span"
+                            :text="fact.text"
                             class="text-ink-slate block text-[12.5px] leading-[18px]"
-                        >
-                            {{ fact.text }}
-                        </span>
+                        />
                     </span>
                 </li>
             </ul>

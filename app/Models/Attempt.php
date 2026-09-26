@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonInOrder;
 use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Policies\AttemptPolicy;
@@ -103,7 +104,9 @@ class Attempt extends Model
             'is_correct' => 'boolean',
             'score' => 'decimal:2',
             'max_score' => 'decimal:2',
-            'ai_feedback' => 'array',
+            // Criteria in their defined order on MySQL too (writing and
+            // speaking share one order: the union of both lists).
+            'ai_feedback' => JsonInOrder::class.':criteria,task_completion,accuracy,vocabulary,politeness,clarity',
             'ai_status' => GenerationStatus::class,
             'original_score' => 'decimal:2',
             'score_overridden_at' => 'datetime',

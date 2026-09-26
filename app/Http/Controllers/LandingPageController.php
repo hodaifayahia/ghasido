@@ -25,6 +25,7 @@ final class LandingPageController extends Controller
                     'slug' => $plan->slug,
                     'employeeLimit' => $plan->employee_limit,
                     'priceDzd' => $plan->price_dzd,
+                    'priceUsd' => $plan->price_usd,
                     'pointsPool' => $plan->pointsPool(),
                 ])->values()->all(),
             'paymentMethods' => SubscriptionPaymentMethod::query()

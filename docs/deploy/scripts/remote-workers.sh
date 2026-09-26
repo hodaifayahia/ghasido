@@ -1,6 +1,6 @@
 #!/bin/bash
 # Replace the 55-minute workers with open-ended bridge workers (same locks the cron will use).
-APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
+APP=${APP:-/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia}
 cd "$APP" || exit 1
 php artisan queue:restart >/dev/null 2>&1   # current workers finish their job and exit
 for i in $(seq 1 20); do

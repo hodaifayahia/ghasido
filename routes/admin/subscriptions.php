@@ -3,6 +3,7 @@
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\EmployeeAiPointsController;
 use App\Http\Controllers\Admin\HotelAiPointTopUpRequestController;
+use App\Http\Controllers\Admin\IndividualsController;
 use App\Http\Controllers\Admin\SubscriptionsController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,12 @@ Route::middleware(Permission::SubscriptionsManage->middleware())->group(function
     Route::post('subscriptions/ai-point-top-up-requests/{topUpRequest}/read', [HotelAiPointTopUpRequestController::class, 'read'])->name('subscriptions.ai-point-top-up-requests.read');
     Route::post('subscriptions/payment-methods', [SubscriptionsController::class, 'storePaymentMethod'])->name('subscriptions.payment-methods.store');
     Route::patch('subscriptions/payment-methods/{paymentMethod}', [SubscriptionsController::class, 'updatePaymentMethod'])->name('subscriptions.payment-methods.update');
+
+    // Individual subscribers: learners with no hotel (user request 2026-09-25).
+    Route::get('individuals', [IndividualsController::class, 'index'])->name('individuals');
+    Route::post('individuals', [IndividualsController::class, 'store'])->name('individuals.store');
+    Route::patch('individuals/{individual}', [IndividualsController::class, 'update'])->name('individuals.update');
+    Route::post('individuals/{individual}/toggle', [IndividualsController::class, 'toggle'])->name('individuals.toggle');
 });
 
 Route::middleware(Permission::AiPointsManage->middleware())->group(function () {

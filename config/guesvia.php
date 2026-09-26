@@ -157,6 +157,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Show Meaning translations
+    |--------------------------------------------------------------------------
+    |
+    | Made when content is written, never when a learner taps (user request
+    | 2026-09-26). Saving a lesson, block, activity, test or course queues one
+    | AI draft per new English text; the admin can rewrite any of them. Off,
+    | only the admin's "Generate with AI" button and hand-written text remain.
+    |
+    */
+
+    'meaning' => [
+        'auto_translate' => (bool) env('MEANING_AUTO_TRANSLATE', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Learner English level
     |--------------------------------------------------------------------------
     |

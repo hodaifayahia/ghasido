@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import PracticeActivityCard from '@/components/learning/practice/PracticeActivityCard.vue';
 import PracticeProgressPill from '@/components/learning/practice/PracticeProgressPill.vue';
 import type { LessonSummary, StepBlockOf } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Step 7, "Practice" (PRAC-01..03; photo_7): the heading with a progress
@@ -42,7 +43,11 @@ const heading = computed(
                 <h1 class="font-heading text-ink-royal text-h1 font-bold">
                     {{ heading }}
                 </h1>
-                <p class="text-ink-slate mt-1 text-base">{{ subtitle }}</p>
+                <MeaningText
+                    as="p"
+                    :text="subtitle"
+                    class="text-ink-slate mt-1 text-base"
+                />
             </div>
             <PracticeProgressPill
                 :completed="completed"

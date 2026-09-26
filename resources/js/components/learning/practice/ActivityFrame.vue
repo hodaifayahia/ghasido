@@ -6,6 +6,7 @@ import SidePhotoCard from '@/components/learning/SidePhotoCard.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import { cn } from '@/lib/utils';
 import type { MediaRef } from '@/types';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * The shared chrome around a practice activity (photo_8..14): Back to
@@ -100,9 +101,11 @@ const previous =
                         >
                             {{ number ? `${number}. ` : '' }}{{ label }}
                         </h1>
-                        <p class="text-ink-slate mt-0.5 text-[17px] leading-6">
-                            {{ subtitle }}
-                        </p>
+                        <MeaningText
+                            as="p"
+                            :text="subtitle"
+                            class="text-ink-slate mt-0.5 text-[17px] leading-6"
+                        />
                     </div>
                 </div>
 

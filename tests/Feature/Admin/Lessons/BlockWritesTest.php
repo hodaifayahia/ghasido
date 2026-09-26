@@ -128,7 +128,7 @@ class BlockWritesTest extends TestCase
         $practice->refresh();
 
         $this->assertSame('Practice time', $practice->title);
-        $this->assertSame(['subtitle' => 'Pick one.', 'motto' => 'Go!'], $practice->settings);
+        $this->assertEquals(['subtitle' => 'Pick one.', 'motto' => 'Go!'], $practice->settings);
         $this->assertSame([$other->id, $activity->id], $practice->placements()->pluck('activity_id')->all());
 
         $roleplay = $this->lesson->blocks()->where('type', BlockType::AiRoleplay->value)->firstOrFail();

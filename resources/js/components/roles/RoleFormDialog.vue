@@ -121,7 +121,7 @@ function submit(): void {
     };
 
     if (props.role !== null) {
-        form.put(update(String(props.role.id)).url, options);
+        form.put(update(props.role.id).url, options);
     } else {
         form.post(store().url, options);
     }

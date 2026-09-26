@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Hotel;
+use App\Models\HotelAiPointTopUp;
 use App\Models\User;
 use App\Services\Subscriptions\AiPointsBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,12 +50,14 @@ class HotelAiPointTopUpsTest extends TestCase
 
         $this->assertDatabaseHas('hotel_ai_point_top_ups', [
             'hotel_id' => $hotel->id,
-            'month_start' => '2026-09-01',
             'points' => 4200,
+            'currency' => 'DZD',
             'amount_dzd' => 9000,
+            'amount_usd' => null,
             'payment_reference' => 'RCPT-2026-09-25',
             'received_by' => $admin->id,
         ]);
+        $this->assertSame('2026-09-01', HotelAiPointTopUp::query()->sole()->month_start->toDateString());
         $this->assertDatabaseHas('audit_logs', [
             'actor_id' => $admin->id,
             'action' => 'hotel.ai_points_topped_up',
@@ -72,6 +75,49 @@ class HotelAiPointTopUpsTest extends TestCase
                 ->where('aiPointBalance.role', 'manager')
                 ->where('aiPointBalance.total', 16200)
                 ->where('aiPointBalance.remaining', 16200));
+    }
+
+    public function test_an_international_hotel_payment_is_recorded_in_usd(): void
+    {
+        $hotel = Hotel::factory()->create();
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('subscriptions'))
+            ->post(route('subscriptions.ai-point-topups.store'), [
+                'hotel_id' => $hotel->id,
+                'points' => 3000,
+                'currency' => 'USD',
+                'amount_usd' => 29.97,
+                'payment_received' => true,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('hotel_ai_point_top_ups', [
+            'hotel_id' => $hotel->id,
+            'points' => 3000,
+            'currency' => 'USD',
+            'amount_dzd' => 0,
+            'amount_usd' => 29.97,
+        ]);
+    }
+
+    public function test_a_usd_payment_needs_a_usd_amount(): void
+    {
+        $hotel = Hotel::factory()->create();
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->from(route('subscriptions'))
+            ->post(route('subscriptions.ai-point-topups.store'), [
+                'hotel_id' => $hotel->id,
+                'points' => 3000,
+                'currency' => 'USD',
+                'amount_dzd' => 9000,
+                'payment_received' => true,
+            ])
+            ->assertSessionHasErrors('amount_usd');
+
+        $this->assertDatabaseCount('hotel_ai_point_top_ups', 0);
     }
 
     public function test_managers_and_employees_cannot_record_hotel_point_payments(): void
@@ -114,5 +160,4 @@ class HotelAiPointTopUpsTest extends TestCase
 
         $this->assertDatabaseCount('hotel_ai_point_top_ups', 0);
     }
-
 }

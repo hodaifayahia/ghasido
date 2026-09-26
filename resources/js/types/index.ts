@@ -23,3 +23,5 @@ export * from './tts';
 export * from './ui';
 export * from './voice-agent';
 export * from './assessment-ai';
+export * from './individuals';
+export * from './translations';

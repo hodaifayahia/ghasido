@@ -17,6 +17,7 @@ use App\Contracts\ReminderDraft;
 use App\Contracts\ScenarioDraft;
 use App\Contracts\SpeakingEvaluation;
 use App\Contracts\TestQuestionsDraft;
+use App\Contracts\TextTranslationDraft;
 use App\Contracts\WritingEvaluation;
 use App\Enums\Accent;
 use App\Enums\ActivityType;
@@ -339,6 +340,11 @@ class AiJobsTest extends TestCase
             }
 
             public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function translateText(string $english): TextTranslationDraft
             {
                 throw new RuntimeException('provider down');
             }

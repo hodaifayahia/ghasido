@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Users;
 
 use App\Enums\AccountStatus;
 use App\Enums\Permission;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -31,14 +32,15 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->route('user');
+        $userId = $user instanceof User ? $user->id : null;
 
         return [
             'name' => ['required', 'string', 'max:120'],
             'username' => [
                 'required', 'string', 'min:3', 'max:40', 'regex:/^[a-z0-9._-]+$/',
-                Rule::unique('users', 'username')->ignore($user?->id),
+                Rule::unique('users', 'username')->ignore($userId),
             ],
-            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', 'string', Password::min(8), 'max:72'],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
             'status' => ['required', Rule::enum(AccountStatus::class)],
@@ -55,7 +57,7 @@ class UpdateUserRequest extends FormRequest
             'name' => $data['name'],
             'username' => $data['username'],
             'email' => $data['email'] ?? null,
-            'password' => $data['password'] ?: null,
+            'password' => ($data['password'] ?? null) ?: null,
             'role_id' => (int) $data['role_id'],
             'status' => $data['status'],
         ];

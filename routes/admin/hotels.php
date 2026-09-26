@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\Hotels\HotelAccessController;
 use App\Http\Controllers\Admin\Hotels\HotelApprovalController;
 use App\Http\Controllers\Admin\Hotels\HotelContractController;
+use App\Http\Controllers\Admin\Hotels\HotelDepartmentsController;
 use App\Http\Controllers\Admin\Hotels\HotelSeatQuotasController;
 use App\Http\Controllers\Admin\HotelsController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,8 @@ Route::middleware(Permission::HotelsManage->middleware())->group(function () {
     Route::post('hotels/{hotel}/resume', [HotelAccessController::class, 'resume'])->name('hotels.resume');
     Route::patch('hotels/{hotel}/contract', [HotelContractController::class, 'update'])->name('hotels.contract');
     Route::put('hotels/{hotel}/seat-quotas', [HotelSeatQuotasController::class, 'update'])->name('hotels.seat-quotas');
+    Route::post('hotels/{hotel}/departments', [HotelDepartmentsController::class, 'store'])->name('hotels.departments.store');
+    Route::delete('hotels/{hotel}/departments/{department}', [HotelDepartmentsController::class, 'destroy'])->name('hotels.departments.destroy');
 });
 
 Route::middleware(Permission::HotelsApprove->middleware())->group(function () {

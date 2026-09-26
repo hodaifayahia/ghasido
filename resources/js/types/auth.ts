@@ -13,6 +13,8 @@ export type User = {
     department_name: string | null;
     /** The employee's or manager's hotel; null for the Super Admin. */
     hotel_name: string | null;
+    /** True until the one-time welcome animation has been shown. */
+    show_welcome?: boolean;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

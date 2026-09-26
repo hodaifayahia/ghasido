@@ -16,6 +16,7 @@ import SolidHouseIcon from '@/components/icons/SolidHouseIcon.vue';
 import SolidMailIcon from '@/components/icons/SolidMailIcon.vue';
 import TrainingDepartmentSwitcher from '@/components/learning/TrainingDepartmentSwitcher.vue';
 import BottomNav from '@/components/shell/BottomNav.vue';
+import WelcomeSplash from '@/components/shell/WelcomeSplash.vue';
 import AppSidebarLayout from '@/layouts/app/AppSidebarLayout.vue';
 import {
     certificate,
@@ -146,5 +147,6 @@ const showSwitcher = computed(
             <slot />
         </div>
         <BottomNav />
+        <WelcomeSplash />
     </AppSidebarLayout>
 </template>

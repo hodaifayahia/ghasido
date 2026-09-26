@@ -154,6 +154,7 @@ export type HotelRowAction =
     | 'view'
     | 'edit'
     | 'seats'
+    | 'departments'
     | 'approve'
     | 'reject'
     | 'extend'

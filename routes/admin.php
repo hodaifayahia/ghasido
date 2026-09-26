@@ -22,6 +22,7 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
     require __DIR__.'/admin/lessons.php';
     require __DIR__.'/admin/ai-scenarios.php';
     require __DIR__.'/admin/tests.php';
+    require __DIR__.'/admin/translations.php';
     require __DIR__.'/admin/tts.php';
     require __DIR__.'/admin/messages.php';
     require __DIR__.'/admin/reports.php';

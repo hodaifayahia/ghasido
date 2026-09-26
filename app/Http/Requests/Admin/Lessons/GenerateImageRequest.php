@@ -74,7 +74,7 @@ class GenerateImageRequest extends FormRequest
             return $target->hotel_id;
         }
 
-        return $this->user()?->hotel_id;
+        return $this->user('web')?->hotel_id;
     }
 
     /**

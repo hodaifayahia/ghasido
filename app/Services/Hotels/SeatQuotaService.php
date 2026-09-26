@@ -95,9 +95,9 @@ class SeatQuotaService
         if ($plan === null || $usedAtHotel >= $plan->employee_limit) {
             throw ValidationException::withMessages([
                 'department_id' => __('This hotel has reached its :plan employee limit (:used/:allowed). Contact the administrator to change its subscription.', [
-                    'plan' => $plan?->name ?? __('subscription'),
+                    'plan' => $plan->name ?? __('subscription'),
                     'used' => $usedAtHotel,
-                    'allowed' => $plan?->employee_limit ?? 0,
+                    'allowed' => $plan->employee_limit ?? 0,
                 ]),
             ]);
         }

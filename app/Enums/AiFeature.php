@@ -43,6 +43,10 @@ enum AiFeature: string
     // A live voice call's Deepgram agent time, one row per call at hang-up,
     // in seconds (spec 0007, D9). Not a turn: never counts toward limits.
     case VoiceCall = 'voice_call';
+    // Show Meaning on any English text a learner reads (client decision
+    // 2026-09-26). Cached per text; metered for cost, never charged to the
+    // learner's points.
+    case Translation = 'translation';
 
     /**
      * The unit this feature's usage rows are counted in, so a model with no

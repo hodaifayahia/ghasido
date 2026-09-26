@@ -97,10 +97,10 @@ class HandleInertiaRequests extends Middleware
                 'id' => -$topUpRequest->id,
                 'channel' => 'in_app',
                 'subject' => __('AI points depleted at :hotel', [
-                    'hotel' => $topUpRequest->hotel?->name ?? __('Archived hotel'),
+                    'hotel' => $topUpRequest->hotel->name ?? __('Archived hotel'),
                 ]),
                 'body' => __(':requester requested a paid point recharge. Review the request and record payment in Subscriptions.', [
-                    'requester' => $topUpRequest->requester?->name ?? __('A hotel administrator'),
+                    'requester' => $topUpRequest->requester->name ?? __('A hotel administrator'),
                 ]),
                 'sentAt' => $topUpRequest->created_at?->toIso8601String() ?? '',
                 'expiresAt' => null,
@@ -131,6 +131,9 @@ class HandleInertiaRequests extends Middleware
                     ]),
                     'department_name' => $user->department_id === null ? null : $user->department()->value('name'),
                     'hotel_name' => $user->hotel_id === null ? null : $user->hotel()->withoutGlobalScopes()->value('name'),
+                    // The one-time welcome animation after the very first
+                    // sign-in (client request 2026-09-26).
+                    'show_welcome' => $user->welcomed_at === null,
                 ],
                 'permissions' => $user?->permissionNames() ?? [],
             ],
