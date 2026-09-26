@@ -45,7 +45,7 @@ function toggle(id: number): void {
             </StatCard>
         </div>
 
-        <PanelCard title="Recent Results" title-id="test-results-title">
+        <PanelCard :title="$t('Recent Results')" title-id="test-results-title">
             <template #icon>
                 <div
                     class="bg-success/20 text-success grid size-8 place-items-center rounded-md"
@@ -62,13 +62,15 @@ function toggle(id: number): void {
                         class="bg-brand-50/35 text-ink-slate text-[11px] font-semibold tracking-[0.08em] uppercase"
                     >
                         <tr class="border-line border-b">
-                            <th class="px-3 py-3">Employee</th>
-                            <th class="px-3 py-3">Test</th>
-                            <th class="px-3 py-3">Type</th>
-                            <th class="px-3 py-3">Score</th>
-                            <th class="px-3 py-3">Submitted</th>
+                            <th class="px-3 py-3">{{ $t('Employee') }}</th>
+                            <th class="px-3 py-3">{{ $t('Test') }}</th>
+                            <th class="px-3 py-3">{{ $t('Type') }}</th>
+                            <th class="px-3 py-3">{{ $t('Score') }}</th>
+                            <th class="px-3 py-3">{{ $t('Submitted') }}</th>
                             <th class="px-3 py-3">
-                                <span class="sr-only">AI review</span>
+                                <span class="sr-only">{{
+                                    $t('AI review')
+                                }}</span>
                             </th>
                         </tr>
                     </thead>
@@ -106,7 +108,11 @@ function toggle(id: number): void {
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        AI review ({{ row.answers.length }})
+                                        {{
+                                            $t('AI review (:count)', {
+                                                count: row.answers.length,
+                                            })
+                                        }}
                                     </button>
                                 </td>
                             </tr>
@@ -135,7 +141,7 @@ function toggle(id: number): void {
                 v-else
                 class="text-ink-slate border-line rounded-md border border-dashed px-4 py-10 text-center text-sm"
             >
-                No completed test results yet.
+                {{ $t('No completed test results yet.') }}
             </p>
         </PanelCard>
     </div>

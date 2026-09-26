@@ -29,9 +29,9 @@ enum CreditMeter: string
     public function label(): string
     {
         return match ($this) {
-            self::Tokens => 'Tokens',
-            self::Characters => 'Speech characters',
-            self::Seconds => 'Audio minutes',
+            self::Tokens => __('Tokens'),
+            self::Characters => __('Speech characters'),
+            self::Seconds => __('Audio minutes'),
         };
     }
 
@@ -58,9 +58,9 @@ enum CreditMeter: string
     public function covers(): string
     {
         return match ($this) {
-            self::Tokens => 'Every text call: role-play replies, feedback, evaluations, drafts and coaching.',
-            self::Characters => 'Lesson audio and other text-to-speech.',
-            self::Seconds => 'Transcription, pronunciation checks and live voice calls.',
+            self::Tokens => __('Every text call: role-play replies, feedback, evaluations, drafts and coaching.'),
+            self::Characters => __('Lesson audio and other text-to-speech.'),
+            self::Seconds => __('Transcription, pronunciation checks and live voice calls.'),
         };
     }
 }

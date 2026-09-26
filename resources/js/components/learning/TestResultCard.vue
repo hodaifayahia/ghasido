@@ -2,6 +2,7 @@
 import { ClipboardCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { TestResultSummary } from '@/types';
 
@@ -20,7 +21,7 @@ const props = defineProps<Props>();
 
 const submitted = computed(() =>
     props.result?.submittedAt
-        ? new Date(props.result.submittedAt).toLocaleDateString('en-GB', {
+        ? new Date(props.result.submittedAt).toLocaleDateString(intlLocale(), {
               day: 'numeric',
               month: 'short',
               year: 'numeric',
@@ -50,15 +51,21 @@ const submitted = computed(() =>
             >
                 {{ title }}
             </h2>
-            <p v-if="!result" class="text-ink-slate text-sm">Not taken yet</p>
+            <p v-if="!result" class="text-ink-slate text-sm">
+                {{ $t('Not taken yet') }}
+            </p>
             <p
                 v-else-if="result.percent !== null"
                 class="text-ink-slate text-sm"
             >
-                Submitted {{ submitted }}
+                {{ $t('Submitted :date', { date: submitted ?? '' }) }}
             </p>
             <p v-else class="text-ink-slate text-sm">
-                Submitted {{ submitted }} · your trainer keeps the score
+                {{
+                    $t('Submitted :date · your trainer keeps the score', {
+                        date: submitted ?? '',
+                    })
+                }}
             </p>
         </div>
         <p

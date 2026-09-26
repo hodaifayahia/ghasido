@@ -54,7 +54,7 @@ watch(
                 props.class,
             )
         "
-        aria-label="Your coach"
+        :aria-label="$t('Your coach')"
         aria-live="polite"
         data-test="coach-card"
     >
@@ -66,11 +66,11 @@ watch(
             <h2
                 class="font-heading text-ink-cobalt text-[17px] leading-6 font-semibold"
             >
-                Your coach
+                {{ $t('Your coach') }}
             </h2>
             <span
                 class="bg-ai-tint text-ai rounded-pill ms-auto px-2 py-0.5 text-[11px] font-semibold"
-                title="Written by AI from your own results"
+                :title="$t('Written by AI from your own results')"
             >
                 AI
             </span>
@@ -79,7 +79,7 @@ watch(
         <div class="flex flex-col gap-3 px-5 pt-3 pb-4">
             <template v-if="coach.status === 'pending'">
                 <p class="text-ink-slate text-[13px]">
-                    Your coach is looking at your progress…
+                    {{ $t('Your coach is looking at your progress…') }}
                 </p>
                 <Skeleton class="h-4 w-3/4" />
                 <Skeleton class="h-3 w-full" />
@@ -90,16 +90,22 @@ watch(
                 v-else-if="coach.status === 'empty'"
                 class="text-ink-slate text-[13px] leading-5"
             >
-                Finish your first lesson step or the Pre-test, and your coach
-                will share tips made for you here.
+                {{
+                    $t(
+                        'Finish your first lesson step or the Pre-test, and your coach will share tips made for you here.',
+                    )
+                }}
             </p>
 
             <p
                 v-else-if="coach.status === 'failed'"
                 class="text-ink-slate text-[13px] leading-5"
             >
-                Your coach could not write tips just now and will try again
-                later. Your progress is saved.
+                {{
+                    $t(
+                        'Your coach could not write tips just now and will try again later. Your progress is saved.',
+                    )
+                }}
             </p>
 
             <template v-else>
@@ -120,7 +126,8 @@ watch(
                             aria-hidden="true"
                         />
                         <span class="text-ink-slate">
-                            <span class="sr-only">Going well: </span>{{ item }}
+                            <span class="sr-only">{{ $t('Going well:') }} </span
+                            >{{ item }}
                         </span>
                     </li>
                 </ul>
@@ -136,7 +143,8 @@ watch(
                             aria-hidden="true"
                         />
                         <span class="text-ink-slate">
-                            <span class="sr-only">Work on: </span>{{ item }}
+                            <span class="sr-only">{{ $t('Work on:') }} </span
+                            >{{ item }}
                         </span>
                     </li>
                 </ul>
@@ -147,7 +155,7 @@ watch(
                     v-if="coach.status === 'refreshing'"
                     class="text-ink-faint text-[11.5px]"
                 >
-                    Updating with your latest results…
+                    {{ $t('Updating with your latest results…') }}
                 </p>
             </template>
 

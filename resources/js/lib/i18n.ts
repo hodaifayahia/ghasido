@@ -10,6 +10,8 @@ import type { App, ComputedRef } from 'vue';
  * Keys are the English strings themselves, the same convention as Laravel's
  * `__()`, and both sides read one dictionary: `lang/ar.json`. It is loaded
  * lazily, only when Arabic is chosen, so English pages never download it.
+ * An English word with two meanings gets a context key, e.g.
+ * `Clear (pronunciation)`, whose English text lives in `lang/en.json`.
  * A key with no Arabic entry falls back to its English text; the
  * `TranslationsCoverageTest` keeps that from shipping.
  *
@@ -24,7 +26,9 @@ export type Replacements = Record<string, string | number>;
 type Messages = Record<string, string>;
 
 const loaders: Record<Locale, () => Promise<Messages>> = {
-    en: () => Promise.resolve({}),
+    // English needs only its few context keys (an English word that means
+    // two things, such as "Clear" the status and "Clear" the button).
+    en: async () => (await import('../../../lang/en.json')).default as Messages,
     ar: async () => (await import('../../../lang/ar.json')).default as Messages,
 };
 

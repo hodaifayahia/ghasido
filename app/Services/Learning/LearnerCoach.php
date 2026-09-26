@@ -84,7 +84,7 @@ final class LearnerCoach
 
         return [
             'first_name' => (string) strtok(trim($user->name), ' '),
-            'english_level' => self::showsScore($latest) ? $user->english_level?->label() : null,
+            'english_level' => self::showsScore($latest) ? $user->english_level?->label('en') : null,
             'lessons' => [
                 'completed' => $journey['lessonsCompleted'],
                 'total' => $journey['lessonsTotal'],

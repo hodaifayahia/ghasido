@@ -55,7 +55,7 @@ function toggle(): void {
         <button
             type="button"
             :disabled="!src"
-            :aria-label="playing ? 'Pause recording' : 'Play recording'"
+            :aria-label="playing ? $t('Pause recording') : $t('Play recording')"
             class="bg-brand-600 hover:bg-brand-700 focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full text-white focus-visible:ring-3 focus-visible:outline-none disabled:opacity-50"
             @click="toggle"
         >

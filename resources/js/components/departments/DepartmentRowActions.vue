@@ -25,6 +25,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { DepartmentRecord, DepartmentRowAction } from '@/types';
 
@@ -64,10 +65,10 @@ type Item = {
  */
 const items = computed<Item[]>(() => {
     const list: Item[] = [
-        { action: 'view', label: 'View', icon: Eye, group: 'read' },
+        { action: 'view', label: tk('View'), icon: Eye, group: 'read' },
         {
             action: 'content',
-            label: 'Manage content',
+            label: tk('Manage content'),
             icon: BookOpen,
             group: 'read',
         },
@@ -76,7 +77,7 @@ const items = computed<Item[]>(() => {
     if (can('departments.manage')) {
         list.splice(1, 0, {
             action: 'edit',
-            label: 'Edit',
+            label: tk('Edit'),
             icon: Pencil,
             group: 'read',
         });
@@ -85,14 +86,14 @@ const items = computed<Item[]>(() => {
             props.department.isActive
                 ? {
                       action: 'archive',
-                      label: 'Archive',
+                      label: tk('Archive'),
                       icon: Archive,
                       destructive: true,
                       group: 'end',
                   }
                 : {
                       action: 'restore',
-                      label: 'Restore',
+                      label: tk('Restore'),
                       icon: RotateCcw,
                       group: 'end',
                   },
@@ -132,7 +133,9 @@ const triggerClass = computed(() =>
         <button
             type="button"
             :class="triggerClass"
-            :aria-label="`More actions for ${department.name}`"
+            :aria-label="
+                $t('More actions for :name', { name: department.name })
+            "
             :data-test="`department-${department.id}-actions-button`"
             @click="sheetOpen = true"
         >
@@ -158,7 +161,7 @@ const triggerClass = computed(() =>
                         {{ department.name }}
                     </SheetTitle>
                     <SheetDescription class="text-ink-slate text-[12.5px]">
-                        Actions for this department
+                        {{ $t('Actions for this department') }}
                     </SheetDescription>
                 </SheetHeader>
                 <ul class="mt-2 grid gap-1">
@@ -181,7 +184,7 @@ const triggerClass = computed(() =>
                                 class="size-4.5 shrink-0"
                                 aria-hidden="true"
                             />
-                            {{ item.label }}
+                            {{ $t(item.label) }}
                         </button>
                     </li>
                 </ul>
@@ -194,7 +197,9 @@ const triggerClass = computed(() =>
             <button
                 type="button"
                 :class="triggerClass"
-                :aria-label="`More actions for ${department.name}`"
+                :aria-label="
+                    $t('More actions for :name', { name: department.name })
+                "
                 :data-test="`department-${department.id}-actions-button`"
             >
                 <EllipsisVertical
@@ -229,7 +234,7 @@ const triggerClass = computed(() =>
                         class="size-4 shrink-0"
                         aria-hidden="true"
                     />
-                    {{ item.label }}
+                    {{ $t(item.label) }}
                 </DropdownMenuItem>
             </template>
         </DropdownMenuContent>

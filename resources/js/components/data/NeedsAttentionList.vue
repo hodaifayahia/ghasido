@@ -5,6 +5,7 @@ import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui';
 import { ref } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatusPill from '@/components/common/StatusPill.vue';
+import { tk } from '@/lib/i18n';
 import { employees, messagesReminders } from '@/routes';
 import type { AttentionGroup, AttentionGroupKey } from '@/types';
 
@@ -22,7 +23,13 @@ const statusByGroup: Record<AttentionGroupKey, PillStatus> = {
     pretestFinished: 'pretest_done',
 };
 
-const columns = ['Name', 'Department', 'Last Login', 'Status', 'Action'];
+const columns = [
+    tk('Name'),
+    tk('Department'),
+    tk('Last Login'),
+    tk('Status'),
+    tk('Action'),
+];
 
 const active = ref<string>(props.groups[0]?.key ?? 'inactive');
 
@@ -38,7 +45,7 @@ const viewAllHref = employees();
 
 <template>
     <PanelCard
-        title="Needs Attention"
+        :title="$t('Needs Attention')"
         title-id="needs-attention"
         class="px-2.5 pt-1 pb-5"
         title-class="text-[17px]"
@@ -60,14 +67,14 @@ const viewAllHref = employees();
                 :href="viewAllHref"
                 class="text-brand-800 hover:text-brand-600 focus-visible:ring-brand-600/40 -me-0.5 inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm px-0.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none md:min-h-0"
             >
-                View All
+                {{ $t('View All') }}
                 <ArrowRight class="size-4" aria-hidden="true" />
             </Link>
         </template>
 
         <TabsRoot v-model="active">
             <TabsList
-                aria-label="Employees needing attention"
+                :aria-label="$t('Employees needing attention')"
                 class="grid grid-cols-3 gap-1.5"
             >
                 <TabsTrigger
@@ -111,7 +118,7 @@ const viewAllHref = employees();
                                     scope="col"
                                     class="ps-2 text-start font-medium"
                                 >
-                                    {{ column }}
+                                    {{ $t(column) }}
                                 </th>
                             </tr>
                         </thead>
@@ -139,14 +146,18 @@ const viewAllHref = employees();
                                     <Link
                                         :href="remindHref"
                                         class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 inline-flex h-[22px] w-[104px] items-center justify-center gap-1 rounded-sm border px-1 text-[11px] font-medium tracking-tight whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                                        :aria-label="`Send reminder to ${employee.name}`"
+                                        :aria-label="
+                                            $t('Send reminder to :name', {
+                                                name: employee.name,
+                                            })
+                                        "
                                     >
                                         <Mail
                                             class="size-3.5 shrink-0"
                                             :stroke-width="1.75"
                                             aria-hidden="true"
                                         />
-                                        Send Reminder
+                                        {{ $t('Send Reminder') }}
                                     </Link>
                                 </td>
                             </tr>
@@ -172,16 +183,22 @@ const viewAllHref = employees();
                         <p class="text-ink/75 mt-1 text-[13px]">
                             {{ employee.department }}
                             <span aria-hidden="true">&middot;</span>
-                            <span class="sr-only">, last login</span>
+                            <span class="sr-only">{{
+                                $t(', last login')
+                            }}</span>
                             {{ employee.lastLogin }}
                         </p>
                         <Link
                             :href="remindHref"
                             class="border-brand-800/50 bg-surface text-brand-800 hover:border-brand-600 hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/40 mt-2.5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm border text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                            :aria-label="`Send reminder to ${employee.name}`"
+                            :aria-label="
+                                $t('Send reminder to :name', {
+                                    name: employee.name,
+                                })
+                            "
                         >
                             <Mail class="size-4 shrink-0" aria-hidden="true" />
-                            Send Reminder
+                            {{ $t('Send Reminder') }}
                         </Link>
                     </li>
                 </ul>

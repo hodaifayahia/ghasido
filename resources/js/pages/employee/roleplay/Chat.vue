@@ -92,8 +92,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head :title="`Role-play – ${scenario.title}`" />
-    <h1 class="sr-only">Role-play: {{ scenario.title }}</h1>
+    <Head :title="$t('Role-play – :title', { title: scenario.title })" />
+    <h1 class="sr-only">
+        {{ $t('Role-play: :title', { title: scenario.title }) }}
+    </h1>
 
     <section
         class="max-w-content mx-auto grid gap-6 p-4 md:p-6 xl:grid-cols-[minmax(0,1fr)_320px]"
@@ -112,7 +114,7 @@ onUnmounted(() => {
                         {{ scenario.title }}
                     </p>
                     <p class="text-ink-slate text-[12.5px]">
-                        AI Guest conversation
+                        {{ $t('AI Guest conversation') }}
                     </p>
                 </div>
             </header>
@@ -145,7 +147,7 @@ onUnmounted(() => {
                             class="size-4"
                             aria-hidden="true"
                         />
-                        <template v-else>You</template>
+                        <template v-else>{{ $t('You') }}</template>
                     </span>
                     <div
                         :class="
@@ -199,8 +201,11 @@ onUnmounted(() => {
                     class="border-danger/30 bg-danger-tint text-danger-text flex items-start gap-2 rounded-md border px-3 py-2"
                 >
                     <p class="text-[12px] leading-5">
-                        The guest reply could not be generated. Please start a
-                        new attempt and try again.
+                        {{
+                            $t(
+                                'The guest reply could not be generated. Please start a new attempt and try again.',
+                            )
+                        }}
                         <span
                             v-if="attempt.failedReason"
                             class="block text-[11px] opacity-80"
@@ -221,10 +226,14 @@ onUnmounted(() => {
                 data-test="roleplay-turn-limit"
             >
                 <p class="text-ink text-[14px]">
-                    The guest has wrapped up the conversation.
+                    {{ $t('The guest has wrapped up the conversation.') }}
                     <span class="text-ink-slate block text-[12.5px]">
-                        You used all {{ attempt.maxTurns }} replies. Well done
-                        for keeping it going.
+                        {{
+                            $t(
+                                'You used all :count replies. Well done for keeping it going.',
+                                { count: attempt.maxTurns },
+                            )
+                        }}
                     </span>
                 </p>
                 <button
@@ -234,7 +243,7 @@ onUnmounted(() => {
                     @click="end"
                 >
                     <Flag class="size-4" aria-hidden="true" />
-                    Get my feedback
+                    {{ $t('Get my feedback') }}
                 </button>
             </div>
 
@@ -247,8 +256,8 @@ onUnmounted(() => {
                     rows="2"
                     :placeholder="
                         attempt.pendingReply
-                            ? 'Waiting for the guest…'
-                            : 'Type your reply…'
+                            ? $t('Waiting for the guest…')
+                            : $t('Type your reply…')
                     "
                     :disabled="
                         attempt.pendingReply || attempt.status !== 'in_progress'
@@ -266,7 +275,7 @@ onUnmounted(() => {
                         @click="end"
                     >
                         <Flag class="size-4" aria-hidden="true" />
-                        End &amp; get feedback
+                        {{ $t('End & get feedback') }}
                     </button>
                     <button
                         type="button"
@@ -278,15 +287,24 @@ onUnmounted(() => {
                         class="bg-brand-600 shadow-btn hover:bg-brand-700 inline-flex h-10 items-center gap-2 rounded-md px-5 text-[13px] font-semibold text-white active:scale-[.97] disabled:opacity-50"
                         @click="send"
                     >
-                        Send
+                        {{ $t('Send') }}
                         <Send class="size-4" aria-hidden="true" />
                     </button>
                 </div>
                 <p class="text-ink-faint text-[11.5px]">
-                    Reply {{ attempt.employeeTurns }} of
-                    {{ attempt.maxTurns }}
+                    {{
+                        $t('Reply :current of :total', {
+                            current: attempt.employeeTurns,
+                            total: attempt.maxTurns,
+                        })
+                    }}
                     <template v-if="!attempt.canEnd">
-                        · you can finish after {{ attempt.minTurns }}
+                        ·
+                        {{
+                            $t('you can finish after :count', {
+                                count: attempt.minTurns,
+                            })
+                        }}
                     </template>
                 </p>
             </div>
@@ -300,7 +318,7 @@ onUnmounted(() => {
                 <h2
                     class="font-heading text-ink-royal text-[15px] font-semibold"
                 >
-                    Useful phrases
+                    {{ $t('Useful phrases') }}
                 </h2>
                 <ul class="grid gap-1.5">
                     <li
@@ -316,7 +334,9 @@ onUnmounted(() => {
                 v-if="scenario.tip"
                 class="bg-tint-note grid gap-1 rounded-lg p-4"
             >
-                <span class="text-ink text-[12px] font-semibold">Tip</span>
+                <span class="text-ink text-[12px] font-semibold">{{
+                    $t('Tip')
+                }}</span>
                 <p class="text-ink-slate text-[12.5px]">{{ scenario.tip }}</p>
             </div>
         </aside>

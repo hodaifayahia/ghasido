@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
  * the English page sees "العربية", and the reverse.
  */
 type Props = {
+    /** Icon only until the xl breakpoint, where the header has room. */
+    compact?: boolean;
     class?: HTMLAttributes['class'];
 };
 
@@ -39,6 +41,11 @@ const other = computed(() =>
         @click="switchLocale(other.value)"
     >
         <Languages class="size-4 shrink-0" aria-hidden="true" />
-        <span :lang="other.value" :dir="other.dir">{{ other.name }}</span>
+        <span
+            :lang="other.value"
+            :dir="other.dir"
+            :class="props.compact && 'sr-only xl:not-sr-only'"
+            >{{ other.name }}</span
+        >
     </button>
 </template>

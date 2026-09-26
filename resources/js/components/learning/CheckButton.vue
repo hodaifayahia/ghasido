@@ -2,6 +2,7 @@
 import { Check, Loader2, X } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 
 /*
@@ -21,22 +22,24 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), {
     disabled: false,
     loading: false,
-    label: 'Check',
+    label: undefined,
     state: 'idle',
 });
 
 const emit = defineEmits<{ click: [] }>();
 
+const { t } = useI18n();
+
 const text = computed(() => {
     switch (props.state) {
         case 'correct':
-            return 'Correct';
+            return t('Correct');
         case 'incorrect':
-            return 'Not quite';
+            return t('Not quite');
         case 'submitted':
-            return 'Answer saved';
+            return t('Answer saved');
         default:
-            return props.label;
+            return props.label ?? t('Check');
     }
 });
 
@@ -87,6 +90,6 @@ const tone = computed(() => {
             class="size-5 stroke-[3]"
             aria-hidden="true"
         />
-        {{ loading ? 'Checking…' : text }}
+        {{ loading ? $t('Checking…') : text }}
     </button>
 </template>

@@ -27,8 +27,8 @@ const emit = defineEmits<{ toggle: [] }>();
         type="button"
         :aria-expanded="shown"
         :aria-controls="controls"
-        :aria-label="shown ? 'Hide meaning' : 'Show meaning in Arabic'"
-        :title="shown ? 'Hide meaning' : 'Show meaning'"
+        :aria-label="shown ? $t('Hide meaning') : $t('Show meaning in Arabic')"
+        :title="shown ? $t('Hide meaning') : $t('Show meaning')"
         :class="
             cn(
                 'focus-visible:ring-brand-600/30 relative inline-grid size-8 shrink-0 place-items-center rounded-full align-middle transition-colors duration-150 before:absolute before:-inset-1.5 focus-visible:ring-3 focus-visible:outline-none active:scale-[.95] motion-reduce:transition-none',

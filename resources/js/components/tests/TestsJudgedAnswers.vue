@@ -51,8 +51,8 @@ defineProps<{
                     />
                     {{
                         answer.type === 'speaking'
-                            ? 'Transcribing and evaluating…'
-                            : 'Evaluating…'
+                            ? $t('Transcribing and evaluating…')
+                            : $t('Evaluating…')
                     }}
                 </span>
                 <span
@@ -60,7 +60,7 @@ defineProps<{
                     class="text-danger-text inline-flex items-center gap-1 text-[12px] font-semibold"
                 >
                     <CircleAlert class="size-3.5" aria-hidden="true" />
-                    Evaluation failed
+                    {{ $t('Evaluation failed') }}
                 </span>
             </div>
 
@@ -86,11 +86,11 @@ defineProps<{
                 <span class="text-ink-slate block text-[11px] font-semibold">
                     {{
                         answer.type === 'speaking'
-                            ? 'Transcript'
-                            : 'Written answer'
+                            ? $t('Transcript')
+                            : $t('Written answer')
                     }}
                 </span>
-                {{ answer.answerText || '(nothing recognised)' }}
+                {{ answer.answerText || $t('(nothing recognised)') }}
             </blockquote>
 
             <dl
@@ -123,7 +123,7 @@ defineProps<{
                 v-if="answer.betterAnswer"
                 class="text-ink-slate mt-1 text-[12px]"
             >
-                <span class="font-semibold">A better answer:</span>
+                <span class="font-semibold">{{ $t('A better answer:') }}</span>
                 {{ answer.betterAnswer }}
             </p>
         </li>

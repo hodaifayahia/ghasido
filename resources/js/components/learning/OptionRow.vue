@@ -96,14 +96,14 @@ const frame = computed(() => {
             class="text-success-text flex shrink-0 items-center gap-1 text-sm font-semibold"
         >
             <Check class="size-5 stroke-[3]" aria-hidden="true" />
-            Correct
+            {{ $t('Correct') }}
         </span>
         <span
             v-else-if="state === 'incorrect'"
             class="text-danger-text flex shrink-0 items-center gap-1 text-sm font-semibold"
         >
             <X class="size-5 stroke-[3]" aria-hidden="true" />
-            Not quite
+            {{ $t('Not quite') }}
         </span>
     </label>
 </template>

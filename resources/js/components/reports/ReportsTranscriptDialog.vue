@@ -18,13 +18,17 @@ const open = defineModel<boolean>('open', { required: true });
         v-model:open="open"
         :title="
             attempt === null
-                ? 'Transcript'
+                ? $t('Transcript')
                 : `${attempt.scenario} · ${attempt.employee}`
         "
         :description="
             attempt === null
                 ? ''
-                : `Attempt ${attempt.attemptNo} · ${attempt.startedAt} · ${attempt.statusLabel}`
+                : $t('Attempt :number · :started · :status', {
+                      number: attempt.attemptNo,
+                      started: attempt.startedAt,
+                      status: attempt.statusLabel,
+                  })
         "
         size="sm:max-w-[720px]"
     >
@@ -45,7 +49,7 @@ const open = defineModel<boolean>('open', { required: true });
                 <li
                     class="bg-brand-100/70 text-brand-700 rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold"
                 >
-                    Overall
+                    {{ $t('Overall') }}
                     <span>{{ attempt.overallScore ?? '—' }}</span>
                 </li>
             </ul>
@@ -54,7 +58,7 @@ const open = defineModel<boolean>('open', { required: true });
                 <h3
                     class="font-heading text-brand-900 text-[13px] font-semibold"
                 >
-                    Conversation
+                    {{ $t('Conversation') }}
                 </h3>
                 <ol
                     v-if="
@@ -90,8 +94,8 @@ const open = defineModel<boolean>('open', { required: true });
                             >
                                 {{
                                     turn.role === 'employee'
-                                        ? 'Employee'
-                                        : 'Guest'
+                                        ? $t('Employee')
+                                        : $t('Guest')
                                 }}
                             </p>
                             <p>{{ turn.text }}</p>
@@ -99,7 +103,7 @@ const open = defineModel<boolean>('open', { required: true });
                     </li>
                 </ol>
                 <p v-else class="text-ink-slate mt-2 text-[12.5px]">
-                    No turns were recorded for this attempt.
+                    {{ $t('No turns were recorded for this attempt.') }}
                 </p>
             </section>
 
@@ -107,7 +111,7 @@ const open = defineModel<boolean>('open', { required: true });
                 <h3
                     class="font-heading text-brand-900 text-[13px] font-semibold"
                 >
-                    Feedback
+                    {{ $t('Feedback') }}
                     <span
                         v-if="attempt.feedback.summary_label"
                         class="text-ink-slate font-normal"
@@ -126,7 +130,7 @@ const open = defineModel<boolean>('open', { required: true });
                         <p
                             class="text-success-text text-[11.5px] font-semibold"
                         >
-                            Did well
+                            {{ $t('Did well') }}
                         </p>
                         <ul
                             class="text-ink mt-1 list-disc ps-4 text-[12px] leading-5"
@@ -143,7 +147,7 @@ const open = defineModel<boolean>('open', { required: true });
                         <p
                             class="text-warning-text text-[11.5px] font-semibold"
                         >
-                            To improve
+                            {{ $t('To improve') }}
                         </p>
                         <ul
                             class="text-ink mt-1 list-disc ps-4 text-[12px] leading-5"
@@ -164,10 +168,10 @@ const open = defineModel<boolean>('open', { required: true });
                     v-if="attempt.feedback.better_expression"
                     class="border-line bg-app mt-3 rounded-md border px-3 py-2 text-[12px] leading-5"
                 >
-                    <span class="text-ink-slate">Yours:</span>
+                    <span class="text-ink-slate">{{ $t('Yours:') }}</span>
                     {{ attempt.feedback.better_expression.yours }}
                     <br />
-                    <span class="text-ink-slate">Better:</span>
+                    <span class="text-ink-slate">{{ $t('Better:') }}</span>
                     <span class="text-brand-900 font-semibold">
                         {{ attempt.feedback.better_expression.better }}
                     </span>

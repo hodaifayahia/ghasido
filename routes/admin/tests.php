@@ -16,7 +16,9 @@ Route::middleware(Permission::TestsManage->middleware())->group(function () {
     Route::post('tests/{test}/publish', [TestsController::class, 'publish'])->name('tests.publish');
     Route::post('tests/{test}/questions', [TestsController::class, 'storeQuestion'])->name('tests.questions.store');
     // Bulk import from CSV or pasted rows (client request 2026-09-26).
-    Route::get('tests/questions/import-template', [TestsController::class, 'importTemplate'])->name('tests.questions.import-template');
+    Route::get('tests/questions/import-template', [TestsController::class, 'importTemplate'])
+        ->middleware('english-data')
+        ->name('tests.questions.import-template');
     Route::post('tests/{test}/questions/import', [TestsController::class, 'importQuestions'])->name('tests.questions.import');
     Route::patch('tests/{test}/questions/{placement}', [TestsController::class, 'updateQuestion'])->name('tests.questions.update');
     Route::patch('tests/{test}/questions/{placement}/media', [TestsController::class, 'updateQuestionMedia'])->name('tests.questions.media');

@@ -31,6 +31,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
+import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     ReportDataset,
@@ -71,6 +73,8 @@ const props = withDefaults(defineProps<Props>(), {
     loading: false,
     canOverrideScores: false,
 });
+
+const { t } = useI18n();
 
 /** "Include detailed answers": the Employee Results export becomes the answers dataset (REP-06). */
 const includeDetailedAnswers = defineModel<boolean>('includeDetailedAnswers', {
@@ -167,18 +171,39 @@ const downloadFormats: Array<{
     { format: 'pdf', label: 'PDF', tone: 'danger' },
 ];
 
-const unitLabel = computed<string>(() => {
+const emptyText = computed<string>(() => {
     switch (props.activeTab) {
         case 'detailedAnswers':
-            return 'answers';
+            return t('No answers match these filters');
         case 'roleplayLogs':
-            return 'attempts';
+            return t('No attempts match these filters');
         case 'lessonProgress':
-            return 'completions';
+            return t('No completions match these filters');
         case 'comparison':
-            return 'rows';
+            return t('No rows match these filters');
         default:
-            return 'employees';
+            return t('No employees match these filters');
+    }
+});
+
+const showingText = computed<string>(() => {
+    const counts = {
+        from: props.pagination.from,
+        to: props.pagination.to,
+        total: props.pagination.total,
+    };
+
+    switch (props.activeTab) {
+        case 'detailedAnswers':
+            return t('Showing :from-:to of :total answers', counts);
+        case 'roleplayLogs':
+            return t('Showing :from-:to of :total attempts', counts);
+        case 'lessonProgress':
+            return t('Showing :from-:to of :total completions', counts);
+        case 'comparison':
+            return t('Showing :from-:to of :total rows', counts);
+        default:
+            return t('Showing :from-:to of :total employees', counts);
     }
 });
 
@@ -204,6 +229,14 @@ function rank(index: number): number {
     return props.pagination.from + index;
 }
 
+function formatUnit(value: number, unit: 'minute' | 'second'): string {
+    return new Intl.NumberFormat(intlLocale(), {
+        style: 'unit',
+        unit,
+        unitDisplay: 'narrow',
+    }).format(value);
+}
+
 function formatDuration(ms: number | null): string {
     if (ms === null) {
         return '—';
@@ -212,8 +245,22 @@ function formatDuration(ms: number | null): string {
     const seconds = Math.round(ms / 1000);
 
     return seconds < 60
-        ? `${seconds}s`
-        : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+        ? formatUnit(seconds, 'second')
+        : `${formatUnit(Math.floor(seconds / 60), 'minute')} ${formatUnit(seconds % 60, 'second')}`;
+}
+
+function resultLabel(isCorrect: boolean | null): string {
+    if (isCorrect === null) {
+        return t('Pending');
+    }
+
+    return isCorrect ? t('Correct') : t('Incorrect');
+}
+
+function deltaLabel(delta: number | null): string {
+    return delta === null
+        ? '—'
+        : t(':delta pts', { delta: `${delta > 0 ? '+' : ''}${delta}` });
 }
 
 function formatScore(score: number | null, max: number | null): string {
@@ -268,7 +315,7 @@ const pill =
             <div
                 class="flex min-w-0 gap-2 overflow-x-auto pb-1 xl:pb-0"
                 role="tablist"
-                aria-label="Report tabs"
+                :aria-label="$t('Report tabs')"
             >
                 <button
                     v-for="tab in tabs"
@@ -299,8 +346,8 @@ const pill =
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search by name, department..."
-                    aria-label="Search results"
+                    :placeholder="$t('Search by name, department...')"
+                    :aria-label="$t('Search results')"
                     data-test="reports-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
@@ -369,7 +416,9 @@ const pill =
                     </button>
                 </div>
                 <p v-else class="text-ink-slate text-[12px]">
-                    Exporting requires the reports.export permission.
+                    {{
+                        $t('Exporting requires the reports.export permission.')
+                    }}
                 </p>
             </article>
         </div>
@@ -390,36 +439,36 @@ const pill =
                             <th class="w-9 py-2 ps-3 pe-2 text-start">
                                 <Checkbox
                                     :model-value="false"
-                                    aria-label="Select all"
+                                    :aria-label="$t('Select all')"
                                 />
                             </th>
                             <th class="w-10 px-2 py-2 text-start">#</th>
                             <th class="w-[162px] px-2 py-2 text-start">
-                                Employee Name
+                                {{ $t('Employee Name') }}
                             </th>
                             <th class="w-[118px] px-2 py-2 text-start">
-                                Department
+                                {{ $t('Department') }}
                             </th>
                             <th class="w-[80px] px-2 py-2 text-start">
-                                Pre-test Score (%)
+                                {{ $t('Pre-test Score (%)') }}
                             </th>
                             <th class="w-[80px] px-2 py-2 text-start">
-                                Post-test Score (%)
+                                {{ $t('Post-test Score (%)') }}
                             </th>
                             <th class="w-[82px] px-2 py-2 text-start">
-                                Lessons Completed
+                                {{ $t('Lessons Completed') }}
                             </th>
                             <th class="w-[82px] px-2 py-2 text-start">
-                                AI Scenarios Completed
+                                {{ $t('AI Scenarios Completed') }}
                             </th>
                             <th class="w-[88px] px-2 py-2 text-start">
-                                Last Activity
+                                {{ $t('Last Activity') }}
                             </th>
                             <th class="w-[92px] px-2 py-2 text-start">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th class="w-[116px] px-2 py-2 text-start">
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                         <tr
@@ -427,17 +476,25 @@ const pill =
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
-                            <th :class="cn(headCell, 'w-[130px]')">Employee</th>
-                            <th :class="cn(headCell, 'w-[120px]')">
-                                Test / Lesson
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                {{ $t('Employee') }}
                             </th>
-                            <th :class="cn(headCell, 'w-[90px]')">Skill</th>
-                            <th :class="headCell">Question</th>
-                            <th :class="headCell">Answer</th>
-                            <th :class="cn(headCell, 'w-[96px]')">Result</th>
-                            <th :class="cn(headCell, 'w-[70px]')">Time</th>
+                            <th :class="cn(headCell, 'w-[120px]')">
+                                {{ $t('Test / Lesson') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[90px]')">
+                                {{ $t('Skill') }}
+                            </th>
+                            <th :class="headCell">{{ $t('Question') }}</th>
+                            <th :class="headCell">{{ $t('Answer') }}</th>
+                            <th :class="cn(headCell, 'w-[96px]')">
+                                {{ $t('Result') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[70px]')">
+                                {{ $t('Time') }}
+                            </th>
                             <th :class="cn(headCell, 'w-[112px]')">
-                                Submitted
+                                {{ $t('Submitted') }}
                             </th>
                         </tr>
                         <tr
@@ -445,15 +502,27 @@ const pill =
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
-                            <th :class="cn(headCell, 'w-[140px]')">Employee</th>
-                            <th :class="cn(headCell, 'w-[130px]')">Scenario</th>
-                            <th :class="cn(headCell, 'w-[62px]')">Attempt</th>
-                            <th :class="cn(headCell, 'w-[92px]')">Status</th>
-                            <th :class="cn(headCell, 'w-[64px]')">Overall</th>
-                            <th :class="headCell">Criteria</th>
-                            <th :class="cn(headCell, 'w-[112px]')">Started</th>
+                            <th :class="cn(headCell, 'w-[140px]')">
+                                {{ $t('Employee') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                {{ $t('Scenario') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[62px]')">
+                                {{ $t('Attempt') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[92px]')">
+                                {{ $t('Status') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[64px]')">
+                                {{ $t('Overall') }}
+                            </th>
+                            <th :class="headCell">{{ $t('Criteria') }}</th>
+                            <th :class="cn(headCell, 'w-[112px]')">
+                                {{ $t('Started') }}
+                            </th>
                             <th :class="cn(headCell, 'w-[124px]')">
-                                Transcript
+                                {{ $t('Transcript') }}
                             </th>
                         </tr>
                         <tr
@@ -461,14 +530,16 @@ const pill =
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
-                            <th :class="cn(headCell, 'w-[170px]')">Employee</th>
-                            <th :class="cn(headCell, 'w-[130px]')">
-                                Department
+                            <th :class="cn(headCell, 'w-[170px]')">
+                                {{ $t('Employee') }}
                             </th>
-                            <th :class="headCell">Course</th>
-                            <th :class="headCell">Lesson</th>
                             <th :class="cn(headCell, 'w-[130px]')">
-                                Completed
+                                {{ $t('Department') }}
+                            </th>
+                            <th :class="headCell">{{ $t('Course') }}</th>
+                            <th :class="headCell">{{ $t('Lesson') }}</th>
+                            <th :class="cn(headCell, 'w-[130px]')">
+                                {{ $t('Completed') }}
                             </th>
                         </tr>
                         <tr
@@ -476,16 +547,22 @@ const pill =
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
-                            <th :class="cn(headCell, 'w-[170px]')">Employee</th>
+                            <th :class="cn(headCell, 'w-[170px]')">
+                                {{ $t('Employee') }}
+                            </th>
                             <th :class="cn(headCell, 'w-[130px]')">
-                                Department
+                                {{ $t('Department') }}
                             </th>
-                            <th :class="headCell">Skill</th>
-                            <th :class="cn(headCell, 'w-[120px]')">Pre-test</th>
+                            <th :class="headCell">{{ $t('Skill') }}</th>
                             <th :class="cn(headCell, 'w-[120px]')">
-                                Post-test
+                                {{ $t('Pre-test') }}
                             </th>
-                            <th :class="cn(headCell, 'w-[96px]')">Change</th>
+                            <th :class="cn(headCell, 'w-[120px]')">
+                                {{ $t('Post-test') }}
+                            </th>
+                            <th :class="cn(headCell, 'w-[96px]')">
+                                {{ $t('Change') }}
+                            </th>
                         </tr>
                     </thead>
 
@@ -516,11 +593,14 @@ const pill =
                                 <p
                                     class="font-heading text-brand-900 text-[14px] font-semibold"
                                 >
-                                    No {{ unitLabel }} match these filters
+                                    {{ emptyText }}
                                 </p>
                                 <p class="text-ink-slate mt-1 text-[12.5px]">
-                                    Try another search, a wider date range, or
-                                    reset the filters.
+                                    {{
+                                        $t(
+                                            'Try another search, a wider date range, or reset the filters.',
+                                        )
+                                    }}
                                 </p>
                             </td>
                         </tr>
@@ -535,7 +615,11 @@ const pill =
                                 <td class="py-[7px] ps-3 pe-2 align-middle">
                                     <Checkbox
                                         :model-value="false"
-                                        :aria-label="`Select ${row.name}`"
+                                        :aria-label="
+                                            $t('Select :name', {
+                                                name: row.name,
+                                            })
+                                        "
                                     />
                                 </td>
                                 <td :class="bodyCell">{{ rank(index) }}</td>
@@ -591,13 +675,17 @@ const pill =
                                         <button
                                             type="button"
                                             class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-8 min-w-[92px] items-center justify-center rounded-md border px-3 text-[11.5px] font-semibold"
-                                            :aria-label="`View details for ${row.name}`"
+                                            :aria-label="
+                                                $t('View details for :name', {
+                                                    name: row.name,
+                                                })
+                                            "
                                             :data-test="`report-${row.id}-details-button`"
                                             @click="
                                                 emit('action', 'details', row)
                                             "
                                         >
-                                            View Details
+                                            {{ $t('View Details') }}
                                         </button>
                                         <ReportsRowActions
                                             :row="row"
@@ -689,13 +777,7 @@ const pill =
                                             class="size-3.5 shrink-0"
                                             aria-hidden="true"
                                         />
-                                        {{
-                                            row.isCorrect === null
-                                                ? 'Pending'
-                                                : row.isCorrect
-                                                  ? 'Correct'
-                                                  : 'Incorrect'
-                                        }}
+                                        {{ resultLabel(row.isCorrect) }}
                                     </span>
                                     <span
                                         class="text-ink-slate block text-[11px]"
@@ -703,9 +785,9 @@ const pill =
                                         {{
                                             formatScore(row.score, row.maxScore)
                                         }}
-                                        <template v-if="row.overridden"
-                                            >· overridden</template
-                                        >
+                                        <template v-if="row.overridden">{{
+                                            $t('· overridden')
+                                        }}</template>
                                         · v{{ row.version }}
                                     </span>
                                     <button
@@ -724,7 +806,7 @@ const pill =
                                             class="size-3"
                                             aria-hidden="true"
                                         />
-                                        Adjust
+                                        {{ $t('Adjust') }}
                                     </button>
                                 </td>
                                 <td :class="bodyCell">
@@ -784,7 +866,7 @@ const pill =
                                     <span
                                         v-if="row.overridden"
                                         class="text-ink-slate block text-[10.5px] font-normal"
-                                        >overridden</span
+                                        >{{ $t('overridden') }}</span
                                     >
                                     <button
                                         v-if="
@@ -805,7 +887,7 @@ const pill =
                                             class="size-3"
                                             aria-hidden="true"
                                         />
-                                        Adjust
+                                        {{ $t('Adjust') }}
                                     </button>
                                 </td>
                                 <td class="px-2 py-[7px] align-middle">
@@ -827,7 +909,12 @@ const pill =
                                         class="text-ink-slate block text-[11px]"
                                     >
                                         {{ formatDuration(row.durationMs) }} ·
-                                        {{ row.turns }} turns
+                                        {{
+                                            $tc(
+                                                ':count turn|:count turns',
+                                                row.turns,
+                                            )
+                                        }}
                                     </span>
                                 </td>
                                 <td class="px-2 py-[7px] align-middle">
@@ -845,18 +932,22 @@ const pill =
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        View transcript
+                                        {{ $t('View transcript') }}
                                     </button>
                                     <span
                                         v-else
                                         class="text-ink-slate inline-flex items-center gap-1 text-[11px]"
-                                        title="Full transcripts are available to the Super Admin only"
+                                        :title="
+                                            $t(
+                                                'Full transcripts are available to the Super Admin only',
+                                            )
+                                        "
                                     >
                                         <Lock
                                             class="size-3"
                                             aria-hidden="true"
                                         />
-                                        Scores only
+                                        {{ $t('Scores only') }}
                                     </span>
                                 </td>
                             </tr>
@@ -965,11 +1056,7 @@ const pill =
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        {{
-                                            row.delta === null
-                                                ? '—'
-                                                : `${row.delta > 0 ? '+' : ''}${row.delta} pts`
-                                        }}
+                                        {{ deltaLabel(row.delta) }}
                                     </span>
                                 </td>
                             </tr>
@@ -987,7 +1074,7 @@ const pill =
                     <p
                         class="font-heading text-brand-900 text-[14px] font-semibold"
                     >
-                        No {{ unitLabel }} match these filters
+                        {{ emptyText }}
                     </p>
                 </li>
 
@@ -1029,30 +1116,30 @@ const pill =
                             class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
                         >
                             <p>
-                                <span class="text-brand-900 font-medium"
-                                    >Pre/Post:</span
-                                >
+                                <span class="text-brand-900 font-medium">{{
+                                    $t('Pre/Post:')
+                                }}</span>
                                 {{ row.preScore ?? '—' }} /
                                 {{ row.postScore ?? '—' }}
                             </p>
                             <p>
-                                <span class="text-brand-900 font-medium"
-                                    >Lessons:</span
-                                >
+                                <span class="text-brand-900 font-medium">{{
+                                    $t('Lessons:')
+                                }}</span>
                                 {{ row.lessonsCompleted }} /
                                 {{ row.lessonsTotal }}
                             </p>
                             <p>
-                                <span class="text-brand-900 font-medium"
-                                    >AI Scenarios:</span
-                                >
+                                <span class="text-brand-900 font-medium">{{
+                                    $t('AI Scenarios:')
+                                }}</span>
                                 {{ row.scenariosCompleted }} /
                                 {{ row.scenariosTotal }}
                             </p>
                             <p>
-                                <span class="text-brand-900 font-medium"
-                                    >Last Activity:</span
-                                >
+                                <span class="text-brand-900 font-medium">{{
+                                    $t('Last Activity:')
+                                }}</span>
                                 {{ row.lastActivity }}
                             </p>
                         </div>
@@ -1073,10 +1160,14 @@ const pill =
                             <button
                                 type="button"
                                 class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex h-9 items-center justify-center rounded-md border px-3 text-[12px] font-semibold"
-                                :aria-label="`View details for ${row.name}`"
+                                :aria-label="
+                                    $t('View details for :name', {
+                                        name: row.name,
+                                    })
+                                "
                                 @click="emit('action', 'details', row)"
                             >
-                                View Details
+                                {{ $t('View Details') }}
                             </button>
                         </div>
                     </li>
@@ -1114,13 +1205,7 @@ const pill =
                             class="mt-2 h-10 w-full"
                         />
                         <p class="text-ink-slate mt-2 text-[12px]">
-                            {{
-                                row.isCorrect === null
-                                    ? 'Pending'
-                                    : row.isCorrect
-                                      ? 'Correct'
-                                      : 'Incorrect'
-                            }}
+                            {{ resultLabel(row.isCorrect) }}
                             · {{ formatScore(row.score, row.maxScore) }} ·
                             {{ formatDuration(row.timeTakenMs) }} · v{{
                                 row.version
@@ -1128,7 +1213,7 @@ const pill =
                             ·
                             {{ row.submittedAt }}
                             <template v-if="row.overridden">
-                                · overridden</template
+                                {{ $t('· overridden') }}</template
                             >
                         </p>
                         <button
@@ -1141,7 +1226,7 @@ const pill =
                                 class="size-4"
                                 aria-hidden="true"
                             />
-                            Adjust score
+                            {{ $t('Adjust score') }}
                         </button>
                     </li>
                 </template>
@@ -1160,8 +1245,12 @@ const pill =
                                     {{ row.employee }}
                                 </p>
                                 <p class="text-ink-muted text-[13px]">
-                                    {{ row.scenario }} · attempt
-                                    {{ row.attemptNo }}
+                                    {{ row.scenario }} ·
+                                    {{
+                                        $t('attempt :number', {
+                                            number: row.attemptNo,
+                                        })
+                                    }}
                                 </p>
                             </div>
                             <span
@@ -1180,7 +1269,11 @@ const pill =
                             <li
                                 class="bg-brand-100/70 text-brand-700 rounded-pill px-2 py-0.5 text-[11px] font-semibold"
                             >
-                                Overall {{ row.overallScore ?? '—' }}
+                                {{
+                                    $t('Overall :score', {
+                                        score: row.overallScore ?? '—',
+                                    })
+                                }}
                             </li>
                             <li
                                 v-for="criterion in row.criteria"
@@ -1211,7 +1304,7 @@ const pill =
                                     class="size-4"
                                     aria-hidden="true"
                                 />
-                                Transcript
+                                {{ $t('Transcript') }}
                             </button>
                         </div>
                         <button
@@ -1226,7 +1319,7 @@ const pill =
                                 class="size-4"
                                 aria-hidden="true"
                             />
-                            Adjust score
+                            {{ $t('Adjust score') }}
                         </button>
                     </li>
                 </template>
@@ -1276,18 +1369,18 @@ const pill =
                             </span>
                         </p>
                         <p class="text-ink-muted mt-2 text-[13px]">
-                            Pre {{ percentLabel(row.prePercent) }} → Post
-                            {{ percentLabel(row.postPercent) }}
+                            {{
+                                $t('Pre :pre → Post :post', {
+                                    pre: percentLabel(row.prePercent),
+                                    post: percentLabel(row.postPercent),
+                                })
+                            }}
                             <span
                                 :class="
                                     cn('font-semibold', deltaClass(row.delta))
                                 "
                             >
-                                ({{
-                                    row.delta === null
-                                        ? '—'
-                                        : `${row.delta > 0 ? '+' : ''}${row.delta} pts`
-                                }})
+                                ({{ deltaLabel(row.delta) }})
                             </span>
                         </p>
                     </li>
@@ -1306,19 +1399,18 @@ const pill =
                     class="text-ink-muted text-[12.5px] leading-5"
                     data-test="reports-showing"
                 >
-                    Showing {{ pagination.from }}-{{ pagination.to }} of
-                    {{ pagination.total }} {{ unitLabel }}
+                    {{ showingText }}
                 </p>
 
                 <nav
-                    aria-label="Reports pagination"
+                    :aria-label="$t('Reports pagination')"
                     class="flex flex-wrap items-center gap-1.5"
                 >
                     <button
                         type="button"
                         class="text-brand-700 hover:bg-brand-50 inline-flex size-8 items-center justify-center rounded-md disabled:opacity-40"
                         :disabled="pagination.currentPage <= 1"
-                        aria-label="Previous page"
+                        :aria-label="$t('Previous page')"
                         data-test="reports-previous-page"
                         @click="emit('page', pagination.currentPage - 1)"
                     >
@@ -1364,7 +1456,7 @@ const pill =
                         :disabled="
                             pagination.currentPage >= pagination.lastPage
                         "
-                        aria-label="Next page"
+                        :aria-label="$t('Next page')"
                         data-test="reports-next-page"
                         @click="emit('page', pagination.currentPage + 1)"
                     >
@@ -1374,13 +1466,13 @@ const pill =
             </div>
 
             <div class="text-ink-muted flex items-center gap-2 text-[12px]">
-                <span>Rows per page</span>
+                <span>{{ $t('Rows per page') }}</span>
                 <Select
                     :model-value="perPage"
                     @update:model-value="onPerPageSelect"
                 >
                     <SelectTrigger
-                        aria-label="Rows per page"
+                        :aria-label="$t('Rows per page')"
                         data-test="reports-per-page"
                         class="border-line bg-surface h-8 w-[72px] rounded-md px-3 text-[12px] shadow-none"
                     >
@@ -1408,7 +1500,7 @@ const pill =
                 class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center"
             >
                 <p class="text-brand-800 text-[13px] font-semibold">
-                    Export Selected Data:
+                    {{ $t('Export Selected Data:') }}
                 </p>
                 <button
                     v-for="action in exportActions"
@@ -1440,7 +1532,7 @@ const pill =
                     data-test="include-detailed-answers-checkbox"
                     @update:model-value="onIncludeChange"
                 />
-                <span>Include detailed answers</span>
+                <span>{{ $t('Include detailed answers') }}</span>
             </label>
         </div>
     </section>

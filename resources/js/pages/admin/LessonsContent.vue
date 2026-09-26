@@ -18,6 +18,7 @@ import LessonsToolbar from '@/components/lessons/LessonsToolbar.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { dashboard, lessonsContent } from '@/routes';
 import { edit as editLesson } from '@/routes/lessons';
 import type {
@@ -64,11 +65,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Lessons & Content',
+                title: tk('Lessons & Content'),
                 href: lessonsContent(),
             },
         ],
@@ -219,17 +220,19 @@ function onPick(image: LessonLibraryImage): void {
 </script>
 
 <template>
-    <Head title="Lessons & Content" />
+    <Head :title="$t('Lessons & Content')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">Lessons & Content</h1>
+        <h1 class="sr-only">{{ $t('Lessons & Content') }}</h1>
 
         <PageHeader
-            :title="builderOpen ? 'Edit Lesson' : 'Lessons & Content'"
+            :title="builderOpen ? $t('Edit Lesson') : $t('Lessons & Content')"
             :description="
                 builderOpen
-                    ? 'Edit the lesson content and employee steps.'
-                    : 'Create and manage courses, units and lessons with rich multimedia content.'
+                    ? $t('Edit the lesson content and employee steps.')
+                    : $t(
+                          'Create and manage courses, units and lessons with rich multimedia content.',
+                      )
             "
             class="mb-1"
         >
@@ -269,7 +272,7 @@ function onPick(image: LessonLibraryImage): void {
                     data-test="back-to-lesson-directory"
                 >
                     <ArrowLeft class="size-3.5" aria-hidden="true" />
-                    Back to Lesson Directory
+                    {{ $t('Back to Lesson Directory') }}
                 </Link>
                 <LessonsEditorAiActions
                     :filters="filters"
@@ -286,7 +289,7 @@ function onPick(image: LessonLibraryImage): void {
                     @click="tutorialOpen = true"
                 >
                     <CircleHelp class="size-3.5" aria-hidden="true" />
-                    Visual lesson guide
+                    {{ $t('Visual lesson guide') }}
                 </Button>
             </div>
 

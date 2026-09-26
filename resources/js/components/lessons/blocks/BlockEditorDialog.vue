@@ -16,6 +16,7 @@ import { cloneData } from '@/components/lessons/lessonsBlocks';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 import { update } from '@/routes/blocks';
 import type {
     BlockSettings,
@@ -105,7 +106,7 @@ const roleplayBindings = computed(() =>
 const description = computed(
     () =>
         typeOption.value?.description ??
-        'Edit what the learner sees on this step.',
+        t('Edit what the learner sees on this step.'),
 );
 
 function save(): void {
@@ -154,9 +155,13 @@ function save(): void {
         <div class="mt-2 grid gap-4">
             <LessonsField
                 v-model="title"
-                label="Step title (optional)"
+                :label="$t('Step title (optional)')"
                 :placeholder="typeOption?.label ?? block.label"
-                hint="Shown as the step heading; leave empty for the default."
+                :hint="
+                    $t(
+                        'Shown as the step heading; leave empty for the default.',
+                    )
+                "
                 :error="errors.title"
             />
 
@@ -188,7 +193,7 @@ function save(): void {
                     data-test="block-editor-cancel"
                     @click="open = false"
                 >
-                    {{ readOnly ? 'Close' : 'Cancel' }}
+                    {{ readOnly ? $t('Close') : $t('Cancel') }}
                 </Button>
                 <Button
                     v-if="!readOnly"
@@ -199,7 +204,7 @@ function save(): void {
                     data-tour="save-block"
                     @click="save"
                 >
-                    {{ saving ? 'Saving…' : 'Save block' }}
+                    {{ saving ? $t('Saving…') : $t('Save block') }}
                 </Button>
             </div>
         </div>

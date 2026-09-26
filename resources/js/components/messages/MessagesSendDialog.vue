@@ -5,6 +5,7 @@ import InputError from '@/components/InputError.vue';
 import MessagesModal from '@/components/messages/MessagesModal.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import { send } from '@/routes/messages-reminders';
 import type {
     MessageFilterValues,
@@ -24,6 +25,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { tc } = useI18n();
+
 const open = defineModel<boolean>('open', { required: true });
 
 const emit = defineEmits<{
@@ -40,14 +43,16 @@ const recipientCount = computed(() =>
 
 const summary = computed(() => {
     if (props.selection.all) {
-        return `Everyone matching the current filters: ${props.totalMatching} ${props.totalMatching === 1 ? 'employee' : 'employees'}.`;
+        return tc(
+            'Everyone matching the current filters: :count employee.|Everyone matching the current filters: :count employees.',
+            props.totalMatching,
+        );
     }
 
-    const count = props.selection.ids.length;
-
-    return count === 1
-        ? '1 selected employee.'
-        : `${count} selected employees.`;
+    return tc(
+        ':count selected employee.|:count selected employees.',
+        props.selection.ids.length,
+    );
 });
 
 const schedule = ref(false);
@@ -90,8 +95,12 @@ function onSuccess(): void {
 <template>
     <MessagesModal
         v-model:open="open"
-        title="Send Reminder"
-        description="Email reminders reach only employees who gave consent; the rest are logged as blocked. In-app messages need no consent."
+        :title="$t('Send Reminder')"
+        :description="
+            $t(
+                'Email reminders reach only employees who gave consent; the rest are logged as blocked. In-app messages need no consent.',
+            )
+        "
     >
         <Form
             :key="`${selection.all ? 'all' : selection.ids.join('-')}`"
@@ -125,7 +134,7 @@ function onSuccess(): void {
                 class="bg-brand-50 text-brand-900 rounded-md px-3 py-2 text-[12.5px] leading-5"
                 data-test="send-summary"
             >
-                <span class="font-semibold">To:</span> {{ summary }}
+                <span class="font-semibold">{{ $t('To:') }}</span> {{ summary }}
             </p>
             <InputError :message="errors.recipients" />
 
@@ -134,7 +143,7 @@ function onSuccess(): void {
                     for="send-template"
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Template
+                    {{ $t('Template') }}
                 </Label>
                 <select
                     id="send-template"
@@ -160,7 +169,7 @@ function onSuccess(): void {
                     for="send-channel"
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Channel
+                    {{ $t('Channel') }}
                 </Label>
                 <select
                     id="send-channel"
@@ -191,14 +200,14 @@ function onSuccess(): void {
                         class="accent-brand-600 size-4"
                         data-test="send-schedule-checkbox"
                     />
-                    Schedule for later
+                    {{ $t('Schedule for later') }}
                 </label>
                 <template v-if="schedule">
                     <Label
                         for="send-scheduled-for"
                         class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                     >
-                        Send on
+                        {{ $t('Send on') }}
                     </Label>
                     <input
                         id="send-scheduled-for"
@@ -225,7 +234,7 @@ function onSuccess(): void {
                     data-test="cancel-send-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -235,8 +244,10 @@ function onSuccess(): void {
                 >
                     {{
                         schedule
-                            ? `Schedule for ${recipientCount}`
-                            : `Send to ${recipientCount}`
+                            ? $t('Schedule for :count', {
+                                  count: recipientCount,
+                              })
+                            : $t('Send to :count', { count: recipientCount })
                     }}
                 </Button>
             </div>

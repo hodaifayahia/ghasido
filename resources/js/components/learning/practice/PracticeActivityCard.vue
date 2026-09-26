@@ -181,7 +181,7 @@ const style = computed(() => tones[props.card.tone]);
                 )
             "
         >
-            Start
+            {{ $t('Start') }}
             <ArrowRight class="size-4" aria-hidden="true" />
         </Link>
     </div>

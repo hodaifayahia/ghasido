@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ListChecks } from '@lucide/vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
-import { settingField } from '@/components/lessons/lessonsBlocks';
+import { settingField, valueLabel } from '@/components/lessons/lessonsBlocks';
 import type { BlockSettings, LessonBlockRow } from '@/types';
 
 /**
@@ -28,28 +28,28 @@ const progressLabel = settingField(settings, 'progress_label');
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
-        <LessonsField v-model="motto" label="Motto" />
+        <LessonsField v-model="motto" :label="$t('Motto')" />
         <LessonsField
             v-model="progressLabel"
-            label="Progress label"
-            hint="e.g. “activities completed”."
+            :label="$t('Progress label')"
+            :hint="$t('e.g. “activities completed”.')"
         />
 
         <div class="grid gap-2">
             <span
                 class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
             >
-                Activities in this block
+                {{ $t('Activities in this block') }}
             </span>
             <p
                 v-if="block.activities.length === 0"
                 class="text-ink-muted text-[12.5px]"
             >
-                No activities are attached to this block yet.
+                {{ $t('No activities are attached to this block yet.') }}
             </p>
             <ul v-else class="grid gap-1.5">
                 <li
@@ -70,11 +70,16 @@ const progressLabel = settingField(settings, 'progress_label');
                         </span>
                         <span class="text-ink-muted text-[11.5px]">
                             {{ activity.skillLabel ?? activity.label }} ·
-                            {{ activity.itemCount }} items
+                            {{
+                                $tc(
+                                    ':count item|:count items',
+                                    activity.itemCount,
+                                )
+                            }}
                         </span>
                     </span>
                     <span class="text-ink-faint ms-auto text-[11px] capitalize">
-                        {{ activity.status }}
+                        {{ $t(valueLabel(activity.status)) }}
                     </span>
                 </li>
             </ul>

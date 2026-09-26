@@ -35,7 +35,7 @@ const nextClass =
 
 <template>
     <nav
-        aria-label="Step navigation"
+        :aria-label="$t('Step navigation')"
         :class="
             cn(
                 'mt-6 flex flex-col-reverse gap-3 md:mt-[31px] md:flex-row md:items-center md:justify-between',

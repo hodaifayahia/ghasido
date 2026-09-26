@@ -143,7 +143,7 @@ const subButtonClass = cn(
                             <SidebarMenuButton
                                 type="button"
                                 :is-active="isGroupActive(item)"
-                                :tooltip="item.title"
+                                :tooltip="$t(item.title)"
                                 :class="buttonClass"
                             >
                                 <component
@@ -153,7 +153,7 @@ const subButtonClass = cn(
                                     aria-hidden="true"
                                 />
                                 <span :class="item.labelClass">{{
-                                    item.title
+                                    $t(item.title)
                                 }}</span>
                                 <ChevronRight
                                     class="ms-auto size-4! transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
@@ -193,7 +193,7 @@ const subButtonClass = cn(
                                                 aria-hidden="true"
                                             />
                                             <span :class="child.labelClass">{{
-                                                child.title
+                                                $t(child.title)
                                             }}</span>
                                         </Link>
                                     </SidebarMenuSubButton>
@@ -202,7 +202,9 @@ const subButtonClass = cn(
                                         as="button"
                                         type="button"
                                         :class="subButtonClass"
-                                        @click="notifyComingSoon(child.title)"
+                                        @click="
+                                            notifyComingSoon($t(child.title))
+                                        "
                                     >
                                         <component
                                             :is="child.icon"
@@ -211,7 +213,7 @@ const subButtonClass = cn(
                                             aria-hidden="true"
                                         />
                                         <span :class="child.labelClass">{{
-                                            child.title
+                                            $t(child.title)
                                         }}</span>
                                     </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
@@ -223,7 +225,7 @@ const subButtonClass = cn(
                 <SidebarMenuButton
                     v-else-if="item.action === 'logout'"
                     as-child
-                    :tooltip="item.title"
+                    :tooltip="$t(item.title)"
                     :class="buttonClass"
                 >
                     <Link
@@ -238,7 +240,9 @@ const subButtonClass = cn(
                             :class="item.iconClass"
                             aria-hidden="true"
                         />
-                        <span :class="item.labelClass">{{ item.title }}</span>
+                        <span :class="item.labelClass">{{
+                            $t(item.title)
+                        }}</span>
                     </Link>
                 </SidebarMenuButton>
 
@@ -246,7 +250,7 @@ const subButtonClass = cn(
                     v-else-if="item.href"
                     as-child
                     :is-active="isActive(item)"
-                    :tooltip="item.title"
+                    :tooltip="$t(item.title)"
                     :class="buttonClass"
                 >
                     <Link
@@ -260,16 +264,18 @@ const subButtonClass = cn(
                             :class="item.iconClass"
                             aria-hidden="true"
                         />
-                        <span :class="item.labelClass">{{ item.title }}</span>
+                        <span :class="item.labelClass">{{
+                            $t(item.title)
+                        }}</span>
                     </Link>
                 </SidebarMenuButton>
 
                 <SidebarMenuButton
                     v-else
                     type="button"
-                    :tooltip="item.title"
+                    :tooltip="$t(item.title)"
                     :class="buttonClass"
-                    @click="notifyComingSoon(item.title)"
+                    @click="notifyComingSoon($t(item.title))"
                 >
                     <component
                         :is="item.icon"
@@ -277,7 +283,7 @@ const subButtonClass = cn(
                         :class="item.iconClass"
                         aria-hidden="true"
                     />
-                    <span :class="item.labelClass">{{ item.title }}</span>
+                    <span :class="item.labelClass">{{ $t(item.title) }}</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>

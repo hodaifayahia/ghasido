@@ -48,7 +48,7 @@ function circleClass(step: LessonStepNav): string {
 
 <template>
     <nav
-        aria-label="Lesson steps"
+        :aria-label="$t('Lesson steps')"
         :class="cn('bg-app-alt shrink-0', props.class)"
     >
         <!-- Phones: progress bar + chip (spec 0003 H.4). -->
@@ -59,7 +59,12 @@ function circleClass(step: LessonStepNav): string {
                 :aria-valuenow="current?.number ?? 0"
                 aria-valuemin="0"
                 :aria-valuemax="total"
-                :aria-valuetext="`Step ${current?.number ?? 0} of ${total}`"
+                :aria-valuetext="
+                    $t('Step :current of :total', {
+                        current: current?.number ?? 0,
+                        total,
+                    })
+                "
             >
                 <div
                     class="bg-brand-600 ease-brand rounded-pill h-full transition-[width] duration-700 motion-reduce:transition-none"
@@ -69,7 +74,12 @@ function circleClass(step: LessonStepNav): string {
             <span
                 class="rounded-pill bg-brand-50 text-brand-700 shrink-0 px-3 py-1.5 text-xs font-semibold"
             >
-                Step {{ current?.number ?? 0 }} of {{ total }}
+                {{
+                    $t('Step :current of :total', {
+                        current: current?.number ?? 0,
+                        total,
+                    })
+                }}
             </span>
         </div>
 
@@ -114,7 +124,7 @@ function circleClass(step: LessonStepNav): string {
                         />
                         <template v-else>{{ step.number }}</template>
                         <span v-if="step.done && !step.current" class="sr-only">
-                            {{ step.number }}, done
+                            {{ $t(':number, done', { number: step.number }) }}
                         </span>
                     </span>
                     <span

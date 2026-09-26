@@ -7,6 +7,7 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import TranslationsPanel from '@/components/translations/TranslationsPanel.vue';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { dashboard, translations } from '@/routes';
 import { generate } from '@/routes/translations';
 import type {
@@ -34,8 +35,8 @@ const props = defineProps<Props>();
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Translations', href: translations() },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Translations'), href: translations() },
         ],
     },
 });
@@ -94,13 +95,17 @@ function generateMissing(): void {
 </script>
 
 <template>
-    <Head title="Translations" />
+    <Head :title="$t('Translations')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">Show Meaning translations</h1>
+        <h1 class="sr-only">{{ $t('Show Meaning translations') }}</h1>
         <PageHeader
-            title="Show Meaning translations"
-            description="The Arabic meaning behind every English text learners read. Drafted once by AI when content is saved, or written by hand; learners never trigger the AI."
+            :title="$t('Show Meaning translations')"
+            :description="
+                $t(
+                    'The Arabic meaning behind every English text learners read. Drafted once by AI when content is saved, or written by hand; learners never trigger the AI.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>
@@ -111,7 +116,7 @@ function generateMissing(): void {
         <div class="grid min-w-0 grid-cols-2 gap-2 md:max-w-xl">
             <StatCard
                 :value="counts.total"
-                label="Texts with a meaning"
+                :label="$t('Texts with a meaning')"
                 tone="success"
             >
                 <template #icon>
@@ -120,7 +125,7 @@ function generateMissing(): void {
             </StatCard>
             <StatCard
                 :value="counts.waiting"
-                label="Asked for by learners"
+                :label="$t('Asked for by learners')"
                 tone="warning"
             >
                 <template #icon>

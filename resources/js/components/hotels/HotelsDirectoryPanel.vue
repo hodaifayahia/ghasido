@@ -22,6 +22,7 @@ import {
     statusTone,
 } from '@/components/hotels/hotelStatus';
 import { useCan } from '@/composables/useCan';
+import { useI18n } from '@/composables/useI18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -63,6 +64,7 @@ const emit = defineEmits<{
 }>();
 
 const { can } = useCan();
+const { t, tc } = useI18n();
 const canManage = can('hotels.manage');
 
 const search = ref(props.filters.search);
@@ -124,18 +126,18 @@ function resetFilters(): void {
 
 function daysLabel(hotel: HotelRecord): string {
     if (hotel.status === 'paused') {
-        return 'Paused';
+        return t('Paused');
     }
 
     if (hotel.status === 'ended') {
-        return 'Ended';
+        return t('Ended');
     }
 
     if (hotel.daysRemaining === null) {
         return '—';
     }
 
-    return `${hotel.daysRemaining} days`;
+    return tc(':count day|:count days', hotel.daysRemaining);
 }
 
 const iconButton =
@@ -146,7 +148,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
 
 <template>
     <section
-        aria-label="Hotels directory"
+        :aria-label="$t('Hotels directory')"
         class="border-line bg-surface shadow-card rounded-lg border p-2.5"
     >
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
@@ -158,8 +160,8 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search by hotel, manager or city..."
-                    aria-label="Search hotels"
+                    :placeholder="$t('Search by hotel, manager or city...')"
+                    :aria-label="$t('Search hotels')"
                     data-test="hotels-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
@@ -171,7 +173,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by status"
+                        :aria-label="$t('Filter by status')"
                         data-test="hotels-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -194,7 +196,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     @update:model-value="onSelect('capacity', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by seat state"
+                        :aria-label="$t('Filter by seat state')"
                         data-test="hotels-capacity-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -220,7 +222,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
-                    Reset
+                    {{ $t('Reset') }}
                 </Button>
             </div>
         </div>
@@ -239,29 +241,31 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
                             <th class="w-[156px] px-2 py-2 text-start">
-                                Hotel
+                                {{ $t('Hotel') }}
                             </th>
                             <th class="w-[118px] px-2 py-2 text-start">
-                                Manager
+                                {{ $t('Manager') }}
                             </th>
-                            <th class="w-[90px] px-2 py-2 text-start">City</th>
+                            <th class="w-[90px] px-2 py-2 text-start">
+                                {{ $t('City') }}
+                            </th>
                             <th class="w-[96px] px-2 py-2 text-start">
-                                Departments
+                                {{ $t('Departments') }}
                             </th>
                             <th class="w-[158px] px-2 py-2 text-start">
-                                Seats Used
+                                {{ $t('Seats Used') }}
                             </th>
                             <th class="w-[98px] px-2 py-2 text-start">
-                                Contract End
+                                {{ $t('Contract End') }}
                             </th>
                             <th class="w-[78px] px-2 py-2 text-start">
-                                Days Left
+                                {{ $t('Days Left') }}
                             </th>
                             <th class="w-[108px] px-2 py-2 text-start">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th class="w-[108px] px-2 py-2 text-start">
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -292,11 +296,14 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                 <p
                                     class="font-heading text-brand-900 text-[14px] font-semibold"
                                 >
-                                    No hotels match these filters
+                                    {{ $t('No hotels match these filters') }}
                                 </p>
                                 <p class="text-ink-slate mt-1 text-[12.5px]">
-                                    Try another search, or clear the filters to
-                                    see the whole portfolio.
+                                    {{
+                                        $t(
+                                            'Try another search, or clear the filters to see the whole portfolio.',
+                                        )
+                                    }}
                                 </p>
                                 <Button
                                     type="button"
@@ -308,7 +315,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    Clear filters
+                                    {{ $t('Clear filters') }}
                                 </Button>
                             </td>
                         </tr>
@@ -335,9 +342,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                         class="text-ink-slate block truncate text-[11.5px]"
                                     >
                                         {{
-                                            capacityText[
-                                                hotelItem.capacityState
-                                            ]
+                                            $t(
+                                                capacityText[
+                                                    hotelItem.capacityState
+                                                ],
+                                            )
                                         }}
                                     </span>
                                 </div>
@@ -357,7 +366,12 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                             <td
                                 class="text-ink-muted px-2 py-[7px] align-middle"
                             >
-                                {{ hotelItem.departments }} depts
+                                {{
+                                    $tc(
+                                        ':count dept|:count depts',
+                                        hotelItem.departments,
+                                    )
+                                }}
                             </td>
                             <td class="px-2 py-[7px] align-middle">
                                 <div class="flex items-center gap-2">
@@ -380,7 +394,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                                 hotelItem.capacityState
                                             ]
                                         "
-                                        :label="`${hotelItem.name} seats used`"
+                                        :label="
+                                            $t(':name seats used', {
+                                                name: hotelItem.name,
+                                            })
+                                        "
                                         class="h-[6px] w-[70px]"
                                     />
                                 </div>
@@ -404,7 +422,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                         )
                                     "
                                 >
-                                    {{ statusText[hotelItem.status] }}
+                                    {{ $t(statusText[hotelItem.status]) }}
                                 </span>
                             </td>
                             <td class="px-2 py-[7px] align-middle">
@@ -412,7 +430,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                     <button
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`View ${hotelItem.name}`"
+                                        :aria-label="
+                                            $t('View :name', {
+                                                name: hotelItem.name,
+                                            })
+                                        "
                                         :data-test="`hotel-${hotelItem.id}-view-button`"
                                         @click="
                                             emit('action', 'view', hotelItem)
@@ -430,7 +452,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                         "
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`Edit ${hotelItem.name}`"
+                                        :aria-label="
+                                            $t('Edit :name', {
+                                                name: hotelItem.name,
+                                            })
+                                        "
                                         :data-test="`hotel-${hotelItem.id}-edit-button`"
                                         @click="
                                             emit('action', 'edit', hotelItem)
@@ -448,7 +474,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                         "
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`Manage seats for ${hotelItem.name}`"
+                                        :aria-label="
+                                            $t('Manage seats for :name', {
+                                                name: hotelItem.name,
+                                            })
+                                        "
                                         :data-test="`hotel-${hotelItem.id}-seats-button`"
                                         @click="
                                             emit('action', 'seats', hotelItem)
@@ -481,10 +511,10 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     <p
                         class="font-heading text-brand-900 text-[15px] font-semibold"
                     >
-                        No hotels match these filters
+                        {{ $t('No hotels match these filters') }}
                     </p>
                     <p class="text-ink-slate mt-1 text-[13px]">
-                        Try another search, or clear the filters.
+                        {{ $t('Try another search, or clear the filters.') }}
                     </p>
                     <Button
                         type="button"
@@ -493,7 +523,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                         @click="resetFilters"
                     >
                         <RotateCcw class="size-3.5" aria-hidden="true" />
-                        Clear filters
+                        {{ $t('Clear filters') }}
                     </Button>
                 </li>
                 <li
@@ -522,7 +552,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                 )
                             "
                         >
-                            {{ statusText[hotelItem.status] }}
+                            {{ $t(statusText[hotelItem.status]) }}
                         </span>
                     </div>
 
@@ -530,27 +560,27 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                         class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
                     >
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >City:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('City:')
+                            }}</span>
                             {{ hotelItem.city }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Departments:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Departments:')
+                            }}</span>
                             {{ hotelItem.departments }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Contract End:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Contract End:')
+                            }}</span>
                             {{ hotelItem.contractEnd }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Days Left:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Days Left:')
+                            }}</span>
                             {{ daysLabel(hotelItem) }}
                         </p>
                     </div>
@@ -567,7 +597,9 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                 )
                             "
                             :tone="progressTone[hotelItem.capacityState]"
-                            :label="`${hotelItem.name} seats used`"
+                            :label="
+                                $t(':name seats used', { name: hotelItem.name })
+                            "
                             class="h-2 flex-1"
                         />
                     </div>
@@ -581,14 +613,16 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                 )
                             "
                         >
-                            {{ capacityText[hotelItem.capacityState] }}
+                            {{ $t(capacityText[hotelItem.capacityState]) }}
                         </span>
 
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
                                 :class="cn(iconButton, 'size-9')"
-                                :aria-label="`View ${hotelItem.name}`"
+                                :aria-label="
+                                    $t('View :name', { name: hotelItem.name })
+                                "
                                 @click="emit('action', 'view', hotelItem)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
@@ -600,7 +634,9 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                                 "
                                 type="button"
                                 :class="cn(iconButton, 'size-9')"
-                                :aria-label="`Edit ${hotelItem.name}`"
+                                :aria-label="
+                                    $t('Edit :name', { name: hotelItem.name })
+                                "
                                 @click="emit('action', 'edit', hotelItem)"
                             >
                                 <Pencil class="size-4" aria-hidden="true" />
@@ -620,12 +656,17 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
             class="text-ink-muted mt-2.5 flex flex-col gap-2 text-[12.5px] leading-5 md:flex-row md:items-center md:justify-between"
         >
             <p>
-                Showing {{ pagination.from }}-{{ pagination.to }} of
-                {{ pagination.total }} hotels
+                {{
+                    $t('Showing :from-:to of :total hotels', {
+                        from: pagination.from,
+                        to: pagination.to,
+                        total: pagination.total,
+                    })
+                }}
             </p>
 
             <nav
-                aria-label="Hotels pagination"
+                :aria-label="$t('Hotels pagination')"
                 class="flex flex-wrap items-center gap-1.5"
             >
                 <button
@@ -635,7 +676,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     @click="emit('page', pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
-                    Previous
+                    {{ $t('Previous') }}
                 </button>
 
                 <template v-for="page in pagination.pages" :key="String(page)">
@@ -671,7 +712,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5];
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     @click="emit('page', pagination.currentPage + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                     <ChevronRight class="size-3.5" aria-hidden="true" />
                 </button>
             </nav>

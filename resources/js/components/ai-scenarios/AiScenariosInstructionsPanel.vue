@@ -116,11 +116,14 @@ function save(): void {
                     <h2
                         class="font-heading text-brand-800 text-base font-semibold"
                     >
-                        AI Instructions
+                        {{ $t('AI Instructions') }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12.5px]">
-                        The base system prompt every scenario uses. Per-scenario
-                        roles are inserted through the variables on the right.
+                        {{
+                            $t(
+                                'The base system prompt every scenario uses. Per-scenario roles are inserted through the variables on the right.',
+                            )
+                        }}
                     </p>
                 </div>
             </div>
@@ -131,7 +134,7 @@ function save(): void {
                         for="ai-system-prompt"
                         class="text-brand-900 text-[12px] font-semibold"
                     >
-                        System Prompt *
+                        {{ $t('System Prompt *') }}
                     </label>
                     <span class="text-ink-faint text-[11px] font-medium">
                         {{ promptCount }}
@@ -148,7 +151,7 @@ function save(): void {
             <div class="mt-4 grid gap-3 md:grid-cols-2">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Conversation Tone
+                        {{ $t('Conversation Tone') }}
                     </label>
                     <Select
                         :model-value="tone"
@@ -174,7 +177,7 @@ function save(): void {
 
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Evaluation Focus
+                        {{ $t('Evaluation Focus') }}
                     </label>
                     <Select
                         :model-value="strictness"
@@ -207,7 +210,7 @@ function save(): void {
                         class="text-brand-600 size-4"
                         aria-hidden="true"
                     />
-                    Guardrails
+                    {{ $t('Guardrails') }}
                 </h3>
                 <div class="mt-2 space-y-2">
                     <div
@@ -226,7 +229,7 @@ function save(): void {
                         <button
                             type="button"
                             class="text-ink-faint hover:text-danger ms-auto shrink-0 text-xs"
-                            aria-label="Remove guardrail"
+                            :aria-label="$t('Remove guardrail')"
                             @click="removeGuardrail(rule.id)"
                         >
                             ×
@@ -237,7 +240,7 @@ function save(): void {
                     <input
                         v-model="newGuardrail"
                         type="text"
-                        placeholder="Add a safety or coaching rule"
+                        :placeholder="$t('Add a safety or coaching rule')"
                         class="border-line text-ink bg-surface h-9 min-w-0 flex-1 rounded-md border px-3 text-[12px] outline-none"
                         @keyup.enter="addGuardrail"
                     />
@@ -247,7 +250,7 @@ function save(): void {
                         class="border-line h-9 text-[12px] shadow-none"
                         @click="addGuardrail"
                     >
-                        Add
+                        {{ $t('Add') }}
                     </Button>
                 </div>
             </div>
@@ -260,14 +263,14 @@ function save(): void {
                     @click="restoreDefault"
                 >
                     <Sparkles class="size-3.5" aria-hidden="true" />
-                    Restore Default
+                    {{ $t('Restore Default') }}
                 </Button>
                 <Button
                     type="button"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12px] font-semibold text-white"
                     @click="save"
                 >
-                    Save Instructions
+                    {{ $t('Save Instructions') }}
                 </Button>
             </div>
         </section>
@@ -279,11 +282,14 @@ function save(): void {
                 class="text-brand-900 flex items-center gap-2 text-[12px] font-semibold"
             >
                 <Braces class="text-brand-600 size-4" aria-hidden="true" />
-                Available Variables
+                {{ $t('Available Variables') }}
             </h3>
             <p class="text-ink-slate mt-1 text-[11.5px] leading-[1.5]">
-                These are replaced with each scenario's own settings before the
-                conversation starts.
+                {{
+                    $t(
+                        "These are replaced with each scenario's own settings before the conversation starts.",
+                    )
+                }}
             </p>
             <div class="mt-3 space-y-2">
                 <div

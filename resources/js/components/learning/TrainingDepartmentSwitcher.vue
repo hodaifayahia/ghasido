@@ -58,14 +58,14 @@ function onChange(value: AcceptableValue): void {
             <GraduationCap class="size-4" aria-hidden="true" />
         </span>
         <span class="text-ink-slate text-[13px] font-medium">
-            Training in
+            {{ $t('Training in') }}
         </span>
         <Select :model-value="currentValue" @update:model-value="onChange">
             <SelectTrigger
                 class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-9 w-[200px] rounded-sm text-[13px] shadow-none focus-visible:ring-3"
                 data-test="training-department-switcher"
             >
-                <SelectValue placeholder="Choose a department" />
+                <SelectValue :placeholder="$t('Choose a department')" />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem

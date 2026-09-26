@@ -4,6 +4,7 @@ import { ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import TranslationRowCard from '@/components/translations/TranslationRowCard.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     TranslationFilters,
@@ -73,10 +74,10 @@ function onState(value: string): void {
 }
 
 const states = [
-    { value: 'all', label: 'All' },
-    { value: 'missing', label: 'Needs a meaning' },
-    { value: 'ai', label: 'AI drafts' },
-    { value: 'manual', label: 'By hand' },
+    { value: 'all', label: tk('All') },
+    { value: 'missing', label: tk('Needs a meaning') },
+    { value: 'ai', label: tk('AI drafts') },
+    { value: 'manual', label: tk('By hand') },
 ];
 
 const selectClass =
@@ -85,7 +86,7 @@ const selectClass =
 
 <template>
     <PanelCard
-        :title="scope ? scope.title : 'All texts'"
+        :title="scope ? scope.title : $t('All texts')"
         title-id="translations-title"
         body-class="-mx-4 -mb-4 mt-3"
     >
@@ -101,23 +102,26 @@ const selectClass =
                 <Sparkles class="size-4" aria-hidden="true" />
                 <span>{{
                     scope
-                        ? 'Generate missing with AI'
-                        : 'Generate requested with AI'
+                        ? $t('Generate missing with AI')
+                        : $t('Generate requested with AI')
                 }}</span>
             </Button>
         </template>
 
         <div class="flex flex-wrap items-center gap-2 px-4 pb-3">
             <label class="min-w-0 flex-1 sm:max-w-xs">
-                <span class="sr-only">Lesson, test or course</span>
+                <span class="sr-only">{{ $t('Lesson, test or course') }}</span>
                 <select
                     v-model="content"
                     :class="cn(selectClass, 'w-full')"
                     data-test="translations-content-select"
                     @change="apply"
                 >
-                    <option value="">All texts</option>
-                    <optgroup v-if="options.courses.length" label="Courses">
+                    <option value="">{{ $t('All texts') }}</option>
+                    <optgroup
+                        v-if="options.courses.length"
+                        :label="$t('Courses')"
+                    >
                         <option
                             v-for="option in options.courses"
                             :key="option.value"
@@ -126,7 +130,10 @@ const selectClass =
                             {{ option.label }}
                         </option>
                     </optgroup>
-                    <optgroup v-if="options.lessons.length" label="Lessons">
+                    <optgroup
+                        v-if="options.lessons.length"
+                        :label="$t('Lessons')"
+                    >
                         <option
                             v-for="option in options.lessons"
                             :key="option.value"
@@ -137,7 +144,7 @@ const selectClass =
                     </optgroup>
                     <optgroup
                         v-if="options.tests.length"
-                        label="Pre-test & Post-test"
+                        :label="$t('Pre-test & Post-test')"
                     >
                         <option
                             v-for="option in options.tests"
@@ -150,7 +157,7 @@ const selectClass =
                 </select>
             </label>
             <label class="relative min-w-0 flex-1 sm:max-w-xs">
-                <span class="sr-only">Search the texts</span>
+                <span class="sr-only">{{ $t('Search the texts') }}</span>
                 <Search
                     class="text-ink-faint pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
                     aria-hidden="true"
@@ -158,7 +165,7 @@ const selectClass =
                 <input
                     v-model="search"
                     type="search"
-                    placeholder="Search English or Arabic"
+                    :placeholder="$t('Search English or Arabic')"
                     :class="cn(selectClass, 'w-full ps-9')"
                     @input="onSearch"
                 />
@@ -166,7 +173,7 @@ const selectClass =
             <div
                 class="border-line bg-app flex flex-wrap rounded-md border p-0.5"
                 role="group"
-                aria-label="Filter by state"
+                :aria-label="$t('Filter by state')"
             >
                 <button
                     v-for="option in states"
@@ -183,7 +190,7 @@ const selectClass =
                     "
                     @click="onState(option.value)"
                 >
-                    {{ option.label }}
+                    {{ $t(option.label) }}
                 </button>
             </div>
         </div>
@@ -200,8 +207,11 @@ const selectClass =
             v-else
             class="text-ink-slate border-line border-t px-4 py-10 text-center text-[13px]"
         >
-            No texts match. Pick a lesson, test or course above to see all of
-            its texts.
+            {{
+                $t(
+                    'No texts match. Pick a lesson, test or course above to see all of its texts.',
+                )
+            }}
         </p>
 
         <div
@@ -209,7 +219,13 @@ const selectClass =
             class="border-line flex items-center justify-between gap-2 border-t px-4 py-3 text-[12px]"
         >
             <span class="text-ink-slate">
-                Page {{ page }} of {{ lastPage }} · {{ total }} texts
+                {{
+                    $t('Page :page of :last · :total texts', {
+                        page,
+                        last: lastPage,
+                        total,
+                    })
+                }}
             </span>
             <div class="flex gap-2">
                 <Button
@@ -219,7 +235,7 @@ const selectClass =
                     :disabled="page <= 1"
                     @click="emit('page', page - 1)"
                 >
-                    Previous
+                    {{ $t('Previous') }}
                 </Button>
                 <Button
                     type="button"
@@ -228,7 +244,7 @@ const selectClass =
                     :disabled="page >= lastPage"
                     @click="emit('page', page + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                 </Button>
             </div>
         </div>

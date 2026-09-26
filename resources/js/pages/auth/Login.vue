@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { tk } from '@/lib/i18n';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -14,9 +15,10 @@ import PasskeyVerify from '@/components/PasskeyVerify.vue';
 
 defineOptions({
     layout: {
-        title: 'Sign in to GHASIDO',
-        description:
+        title: tk('Sign in to GHASIDO'),
+        description: tk(
             'Super Admin, approved hotel managers and invited staff sign in here.',
+        ),
     },
 });
 
@@ -27,7 +29,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Sign in" />
+    <Head :title="$t('Sign in')" />
 
     <div
         v-if="status"
@@ -46,7 +48,7 @@ defineProps<{
     >
         <div class="grid gap-4">
             <div class="grid gap-1.5">
-                <Label for="username">Username</Label>
+                <Label for="username">{{ $t('Username') }}</Label>
                 <Input
                     id="username"
                     type="text"
@@ -59,22 +61,25 @@ defineProps<{
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-11 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
                 <p class="text-body-sm text-ink-muted">
-                    Hotel teams use their username. Platform owner accounts can
-                    still use email if needed.
+                    {{
+                        $t(
+                            'Hotel teams use their username. Platform owner accounts can still use email if needed.',
+                        )
+                    }}
                 </p>
                 <InputError :message="errors.email" />
             </div>
 
             <div class="grid gap-1.5">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
+                    <Label for="password">{{ $t('Password') }}</Label>
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot your password?
+                        {{ $t('Forgot your password?') }}
                     </TextLink>
                 </div>
                 <PasswordInput
@@ -83,7 +88,7 @@ defineProps<{
                     required
                     :tabindex="2"
                     autocomplete="current-password"
-                    placeholder="Password"
+                    :placeholder="$t('Password')"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-11 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
                 <InputError :message="errors.password" />
@@ -95,7 +100,7 @@ defineProps<{
                     class="text-body-sm text-ink-muted flex items-center gap-3"
                 >
                     <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
+                    <span>{{ $t('Remember me') }}</span>
                 </Label>
             </div>
 
@@ -107,7 +112,7 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Sign in
+                {{ $t('Sign in') }}
             </Button>
         </div>
     </Form>
@@ -116,17 +121,20 @@ defineProps<{
         class="border-line bg-app-alt shadow-card mt-4 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
     >
         <div class="min-w-0">
-            <p class="text-label text-brand-700">New hotel?</p>
+            <p class="text-label text-brand-700">{{ $t('New hotel?') }}</p>
             <p class="text-body-sm text-ink-slate mt-1">
-                Choose a plan to start a hotel request. Managers invite their
-                employees after approval.
+                {{
+                    $t(
+                        'Choose a plan to start a hotel request. Managers invite their employees after approval.',
+                    )
+                }}
             </p>
         </div>
         <Link
             href="/#pricing"
             class="focus-visible:border-brand-600 focus-visible:ring-brand-600/15 border-line bg-surface font-heading text-brand-700 shadow-card ease-brand hover:bg-brand-50 hover:shadow-hover inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border px-4 text-sm font-semibold transition duration-150 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:outline-none"
         >
-            Get started
+            {{ $t('Get started') }}
         </Link>
     </div>
 </template>

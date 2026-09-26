@@ -37,22 +37,31 @@ function move(delta: number): void {
 <template>
     <LessonsModal
         :open="open"
-        :title="`${title} preview`"
-        description="This is the employee-facing question preview. No answer is submitted."
+        :title="$t(':title preview', { title })"
+        :description="
+            $t(
+                'This is the employee-facing question preview. No answer is submitted.',
+            )
+        "
         size="lg"
         @update:open="emit('update:open', $event)"
     >
         <div v-if="question" class="mt-3 grid gap-4">
             <div class="flex items-center justify-between gap-3">
                 <span class="text-ink-slate text-xs font-semibold">
-                    Question {{ index + 1 }} of {{ preview.questions.length }}
+                    {{
+                        $t('Question :current of :total', {
+                            current: index + 1,
+                            total: preview.questions.length,
+                        })
+                    }}
                 </span>
                 <div class="flex gap-1.5">
                     <Button
                         type="button"
                         variant="outline"
                         class="size-8 p-0"
-                        aria-label="Previous question"
+                        :aria-label="$t('Previous question')"
                         @click="move(-1)"
                     >
                         <ChevronLeft class="size-4" aria-hidden="true" />
@@ -61,7 +70,7 @@ function move(delta: number): void {
                         type="button"
                         variant="outline"
                         class="size-8 p-0"
-                        aria-label="Next question"
+                        :aria-label="$t('Next question')"
                         @click="move(1)"
                     >
                         <ChevronRight class="size-4" aria-hidden="true" />
@@ -90,7 +99,7 @@ function move(delta: number): void {
                         }
                     "
                     src="/decor/tests-mockup.jpg"
-                    alt="Question illustration"
+                    :alt="$t('Question illustration')"
                     class="border-line aspect-square w-full rounded-md border"
                 />
                 <div>
@@ -116,7 +125,7 @@ function move(delta: number): void {
             v-else
             class="text-ink-slate mt-3 rounded-md border border-dashed px-4 py-10 text-center text-sm"
         >
-            Add a question before opening the preview.
+            {{ $t('Add a question before opening the preview.') }}
         </p>
     </LessonsModal>
 </template>

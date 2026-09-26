@@ -25,6 +25,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     LessonDirectoryFilters,
@@ -154,6 +155,10 @@ function changePageSize(value: AcceptableValue): void {
     emit('pageSize', size);
 }
 
+function statusLabel(statusValue: LessonDirectoryRow['status']): string {
+    return statusValue === 'published' ? tk('Published') : tk('Draft');
+}
+
 function statusClass(statusValue: LessonDirectoryRow['status']): string {
     return statusValue === 'published'
         ? 'bg-success-tint text-success'
@@ -166,7 +171,7 @@ const iconButton =
 
 <template>
     <PanelCard
-        title="Lesson Directory"
+        :title="$t('Lesson Directory')"
         title-id="lesson-directory-title"
         class="px-3 pt-3 pb-3 md:px-4"
         body-class="mt-2"
@@ -176,8 +181,7 @@ const iconButton =
                  title row cannot hold the count and both buttons. -->
             <div class="hidden items-center gap-2 sm:flex">
                 <span class="text-ink-faint text-[11.5px] whitespace-nowrap">
-                    {{ pagination.total }}
-                    {{ pagination.total === 1 ? 'lesson' : 'lessons' }}
+                    {{ $tc(':count lesson|:count lessons', pagination.total) }}
                 </span>
                 <Button
                     v-if="manage"
@@ -188,7 +192,7 @@ const iconButton =
                     @click="emit('generate')"
                 >
                     <Sparkles class="size-3.5" aria-hidden="true" />
-                    Generate with AI
+                    {{ $t('Generate with AI') }}
                 </Button>
                 <Button
                     v-if="manage"
@@ -198,15 +202,14 @@ const iconButton =
                     @click="emit('create')"
                 >
                     <Plus class="size-3.5" aria-hidden="true" />
-                    Create lesson
+                    {{ $t('Create lesson') }}
                 </Button>
             </div>
         </template>
 
         <div class="mb-3 grid gap-2 sm:hidden">
             <p class="text-ink-faint text-[11.5px]">
-                {{ pagination.total }}
-                {{ pagination.total === 1 ? 'lesson' : 'lessons' }}
+                {{ $tc(':count lesson|:count lessons', pagination.total) }}
             </p>
             <div v-if="manage" class="grid grid-cols-2 gap-2">
                 <Button
@@ -217,7 +220,7 @@ const iconButton =
                     @click="emit('generate')"
                 >
                     <Sparkles class="size-3.5" aria-hidden="true" />
-                    Generate with AI
+                    {{ $t('Generate with AI') }}
                 </Button>
                 <Button
                     type="button"
@@ -226,7 +229,7 @@ const iconButton =
                     @click="emit('create')"
                 >
                     <Plus class="size-3.5" aria-hidden="true" />
-                    Create lesson
+                    {{ $t('Create lesson') }}
                 </Button>
             </div>
         </div>
@@ -239,11 +242,14 @@ const iconButton =
             >
                 <div>
                     <p class="text-brand-900 text-[12.5px] font-semibold">
-                        Find a lesson quickly
+                        {{ $t('Find a lesson quickly') }}
                     </p>
                     <p class="text-ink-slate mt-0.5 text-[11.5px]">
-                        Search by lesson, course or unit, then narrow the
-                        library with filters.
+                        {{
+                            $t(
+                                'Search by lesson, course or unit, then narrow the library with filters.',
+                            )
+                        }}
                     </p>
                 </div>
                 <Button
@@ -255,7 +261,7 @@ const iconButton =
                     @click="emit('tutorial')"
                 >
                     <CircleHelp class="size-3.5" aria-hidden="true" />
-                    How to create a lesson
+                    {{ $t('How to create a lesson') }}
                 </Button>
             </div>
 
@@ -270,8 +276,8 @@ const iconButton =
                     <Input
                         v-model="search"
                         type="search"
-                        placeholder="Search lessons, courses or units..."
-                        aria-label="Search lessons, courses or units"
+                        :placeholder="$t('Search lessons, courses or units...')"
+                        :aria-label="$t('Search lessons, courses or units')"
                         data-test="lessons-directory-search"
                         class="border-line bg-surface placeholder:text-ink-faint h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                     />
@@ -282,7 +288,7 @@ const iconButton =
                     @update:model-value="onSelect('hotel', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter lessons by hotel"
+                        :aria-label="$t('Filter lessons by hotel')"
                         data-test="lessons-directory-hotel-filter"
                         class="border-line text-ink bg-surface h-9 w-full rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -305,7 +311,7 @@ const iconButton =
                     @update:model-value="onSelect('department', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter lessons by department"
+                        :aria-label="$t('Filter lessons by department')"
                         data-test="lessons-directory-department-filter"
                         class="border-line text-ink bg-surface h-9 w-full rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -328,7 +334,7 @@ const iconButton =
                     @update:model-value="onSelect('course', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter lessons by course"
+                        :aria-label="$t('Filter lessons by course')"
                         data-test="lessons-directory-course-filter"
                         class="border-line text-ink bg-surface h-9 w-full rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -351,7 +357,7 @@ const iconButton =
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter lessons by status"
+                        :aria-label="$t('Filter lessons by status')"
                         data-test="lessons-directory-status-filter"
                         class="border-line text-ink bg-surface h-9 w-full rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -377,7 +383,7 @@ const iconButton =
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
-                    Reset
+                    {{ $t('Reset') }}
                 </Button>
             </div>
         </div>
@@ -403,15 +409,27 @@ const iconButton =
                         <tr
                             class="text-brand-900 text-[11.5px] leading-4 font-semibold"
                         >
-                            <th class="px-3 py-2.5 text-start">Lesson</th>
-                            <th class="px-2 py-2.5 text-start">
-                                Course / Unit
+                            <th class="px-3 py-2.5 text-start">
+                                {{ $t('Lesson') }}
                             </th>
-                            <th class="px-2 py-2.5 text-start">Department</th>
-                            <th class="px-2 py-2.5 text-start">Hotel</th>
-                            <th class="px-2 py-2.5 text-start">Steps</th>
-                            <th class="px-2 py-2.5 text-start">Status</th>
-                            <th class="px-2 py-2.5 text-start">Action</th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Course / Unit') }}
+                            </th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Department') }}
+                            </th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Hotel') }}
+                            </th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Steps') }}
+                            </th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Status') }}
+                            </th>
+                            <th class="px-2 py-2.5 text-start">
+                                {{ $t('Action') }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="bg-surface text-ink text-[12px]">
@@ -434,11 +452,11 @@ const iconButton =
                                     <span
                                         class="text-ink-faint mt-0.5 block truncate text-[10.5px]"
                                     >
-                                        {{ lesson.steps }}
                                         {{
-                                            lesson.steps === 1
-                                                ? 'employee step'
-                                                : 'employee steps'
+                                            $tc(
+                                                ':count employee step|:count employee steps',
+                                                lesson.steps,
+                                            )
                                         }}
                                     </span>
                                 </Link>
@@ -477,7 +495,7 @@ const iconButton =
                                         )
                                     "
                                 >
-                                    {{ lesson.status }}
+                                    {{ $t(statusLabel(lesson.status)) }}
                                 </span>
                             </td>
                             <td class="px-2 py-2.5 align-middle">
@@ -493,7 +511,7 @@ const iconButton =
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        {{ manage ? 'Edit' : 'View' }}
+                                        {{ manage ? $t('Edit') : $t('View') }}
                                     </Link>
                                 </Button>
                             </td>
@@ -503,8 +521,11 @@ const iconButton =
                                 colspan="7"
                                 class="text-ink-muted px-4 py-10 text-center text-[13px]"
                             >
-                                No lessons match these filters. Try clearing one
-                                or more filters.
+                                {{
+                                    $t(
+                                        'No lessons match these filters. Try clearing one or more filters.',
+                                    )
+                                }}
                             </td>
                         </tr>
                     </tbody>
@@ -544,7 +565,7 @@ const iconButton =
                                 )
                             "
                         >
-                            {{ lesson.status }}
+                            {{ $t(statusLabel(lesson.status)) }}
                         </span>
                     </div>
 
@@ -552,21 +573,21 @@ const iconButton =
                         class="text-ink-muted mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] leading-5"
                     >
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Department:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Department:')
+                            }}</span>
                             {{ lesson.department }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Hotel:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Hotel:')
+                            }}</span>
                             {{ lesson.hotel }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Steps:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Steps:')
+                            }}</span>
                             {{ lesson.steps }}
                         </p>
                     </div>
@@ -586,7 +607,7 @@ const iconButton =
                                 class="size-3.5"
                                 aria-hidden="true"
                             />
-                            {{ manage ? 'Edit lesson' : 'View lesson' }}
+                            {{ manage ? $t('Edit lesson') : $t('View lesson') }}
                         </Link>
                     </div>
                 </li>
@@ -594,7 +615,7 @@ const iconButton =
                     v-if="lessons.length === 0"
                     class="text-ink-muted bg-surface p-8 text-center text-[13px]"
                 >
-                    No lessons match these filters.
+                    {{ $t('No lessons match these filters.') }}
                 </li>
             </ul>
         </div>
@@ -604,21 +625,24 @@ const iconButton =
         >
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <p>
-                    Showing
-                    <template v-if="pagination.total === 0">0</template>
-                    <template v-else
-                        >{{ pagination.from }}-{{ pagination.to }}</template
-                    >
-                    of {{ pagination.total }} lessons
+                    {{
+                        $t('Showing :range of :total lessons', {
+                            range:
+                                pagination.total === 0
+                                    ? '0'
+                                    : `${pagination.from}-${pagination.to}`,
+                            total: pagination.total,
+                        })
+                    }}
                 </p>
                 <div class="flex items-center gap-1.5">
-                    <span>Show</span>
+                    <span>{{ $t('Show') }}</span>
                     <Select
                         :model-value="String(pagination.perPage)"
                         @update:model-value="changePageSize"
                     >
                         <SelectTrigger
-                            aria-label="Lessons per page"
+                            :aria-label="$t('Lessons per page')"
                             data-test="lessons-directory-page-size"
                             class="border-line text-brand-800 bg-surface h-8 w-[72px] rounded-md px-2.5 text-[12px] font-semibold shadow-none"
                         >
@@ -635,12 +659,12 @@ const iconButton =
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                    <span>per page</span>
+                    <span>{{ $t('per page') }}</span>
                 </div>
             </div>
 
             <nav
-                aria-label="Lessons pagination"
+                :aria-label="$t('Lessons pagination')"
                 class="flex flex-wrap items-center gap-1.5"
             >
                 <button
@@ -651,7 +675,7 @@ const iconButton =
                     @click="goTo(pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
-                    Previous
+                    {{ $t('Previous') }}
                 </button>
 
                 <template
@@ -694,7 +718,7 @@ const iconButton =
                     data-test="lessons-directory-next-page"
                     @click="goTo(pagination.currentPage + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                     <ChevronRight class="size-3.5" aria-hidden="true" />
                 </button>
             </nav>

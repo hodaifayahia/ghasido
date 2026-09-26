@@ -23,15 +23,16 @@ class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user('web');
-        $candidates = [
-            $user instanceof User ? $user->locale : null,
-            $request->cookie(Locales::COOKIE),
-        ];
+        $locale = Locales::DEFAULT;
 
-        $locale = collect($candidates)->first(fn (mixed $value): bool => Locales::isSupported($value))
-            ?? Locales::DEFAULT;
+        foreach ([$user instanceof User ? $user->locale : null, $request->cookie(Locales::COOKIE)] as $candidate) {
+            if (is_string($candidate) && Locales::isSupported($candidate)) {
+                $locale = $candidate;
+                break;
+            }
+        }
 
-        App::setLocale((string) $locale);
+        App::setLocale($locale);
         View::share('locale', App::getLocale());
         View::share('direction', Locales::direction(App::getLocale()));
 

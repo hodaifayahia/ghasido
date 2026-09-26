@@ -15,6 +15,8 @@ import SolidBuildingIcon from '@/components/icons/SolidBuildingIcon.vue';
 import SolidUsersGroupIcon from '@/components/icons/SolidUsersGroupIcon.vue';
 import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     DepartmentOverview,
@@ -38,12 +40,13 @@ const emit = defineEmits<{
 }>();
 
 const { can } = useCan();
+const { t } = useI18n();
 const canManage = can('departments.manage');
 
 const statusText: Record<DepartmentStatus, string> = {
-    active: 'Active',
-    review: 'In Review',
-    draft: 'Draft',
+    active: tk('Active'),
+    review: tk('In Review'),
+    draft: tk('Draft'),
 };
 
 const statusTone: Record<DepartmentStatus, string> = {
@@ -59,9 +62,9 @@ const quotaTone: Record<DepartmentQuotaState, 'brand' | 'warning'> = {
 };
 
 const quotaText: Record<DepartmentQuotaState, string> = {
-    available: 'Available',
-    full: 'Full',
-    over: 'Over quota',
+    available: tk('Available'),
+    full: tk('Full'),
+    over: tk('Over quota'),
 };
 
 const quotaPillTone: Record<DepartmentQuotaState, string> = {
@@ -77,7 +80,7 @@ const pillText = computed(() => {
         return '';
     }
 
-    return overview.isActive ? statusText[overview.status] : 'Archived';
+    return overview.isActive ? t(statusText[overview.status]) : t('Archived');
 });
 
 const pillTone = computed(() => {
@@ -122,7 +125,7 @@ const outlineButton =
 <template>
     <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
         <PanelCard
-            title="Department Overview"
+            :title="$t('Department Overview')"
             title-id="departments-overview-title"
             body-class="flex flex-col gap-4"
         >
@@ -145,11 +148,14 @@ const outlineButton =
                 <p
                     class="font-heading text-brand-900 text-[14px] font-semibold"
                 >
-                    No department selected
+                    {{ $t('No department selected') }}
                 </p>
                 <p class="text-ink-slate mt-1 text-[12.5px] leading-5">
-                    Nothing matches the current filters. Clear them, or create a
-                    department to see its overview here.
+                    {{
+                        $t(
+                            'Nothing matches the current filters. Clear them, or create a department to see its overview here.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -186,7 +192,9 @@ const outlineButton =
                     {{
                         overview.focus !== ''
                             ? overview.focus
-                            : 'No focus line yet. Edit the department to describe what its staff practise.'
+                            : $t(
+                                  'No focus line yet. Edit the department to describe what its staff practise.',
+                              )
                     }}
                 </div>
 
@@ -200,7 +208,7 @@ const outlineButton =
                             {{ overview.hotelCount }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Hotels
+                            {{ $t('Hotels') }}
                         </p>
                     </div>
                     <div
@@ -212,7 +220,7 @@ const outlineButton =
                             {{ overview.employeeCount }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Employees
+                            {{ $t('Employees') }}
                         </p>
                     </div>
                     <div
@@ -224,7 +232,7 @@ const outlineButton =
                             {{ overview.lessonCount }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Lessons
+                            {{ $t('Lessons') }}
                         </p>
                     </div>
                     <div
@@ -236,7 +244,7 @@ const outlineButton =
                             {{ overview.scenarioCount }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            AI Scenarios
+                            {{ $t('AI Scenarios') }}
                         </p>
                     </div>
                 </div>
@@ -249,13 +257,17 @@ const outlineButton =
                             <p
                                 class="font-heading text-brand-800 text-[13px] font-semibold"
                             >
-                                Seat Coverage
+                                {{ $t('Seat Coverage') }}
                             </p>
                             <p
                                 class="text-ink-slate mt-0.5 text-[11.5px] leading-4"
                             >
-                                {{ usedSeats }} / {{ totalSeats }} seats
-                                assigned
+                                {{
+                                    $t(':used / :total seats assigned', {
+                                        used: usedSeats,
+                                        total: totalSeats,
+                                    })
+                                }}
                             </p>
                         </div>
                         <span class="text-brand-700 text-[11px] font-semibold">
@@ -266,7 +278,9 @@ const outlineButton =
                     <ProgressBar
                         :value="occupancy"
                         tone="brand"
-                        :label="`${overview.name} seat coverage`"
+                        :label="
+                            $t(':name seat coverage', { name: overview.name })
+                        "
                         class="mt-3 h-[7px]"
                     />
 
@@ -278,11 +292,21 @@ const outlineButton =
                                 class="text-brand-700 size-3.5"
                                 aria-hidden="true"
                             />
-                            {{ overview.testCount }} tests
+                            {{
+                                $tc(
+                                    ':count test|:count tests',
+                                    overview.testCount,
+                                )
+                            }}
                         </span>
                         <span class="inline-flex items-center gap-1.5">
                             <Bot class="text-ai size-3.5" aria-hidden="true" />
-                            {{ overview.scenarioCount }} AI scenarios
+                            {{
+                                $tc(
+                                    ':count AI scenario|:count AI scenarios',
+                                    overview.scenarioCount,
+                                )
+                            }}
                         </span>
                     </div>
                 </div>
@@ -293,7 +317,7 @@ const outlineButton =
                     <p
                         class="font-heading text-brand-800 text-[13px] font-semibold"
                     >
-                        Key Notes
+                        {{ $t('Key Notes') }}
                     </p>
                     <ul
                         class="text-ink-muted mt-2 grid gap-1.5 text-[12px] leading-4.5"
@@ -314,7 +338,7 @@ const outlineButton =
         </PanelCard>
 
         <PanelCard
-            title="Hotel Coverage"
+            :title="$t('Hotel Coverage')"
             title-id="department-hotels-title"
             body-class="flex flex-col gap-3"
         >
@@ -336,8 +360,12 @@ const outlineButton =
             >
                 {{
                     overview === null
-                        ? 'Select a department to see which hotels hold seats in it.'
-                        : "No hotel holds seats in this department yet. Allocate them from the hotel's Manage seats dialog."
+                        ? $t(
+                              'Select a department to see which hotels hold seats in it.',
+                          )
+                        : $t(
+                              "No hotel holds seats in this department yet. Allocate them from the hotel's Manage seats dialog.",
+                          )
                 }}
             </p>
 
@@ -367,7 +395,7 @@ const outlineButton =
                             )
                         "
                     >
-                        {{ quotaText[assignment.state] }}
+                        {{ $t(quotaText[assignment.state]) }}
                     </span>
                 </div>
 
@@ -380,7 +408,11 @@ const outlineButton =
                             )
                         "
                         :tone="quotaTone[assignment.state]"
-                        :label="`${assignment.hotel} seats assigned`"
+                        :label="
+                            $t(':name seats assigned', {
+                                name: assignment.hotel,
+                            })
+                        "
                         class="h-[7px] flex-1"
                     />
                     <span class="text-brand-900 text-[11.5px] font-medium">
@@ -403,10 +435,12 @@ const outlineButton =
                     <h2
                         class="font-heading text-brand-800 text-[15px] font-semibold"
                     >
-                        Quick Actions
+                        {{ $t('Quick Actions') }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12px] leading-4">
-                        Department setup, alignment and content tasks.
+                        {{
+                            $t('Department setup, alignment and content tasks.')
+                        }}
                     </p>
                 </div>
             </header>
@@ -420,7 +454,7 @@ const outlineButton =
                     @click="emit('quick', 'create')"
                 >
                     <Plus class="size-4" aria-hidden="true" />
-                    Create Department
+                    {{ $t('Create Department') }}
                 </Button>
 
                 <Button
@@ -431,7 +465,7 @@ const outlineButton =
                     @click="emit('quick', 'hotels')"
                 >
                     <Users class="size-4" aria-hidden="true" />
-                    Assign Hotels
+                    {{ $t('Assign Hotels') }}
                 </Button>
 
                 <Button
@@ -443,7 +477,7 @@ const outlineButton =
                     @click="emit('quick', 'content')"
                 >
                     <BookOpen class="size-4" aria-hidden="true" />
-                    Configure Content
+                    {{ $t('Configure Content') }}
                 </Button>
 
                 <Button
@@ -456,7 +490,7 @@ const outlineButton =
                     @click="emit('quick', 'edit')"
                 >
                     <Settings class="size-4" aria-hidden="true" />
-                    Review Settings
+                    {{ $t('Review Settings') }}
                 </Button>
             </div>
         </section>

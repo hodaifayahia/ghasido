@@ -38,8 +38,8 @@ enum ApiAccount: string
     public function serviceLabel(): string
     {
         return match ($this) {
-            self::Qwen => 'AI text & images',
-            self::Deepgram => 'Speech & listening',
+            self::Qwen => __('AI text & images'),
+            self::Deepgram => __('Speech & listening'),
         };
     }
 
@@ -49,8 +49,8 @@ enum ApiAccount: string
     public function usedFor(): string
     {
         return match ($this) {
-            self::Qwen => 'Text AI: role-play replies, feedback and evaluations, lesson and test drafts, coaching, and lesson images.',
-            self::Deepgram => 'Speech: lesson audio, transcription of spoken answers, pronunciation checks and live voice calls.',
+            self::Qwen => __('Text AI: role-play replies, feedback and evaluations, lesson and test drafts, coaching, and lesson images.'),
+            self::Deepgram => __('Speech: lesson audio, transcription of spoken answers, pronunciation checks and live voice calls.'),
         };
     }
 

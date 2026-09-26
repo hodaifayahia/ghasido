@@ -223,10 +223,18 @@ function onImage(item: LessonMediaRef | null): void {
         v-model:open="open"
         :title="
             isEdit
-                ? `Edit ${kind === 'expression' ? 'expression' : 'word'}`
-                : `Add ${kind === 'expression' ? 'expression' : 'word'}`
+                ? kind === 'expression'
+                    ? $t('Edit expression')
+                    : $t('Edit word')
+                : kind === 'expression'
+                  ? $t('Add expression')
+                  : $t('Add word')
         "
-        description="The English is always shown; the Arabic and explanation stay behind Show Meaning."
+        :description="
+            $t(
+                'The English is always shown; the Arabic and explanation stay behind Show Meaning.',
+            )
+        "
         size="lg"
     >
         <div class="mt-2 grid gap-4">
@@ -234,15 +242,18 @@ function onImage(item: LessonMediaRef | null): void {
                 <LessonsField
                     data-tour="lexicon-english-field"
                     v-model="form.english_text"
-                    label="English"
+                    :label="$t('English')"
                     :error="errors.english_text"
                 />
                 <LessonsField
                     v-model="form.part_of_speech"
-                    label="Part of speech"
+                    :label="$t('Part of speech')"
                 />
             </div>
-            <LessonsField v-model="form.ipa" label="Pronunciation (IPA)" />
+            <LessonsField
+                v-model="form.ipa"
+                :label="$t('Pronunciation (IPA)')"
+            />
 
             <LessonsMediaSlot
                 label="Image"
@@ -256,7 +267,7 @@ function onImage(item: LessonMediaRef | null): void {
                 <LessonsField
                     data-tour="lexicon-meaning-field"
                     v-model="form.arabic_meaning"
-                    label="Arabic meaning"
+                    :label="$t('Arabic meaning')"
                     type="textarea"
                     :rows="2"
                     dir="rtl"
@@ -264,7 +275,7 @@ function onImage(item: LessonMediaRef | null): void {
                 />
                 <LessonsField
                     v-model="form.simple_explanation"
-                    label="Simple explanation"
+                    :label="$t('Simple explanation')"
                     type="textarea"
                     :rows="2"
                     :error="errors.simple_explanation"
@@ -273,14 +284,14 @@ function onImage(item: LessonMediaRef | null): void {
             <div class="grid gap-4 md:grid-cols-2">
                 <LessonsField
                     v-model="form.hotel_example"
-                    label="Hotel example"
+                    :label="$t('Hotel example')"
                     type="textarea"
                     :rows="2"
                     :error="errors.hotel_example"
                 />
                 <LessonsField
                     v-model="form.hotel_example_arabic"
-                    label="Hotel example (Arabic)"
+                    :label="$t('Hotel example (Arabic)')"
                     type="textarea"
                     :rows="2"
                     dir="rtl"
@@ -292,9 +303,9 @@ function onImage(item: LessonMediaRef | null): void {
                     v-model="form.show_meaning_enabled"
                     :disabled="readOnly"
                 />
-                <span class="text-ink"
-                    >Show Meaning available for this item</span
-                >
+                <span class="text-ink">{{
+                    $t('Show Meaning available for this item')
+                }}</span>
             </label>
 
             <div
@@ -306,7 +317,7 @@ function onImage(item: LessonMediaRef | null): void {
                         class="text-ai flex items-center gap-1.5 text-[12px] font-semibold"
                     >
                         <Sparkles class="size-3.5" aria-hidden="true" />
-                        AI assistant
+                        {{ $t('AI assistant') }}
                     </span>
                     <div class="flex items-center gap-2">
                         <Button
@@ -317,7 +328,11 @@ function onImage(item: LessonMediaRef | null): void {
                             class="border-ai/40 text-ai hover:bg-ai-tint h-8 gap-1 rounded-md px-3 text-[12px] font-semibold shadow-none"
                             @click="generateDraft"
                         >
-                            {{ aiPending ? 'Generating…' : 'Generate with AI' }}
+                            {{
+                                aiPending
+                                    ? $t('Generating…')
+                                    : $t('Generate with AI')
+                            }}
                         </Button>
                         <Button
                             v-if="!readOnly && draft"
@@ -326,7 +341,7 @@ function onImage(item: LessonMediaRef | null): void {
                             class="bg-ai h-8 gap-1 rounded-md px-3 text-[12px] font-semibold text-white shadow-none hover:opacity-90"
                             @click="applyAiDraft"
                         >
-                            Apply draft
+                            {{ $t('Apply draft') }}
                         </Button>
                     </div>
                 </div>
@@ -334,9 +349,11 @@ function onImage(item: LessonMediaRef | null): void {
                     v-if="!draft && !aiPending"
                     class="text-ink-muted text-[12px]"
                 >
-                    Ask the AI to suggest the Arabic meaning, a simple
-                    explanation and a hotel example. Nothing is saved until you
-                    apply it.
+                    {{
+                        $t(
+                            'Ask the AI to suggest the Arabic meaning, a simple explanation and a hotel example. Nothing is saved until you apply it.',
+                        )
+                    }}
                 </p>
                 <div v-else-if="draft" class="grid gap-1 text-[12px]">
                     <p
@@ -362,7 +379,7 @@ function onImage(item: LessonMediaRef | null): void {
                         class="text-brand-900 flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.02em]"
                     >
                         <Volume2 class="size-3.5" aria-hidden="true" />
-                        Audio
+                        {{ $t('Audio') }}
                     </span>
                     <Button
                         v-if="!readOnly"
@@ -372,7 +389,7 @@ function onImage(item: LessonMediaRef | null): void {
                         class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1 rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="generateAudio"
                     >
-                        Generate audio
+                        {{ $t('Generate audio') }}
                     </Button>
                 </div>
                 <LessonsAudioChips
@@ -400,7 +417,7 @@ function onImage(item: LessonMediaRef | null): void {
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    {{ readOnly ? 'Close' : 'Cancel' }}
+                    {{ readOnly ? $t('Close') : $t('Cancel') }}
                 </Button>
                 <Button
                     v-if="!readOnly"
@@ -410,7 +427,7 @@ function onImage(item: LessonMediaRef | null): void {
                     data-tour="save-lexicon-item"
                     @click="save"
                 >
-                    {{ busy ? 'Saving…' : 'Save' }}
+                    {{ busy ? $t('Saving…') : $t('Save') }}
                 </Button>
             </div>
         </div>

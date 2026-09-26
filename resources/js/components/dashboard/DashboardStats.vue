@@ -81,7 +81,7 @@ const look: Record<DashboardStatKey, StatLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Key figures"
+        :aria-label="$t('Key figures')"
         :class="
             cn(
                 'grid min-w-0 grid-cols-2 gap-2 pt-0.5 pb-3',

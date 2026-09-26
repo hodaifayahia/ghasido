@@ -48,8 +48,12 @@ function continueToCreate(): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Create a lesson"
-        description="Choose the department first. The lesson details are completed on the next page."
+        :title="$t('Create a lesson')"
+        :description="
+            $t(
+                'Choose the department first. The lesson details are completed on the next page.',
+            )
+        "
     >
         <div class="mt-2 grid gap-4">
             <div class="grid gap-1.5">
@@ -57,7 +61,8 @@ function continueToCreate(): void {
                     for="create-lesson-department"
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Department <span class="text-danger-text">*</span>
+                    {{ $t('Department') }}
+                    <span class="text-danger-text">*</span>
                 </label>
                 <Select v-model="department">
                     <SelectTrigger
@@ -65,7 +70,7 @@ function continueToCreate(): void {
                         class="border-line text-ink bg-surface h-10 w-full rounded-sm text-[13px] shadow-none"
                         data-test="create-lesson-department"
                     >
-                        <SelectValue placeholder="Choose a department" />
+                        <SelectValue :placeholder="$t('Choose a department')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -83,8 +88,11 @@ function continueToCreate(): void {
             <p
                 class="text-ink-slate bg-brand-50/60 rounded-md px-3 py-2 text-[12px]"
             >
-                Hotel scope is not required. You will choose the course, unit,
-                title, and lesson steps on the next page.
+                {{
+                    $t(
+                        'Hotel scope is not required. You will choose the course, unit, title, and lesson steps on the next page.',
+                    )
+                }}
             </p>
 
             <div class="mt-1 flex justify-end gap-2">
@@ -95,7 +103,7 @@ function continueToCreate(): void {
                     data-test="cancel-create-lesson"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="button"
@@ -104,7 +112,7 @@ function continueToCreate(): void {
                     data-test="continue-create-lesson"
                     @click="continueToCreate"
                 >
-                    Continue
+                    {{ $t('Continue') }}
                 </Button>
             </div>
         </div>

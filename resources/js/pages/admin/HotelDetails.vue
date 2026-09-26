@@ -31,6 +31,8 @@ import type {
     HotelEmployeeActivity,
     HotelOverview,
 } from '@/types';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 
 type Props = {
     hotel: HotelOverview;
@@ -41,15 +43,23 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t, tc } = useI18n();
+
+function percentOf(part: number): number {
+    return props.summary.totalEmployees === 0
+        ? 0
+        : Math.round((part / props.summary.totalEmployees) * 100);
+}
+
 defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Hotels',
+                title: tk('Hotels'),
                 href: hotels(),
             },
         ],
@@ -66,30 +76,37 @@ type StatDefinition = {
 
 const stats = computed<StatDefinition[]>(() => [
     {
-        label: 'Total Employees',
+        label: t('Total Employees'),
         value: props.summary.totalEmployees,
-        detail: `${props.summary.activeAccounts} active accounts`,
+        detail: tc(
+            ':count active account|:count active accounts',
+            props.summary.activeAccounts,
+        ),
         tone: 'brand',
         icon: Users,
     },
     {
-        label: 'Active Users',
+        label: t('Active Users'),
         value: props.summary.activeUsers,
-        detail: 'Activity in the last 7 days',
+        detail: t('Activity in the last 7 days'),
         tone: 'success',
         icon: UserCheck,
     },
     {
-        label: 'Started Training',
+        label: t('Started Training'),
         value: props.summary.startedTraining,
-        detail: `${props.summary.totalEmployees === 0 ? 0 : Math.round((props.summary.startedTraining / props.summary.totalEmployees) * 100)}% of employees`,
+        detail: t(':percent% of employees', {
+            percent: percentOf(props.summary.startedTraining),
+        }),
         tone: 'azure',
         icon: Play,
     },
     {
-        label: 'Completed Training',
+        label: t('Completed Training'),
         value: props.summary.completedTraining,
-        detail: `${props.summary.totalEmployees === 0 ? 0 : Math.round((props.summary.completedTraining / props.summary.totalEmployees) * 100)}% of employees`,
+        detail: t(':percent% of employees', {
+            percent: percentOf(props.summary.completedTraining),
+        }),
         tone: 'success',
         icon: Check,
     },
@@ -101,7 +118,7 @@ const occupancy = computed(() =>
 
 const contractText = computed(() => {
     if (props.hotel.status === 'paused') {
-        return 'Paused';
+        return t('Paused');
     }
 
     return `${props.hotel.contractStart} – ${props.hotel.contractEnd}`;
@@ -109,18 +126,24 @@ const contractText = computed(() => {
 
 const daysText = computed(() => {
     if (props.hotel.status === 'paused') {
-        return 'Access is paused';
+        return t('Access is paused');
     }
 
     if (props.hotel.daysRemaining === null) {
-        return 'No end date set';
+        return t('No end date set');
     }
 
     if (props.hotel.daysRemaining < 0) {
-        return `${Math.abs(props.hotel.daysRemaining)} days past contract end`;
+        return tc(
+            ':count day past contract end|:count days past contract end',
+            Math.abs(props.hotel.daysRemaining),
+        );
     }
 
-    return `${props.hotel.daysRemaining} days remaining`;
+    return tc(
+        ':count day remaining|:count days remaining',
+        props.hotel.daysRemaining,
+    );
 });
 
 const trainingTone: Record<HotelEmployeeActivity['trainingStatus'], string> = {
@@ -142,13 +165,17 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
 </script>
 
 <template>
-    <Head :title="`${hotel.name} · Hotels`" />
+    <Head :title="`${hotel.name} · ${$t('Hotels')}`" />
 
     <div class="flex min-w-0 flex-col gap-3 px-4 pt-5 pb-8 md:px-6">
         <div class="flex min-w-0 items-start justify-between gap-4">
             <PageHeader
                 :title="hotel.name"
-                :description="`${hotel.city} · Hotel activity and employee progress`"
+                :description="
+                    $t(':city · Hotel activity and employee progress', {
+                        city: hotel.city,
+                    })
+                "
                 class="min-w-0 flex-1"
             >
                 <template #accent>
@@ -161,8 +188,8 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 class="border-line bg-surface text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600/40 shadow-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-[12.5px] font-semibold focus-visible:ring-2 focus-visible:outline-none"
             >
                 <ArrowLeft class="size-4 rtl:-scale-x-100" aria-hidden="true" />
-                <span class="hidden sm:inline">Back to Hotels</span>
-                <span class="sm:hidden">Back</span>
+                <span class="hidden sm:inline">{{ $t('Back to Hotels') }}</span>
+                <span class="sm:hidden">{{ $t('Back') }}</span>
             </Link>
         </div>
 
@@ -186,7 +213,10 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
         </div>
 
         <div class="grid min-w-0 gap-3 xl:grid-cols-[1fr_1fr]">
-            <PanelCard title="Hotel Information" title-id="hotel-information">
+            <PanelCard
+                :title="$t('Hotel Information')"
+                title-id="hotel-information"
+            >
                 <template #icon>
                     <span
                         class="bg-brand-100 text-brand-600 grid size-8 place-items-center rounded-full"
@@ -205,7 +235,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             <p
                                 class="text-ink-muted text-[11px] tracking-[0.08em] uppercase"
                             >
-                                Location
+                                {{ $t('Location') }}
                             </p>
                             <p
                                 class="text-brand-900 mt-0.5 truncate text-[13px] font-medium"
@@ -223,7 +253,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             <p
                                 class="text-ink-muted text-[11px] tracking-[0.08em] uppercase"
                             >
-                                Manager
+                                {{ $t('Manager') }}
                             </p>
                             <p
                                 class="text-brand-900 mt-0.5 truncate text-[13px] font-medium"
@@ -241,7 +271,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             <p
                                 class="text-ink-muted text-[11px] tracking-[0.08em] uppercase"
                             >
-                                Manager email
+                                {{ $t('Manager email') }}
                             </p>
                             <p
                                 class="text-brand-900 mt-0.5 truncate text-[13px] font-medium"
@@ -259,7 +289,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             <p
                                 class="text-ink-muted text-[11px] tracking-[0.08em] uppercase"
                             >
-                                Contract
+                                {{ $t('Contract') }}
                             </p>
                             <p
                                 class="text-brand-900 mt-0.5 truncate text-[13px] font-medium"
@@ -278,7 +308,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             <p
                                 class="font-heading text-brand-800 text-[13px] font-semibold"
                             >
-                                Contract status
+                                {{ $t('Contract status') }}
                             </p>
                             <p class="text-ink-slate mt-0.5 text-[12px]">
                                 {{ daysText }}
@@ -290,14 +320,14 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                                 statusTone[hotel.status],
                             ]"
                         >
-                            {{ statusText[hotel.status] }}
+                            {{ $t(statusText[hotel.status]) }}
                         </span>
                     </div>
                 </div>
             </PanelCard>
 
             <PanelCard
-                title="Seats & Time Spent"
+                :title="$t('Seats & Time Spent')"
                 title-id="hotel-capacity-time"
             >
                 <template #icon>
@@ -318,7 +348,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                                     {{ hotel.usedSeats }}/{{ hotel.totalSeats }}
                                 </p>
                                 <p class="text-ink-slate mt-1 text-[12px]">
-                                    Employee seats used
+                                    {{ $t('Employee seats used') }}
                                 </p>
                             </div>
                             <span
@@ -328,7 +358,9 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         </div>
                         <ProgressBar
                             :value="occupancy"
-                            :label="`${hotel.name} seat usage`"
+                            :label="
+                                $t(':name seat usage', { name: hotel.name })
+                            "
                             tone="brand"
                             class="mt-3 h-2.5"
                         />
@@ -337,7 +369,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         <p
                             class="text-ink-muted text-[11px] tracking-[0.08em] uppercase"
                         >
-                            Recorded training time
+                            {{ $t('Recorded training time') }}
                         </p>
                         <p
                             class="font-heading text-brand-800 mt-1 text-[23px] leading-7 font-bold"
@@ -345,8 +377,12 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                             {{ summary.totalTimeSpent }}
                         </p>
                         <p class="text-ink-slate mt-1 text-[12px]">
-                            {{ summary.averageTimeSpent }} average per employee
-                            with recorded time
+                            {{
+                                $t(
+                                    ':time average per employee with recorded time',
+                                    { time: summary.averageTimeSpent },
+                                )
+                            }}
                         </p>
                     </div>
                 </div>
@@ -354,15 +390,17 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 <p
                     class="text-ink-muted border-line/80 mt-4 border-t pt-3 text-[11.5px] leading-5"
                 >
-                    Recorded time combines answered activity time and completed
-                    AI role-play duration. It does not measure idle browser
-                    time.
+                    {{
+                        $t(
+                            'Recorded time combines answered activity time and completed AI role-play duration. It does not measure idle browser time.',
+                        )
+                    }}
                 </p>
             </PanelCard>
         </div>
 
         <PanelCard
-            title="Departments & Seat Allocation"
+            :title="$t('Departments & Seat Allocation')"
             title-id="hotel-departments"
         >
             <template #icon>
@@ -378,7 +416,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 class="border-line rounded-lg border border-dashed px-4 py-6 text-center"
             >
                 <p class="text-ink-slate text-[13px]">
-                    No department seat quotas have been configured.
+                    {{ $t('No department seat quotas have been configured.') }}
                 </p>
             </div>
             <div v-else class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -400,7 +438,9 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                     </div>
                     <ProgressBar
                         :value="seatPercent(quota.usedSeats, quota.totalSeats)"
-                        :label="`${quota.department} seats used`"
+                        :label="
+                            $t(':name seats used', { name: quota.department })
+                        "
                         :tone="quota.state === 'over' ? 'warning' : 'brand'"
                         class="mt-2 h-1.5"
                     />
@@ -408,7 +448,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
             </div>
         </PanelCard>
 
-        <PanelCard title="User Activity" title-id="hotel-user-activity">
+        <PanelCard :title="$t('User Activity')" title-id="hotel-user-activity">
             <template #icon>
                 <span
                     class="bg-success-tint text-success grid size-8 place-items-center rounded-full"
@@ -425,7 +465,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         {{ activity.activeThisWeek }}
                     </p>
                     <p class="text-success-text/80 text-[11px] leading-4">
-                        Active this week
+                        {{ $t('Active this week') }}
                     </p>
                 </div>
                 <div class="bg-brand-50 rounded-md px-3 py-2.5 text-center">
@@ -435,7 +475,7 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         {{ activity.activeThisMonth }}
                     </p>
                     <p class="text-ink-slate text-[11px] leading-4">
-                        Active this month
+                        {{ $t('Active this month') }}
                     </p>
                 </div>
                 <div class="bg-danger-tint rounded-md px-3 py-2.5 text-center">
@@ -445,14 +485,14 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         {{ activity.inactive }}
                     </p>
                     <p class="text-danger-text/80 text-[11px] leading-4">
-                        Inactive
+                        {{ $t('Inactive') }}
                     </p>
                 </div>
             </div>
         </PanelCard>
 
         <PanelCard
-            title="Employees & Training Progress"
+            :title="$t('Employees & Training Progress')"
             title-id="hotel-employees"
         >
             <template #icon>
@@ -470,10 +510,10 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 <p
                     class="font-heading text-brand-900 text-[15px] font-semibold"
                 >
-                    No employees yet
+                    {{ $t('No employees yet') }}
                 </p>
                 <p class="text-ink-slate mt-1 text-[13px]">
-                    This hotel does not have any employee accounts.
+                    {{ $t('This hotel does not have any employee accounts.') }}
                 </p>
             </div>
 
@@ -485,7 +525,9 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         class="w-full table-fixed border-collapse text-[12px]"
                     >
                         <caption class="sr-only">
-                            Employee activity and training progress
+                            {{
+                                $t('Employee activity and training progress')
+                            }}
                         </caption>
                         <colgroup>
                             <col class="w-[17%]" />
@@ -502,43 +544,43 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Employee
+                                    {{ $t('Employee') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Department
+                                    {{ $t('Department') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    What they are doing
+                                    {{ $t('What they are doing') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Progress
+                                    {{ $t('Progress') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Last activity
+                                    {{ $t('Last activity') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Time spent
+                                    {{ $t('Time spent') }}
                                 </th>
                                 <th
                                     scope="col"
                                     class="px-2 text-start font-medium"
                                 >
-                                    Activity
+                                    {{ $t('Activity') }}
                                 </th>
                             </tr>
                         </thead>
@@ -581,7 +623,11 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                                     <div class="flex items-center gap-2">
                                         <ProgressBar
                                             :value="employee.progress"
-                                            :label="`${employee.name} training progress`"
+                                            :label="
+                                                $t(':name training progress', {
+                                                    name: employee.name,
+                                                })
+                                            "
                                             class="h-1.5 min-w-0 flex-1"
                                         />
                                         <span
@@ -594,10 +640,12 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                                     <p
                                         class="text-ink-muted mt-1 text-[10.5px]"
                                     >
-                                        {{ employee.lessonsCompleted }}/{{
-                                            employee.lessonsTotal
+                                        {{
+                                            $t(':done/:total lessons', {
+                                                done: employee.lessonsCompleted,
+                                                total: employee.lessonsTotal,
+                                            })
                                         }}
-                                        lessons
                                     </p>
                                 </td>
                                 <td
@@ -671,19 +719,26 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                         </div>
                         <ProgressBar
                             :value="employee.progress"
-                            :label="`${employee.name} training progress`"
+                            :label="
+                                $t(':name training progress', {
+                                    name: employee.name,
+                                })
+                            "
                             class="mt-2 h-2"
                         />
                         <div
                             class="text-ink-muted mt-2 grid grid-cols-2 gap-2 text-[11.5px]"
                         >
-                            <span
-                                >Last activity:
-                                {{ employee.lastActivity }}</span
-                            >
-                            <span class="text-end"
-                                >Time spent: {{ employee.timeSpent }}</span
-                            >
+                            <span>{{
+                                $t('Last activity: :value', {
+                                    value: employee.lastActivity,
+                                })
+                            }}</span>
+                            <span class="text-end">{{
+                                $t('Time spent: :value', {
+                                    value: employee.timeSpent,
+                                })
+                            }}</span>
                         </div>
                     </li>
                 </ul>

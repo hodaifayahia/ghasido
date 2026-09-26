@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { AiScenarioLibrary, AiScenarioLibraryItem } from '@/types';
 
@@ -32,6 +33,8 @@ const emit = defineEmits<{
     create: [];
     tutorial: [];
 }>();
+
+const { t, tc } = useI18n();
 
 const search = ref(props.library.search);
 const department = ref(props.library.department);
@@ -99,13 +102,17 @@ const filteredScenarios = computed(() => {
 const visibleCountLabel = computed(() => {
     const count = filteredScenarios.value.length;
 
-    return `${count} visible scenario${count === 1 ? '' : 's'}`;
+    return tc(':count visible scenario|:count visible scenarios', count);
 });
 
 function resetFilters(): void {
     search.value = '';
     department.value = 'all-departments';
     status.value = 'all-statuses';
+}
+
+function statusLabel(scenario: AiScenarioLibraryItem): string {
+    return scenario.status === 'published' ? t('Published') : t('Draft');
 }
 
 function statusClass(scenario: AiScenarioLibraryItem): string {
@@ -117,7 +124,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
 
 <template>
     <PanelCard
-        title="Scenario Library"
+        :title="$t('Scenario Library')"
         title-id="scenario-library-title"
         class="overflow-hidden px-0 pt-0 pb-0"
         body-class="mt-0"
@@ -144,8 +151,8 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                 <Input
                     v-model="search"
                     type="search"
-                    aria-label="Search scenarios"
-                    placeholder="Search scenarios..."
+                    :aria-label="$t('Search scenarios')"
+                    :placeholder="$t('Search scenarios...')"
                     class="border-line bg-surface h-10 rounded-md ps-9 text-sm"
                 />
             </div>
@@ -158,7 +165,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                     <SelectTrigger
                         class="border-line bg-surface h-9 w-full text-xs sm:w-[180px]"
                     >
-                        <SelectValue placeholder="All Departments" />
+                        <SelectValue :placeholder="$t('All Departments')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -177,7 +184,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                     <SelectTrigger
                         class="border-line bg-surface h-9 w-full text-xs sm:w-[150px]"
                     >
-                        <SelectValue placeholder="All Statuses" />
+                        <SelectValue :placeholder="$t('All Statuses')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -198,7 +205,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
-                    Reset filters
+                    {{ $t('Reset filters') }}
                 </Button>
             </div>
         </div>
@@ -212,11 +219,11 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                     class="bg-brand-50/35 text-ink-slate text-[11px] font-semibold tracking-[0.08em] uppercase"
                 >
                     <tr class="border-line border-b">
-                        <th class="px-5 py-3">Scenario</th>
-                        <th class="px-3 py-3">Department</th>
-                        <th class="px-3 py-3">Level</th>
-                        <th class="px-3 py-3">Status</th>
-                        <th class="px-5 py-3 text-end">Open</th>
+                        <th class="px-5 py-3">{{ $t('Scenario') }}</th>
+                        <th class="px-3 py-3">{{ $t('Department') }}</th>
+                        <th class="px-3 py-3">{{ $t('Level') }}</th>
+                        <th class="px-3 py-3">{{ $t('Status') }}</th>
+                        <th class="px-5 py-3 text-end">{{ $t('Open') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -246,7 +253,11 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                     <span
                                         class="text-ink-muted mt-0.5 block truncate text-[11px]"
                                     >
-                                        Real hotel conversation practice
+                                        {{
+                                            $t(
+                                                'Real hotel conversation practice',
+                                            )
+                                        }}
                                     </span>
                                 </span>
                             </button>
@@ -271,7 +282,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                     class="size-3"
                                     aria-hidden="true"
                                 />
-                                {{ scenario.status }}
+                                {{ statusLabel(scenario) }}
                             </span>
                         </td>
                         <td class="px-5 py-3 text-end">
@@ -281,7 +292,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                 class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
                                 @click="emit('open', scenario.id)"
                             >
-                                Open
+                                {{ $t('Open') }}
                                 <ArrowRight
                                     class="size-3.5"
                                     aria-hidden="true"
@@ -328,7 +339,7 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                             )
                         "
                     >
-                        {{ scenario.status }}
+                        {{ statusLabel(scenario) }}
                     </span>
                 </span>
                 <ArrowRight
@@ -345,10 +356,10 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                 <Search class="size-5" aria-hidden="true" />
             </div>
             <p class="text-brand-900 mt-3 text-sm font-semibold">
-                No scenarios found
+                {{ $t('No scenarios found') }}
             </p>
             <p class="text-ink-muted mt-1 text-xs">
-                Try changing the search or filters.
+                {{ $t('Try changing the search or filters.') }}
             </p>
         </div>
 
@@ -356,7 +367,11 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
             class="border-line bg-brand-50/25 flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
             <p class="text-ink-muted text-xs">
-                Select a scenario to open its conversation builder and preview.
+                {{
+                    $t(
+                        'Select a scenario to open its conversation builder and preview.',
+                    )
+                }}
             </p>
             <div class="flex flex-wrap items-center gap-2">
                 <Button
@@ -367,14 +382,14 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                     @click="emit('tutorial')"
                 >
                     <CircleHelp class="size-3.5" aria-hidden="true" />
-                    How to create an AI scenario
+                    {{ $t('How to create an AI scenario') }}
                 </Button>
                 <Button
                     type="button"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-9 shrink-0 rounded-md px-3 text-xs font-semibold text-white"
                     @click="emit('create')"
                 >
-                    Create New Scenario
+                    {{ $t('Create New Scenario') }}
                 </Button>
             </div>
         </div>

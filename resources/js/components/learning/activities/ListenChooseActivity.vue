@@ -79,18 +79,24 @@ function onCheck(): void {
         tone="brand"
         :number="number"
         :label="activity.label"
-        subtitle="Listen to the word or sentence and choose the correct picture."
+        :subtitle="
+            $t('Listen to the word or sentence and choose the correct picture.')
+        "
         :department="lesson.department.name"
         :lesson-number="lesson.positionInCourse"
         :lesson-count="lesson.courseLessonCount"
         :side-photo="activity.sideImage ?? lesson.cover"
-        tip="Listen carefully and look at the pictures. You can play the audio as many times as you need."
+        :tip="
+            $t(
+                'Listen carefully and look at the pictures. You can play the audio as many times as you need.',
+            )
+        "
         :total="runner.total.value"
         :current="runner.current.value"
         :answered="runner.answeredIndexes.value"
         :can-check="runner.canCheck.value"
         :has-result="result !== null"
-        :check-label="result !== null ? 'Back to Practice' : 'Check'"
+        :check-label="result !== null ? $t('Back to Practice') : $t('Check')"
         @check="onCheck"
         @prev="runner.prev()"
         @select="runner.goto($event)"
@@ -144,7 +150,8 @@ function onCheck(): void {
                         "
                         class="text-success-text mt-1 inline-flex items-center justify-center gap-1 text-sm font-semibold"
                     >
-                        <Check class="size-4" aria-hidden="true" /> Correct
+                        <Check class="size-4" aria-hidden="true" />
+                        {{ $t('Correct') }}
                     </span>
                     <span
                         v-else-if="
@@ -153,7 +160,8 @@ function onCheck(): void {
                         "
                         class="text-danger mt-1 inline-flex items-center justify-center gap-1 text-sm font-semibold"
                     >
-                        <X class="size-4" aria-hidden="true" /> Not quite
+                        <X class="size-4" aria-hidden="true" />
+                        {{ $t('Not quite') }}
                     </span>
                 </button>
             </div>

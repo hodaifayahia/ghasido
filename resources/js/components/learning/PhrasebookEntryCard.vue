@@ -63,14 +63,19 @@ function remove(): void {
                     {{ entry.ipa }}
                 </p>
                 <p v-if="entry.lesson" class="text-ink-slate mt-1 text-xs">
-                    From {{ entry.lesson.title }}
+                    {{ $t('From :lesson', { lesson: entry.lesson.title }) }}
                 </p>
                 <!-- Spaced review state (spec 0005 §3.4): a label with the
                      dots, never colour alone (ACC-02). -->
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                     <span
                         class="flex items-center gap-1"
-                        :aria-label="`Mastery ${entry.mastery} of ${entry.masteryMax}`"
+                        :aria-label="
+                            $t('Mastery :current of :total', {
+                                current: entry.mastery,
+                                total: entry.masteryMax,
+                            })
+                        "
                         role="img"
                     >
                         <span
@@ -90,14 +95,14 @@ function remove(): void {
                         v-if="entry.needsPractice"
                         class="bg-warning-tint text-warning-text rounded-pill px-2 py-0.5 text-[11px] font-semibold"
                     >
-                        Needs practice
+                        {{ $t('Needs practice') }}
                     </span>
                 </div>
             </div>
             <button
                 type="button"
                 :disabled="removing"
-                aria-label="Remove from My Phrasebook"
+                :aria-label="$t('Remove from My Phrasebook')"
                 class="text-danger hover:bg-danger-tint focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-md focus-visible:ring-3 focus-visible:outline-none disabled:opacity-50"
                 data-test="remove-phrase-button"
                 @click="remove"

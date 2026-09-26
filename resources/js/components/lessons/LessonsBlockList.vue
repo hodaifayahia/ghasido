@@ -21,6 +21,7 @@ import {
 } from '@/components/lessons/lessonsBlocks';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
     destroy,
@@ -208,7 +209,9 @@ function duplicateBlock(block: LessonBlockRow): void {
 function deleteBlock(block: LessonBlockRow): void {
     if (
         !window.confirm(
-            `Remove "${block.label}" from this lesson? Learners' answers are kept.`,
+            t('Remove ":label" from this lesson? Learners’ answers are kept.', {
+                label: block.label,
+            }),
         )
     ) {
         return;
@@ -238,13 +241,13 @@ const iconButton =
                 id="lesson-blocks-title"
                 class="text-brand-900 text-[12px] font-semibold"
             >
-                Lesson Blocks
+                {{ $t('Lesson Blocks') }}
                 <span class="text-ink-faint font-medium">
-                    · {{ blocks.length }} steps
+                    · {{ $tc(':count step|:count steps', blocks.length) }}
                 </span>
             </h2>
             <span class="text-ink-faint text-[11px]">
-                Drag to reorder, or drop a block from the palette
+                {{ $t('Drag to reorder, or drop a block from the palette') }}
             </span>
         </div>
 
@@ -318,12 +321,26 @@ const iconButton =
                     <span class="text-ink-faint block truncate text-[10.5px]">
                         {{ block.stepLabel }}
                         <template v-if="block.lexiconItems.length > 0">
-                            · {{ block.lexiconItems.length }} items
+                            ·
+                            {{
+                                $tc(
+                                    ':count item|:count items',
+                                    block.lexiconItems.length,
+                                )
+                            }}
                         </template>
                         <template v-if="block.activities.length > 0">
-                            · {{ block.activities.length }} activities
+                            ·
+                            {{
+                                $tc(
+                                    ':count activity|:count activities',
+                                    block.activities.length,
+                                )
+                            }}
                         </template>
-                        <template v-if="!block.isVisible">· hidden</template>
+                        <template v-if="!block.isVisible">{{
+                            $t('· hidden')
+                        }}</template>
                     </span>
                 </span>
 
@@ -332,7 +349,9 @@ const iconButton =
                         type="button"
                         :class="iconButton"
                         :disabled="index === 0 || busy"
-                        :aria-label="`Move ${block.label} up`"
+                        :aria-label="
+                            $t('Move :label up', { label: block.label })
+                        "
                         @click="move(index, -1)"
                     >
                         <ChevronUp class="size-3.5" aria-hidden="true" />
@@ -341,7 +360,9 @@ const iconButton =
                         type="button"
                         :class="iconButton"
                         :disabled="index === ordered.length - 1 || busy"
-                        :aria-label="`Move ${block.label} down`"
+                        :aria-label="
+                            $t('Move :label down', { label: block.label })
+                        "
                         @click="move(index, 1)"
                     >
                         <ChevronDown class="size-3.5" aria-hidden="true" />
@@ -352,8 +373,8 @@ const iconButton =
                         :disabled="busy"
                         :aria-label="
                             block.isVisible
-                                ? `Hide ${block.label}`
-                                : `Show ${block.label}`
+                                ? $t('Hide :label', { label: block.label })
+                                : $t('Show :label', { label: block.label })
                         "
                         :data-test="`block-${block.id}-toggle`"
                         @click="toggleBlock(block)"
@@ -368,7 +389,9 @@ const iconButton =
                         type="button"
                         :class="iconButton"
                         :disabled="busy"
-                        :aria-label="`Duplicate ${block.label}`"
+                        :aria-label="
+                            $t('Duplicate :label', { label: block.label })
+                        "
                         :data-test="`block-${block.id}-duplicate`"
                         @click="duplicateBlock(block)"
                     >
@@ -383,7 +406,9 @@ const iconButton =
                             )
                         "
                         :disabled="busy"
-                        :aria-label="`Delete ${block.label}`"
+                        :aria-label="
+                            $t('Delete :label', { label: block.label })
+                        "
                         :data-test="`block-${block.id}-delete`"
                         @click="deleteBlock(block)"
                     >
@@ -400,7 +425,7 @@ const iconButton =
                     @click="edit(block)"
                 >
                     <Pencil class="size-3" aria-hidden="true" />
-                    {{ manage ? 'Edit' : 'View' }}
+                    {{ manage ? $t('Edit') : $t('View') }}
                 </Button>
             </li>
 
@@ -418,8 +443,10 @@ const iconButton =
             >
                 {{
                     ordered.length === 0
-                        ? 'No steps yet — click or drop a block from the palette.'
-                        : 'Drop here to add at the end'
+                        ? $t(
+                              'No steps yet — click or drop a block from the palette.',
+                          )
+                        : $t('Drop here to add at the end')
                 }}
             </li>
         </ol>

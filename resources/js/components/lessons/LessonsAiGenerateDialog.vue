@@ -23,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { t, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { courses as coursesRoute, store } from '@/routes/lesson-generations';
 import type {
@@ -53,16 +54,16 @@ const NEW_COURSE = 'new';
 const SHARED = 'shared';
 
 const levels: Array<{ value: ContentGenerationLevel; label: string }> = [
-    { value: 'beginner', label: 'Beginner' },
-    { value: 'elementary', label: 'Elementary' },
-    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'beginner', label: tk('Beginner') },
+    { value: 'elementary', label: tk('Elementary') },
+    { value: 'intermediate', label: tk('Intermediate') },
 ];
 
 const lessonCounts = ['2', '3', '4', '5', '6', '7', '8'];
 
 const modeOptions: Array<{ value: 'lesson' | 'course'; label: string }> = [
-    { value: 'lesson', label: 'A single lesson' },
-    { value: 'course', label: 'A whole course' },
+    { value: 'lesson', label: tk('A single lesson') },
+    { value: 'course', label: tk('A whole course') },
 ];
 
 const prompt = ref('');
@@ -249,7 +250,7 @@ const steps = computed(() => {
         const outline = stepState('outline');
         list.push({
             key: 'outline',
-            label: withEllipsis('Planning the course', outline),
+            label: withEllipsis(t('Planning the course'), outline),
             state: outline,
         });
     }
@@ -262,8 +263,11 @@ const steps = computed(() => {
         key: 'writing',
         label:
             current.lessons.total > 1
-                ? `Writing lessons ${current.lessons.done}/${current.lessons.total}`
-                : withEllipsis('Writing the lesson', writing),
+                ? t('Writing lessons :done/:total', {
+                      done: current.lessons.done,
+                      total: current.lessons.total,
+                  })
+                : withEllipsis(t('Writing the lesson'), writing),
         state: writing,
     });
 
@@ -272,11 +276,17 @@ const steps = computed(() => {
             key: 'images',
             label:
                 current.images.total > 0
-                    ? `Creating images ${current.images.done}/${current.images.total}` +
-                      (current.images.failed > 0
-                          ? ` (${current.images.failed} failed)`
-                          : '')
-                    : 'Creating images',
+                    ? current.images.failed > 0
+                        ? t('Creating images :done/:total (:failed failed)', {
+                              done: current.images.done,
+                              total: current.images.total,
+                              failed: current.images.failed,
+                          })
+                        : t('Creating images :done/:total', {
+                              done: current.images.done,
+                              total: current.images.total,
+                          })
+                    : t('Creating images'),
             state: stepState('images'),
         });
     }
@@ -286,8 +296,11 @@ const steps = computed(() => {
             key: 'audio',
             label:
                 current.audio.total > 0
-                    ? `Generating audio ${current.audio.done}/${current.audio.total}`
-                    : 'Generating audio',
+                    ? t('Generating audio :done/:total', {
+                          done: current.audio.done,
+                          total: current.audio.total,
+                      })
+                    : t('Generating audio'),
             state: stepState('audio'),
         });
     }
@@ -297,25 +310,25 @@ const steps = computed(() => {
 
 const backgroundTitle = computed(() =>
     failed.value
-        ? 'Generation needs attention'
+        ? t('Generation needs attention')
         : finished.value
-          ? 'Your lesson is ready'
-          : 'Your lesson is generating',
+          ? t('Your lesson is ready')
+          : t('Your lesson is generating'),
 );
 
 const backgroundDetail = computed(() => {
     if (failed.value) {
-        return 'Tap to review the error';
+        return t('Tap to review the error');
     }
 
     if (finished.value) {
-        return 'Tap to review your draft';
+        return t('Tap to review your draft');
     }
 
     return (
         steps.value
             .find((step) => step.state === 'active')
-            ?.label.replace(/[.…]+$/u, '') ?? 'Getting everything ready'
+            ?.label.replace(/[.…]+$/u, '') ?? t('Getting everything ready')
     );
 });
 
@@ -329,6 +342,13 @@ const stepIcon = {
     active: LoaderCircle,
     done: CircleCheck,
     failed: CircleAlert,
+};
+
+const stateLabels: Record<StepState, string> = {
+    pending: tk('waiting'),
+    active: tk('in progress'),
+    done: tk('done'),
+    failed: tk('failed'),
 };
 
 const stepTone: Record<StepState, string> = {
@@ -346,8 +366,12 @@ const selectTrigger =
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Generate with AI"
-        description="Describe the lesson you need. The AI writes a complete draft: situation, vocabulary, expressions, dialogue, practice, pictures and audio. You review and publish it."
+        :title="$t('Generate with AI')"
+        :description="
+            $t(
+                'Describe the lesson you need. The AI writes a complete draft: situation, vocabulary, expressions, dialogue, practice, pictures and audio. You review and publish it.',
+            )
+        "
         size="lg"
     >
         <form
@@ -358,7 +382,7 @@ const selectTrigger =
         >
             <div class="grid gap-1.5">
                 <label for="ai-generate-prompt" :class="fieldLabel">
-                    What should learners practise?
+                    {{ $t('What should learners practise?') }}
                     <span class="text-danger-text">*</span>
                 </label>
                 <textarea
@@ -367,7 +391,11 @@ const selectTrigger =
                     rows="5"
                     maxlength="4000"
                     required
-                    placeholder="e.g. A guest arrives late at night and their room is not ready. Apologise, offer a solution and check them in politely."
+                    :placeholder="
+                        $t(
+                            'e.g. A guest arrives late at night and their room is not ready. Apologise, offer a solution and check them in politely.',
+                        )
+                    "
                     class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-28 w-full resize-y rounded-sm border px-3 py-2 text-[13.5px] leading-6 focus-visible:ring-3 focus-visible:outline-none"
                     data-test="ai-generate-prompt"
                 />
@@ -376,7 +404,8 @@ const selectTrigger =
             <div class="grid gap-3 sm:grid-cols-3">
                 <div class="grid gap-1.5">
                     <label for="ai-generate-department" :class="fieldLabel">
-                        Department <span class="text-danger-text">*</span>
+                        {{ $t('Department') }}
+                        <span class="text-danger-text">*</span>
                     </label>
                     <Select v-model="department">
                         <SelectTrigger
@@ -384,7 +413,9 @@ const selectTrigger =
                             :class="selectTrigger"
                             data-test="ai-generate-department"
                         >
-                            <SelectValue placeholder="Choose a department" />
+                            <SelectValue
+                                :placeholder="$t('Choose a department')"
+                            />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -401,7 +432,7 @@ const selectTrigger =
 
                 <div class="grid gap-1.5">
                     <label for="ai-generate-hotel" :class="fieldLabel">
-                        Visible to
+                        {{ $t('Visible to') }}
                     </label>
                     <Select v-model="hotel">
                         <SelectTrigger
@@ -426,7 +457,7 @@ const selectTrigger =
 
                 <div class="grid gap-1.5">
                     <label for="ai-generate-level" :class="fieldLabel">
-                        Level
+                        {{ $t('Level') }}
                     </label>
                     <Select v-model="level">
                         <SelectTrigger
@@ -443,7 +474,7 @@ const selectTrigger =
                                 :value="option.value"
                                 class="text-[13px]"
                             >
-                                {{ option.label }}
+                                {{ $t(option.label) }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -451,7 +482,9 @@ const selectTrigger =
             </div>
 
             <fieldset class="grid gap-1.5">
-                <legend :class="cn(fieldLabel, 'mb-1.5')">Create</legend>
+                <legend :class="cn(fieldLabel, 'mb-1.5')">
+                    {{ $t('Create') }}
+                </legend>
                 <div class="grid gap-2 sm:grid-cols-2">
                     <button
                         v-for="option in modeOptions"
@@ -470,7 +503,7 @@ const selectTrigger =
                         "
                         @click="mode = option.value"
                     >
-                        {{ option.label }}
+                        {{ $t(option.label) }}
                     </button>
                 </div>
             </fieldset>
@@ -478,7 +511,7 @@ const selectTrigger =
             <div class="grid gap-3 sm:grid-cols-2">
                 <div v-if="mode === 'course'" class="grid gap-1.5">
                     <label for="ai-generate-count" :class="fieldLabel">
-                        Number of lessons
+                        {{ $t('Number of lessons') }}
                     </label>
                     <Select v-model="lessonCount">
                         <SelectTrigger
@@ -495,7 +528,12 @@ const selectTrigger =
                                 :value="count"
                                 class="text-[13px]"
                             >
-                                {{ count }} lessons
+                                {{
+                                    $tc(
+                                        ':count lesson|:count lessons',
+                                        Number(count),
+                                    )
+                                }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -503,7 +541,7 @@ const selectTrigger =
 
                 <div class="grid gap-1.5">
                     <label for="ai-generate-course" :class="fieldLabel">
-                        Add to course
+                        {{ $t('Add to course') }}
                     </label>
                     <Select v-model="course">
                         <SelectTrigger
@@ -515,7 +553,7 @@ const selectTrigger =
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem :value="NEW_COURSE" class="text-[13px]">
-                                A new draft course
+                                {{ $t('A new draft course') }}
                             </SelectItem>
                             <SelectItem
                                 v-for="option in courseOptions"
@@ -528,7 +566,7 @@ const selectTrigger =
                                     v-if="option.status === 'draft'"
                                     class="text-ink-faint"
                                 >
-                                    (draft)
+                                    {{ $t('(draft)') }}
                                 </span>
                             </SelectItem>
                         </SelectContent>
@@ -545,7 +583,7 @@ const selectTrigger =
                         data-test="ai-generate-images"
                         @update:model-value="images = $event === true"
                     />
-                    Generate images
+                    {{ $t('Generate images') }}
                 </label>
                 <label
                     class="text-ink flex min-h-11 items-center gap-2 text-[13px] font-medium"
@@ -555,7 +593,7 @@ const selectTrigger =
                         data-test="ai-generate-audio"
                         @update:model-value="audio = $event === true"
                     />
-                    Generate audio
+                    {{ $t('Generate audio') }}
                 </label>
             </div>
 
@@ -579,7 +617,7 @@ const selectTrigger =
                     data-test="cancel-ai-generate"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -593,7 +631,7 @@ const selectTrigger =
                         aria-hidden="true"
                     />
                     <Sparkles v-else class="size-4" aria-hidden="true" />
-                    Generate
+                    {{ $t('Generate') }}
                 </Button>
             </div>
         </form>
@@ -638,7 +676,9 @@ const selectTrigger =
                     >
                         {{ step.label }}
                     </span>
-                    <span class="sr-only">({{ step.state }})</span>
+                    <span class="sr-only"
+                        >({{ $t(stateLabels[step.state]) }})</span
+                    >
                 </li>
             </ol>
 
@@ -647,13 +687,12 @@ const selectTrigger =
                 class="bg-success-tint text-success-text flex items-center gap-2 rounded-md px-3 py-2 text-[12.5px] font-semibold"
             >
                 <CircleCheck class="size-4 shrink-0" aria-hidden="true" />
-                Done. {{ generation.lessonIds.length }}
                 {{
-                    generation.lessonIds.length === 1
-                        ? 'lesson was'
-                        : 'lessons were'
+                    $tc(
+                        'Done. :count lesson was created as a draft. Review, then publish.|Done. :count lessons were created as a draft. Review, then publish.',
+                        generation.lessonIds.length,
+                    )
                 }}
-                created as a draft. Review, then publish.
             </p>
 
             <p
@@ -665,7 +704,7 @@ const selectTrigger =
                     class="mt-0.5 size-4 shrink-0"
                     aria-hidden="true"
                 />
-                {{ generation.failedReason ?? 'The generation failed.' }}
+                {{ generation.failedReason ?? $t('The generation failed.') }}
             </p>
 
             <p v-if="error" class="text-danger-text text-[12px]" role="status">
@@ -681,7 +720,7 @@ const selectTrigger =
                     data-test="ai-generate-again"
                     @click="startOver"
                 >
-                    New prompt
+                    {{ $t('New prompt') }}
                 </Button>
                 <Button
                     v-if="failed"
@@ -693,7 +732,7 @@ const selectTrigger =
                     @click="retryGeneration"
                 >
                     <RotateCcw class="size-4" aria-hidden="true" />
-                    Retry
+                    {{ $t('Retry') }}
                 </Button>
                 <Button
                     v-if="!finished && !failed"
@@ -702,7 +741,7 @@ const selectTrigger =
                     class="border-line text-brand-700 hover:bg-brand-50 h-11 rounded-md px-4 text-[12.5px] font-semibold shadow-none sm:h-10"
                     @click="open = false"
                 >
-                    Keep working — it continues in the background
+                    {{ $t('Keep working — it continues in the background') }}
                 </Button>
                 <Button
                     v-if="generation.openUrl"
@@ -715,7 +754,7 @@ const selectTrigger =
                         @click="open = false"
                     >
                         <ExternalLink class="size-4" aria-hidden="true" />
-                        Open lesson
+                        {{ $t('Open lesson') }}
                     </Link>
                 </Button>
             </div>
@@ -727,8 +766,8 @@ const selectTrigger =
             v-if="generation !== null && !open"
             type="button"
             class="border-brand-200 bg-surface text-brand-900 shadow-pop ease-brand hover:shadow-pop focus-visible:ring-brand-600/40 fixed end-4 bottom-20 z-40 inline-flex max-w-[calc(100vw_-_2rem)] items-center gap-3 rounded-full border px-3 py-2.5 text-start transition duration-200 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:end-6 md:bottom-6"
-            aria-label="Open lesson generation progress"
-            title="Tap to reopen lesson generation"
+            :aria-label="$t('Open lesson generation progress')"
+            :title="$t('Tap to reopen lesson generation')"
             data-test="ai-generate-background-status"
             @click="open = true"
         >

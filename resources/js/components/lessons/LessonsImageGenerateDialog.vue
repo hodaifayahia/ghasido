@@ -87,13 +87,17 @@ const field =
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Generate an image"
-        description="Describe the picture. It is created by the AI, saved in My Images and placed in this slot."
+        :title="$t('Generate an image')"
+        :description="
+            $t(
+                'Describe the picture. It is created by the AI, saved in My Images and placed in this slot.',
+            )
+        "
     >
         <form class="mt-2 grid gap-3" @submit.prevent="submit">
             <div class="grid gap-1.5">
                 <label for="ai-image-prompt" :class="fieldLabel">
-                    Picture description
+                    {{ $t('Picture description') }}
                     <span class="text-danger-text">*</span>
                 </label>
                 <textarea
@@ -103,14 +107,19 @@ const field =
                     maxlength="1000"
                     required
                     :disabled="working"
-                    placeholder="e.g. A smiling receptionist hands a key card to a guest at a modern hotel desk"
+                    :placeholder="
+                        $t(
+                            'e.g. A smiling receptionist hands a key card to a guest at a modern hotel desk',
+                        )
+                    "
                     :class="[field, 'min-h-20 resize-y py-2 leading-6']"
                     data-test="ai-image-prompt"
                 />
             </div>
             <div class="grid gap-1.5">
                 <label for="ai-image-alt" :class="fieldLabel">
-                    Alt text <span class="text-danger-text">*</span>
+                    {{ $t('Alt text') }}
+                    <span class="text-danger-text">*</span>
                 </label>
                 <input
                     id="ai-image-alt"
@@ -119,7 +128,7 @@ const field =
                     maxlength="250"
                     required
                     :disabled="working"
-                    placeholder="What the picture shows, in a few words"
+                    :placeholder="$t('What the picture shows, in a few words')"
                     :class="[field, 'h-11 sm:h-10']"
                     data-test="ai-image-alt"
                 />
@@ -134,7 +143,7 @@ const field =
                     class="size-4 animate-spin motion-reduce:animate-none"
                     aria-hidden="true"
                 />
-                Creating the image… this can take a minute.
+                {{ $t('Creating the image… this can take a minute.') }}
             </p>
 
             <p
@@ -156,7 +165,7 @@ const field =
                     class="border-line text-brand-700 hover:bg-brand-50 h-11 rounded-md px-4 text-[12.5px] font-semibold shadow-none sm:h-10"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <!-- After a failure the description can be edited and sent
                      again (Generate), or the same request retried (GEN-04). -->
@@ -170,7 +179,7 @@ const field =
                     @click="retryGeneration"
                 >
                     <RotateCcw class="size-4" aria-hidden="true" />
-                    Retry
+                    {{ $t('Retry') }}
                 </Button>
                 <Button
                     type="submit"
@@ -184,7 +193,7 @@ const field =
                     data-test="ai-image-generate-button"
                 >
                     <Sparkles class="size-4" aria-hidden="true" />
-                    Generate
+                    {{ $t('Generate') }}
                 </Button>
             </div>
         </form>

@@ -6,6 +6,7 @@ import MessagesModal from '@/components/messages/MessagesModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import { store, update } from '@/routes/messages-reminders/rules';
 import type {
     MessageAutomationRule,
@@ -26,6 +27,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const open = defineModel<boolean>('open', { required: true });
 
@@ -51,8 +54,8 @@ watch(open, (isOpen) => {
 
 const daysLabel = computed(() =>
     trigger.value === 'inactive_days'
-        ? 'Days without activity'
-        : 'Days before the same employee is reminded again',
+        ? t('Days without activity')
+        : t('Days before the same employee is reminded again'),
 );
 
 const daysPlaceholder = computed(() =>
@@ -77,8 +80,18 @@ function onSuccess(): void {
 <template>
     <MessagesModal
         v-model:open="open"
-        :title="editing ? `Edit ${rule?.name ?? 'rule'}` : 'Add Rule'"
-        description="Runs once a day. Recipients come from the trigger, narrowed to the audience; leave both lists empty to reach every hotel and department."
+        :title="
+            editing
+                ? rule
+                    ? $t('Edit :name', { name: rule.name })
+                    : $t('Edit rule')
+                : $t('Add Rule')
+        "
+        :description="
+            $t(
+                'Runs once a day. Recipients come from the trigger, narrowed to the audience; leave both lists empty to reach every hotel and department.',
+            )
+        "
         class="sm:max-w-[620px]"
     >
         <Form
@@ -90,7 +103,9 @@ function onSuccess(): void {
             @success="onSuccess"
         >
             <div class="grid gap-1.5">
-                <Label for="rule-name" :class="labelClass">Rule name</Label>
+                <Label for="rule-name" :class="labelClass">{{
+                    $t('Rule name')
+                }}</Label>
                 <Input
                     id="rule-name"
                     name="name"
@@ -107,7 +122,7 @@ function onSuccess(): void {
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="grid gap-1.5">
                     <Label for="rule-trigger" :class="labelClass">
-                        Trigger
+                        {{ $t('Trigger') }}
                     </Label>
                     <select
                         id="rule-trigger"
@@ -153,7 +168,7 @@ function onSuccess(): void {
 
             <div class="grid gap-1.5">
                 <Label for="rule-template" :class="labelClass">
-                    Template to send
+                    {{ $t('Template to send') }}
                 </Label>
                 <select
                     id="rule-template"
@@ -170,7 +185,7 @@ function onSuccess(): void {
                         :selected="template.id === rule?.templateId"
                     >
                         {{ template.name }}
-                        {{ template.isActive ? '' : '(inactive)' }}
+                        {{ template.isActive ? '' : $t('(inactive)') }}
                     </option>
                 </select>
                 <InputError :message="errors.template_id" />
@@ -178,7 +193,7 @@ function onSuccess(): void {
 
             <div class="grid gap-4 md:grid-cols-2">
                 <fieldset class="grid gap-1.5">
-                    <legend :class="labelClass">Hotels</legend>
+                    <legend :class="labelClass">{{ $t('Hotels') }}</legend>
                     <div
                         class="border-line max-h-40 overflow-y-auto rounded-sm border px-3 py-2"
                     >
@@ -186,7 +201,7 @@ function onSuccess(): void {
                             v-if="hotels.length === 0"
                             class="text-ink-faint text-[12px]"
                         >
-                            No hotels yet.
+                            {{ $t('No hotels yet.') }}
                         </p>
                         <label
                             v-for="hotel in hotels"
@@ -209,7 +224,7 @@ function onSuccess(): void {
                 </fieldset>
 
                 <fieldset class="grid gap-1.5">
-                    <legend :class="labelClass">Departments</legend>
+                    <legend :class="labelClass">{{ $t('Departments') }}</legend>
                     <div
                         class="border-line max-h-40 overflow-y-auto rounded-sm border px-3 py-2"
                     >
@@ -217,7 +232,7 @@ function onSuccess(): void {
                             v-if="departments.length === 0"
                             class="text-ink-faint text-[12px]"
                         >
-                            No departments yet.
+                            {{ $t('No departments yet.') }}
                         </p>
                         <label
                             v-for="department in departments"
@@ -255,7 +270,7 @@ function onSuccess(): void {
                     class="accent-brand-600 size-4"
                     data-test="rule-active-checkbox"
                 />
-                Active: runs on the next daily pass
+                {{ $t('Active: runs on the next daily pass') }}
             </label>
 
             <div
@@ -268,7 +283,7 @@ function onSuccess(): void {
                     data-test="cancel-rule-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -276,7 +291,7 @@ function onSuccess(): void {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-rule-button"
                 >
-                    {{ editing ? 'Save changes' : 'Add rule' }}
+                    {{ editing ? $t('Save changes') : $t('Add rule') }}
                 </Button>
             </div>
         </Form>

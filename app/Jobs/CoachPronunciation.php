@@ -124,7 +124,7 @@ class CoachPronunciation implements ShouldBeUnique, ShouldQueue
         return [
             'text' => $attempt->reference_text,
             'sentence' => $attempt->sentence_text,
-            'accent' => $attempt->accent->label(),
+            'accent' => $attempt->accent->label('en'),
             'level' => $attempt->level,
             'scores' => [
                 'overall' => $attempt->score,

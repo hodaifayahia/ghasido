@@ -21,20 +21,26 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Head title="My Phrasebook" />
-    <h1 class="sr-only">My Phrasebook</h1>
+    <Head :title="$t('My Phrasebook')" />
+    <h1 class="sr-only">{{ $t('My Phrasebook') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="My Phrasebook"
-            :description="`${items.length} saved ${items.length === 1 ? 'phrase' : 'phrases'}`"
+            :title="$t('My Phrasebook')"
+            :description="
+                $tc(':count saved phrase|:count saved phrases', items.length)
+            "
         />
 
         <LearnerEmptyState
             v-if="items.length === 0"
             :icon="Star"
-            text="Tap the star on any word or expression in a lesson to keep it here."
-            :action="{ label: 'Go to My Lessons', href: lessons() }"
+            :text="
+                $t(
+                    'Tap the star on any word or expression in a lesson to keep it here.',
+                )
+            "
+            :action="{ label: $t('Go to My Lessons'), href: lessons() }"
         />
 
         <section
@@ -51,15 +57,22 @@ defineProps<Props>();
                 <h2 class="font-heading text-ink text-base font-semibold">
                     {{
                         review.due > 0
-                            ? `${review.due} ${review.due === 1 ? 'phrase is' : 'phrases are'} ready to review`
-                            : 'All caught up'
+                            ? $tc(
+                                  ':count phrase is ready to review|:count phrases are ready to review',
+                                  review.due,
+                              )
+                            : $t('All caught up')
                     }}
                 </h2>
                 <p class="text-ink-slate text-sm">
                     {{
                         review.due > 0
-                            ? 'A few minutes of practice helps the words stay with you.'
-                            : 'Your phrases come back for review on the day they are due.'
+                            ? $t(
+                                  'A few minutes of practice helps the words stay with you.',
+                              )
+                            : $t(
+                                  'Your phrases come back for review on the day they are due.',
+                              )
                     }}
                 </p>
             </div>
@@ -69,7 +82,7 @@ defineProps<Props>();
                 class="bg-brand-600 font-heading shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/40 inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97]"
                 data-test="start-review-link"
             >
-                Start review
+                {{ $t('Start review') }}
                 <ArrowRight class="size-4" aria-hidden="true" />
             </Link>
         </section>

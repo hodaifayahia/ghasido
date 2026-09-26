@@ -5,6 +5,7 @@ import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
 import TtsVoiceStudio from '@/components/tts/TtsVoiceStudio.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { LessonDirectoryRow, TtsSettings } from '@/types';
 
 /*
@@ -20,20 +21,26 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const open = ref(false);
 const mode = ref<'create' | 'edit'>('create');
 const selectedLesson = ref<LessonDirectoryRow | null>(null);
 
 const dialogTitle = computed(() =>
     mode.value === 'create'
-        ? 'Create AI Role-play voice'
-        : 'Edit voice · ' + (selectedLesson.value?.title ?? 'Lesson'),
+        ? t('Create AI Role-play voice')
+        : t('Edit voice · :lesson', {
+              lesson: selectedLesson.value?.title ?? t('Lesson'),
+          }),
 );
 
 const dialogDescription = computed(() =>
     selectedLesson.value
         ? selectedLesson.value.department + ' · ' + selectedLesson.value.course
-        : 'Set the voice used by AI Role-play guest replies and stored lesson audio.',
+        : t(
+              'Set the voice used by AI Role-play guest replies and stored lesson audio.',
+          ),
 );
 
 const voiceLabel = computed(() =>
@@ -58,7 +65,7 @@ function edit(lesson: LessonDirectoryRow): void {
 
 <template>
     <PanelCard
-        title="AI Role-play voice settings"
+        :title="$t('AI Role-play voice settings')"
         title-id="ai-roleplay-voice-settings-title"
         class="px-3 pt-3 pb-3 md:px-4"
         body-class="mt-2"
@@ -70,13 +77,16 @@ function edit(lesson: LessonDirectoryRow): void {
                 @click="create"
             >
                 <Plus class="size-3.5" aria-hidden="true" />
-                Create
+                {{ $t('Create') }}
             </Button>
         </template>
 
         <p class="text-ink-slate mb-2 text-[11.5px]">
-            Choose a lesson to edit its AI Role-play voice configuration. The
-            selected voice is used for stored guest replies and lesson audio.
+            {{
+                $t(
+                    'Choose a lesson to edit its AI Role-play voice configuration. The selected voice is used for stored guest replies and lesson audio.',
+                )
+            }}
         </p>
 
         <div
@@ -95,22 +105,22 @@ function edit(lesson: LessonDirectoryRow): void {
                         <th
                             class="text-brand-900 px-2.5 py-2 text-[10.5px] font-semibold md:px-3"
                         >
-                            Lesson
+                            {{ $t('Lesson') }}
                         </th>
                         <th
                             class="text-brand-900 px-2 py-2 text-[10.5px] font-semibold"
                         >
-                            Department
+                            {{ $t('Department') }}
                         </th>
                         <th
                             class="text-brand-900 px-2 py-2 text-[10.5px] font-semibold"
                         >
-                            Voice
+                            {{ $t('Voice') }}
                         </th>
                         <th
                             class="text-brand-900 px-2 py-2 text-[10.5px] font-semibold"
                         >
-                            Actions
+                            {{ $t('Actions') }}
                         </th>
                     </tr>
                 </thead>
@@ -155,7 +165,7 @@ function edit(lesson: LessonDirectoryRow): void {
                                 @click="edit(lesson)"
                             >
                                 <Edit3 class="size-3.5" aria-hidden="true" />
-                                Edit
+                                {{ $t('Edit') }}
                             </Button>
                         </td>
                     </tr>
@@ -167,7 +177,11 @@ function edit(lesson: LessonDirectoryRow): void {
             v-else
             class="border-line bg-brand-50/35 text-ink-slate rounded-md border border-dashed px-3 py-5 text-center text-[12px]"
         >
-            Create a lesson first, then configure its AI Role-play voice.
+            {{
+                $t(
+                    'Create a lesson first, then configure its AI Role-play voice.',
+                )
+            }}
         </p>
 
         <LessonsModal

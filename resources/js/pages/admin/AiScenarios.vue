@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import TtsVoiceStudio from '@/components/tts/TtsVoiceStudio.vue';
 import VoiceAgentSettingsDialog from '@/components/ai-scenarios/VoiceAgentSettingsDialog.vue';
 import VoiceCall from '@/components/roleplay/VoiceCall.vue';
+import { tk } from '@/lib/i18n';
 import { aiScenarios, dashboard } from '@/routes';
 import aiScenarioActions from '@/routes/ai-scenarios';
 import type {
@@ -202,11 +203,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'AI Scenarios',
+                title: tk('AI Scenarios'),
                 href: aiScenarios(),
             },
         ],
@@ -215,21 +216,25 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="AI Scenarios" />
+    <Head :title="$t('AI Scenarios')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">AI Scenarios</h1>
+        <h1 class="sr-only">{{ $t('AI Scenarios') }}</h1>
 
         <PageHeader
             :title="
                 builderOpen
-                    ? 'Create / Edit Scenario'
-                    : 'AI Role-play Scenarios'
+                    ? $t('Create / Edit Scenario')
+                    : $t('AI Role-play Scenarios')
             "
             :description="
                 builderOpen
-                    ? 'Build the hotel conversation, roles and AI coaching rules.'
-                    : 'Create and manage realistic conversation scenarios for hotel staff.'
+                    ? $t(
+                          'Build the hotel conversation, roles and AI coaching rules.',
+                      )
+                    : $t(
+                          'Create and manage realistic conversation scenarios for hotel staff.',
+                      )
             "
             class="mb-1"
         >
@@ -265,7 +270,7 @@ defineOptions({
                         data-test="back-to-scenario-library"
                     >
                         <ArrowLeft class="size-3.5" aria-hidden="true" />
-                        Back to Scenario Library
+                        {{ $t('Back to Scenario Library') }}
                     </Link>
                     <Button
                         type="button"
@@ -274,7 +279,7 @@ defineOptions({
                         data-test="ai-scenario-creation-tutorial-editor-button"
                         @click="createScenarioOpen = true"
                     >
-                        Create another scenario
+                        {{ $t('Create another scenario') }}
                     </Button>
                     <Button
                         type="button"
@@ -284,7 +289,7 @@ defineOptions({
                         @click="tutorialOpen = true"
                     >
                         <CircleHelp class="size-3.5" aria-hidden="true" />
-                        Visual scenario guide
+                        {{ $t('Visual scenario guide') }}
                     </Button>
                     <Button
                         type="button"
@@ -294,7 +299,7 @@ defineOptions({
                         @click="voiceSettingsOpen = true"
                     >
                         <Settings2 class="size-3.5" aria-hidden="true" />
-                        Voice call settings
+                        {{ $t('Voice call settings') }}
                     </Button>
                     <Button
                         v-if="voiceAgent.scenario"
@@ -305,12 +310,12 @@ defineOptions({
                         :title="
                             voiceAgent.settings.apiConfigured
                                 ? undefined
-                                : 'Set DEEPGRAM_API_KEY on the server first'
+                                : $t('Set DEEPGRAM_API_KEY on the server first')
                         "
                         @click="voiceCallOpen = true"
                     >
                         <Phone class="size-3.5" aria-hidden="true" />
-                        Test voice call
+                        {{ $t('Test voice call') }}
                     </Button>
                 </div>
 
@@ -370,7 +375,7 @@ defineOptions({
                     @click="voiceSettingsOpen = true"
                 >
                     <Settings2 class="size-3.5" aria-hidden="true" />
-                    Voice call settings
+                    {{ $t('Voice call settings') }}
                 </Button>
             </div>
             <AiScenariosPreviewTestPanel :preview-test="previewTest" />
@@ -386,7 +391,9 @@ defineOptions({
             v-if="voiceAgent.scenario"
             v-model:open="voiceCallOpen"
             :start-url="voiceAgent.scenario.startUrl"
-            :title="`Test call: ${voiceAgent.scenario.title}`"
+            :title="
+                $t('Test call: :title', { title: voiceAgent.scenario.title })
+            "
             :guest-role="voiceAgent.scenario.guestRole"
             preview
         />

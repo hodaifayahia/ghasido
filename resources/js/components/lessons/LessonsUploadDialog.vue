@@ -9,6 +9,7 @@ import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t, tk } from '@/lib/i18n';
 import { store } from '@/routes/media';
 import type { LessonLibraryImage } from '@/types';
 
@@ -58,9 +59,15 @@ const accept: Record<NonNullable<Props['kind']>, string> = {
 };
 
 const limit: Record<NonNullable<Props['kind']>, string> = {
-    image: 'JPG, PNG or WebP, up to 5 MB',
-    audio: 'MP3, WAV, M4A or WebM, up to 20 MB',
-    video: 'MP4 or WebM, up to 200 MB',
+    image: tk('JPG, PNG or WebP, up to 5 MB'),
+    audio: tk('MP3, WAV, M4A or WebM, up to 20 MB'),
+    video: tk('MP4 or WebM, up to 200 MB'),
+};
+
+const titles: Record<NonNullable<Props['kind']>, string> = {
+    image: tk('Upload image'),
+    audio: tk('Upload audio'),
+    video: tk('Upload video'),
 };
 
 function onFile(event: Event): void {
@@ -88,14 +95,14 @@ async function submit(): Promise<void> {
 
     try {
         const response = await postJson<UploadResponse>(store.url(), body);
-        toast.success(`${response.image.label} was uploaded.`);
+        toast.success(t(':name was uploaded.', { name: response.image.label }));
         open.value = false;
         emit('uploaded', response.image);
     } catch (error) {
         errors.value =
             error instanceof JsonRequestError
                 ? error.errors
-                : { _: 'The upload failed. Please try again.' };
+                : { _: t('The upload failed. Please try again.') };
     } finally {
         processing.value = false;
     }
@@ -108,8 +115,8 @@ const inputClass =
 <template>
     <LessonsModal
         v-model:open="open"
-        :title="`Upload ${kind}`"
-        :description="limit[kind]"
+        :title="$t(titles[kind])"
+        :description="$t(limit[kind])"
     >
         <form class="mt-2 grid gap-4" @submit.prevent="submit">
             <label
@@ -117,10 +124,10 @@ const inputClass =
             >
                 <Upload class="text-brand-600 size-5" aria-hidden="true" />
                 <span class="text-brand-900 text-[12.5px] font-semibold">
-                    {{ file === null ? 'Choose a file' : file.name }}
+                    {{ file === null ? $t('Choose a file') : file.name }}
                 </span>
                 <span class="text-ink-faint text-[11px]">{{
-                    limit[kind]
+                    $t(limit[kind])
                 }}</span>
                 <input
                     type="file"
@@ -141,8 +148,8 @@ const inputClass =
                 >
                     {{
                         kind === 'image'
-                            ? 'Alt text (what the image shows)'
-                            : 'Description'
+                            ? $t('Alt text (what the image shows)')
+                            : $t('Description')
                     }}
                 </Label>
                 <Input
@@ -161,12 +168,12 @@ const inputClass =
                     for="upload-category"
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Category (optional)
+                    {{ $t('Category (optional)') }}
                 </Label>
                 <Input
                     id="upload-category"
                     v-model="category"
-                    placeholder="reception, hotel, people…"
+                    :placeholder="$t('reception, hotel, people…')"
                     :class="inputClass"
                 />
                 <InputError :message="errors.category" />
@@ -183,7 +190,7 @@ const inputClass =
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -191,7 +198,7 @@ const inputClass =
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="upload-submit-button"
                 >
-                    {{ processing ? 'Uploading…' : 'Upload' }}
+                    {{ processing ? $t('Uploading…') : $t('Upload') }}
                 </Button>
             </div>
         </form>

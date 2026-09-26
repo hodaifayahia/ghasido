@@ -6,6 +6,7 @@ import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import VideoPlayer from '@/components/learning/video/VideoPlayer.vue';
+import { useI18n } from '@/composables/useI18n';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, StepBlockOf } from '@/types';
@@ -24,13 +25,15 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const subtitle = computed(() => props.block.settings.subtitle ?? null);
 const video = computed(() => props.block.settings.video ?? null);
 const poster = computed(() => props.block.settings.poster ?? null);
 const controlsNote = computed(
     () =>
         props.block.settings.controls_note ??
-        'Watch as many times as you need.',
+        t('Watch as many times as you need.'),
 );
 const example = computed(() => props.block.settings.example ?? null);
 const tip = computed(() => props.block.settings.tip ?? null);
@@ -58,7 +61,7 @@ const panelId = `video-example-${useId()}`;
                     :speed="speed"
                     class="aspect-video"
                 />
-                <TipCard v-if="tip" title="Tip" :text="tip" />
+                <TipCard v-if="tip" :title="$t('Tip')" :text="tip" />
             </div>
 
             <div class="flex min-w-0 flex-col gap-4">
@@ -71,7 +74,7 @@ const panelId = `video-example-${useId()}`;
                             aria-hidden="true"
                         />
                         <h3 class="text-ink font-heading text-lg font-semibold">
-                            Video Controls
+                            {{ $t('Video Controls') }}
                         </h3>
                     </div>
                     <p class="text-ink-slate mt-1">{{ controlsNote }}</p>
@@ -92,7 +95,7 @@ const panelId = `video-example-${useId()}`;
                             @click="speed = 1"
                         >
                             <Gauge class="size-5" aria-hidden="true" />
-                            Normal Speed
+                            {{ $t('Normal Speed') }}
                         </button>
                         <button
                             type="button"
@@ -112,7 +115,7 @@ const panelId = `video-example-${useId()}`;
                                 class="size-5 fill-current"
                                 aria-hidden="true"
                             />
-                            Slower Speed
+                            {{ $t('Slower Speed') }}
                         </button>
                     </div>
                 </div>
@@ -127,7 +130,7 @@ const panelId = `video-example-${useId()}`;
                             aria-hidden="true"
                         />
                         <h3 class="text-ink font-heading text-lg font-semibold">
-                            Example from the Video
+                            {{ $t('Example from the Video') }}
                         </h3>
                     </div>
                     <p v-if="example.note" class="text-ink-slate mt-1">

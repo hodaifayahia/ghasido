@@ -167,7 +167,7 @@ const summary = computed(() => props.block.summary);
                     </template>
                 </TaskCard>
 
-                <TaskCard v-if="lines.length > 0" title="Dialogue">
+                <TaskCard v-if="lines.length > 0" :title="$t('Dialogue')">
                     <ol class="flex list-none flex-col gap-3">
                         <li
                             v-for="(line, index) in lines"
@@ -190,7 +190,13 @@ const summary = computed(() => props.block.summary);
                                 <span
                                     class="text-ink-slate block text-xs font-semibold uppercase"
                                 >
-                                    {{ line.speaker }}
+                                    {{
+                                        line.speaker === 'guest'
+                                            ? $t('Guest')
+                                            : line.speaker === 'staff'
+                                              ? $t('Staff')
+                                              : line.speaker
+                                    }}
                                 </span>
                                 <span
                                     class="text-ink text-lg leading-7 whitespace-pre-line"
@@ -202,7 +208,10 @@ const summary = computed(() => props.block.summary);
                     </ol>
                 </TaskCard>
 
-                <TaskCard v-if="items.length > 0" title="Listen and repeat">
+                <TaskCard
+                    v-if="items.length > 0"
+                    :title="$t('Listen and repeat')"
+                >
                     <ul class="flex list-none flex-col gap-3">
                         <li
                             v-for="(item, index) in items"
@@ -314,7 +323,7 @@ const summary = computed(() => props.block.summary);
                                         v-if="card.done"
                                         class="rounded-pill bg-success-tint text-success-text px-2.5 py-1 text-xs font-semibold"
                                     >
-                                        Done
+                                        {{ $t('Done') }}
                                     </span>
                                     <ArrowRight
                                         class="text-brand-600 size-5 shrink-0"
@@ -359,9 +368,15 @@ const summary = computed(() => props.block.summary);
                                         <span
                                             class="text-ink-slate block text-sm"
                                         >
-                                            {{ scenario.attemptsLeft }} of
-                                            {{ scenario.attemptsAllowed }}
-                                            attempts left
+                                            {{
+                                                $t(
+                                                    ':left of :total attempts left',
+                                                    {
+                                                        left: scenario.attemptsLeft,
+                                                        total: scenario.attemptsAllowed,
+                                                    },
+                                                )
+                                            }}
                                         </span>
                                     </span>
                                     <ArrowRight
@@ -381,8 +396,15 @@ const summary = computed(() => props.block.summary);
                     tone="success"
                 >
                     <p class="text-ink text-lg leading-7">
-                        You have completed {{ summary.lessonsCompleted }} of
-                        {{ summary.lessonsTotal }} lessons.
+                        {{
+                            $t(
+                                'You have completed :completed of :total lessons.',
+                                {
+                                    completed: summary.lessonsCompleted,
+                                    total: summary.lessonsTotal,
+                                },
+                            )
+                        }}
                     </p>
                     <MeaningText
                         as="p"
@@ -395,7 +417,11 @@ const summary = computed(() => props.block.summary);
                         :href="summary.nextLesson.url"
                         class="text-brand-600 mt-4 inline-flex min-h-11 items-center gap-2 font-semibold underline-offset-4 hover:underline"
                     >
-                        Next lesson: {{ summary.nextLesson.title }}
+                        {{
+                            $t('Next lesson: :title', {
+                                title: summary.nextLesson.title,
+                            })
+                        }}
                         <ArrowRight class="size-5" aria-hidden="true" />
                     </Link>
                 </TaskCard>

@@ -2,6 +2,7 @@
 import { AudioLines, FileImage, Video } from '@lucide/vue';
 import { computed } from 'vue';
 import type { Component } from 'vue';
+import { t, tk } from '@/lib/i18n';
 import type { LessonBlockRow, LessonEditor, LessonMediaRef } from '@/types';
 
 /**
@@ -27,9 +28,9 @@ const materials = computed((): Material[] => {
             url: props.editor.coverUrl,
             thumbUrl: props.editor.coverUrl,
             alt: props.editor.coverAlt,
-            label: 'Lesson cover',
+            label: t('Lesson cover'),
             kind: 'image',
-            usedIn: 'Cover',
+            usedIn: t('Cover'),
         });
         seen.add(props.editor.coverMediaId);
     }
@@ -48,6 +49,13 @@ const materials = computed((): Material[] => {
     return list;
 });
 
+const kindLabel: Record<string, string> = {
+    image: tk('Image'),
+    video: tk('Video'),
+    audio: tk('Audio'),
+    document: tk('Document'),
+};
+
 const kindIcon: Record<string, Component> = {
     image: FileImage,
     video: Video,
@@ -59,15 +67,23 @@ const kindIcon: Record<string, Component> = {
 <template>
     <div class="grid gap-3">
         <p class="text-ink-slate text-[12px]">
-            {{ materials.length }} files are used in this lesson. Replace one
-            from its block editor; the library keeps every upload.
+            {{
+                $tc(
+                    ':count file is used in this lesson. Replace it from its block editor; the library keeps every upload.|:count files are used in this lesson. Replace one from its block editor; the library keeps every upload.',
+                    materials.length,
+                )
+            }}
         </p>
 
         <p
             v-if="materials.length === 0"
             class="border-line bg-brand-50/40 text-ink-slate rounded-md border border-dashed px-4 py-8 text-center text-[13px]"
         >
-            No material yet. Add a cover image or fill a block's media slots.
+            {{
+                $t(
+                    "No material yet. Add a cover image or fill a block's media slots.",
+                )
+            }}
         </p>
 
         <ul v-else class="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -99,7 +115,8 @@ const kindIcon: Record<string, Component> = {
                         {{ item.label }}
                     </p>
                     <p class="text-ink-faint truncate text-[11px]">
-                        {{ item.kind }} · {{ item.usedIn }}
+                        {{ $t(kindLabel[item.kind] ?? item.kind) }} ·
+                        {{ item.usedIn }}
                     </p>
                 </div>
             </li>

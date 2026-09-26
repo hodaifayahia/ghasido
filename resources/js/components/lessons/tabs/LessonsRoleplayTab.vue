@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Bot } from '@lucide/vue';
 import { computed } from 'vue';
+import { valueLabel } from '@/components/lessons/lessonsBlocks';
 import TtsVoiceSettingsTable from '@/components/tts/TtsVoiceSettingsTable.vue';
 import type {
     LessonBlockRow,
@@ -52,18 +53,24 @@ const roleplayBlocks = computed(() =>
 <template>
     <div class="grid gap-3">
         <p class="text-ink-slate text-[12px]">
-            {{ rows.length }} scenarios across
-            {{ roleplayBlocks.length }} role-play
-            {{ roleplayBlocks.length === 1 ? 'block' : 'blocks' }}. Employees
-            may try each one up to 3 times by default (RP-05).
+            {{
+                $tc(
+                    ':scenarios scenarios across :count role-play block. Employees may try each one up to 3 times by default (RP-05).|:scenarios scenarios across :count role-play blocks. Employees may try each one up to 3 times by default (RP-05).',
+                    roleplayBlocks.length,
+                    { scenarios: rows.length },
+                )
+            }}
         </p>
 
         <p
             v-if="rows.length === 0"
             class="border-line bg-brand-50/40 text-ink-slate rounded-md border border-dashed px-4 py-8 text-center text-[13px]"
         >
-            No scenario chosen yet. Open the AI Role-play block and pick the
-            scenarios for this lesson.
+            {{
+                $t(
+                    'No scenario chosen yet. Open the AI Role-play block and pick the scenarios for this lesson.',
+                )
+            }}
         </p>
 
         <ul v-else class="grid gap-2 sm:grid-cols-2">
@@ -87,7 +94,8 @@ const roleplayBlocks = computed(() =>
                         {{ row.description }}
                     </p>
                     <p class="text-ink-faint mt-1 text-[11px] capitalize">
-                        {{ row.difficulty }} · {{ row.status }} ·
+                        {{ $t(valueLabel(row.difficulty)) }} ·
+                        {{ $t(valueLabel(row.status)) }} ·
                         {{ row.block }}
                     </p>
                 </div>

@@ -35,7 +35,7 @@ function save(): void {
 
 <template>
     <PanelCard
-        title="Test Settings"
+        :title="$t('Test Settings')"
         title-id="test-settings-title"
         class="min-w-0"
     >
@@ -68,7 +68,7 @@ function save(): void {
                 <label
                     for="settings-pass-mark"
                     class="text-brand-900 text-xs font-semibold"
-                    >Pass mark (%)</label
+                    >{{ $t('Pass mark (%)') }}</label
                 >
                 <Input
                     id="settings-pass-mark"
@@ -83,7 +83,7 @@ function save(): void {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 text-xs font-semibold text-white"
                     @click="save"
                 >
-                    Save Settings
+                    {{ $t('Save Settings') }}
                 </Button>
             </div>
         </div>
@@ -91,7 +91,7 @@ function save(): void {
             v-else
             class="text-ink-slate border-line rounded-md border border-dashed px-4 py-10 text-center text-sm"
         >
-            Open a test from the Tests tab to edit its settings.
+            {{ $t('Open a test from the Tests tab to edit its settings.') }}
         </p>
     </PanelCard>
 </template>

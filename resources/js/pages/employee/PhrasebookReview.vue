@@ -7,6 +7,7 @@ import Celebration from '@/components/learning/Celebration.vue';
 import LearnerEmptyState from '@/components/learning/LearnerEmptyState.vue';
 import PhrasebookFlashcard from '@/components/learning/PhrasebookFlashcard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { useI18n } from '@/composables/useI18n';
 import { phrasebook } from '@/routes/learn';
 import { review } from '@/routes/learn/phrasebook';
 import type { PhrasebookEntry } from '@/types';
@@ -24,6 +25,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const index = ref(0);
 const knew = ref(0);
@@ -88,7 +91,9 @@ async function answer(knewIt: boolean): Promise<void> {
     } catch {
         // Nothing moves on until the server has the answer (PROG-03).
         toast.error(
-            'Your answer was not saved. Check your connection and try again.',
+            t(
+                'Your answer was not saved. Check your connection and try again.',
+            ),
         );
     } finally {
         saving.value = false;
@@ -102,20 +107,26 @@ const secondaryClass =
 </script>
 
 <template>
-    <Head title="Review my phrases" />
-    <h1 class="sr-only">Review my phrases</h1>
+    <Head :title="$t('Review my phrases')" />
+    <h1 class="sr-only">{{ $t('Review my phrases') }}</h1>
 
     <div
         class="mx-auto flex w-full max-w-2xl min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6"
     >
         <PageHeader
-            title="Review my phrases"
+            :title="$t('Review my phrases')"
             :description="
                 cards.length === 0
-                    ? `${totalSaved} saved ${totalSaved === 1 ? 'phrase' : 'phrases'}`
+                    ? $tc(
+                          ':count saved phrase|:count saved phrases',
+                          totalSaved,
+                      )
                     : finished
-                      ? 'Review complete'
-                      : `Card ${index + 1} of ${cards.length}`
+                      ? $t('Review complete')
+                      : $t('Card :current of :total', {
+                            current: index + 1,
+                            total: cards.length,
+                        })
             "
         />
 
@@ -124,10 +135,14 @@ const secondaryClass =
             :icon="Layers"
             :text="
                 totalSaved === 0
-                    ? 'Save words and expressions with the star in your lessons, then review them here.'
-                    : 'Nothing to review right now. Your phrases come back on the day they are due.'
+                    ? $t(
+                          'Save words and expressions with the star in your lessons, then review them here.',
+                      )
+                    : $t(
+                          'Nothing to review right now. Your phrases come back on the day they are due.',
+                      )
             "
-            :action="{ label: 'Back to My Phrasebook', href: phrasebook() }"
+            :action="{ label: $t('Back to My Phrasebook'), href: phrasebook() }"
         />
 
         <template v-else-if="!finished && card">
@@ -137,7 +152,7 @@ const secondaryClass =
                 :aria-valuenow="percent"
                 aria-valuemin="0"
                 aria-valuemax="100"
-                aria-label="Review progress"
+                :aria-label="$t('Review progress')"
             >
                 <div
                     class="bg-brand-600 rounded-pill h-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
@@ -148,7 +163,7 @@ const secondaryClass =
             <PhrasebookFlashcard :key="card.id" :entry="card" />
 
             <p class="text-ink-slate text-center text-[14px]">
-                Did you remember what it means and how to say it?
+                {{ $t('Did you remember what it means and how to say it?') }}
             </p>
             <div class="grid gap-3 sm:grid-cols-2">
                 <button
@@ -159,7 +174,7 @@ const secondaryClass =
                     @click="answer(false)"
                 >
                     <RotateCcw class="size-5" aria-hidden="true" />
-                    Practise again
+                    {{ $t('Practise again') }}
                 </button>
                 <button
                     type="button"
@@ -169,7 +184,7 @@ const secondaryClass =
                     @click="answer(true)"
                 >
                     <Check class="size-5" aria-hidden="true" />
-                    I knew it
+                    {{ $t('I knew it') }}
                 </button>
             </div>
         </template>
@@ -189,13 +204,23 @@ const secondaryClass =
                 <h2
                     class="font-heading text-ink-royal text-[24px] font-bold tracking-[-0.02em]"
                 >
-                    Review complete
+                    {{ $t('Review complete') }}
                 </h2>
                 <p class="text-ink-slate text-[15px]">
-                    You remembered {{ knew }} of {{ cards.length }}
-                    {{ cards.length === 1 ? 'phrase' : 'phrases' }}.
+                    {{
+                        $tc(
+                            'You remembered :knew of :count phrase.|You remembered :knew of :count phrases.',
+                            cards.length,
+                            { knew },
+                        )
+                    }}
                     <template v-if="again > 0">
-                        {{ again }} will come back for more practice.
+                        {{
+                            $tc(
+                                ':count will come back for more practice.|:count will come back for more practice.',
+                                again,
+                            )
+                        }}
                     </template>
                 </p>
             </div>
@@ -207,7 +232,7 @@ const secondaryClass =
                 "
             >
                 <Link :href="phrasebook()" :class="secondaryClass">
-                    Back to My Phrasebook
+                    {{ $t('Back to My Phrasebook') }}
                 </Link>
                 <Link
                     v-if="again > 0"
@@ -216,7 +241,7 @@ const secondaryClass =
                     data-test="review-missed-link"
                 >
                     <RotateCcw class="size-5" aria-hidden="true" />
-                    Practise missed ones
+                    {{ $t('Practise missed ones') }}
                 </Link>
             </div>
         </section>

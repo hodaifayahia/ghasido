@@ -3,6 +3,7 @@ import { tryOnScopeDispose } from '@vueuse/core';
 import type { Ref } from 'vue';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
+import { t, tk } from '@/lib/i18n';
 import type {
     VoiceCallCaption,
     VoiceCallStartResponse,
@@ -203,7 +204,9 @@ export function useVoiceAgent(
 
                     if (result.limitReached === true && !ended) {
                         toast.warning(
-                            'You have reached today’s AI practice limit. The call will end now.',
+                            t(
+                                'You have reached today’s AI practice limit. The call will end now.',
+                            ),
                         );
                         void end();
                     }
@@ -262,15 +265,17 @@ export function useVoiceAgent(
                 break;
             case 'Warning':
                 toast.warning(
-                    event.description ?? event.message ?? 'Voice call warning.',
+                    event.description ??
+                        event.message ??
+                        t('Voice call warning.'),
                 );
                 break;
             case 'Error':
                 errorMessage.value =
                     event.description ??
                     event.message ??
-                    'The voice call hit a problem.';
-                toast.error(errorMessage.value);
+                    tk('The voice call hit a problem.');
+                toast.error(t(errorMessage.value));
                 break;
             default:
                 break;
@@ -353,8 +358,9 @@ export function useVoiceAgent(
             typeof WebSocket === 'undefined' ||
             typeof AudioWorkletNode === 'undefined'
         ) {
-            errorMessage.value =
-                'This browser cannot make voice calls. Please use the text chat instead.';
+            errorMessage.value = tk(
+                'This browser cannot make voice calls. Please use the text chat instead.',
+            );
             state.value = 'error';
 
             return;
@@ -370,8 +376,9 @@ export function useVoiceAgent(
                 },
             });
         } catch {
-            errorMessage.value =
-                'Microphone access was blocked. Allow the microphone in your browser settings, then try again, or use the text chat.';
+            errorMessage.value = tk(
+                'Microphone access was blocked. Allow the microphone in your browser settings, then try again, or use the text chat.',
+            );
             state.value = 'denied';
 
             return;
@@ -389,7 +396,7 @@ export function useVoiceAgent(
 
             if (!response.ok || body.session === undefined) {
                 throw new Error(
-                    body.message ?? 'The voice call could not start.',
+                    body.message ?? tk('The voice call could not start.'),
                 );
             }
 
@@ -399,7 +406,7 @@ export function useVoiceAgent(
             errorMessage.value =
                 error instanceof Error
                     ? error.message
-                    : 'The voice call could not start.';
+                    : tk('The voice call could not start.');
             state.value = 'error';
 
             return;
@@ -416,7 +423,7 @@ export function useVoiceAgent(
             await context.resume();
             await startMicrophone(started.session.inputSampleRate);
         } catch {
-            errorMessage.value = 'Your browser could not start the audio.';
+            errorMessage.value = tk('Your browser could not start the audio.');
             state.value = 'error';
             await end();
 
@@ -439,7 +446,7 @@ export function useVoiceAgent(
                 elapsedSeconds.value += 1;
 
                 if (elapsedSeconds.value >= maxSeconds.value) {
-                    toast.info('Time is up. The call has ended.');
+                    toast.info(t('Time is up. The call has ended.'));
                     void end();
                 }
             }, 1000);
@@ -458,12 +465,17 @@ export function useVoiceAgent(
             playPcm(message.data);
         };
         socket.onerror = () => {
-            errorMessage.value = 'The connection to the voice service failed.';
+            errorMessage.value = tk(
+                'The connection to the voice service failed.',
+            );
         };
         socket.onclose = () => {
             if (!ended) {
                 toast.error(
-                    errorMessage.value ?? 'The voice call was disconnected.',
+                    t(
+                        errorMessage.value ??
+                            tk('The voice call was disconnected.'),
+                    ),
                 );
                 void end();
             }
@@ -509,8 +521,9 @@ export function useVoiceAgent(
         elapsedSeconds,
         maxSeconds,
         muted,
-        explanation:
+        explanation: tk(
             'We need your microphone so the guest can hear you. Your voice is sent live to the voice service and only the written transcript is saved.',
+        ),
         start,
         end,
         toggleMute,

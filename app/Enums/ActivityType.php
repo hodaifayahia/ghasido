@@ -25,40 +25,40 @@ enum ActivityType: string
     case Speaking = 'speaking';
     case Writing = 'writing';
 
-    public function label(): string
+    public function label(?string $locale = null): string
     {
         return match ($this) {
-            self::ListenChoose => 'Listen & Choose',
-            self::LookListen => 'Look & Listen',
-            self::BestResponse => 'Best Response',
-            self::ListenMatch => 'Listen & Match',
-            self::WatchRespond => 'Watch & Respond',
-            self::WordsSentences => 'Words & Sentences',
-            self::DialogueOrder => 'Put the Dialogue in Order',
-            self::PictureOrder => 'Ordering a Conversation',
-            self::MultipleChoice => 'Choose the Best Answer',
-            self::Speaking => 'Speaking',
-            self::Writing => 'Writing',
+            self::ListenChoose => __('Listen & Choose', [], $locale),
+            self::LookListen => __('Look & Listen', [], $locale),
+            self::BestResponse => __('Best Response', [], $locale),
+            self::ListenMatch => __('Listen & Match', [], $locale),
+            self::WatchRespond => __('Watch & Respond', [], $locale),
+            self::WordsSentences => __('Words & Sentences', [], $locale),
+            self::DialogueOrder => __('Put the Dialogue in Order', [], $locale),
+            self::PictureOrder => __('Ordering a Conversation', [], $locale),
+            self::MultipleChoice => __('Choose the Best Answer', [], $locale),
+            self::Speaking => __('Speaking', [], $locale),
+            self::Writing => __('Writing', [], $locale),
         };
     }
 
     /**
      * The sentence under the title on the practice hub card (photo_7).
      */
-    public function hubDescription(): string
+    public function hubDescription(?string $locale = null): string
     {
         return match ($this) {
-            self::ListenChoose => 'Listen to a word or sentence and choose the correct picture.',
-            self::LookListen => 'Look at the picture and choose the correct audio.',
-            self::BestResponse => 'Listen to the guest and choose the most appropriate response.',
-            self::ListenMatch => 'Listen and match the words with the correct pictures.',
-            self::WatchRespond => 'Watch a short video and choose what to say or do next.',
-            self::WordsSentences => 'Complete short words or sentences (use the keyboard).',
-            self::DialogueOrder => 'Listen and put the sentences in the correct order.',
-            self::PictureOrder => 'Put the conversation in the correct order.',
-            self::MultipleChoice => 'Read or look, then choose the best answer.',
-            self::Speaking => 'Record a short spoken answer.',
-            self::Writing => 'Write a short reply.',
+            self::ListenChoose => __('Listen to a word or sentence and choose the correct picture.', [], $locale),
+            self::LookListen => __('Look at the picture and choose the correct audio.', [], $locale),
+            self::BestResponse => __('Listen to the guest and choose the most appropriate response.', [], $locale),
+            self::ListenMatch => __('Listen and match the words with the correct pictures.', [], $locale),
+            self::WatchRespond => __('Watch a short video and choose what to say or do next.', [], $locale),
+            self::WordsSentences => __('Complete short words or sentences (use the keyboard).', [], $locale),
+            self::DialogueOrder => __('Listen and put the sentences in the correct order.', [], $locale),
+            self::PictureOrder => __('Put the conversation in the correct order.', [], $locale),
+            self::MultipleChoice => __('Read or look, then choose the best answer.', [], $locale),
+            self::Speaking => __('Record a short spoken answer.', [], $locale),
+            self::Writing => __('Write a short reply.', [], $locale),
         };
     }
 

@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AiPointsMeter from '@/components/shell/AiPointsMeter.vue';
+import LanguageSelect from '@/components/shell/LanguageSelect.vue';
 import NotificationMenu from '@/components/shell/NotificationMenu.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useI18n } from '@/composables/useI18n';
 import { useInitials } from '@/composables/useInitials';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -28,20 +30,23 @@ type Props = {
 const props = defineProps<Props>();
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const { t } = useI18n();
 
 // The role line under the greeting follows each signed-in user's role (ROLE-01).
 const roleLabel = computed((): string => {
     switch (user.value.role) {
         case 'employee':
             return user.value.department_name
-                ? `${user.value.department_name} Department`
-                : 'Employee';
+                ? t(':department Department', {
+                      department: user.value.department_name,
+                  })
+                : t('Employee');
         case 'manager':
-            return 'Hotel Manager';
+            return t('Hotel Manager');
         case 'admin':
-            return 'Hotel Administrator';
+            return t('Hotel Administrator');
         default:
-            return 'System Administrator';
+            return t('System Administrator');
     }
 });
 
@@ -85,6 +90,10 @@ const iconButtonClass =
             <AppLogo variant="mark" class="size-10" />
         </Link>
 
+        <!-- The handwritten tagline sits where the Lessons & Content mockup
+             draws it: its text starts 195px after the sidebar, clear of the
+             bell, account and language box at the end (logical, so it
+             mirrors in Arabic). -->
         <img
             v-if="props.topbarTaglineSrc"
             :src="props.topbarTaglineSrc"
@@ -93,7 +102,7 @@ const iconButtonClass =
             width="513"
             height="72"
             draggable="false"
-            class="h-topbar pointer-events-none absolute start-1/2 top-0 hidden w-[314px] -translate-x-1/2 mix-blend-multiply select-none xl:block"
+            class="h-topbar pointer-events-none absolute start-[173px] top-0 hidden w-[314px] mix-blend-multiply select-none xl:block"
         />
 
         <div class="ms-auto flex min-w-0 items-center">
@@ -124,12 +133,14 @@ const iconButtonClass =
                                 {{ initial }}
                             </AvatarFallback>
                         </Avatar>
-                        <span class="sr-only md:hidden">Account menu</span>
+                        <span class="sr-only md:hidden">{{
+                            $t('Account menu')
+                        }}</span>
                         <span class="hidden min-w-0 flex-col md:flex">
                             <span
                                 class="font-heading text-ink-indigo truncate text-[13.5px] leading-5 font-semibold tracking-[-0.02em]"
                             >
-                                Welcome, {{ firstName }}!
+                                {{ $t('Welcome, :name!', { name: firstName }) }}
                             </span>
                             <span
                                 class="text-ink-slate mt-px truncate text-[12.5px] leading-[18px] tracking-[-0.01em]"
@@ -151,6 +162,10 @@ const iconButtonClass =
                     <UserMenuContent :user="user" />
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- The approved language box (AGENTS.md §0.4): English or
+                 Arabic interface (I18N-02). -->
+            <LanguageSelect />
         </div>
     </header>
 </template>

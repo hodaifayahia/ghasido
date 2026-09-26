@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, ChevronDown, CircleUserRound, Star } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import LanguageSelect from '@/components/shell/LanguageSelect.vue';
 import NotificationMenu from '@/components/shell/NotificationMenu.vue';
 import SolidHouseIcon from '@/components/icons/SolidHouseIcon.vue';
 import {
@@ -46,7 +47,7 @@ const linkClass =
         </Link>
 
         <nav
-            aria-label="Learner"
+            :aria-label="$t('Learner')"
             class="ms-auto mt-2 flex items-center gap-2 md:gap-[22px]"
         >
             <Link
@@ -58,7 +59,7 @@ const linkClass =
                     class="text-brand-900 size-[18px] shrink-0"
                     aria-hidden="true"
                 />
-                <span class="hidden md:inline">Home</span>
+                <span class="hidden md:inline">{{ $t('Home') }}</span>
             </Link>
             <Link
                 :href="lessons()"
@@ -71,7 +72,7 @@ const linkClass =
                     class="text-brand-900 size-[22px] shrink-0 stroke-[2.25]"
                     aria-hidden="true"
                 />
-                <span class="hidden md:inline">My Lessons</span>
+                <span class="hidden md:inline">{{ $t('My Lessons') }}</span>
             </Link>
             <Link
                 :href="phrasebook()"
@@ -84,7 +85,7 @@ const linkClass =
                     class="text-warning size-5 shrink-0 fill-current"
                     aria-hidden="true"
                 />
-                <span class="hidden md:inline">My Phrasebook</span>
+                <span class="hidden md:inline">{{ $t('My Phrasebook') }}</span>
             </Link>
 
             <NotificationMenu />
@@ -105,8 +106,12 @@ const linkClass =
                             class="text-brand-900 size-7 shrink-0 stroke-[1.75]"
                             aria-hidden="true"
                         />
-                        <span class="sr-only md:hidden">Account menu</span>
-                        <span class="hidden md:inline">Welcome!</span>
+                        <span class="sr-only md:hidden">{{
+                            $t('Account menu')
+                        }}</span>
+                        <span class="hidden md:inline">{{
+                            $t('Welcome!')
+                        }}</span>
                         <ChevronDown
                             class="text-ink-graphite hidden size-5 shrink-0 stroke-[2.5] md:block"
                             aria-hidden="true"
@@ -121,6 +126,9 @@ const linkClass =
                     <UserMenuContent :user="user" />
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- The lesson bar's smaller language box (I18N-02). -->
+            <LanguageSelect compact class="ms-0 md:ms-0" />
         </nav>
     </header>
 </template>

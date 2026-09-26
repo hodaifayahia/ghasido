@@ -18,6 +18,7 @@ import type {
     IndividualRow,
     IndividualStats,
 } from '@/types';
+import { tk } from '@/lib/i18n';
 
 /**
  * Individual subscribers (user request 2026-09-25): people who learn with
@@ -37,9 +38,9 @@ const props = defineProps<Props>();
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Subscriptions', href: subscriptions() },
-            { title: 'Individuals', href: individuals() },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Subscriptions'), href: subscriptions() },
+            { title: tk('Individuals'), href: individuals() },
         ],
     },
 });
@@ -96,12 +97,16 @@ function goToPage(page: number): void {
 </script>
 
 <template>
-    <Head title="Individual Subscribers" />
+    <Head :title="$t('Individual Subscribers')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Individual Subscribers"
-            description="People who learn with GHASIDO on their own, without a hotel. Each one has their own access dates and AI allowance."
+            :title="$t('Individual Subscribers')"
+            :description="
+                $t(
+                    'People who learn with GHASIDO on their own, without a hotel. Each one has their own access dates and AI allowance.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>
@@ -112,28 +117,36 @@ function goToPage(page: number): void {
         <div class="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
             <StatCard
                 :value="stats.total"
-                label="Individual subscribers"
+                :label="$t('Individual subscribers')"
                 tone="brand"
             >
                 <template #icon>
                     <UsersRound class="size-5" aria-hidden="true" />
                 </template>
             </StatCard>
-            <StatCard :value="stats.active" label="Active now" tone="success">
+            <StatCard
+                :value="stats.active"
+                :label="$t('Active now')"
+                tone="success"
+            >
                 <template #icon>
                     <UserCheck class="size-5" aria-hidden="true" />
                 </template>
             </StatCard>
             <StatCard
                 :value="stats.endingSoon"
-                label="Ending in 14 days"
+                :label="$t('Ending in 14 days')"
                 tone="warning"
             >
                 <template #icon>
                     <CalendarClock class="size-5" aria-hidden="true" />
                 </template>
             </StatCard>
-            <StatCard :value="stats.withAi" label="With AI practice" tone="ai">
+            <StatCard
+                :value="stats.withAi"
+                :label="$t('With AI practice')"
+                tone="ai"
+            >
                 <template #icon>
                     <Bot class="size-5" aria-hidden="true" />
                 </template>

@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { generate, replace } from '@/routes/audio';
 import type {
@@ -87,11 +88,11 @@ const chip: Record<AudioClipStatus, string> = {
 };
 
 const label: Record<AudioClipStatus, string> = {
-    done: 'Ready',
-    pending: 'Queued',
-    running: 'Generating',
-    failed: 'Failed',
-    missing: 'Missing',
+    done: tk('Ready'),
+    pending: tk('Queued'),
+    running: tk('Generating'),
+    failed: tk('Failed'),
+    missing: tk('Missing'),
 };
 
 const options = {
@@ -178,9 +179,11 @@ function onUploaded(image: LessonLibraryImage): void {
             class="flex items-center justify-between gap-2"
         >
             <p class="text-brand-900 text-[11.5px] font-semibold">
-                Text-to-speech audio
+                {{ $t('Text-to-speech audio') }}
             </p>
-            <span class="text-ink-faint text-[10.5px]"> Normal + Slow </span>
+            <span class="text-ink-faint text-[10.5px]">
+                {{ $t('Normal + Slow') }}
+            </span>
         </div>
 
         <div
@@ -209,8 +212,15 @@ function onUploaded(image: LessonLibraryImage): void {
                             class="size-3"
                             aria-hidden="true"
                         />
-                        {{ speed === 'normal' ? 'Normal' : 'Slow' }}:
-                        {{ label[row.pair[speed].status] }}
+                        {{
+                            speed === 'normal'
+                                ? $t('Normal: :status', {
+                                      status: $t(label[row.pair[speed].status]),
+                                  })
+                                : $t('Slow: :status', {
+                                      status: $t(label[row.pair[speed].status]),
+                                  })
+                        }}
                     </span>
                     <audio
                         v-if="row.pair[speed].url !== null"
@@ -218,7 +228,11 @@ function onUploaded(image: LessonLibraryImage): void {
                         controls
                         preload="none"
                         class="h-8 w-40"
-                        :aria-label="`${speed} clip of ${row.text}`"
+                        :aria-label="
+                            speed === 'normal'
+                                ? $t('Normal clip of :text', { text: row.text })
+                                : $t('Slow clip of :text', { text: row.text })
+                        "
                     />
                     <button
                         v-if="!readOnly"
@@ -227,7 +241,7 @@ function onUploaded(image: LessonLibraryImage): void {
                         @click="startUpload(row.text, speed)"
                     >
                         <Upload class="size-3" aria-hidden="true" />
-                        Upload own
+                        {{ $t('Upload own') }}
                     </button>
                 </template>
             </div>
@@ -249,12 +263,14 @@ function onUploaded(image: LessonLibraryImage): void {
                 <Volume2 class="size-3.5" aria-hidden="true" />
                 {{
                     incomplete.length === 0
-                        ? 'All clips ready'
-                        : `Generate TTS audio (${incomplete.length})`
+                        ? $t('All clips ready')
+                        : $t('Generate TTS audio (:count)', {
+                              count: incomplete.length,
+                          })
                 }}
             </Button>
             <span v-if="pending" class="text-ink-faint text-[11.5px]">
-                Generating in the background…
+                {{ $t('Generating in the background…') }}
             </span>
         </div>
 

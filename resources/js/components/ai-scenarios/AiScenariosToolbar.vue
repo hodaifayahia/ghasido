@@ -82,7 +82,7 @@ const tabIcons: Record<AiScenarioTabKey, Component> = {
             @click="emit('create')"
         >
             <CirclePlus class="size-4" aria-hidden="true" />
-            Create New Scenario
+            {{ $t('Create New Scenario') }}
         </Button>
     </div>
 </template>

@@ -30,6 +30,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { HotelRecord, HotelRowAction } from '@/types';
 
@@ -73,21 +74,21 @@ const items = computed<Item[]>(() => {
     const approve = can('hotels.approve');
     const state = props.hotel.accessState;
     const list: Item[] = [
-        { action: 'view', label: 'View', icon: Eye, group: 'read' },
+        { action: 'view', label: tk('View'), icon: Eye, group: 'read' },
     ];
 
     if (manage && state !== 'archived') {
         list.push(
-            { action: 'edit', label: 'Edit', icon: Pencil, group: 'read' },
+            { action: 'edit', label: tk('Edit'), icon: Pencil, group: 'read' },
             {
                 action: 'seats',
-                label: 'Manage seats',
+                label: tk('Manage seats'),
                 icon: Users,
                 group: 'read',
             },
             {
                 action: 'departments',
-                label: 'Departments',
+                label: tk('Departments'),
                 icon: Network,
                 group: 'read',
             },
@@ -98,13 +99,13 @@ const items = computed<Item[]>(() => {
         list.push(
             {
                 action: 'approve',
-                label: 'Approve',
+                label: tk('Approve'),
                 icon: Check,
                 group: 'state',
             },
             {
                 action: 'reject',
-                label: 'Reject',
+                label: tk('Reject'),
                 icon: X,
                 destructive: true,
                 group: 'state',
@@ -115,7 +116,7 @@ const items = computed<Item[]>(() => {
     if (manage && (state === 'active' || state === 'paused')) {
         list.push({
             action: 'extend',
-            label: 'Extend Contract',
+            label: tk('Extend Contract'),
             icon: CalendarPlus,
             group: 'state',
         });
@@ -123,13 +124,13 @@ const items = computed<Item[]>(() => {
             state === 'active'
                 ? {
                       action: 'pause',
-                      label: 'Pause Access',
+                      label: tk('Pause Access'),
                       icon: Pause,
                       group: 'state',
                   }
                 : {
                       action: 'resume',
-                      label: 'Resume Access',
+                      label: tk('Resume Access'),
                       icon: Play,
                       group: 'state',
                   },
@@ -139,7 +140,7 @@ const items = computed<Item[]>(() => {
     if (manage && state !== 'archived') {
         list.push({
             action: 'archive',
-            label: 'Archive',
+            label: tk('Archive'),
             icon: Archive,
             destructive: true,
             group: 'end',
@@ -179,7 +180,7 @@ const triggerClass = computed(() =>
         <button
             type="button"
             :class="triggerClass"
-            :aria-label="`More actions for ${hotel.name}`"
+            :aria-label="$t('More actions for :name', { name: hotel.name })"
             :data-test="`hotel-${hotel.id}-actions-button`"
             @click="sheetOpen = true"
         >
@@ -205,7 +206,7 @@ const triggerClass = computed(() =>
                         {{ hotel.name }}
                     </SheetTitle>
                     <SheetDescription class="text-ink-slate text-[12.5px]">
-                        Actions for this hotel
+                        {{ $t('Actions for this hotel') }}
                     </SheetDescription>
                 </SheetHeader>
                 <ul class="mt-2 grid gap-1">
@@ -228,7 +229,7 @@ const triggerClass = computed(() =>
                                 class="size-4.5 shrink-0"
                                 aria-hidden="true"
                             />
-                            {{ item.label }}
+                            {{ $t(item.label) }}
                         </button>
                     </li>
                 </ul>
@@ -241,7 +242,7 @@ const triggerClass = computed(() =>
             <button
                 type="button"
                 :class="triggerClass"
-                :aria-label="`More actions for ${hotel.name}`"
+                :aria-label="$t('More actions for :name', { name: hotel.name })"
                 :data-test="`hotel-${hotel.id}-actions-button`"
             >
                 <EllipsisVertical
@@ -276,7 +277,7 @@ const triggerClass = computed(() =>
                         class="size-4 shrink-0"
                         aria-hidden="true"
                     />
-                    {{ item.label }}
+                    {{ $t(item.label) }}
                 </DropdownMenuItem>
             </template>
         </DropdownMenuContent>

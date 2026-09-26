@@ -17,12 +17,12 @@ enum EnglishLevel: string
     case Elementary = 'elementary';
     case Intermediate = 'intermediate';
 
-    public function label(): string
+    public function label(?string $locale = null): string
     {
         return match ($this) {
-            self::Beginner => __('Beginner'),
-            self::Elementary => __('Elementary'),
-            self::Intermediate => __('Intermediate'),
+            self::Beginner => __('Beginner', [], $locale),
+            self::Elementary => __('Elementary', [], $locale),
+            self::Intermediate => __('Intermediate', [], $locale),
         };
     }
 

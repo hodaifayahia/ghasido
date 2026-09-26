@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
+import { computed } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { MessagePagination } from '@/types';
 
 type Props = {
     pagination: MessagePagination;
-    /** What is being counted, e.g. "employees" or "reminders". */
-    noun: string;
+    /** What is being counted. */
+    noun: 'employees' | 'reminders';
     label: string;
     /** Compact: previous/next only, for the sidebar log card. */
     compact?: boolean;
@@ -19,6 +21,29 @@ const props = withDefaults(defineProps<Props>(), { compact: false });
 const emit = defineEmits<{
     page: [page: number];
 }>();
+
+const { t } = useI18n();
+
+// Whole sentences per noun, so each language orders its own words.
+const texts = computed(() => {
+    const counts = {
+        from: props.pagination.from,
+        to: props.pagination.to,
+        total: props.pagination.total,
+    };
+
+    return props.noun === 'employees'
+        ? {
+              showing: t('Showing :from-:to of :total employees', counts),
+              previous: t('Previous page of employees'),
+              next: t('Next page of employees'),
+          }
+        : {
+              showing: t('Showing :from-:to of :total reminders', counts),
+              previous: t('Previous page of reminders'),
+              next: t('Next page of reminders'),
+          };
+});
 </script>
 
 <template>
@@ -33,15 +58,14 @@ const emit = defineEmits<{
         "
     >
         <p>
-            Showing {{ pagination.from }}-{{ pagination.to }} of
-            {{ pagination.total }} {{ noun }}
+            {{ texts.showing }}
         </p>
 
         <nav :aria-label="label" class="flex flex-wrap items-center gap-1.5">
             <button
                 type="button"
                 :disabled="pagination.currentPage <= 1"
-                :aria-label="`Previous page of ${noun}`"
+                :aria-label="texts.previous"
                 :class="
                     cn(
                         'text-ink-muted hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent',
@@ -52,7 +76,7 @@ const emit = defineEmits<{
                 @click="emit('page', pagination.currentPage - 1)"
             >
                 <ChevronLeft class="size-3.5" aria-hidden="true" />
-                <template v-if="!compact">Previous</template>
+                <template v-if="!compact">{{ $t('Previous') }}</template>
             </button>
 
             <template v-if="!compact">
@@ -87,7 +111,7 @@ const emit = defineEmits<{
             <button
                 type="button"
                 :disabled="pagination.currentPage >= pagination.lastPage"
-                :aria-label="`Next page of ${noun}`"
+                :aria-label="texts.next"
                 :class="
                     cn(
                         'border-line text-brand-700 hover:bg-brand-50 bg-surface inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-60',
@@ -96,7 +120,7 @@ const emit = defineEmits<{
                 "
                 @click="emit('page', pagination.currentPage + 1)"
             >
-                <template v-if="!compact">Next</template>
+                <template v-if="!compact">{{ $t('Next') }}</template>
                 <ChevronRight class="size-3.5" aria-hidden="true" />
             </button>
         </nav>

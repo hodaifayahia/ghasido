@@ -82,43 +82,57 @@ function removeItem(index: number): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
         <div class="grid gap-4 md:grid-cols-2">
             <div class="grid gap-2">
-                <LessonsField v-model="listenTitle" label="Listen step title" />
+                <LessonsField
+                    v-model="listenTitle"
+                    :label="$t('Listen step title')"
+                />
                 <LessonsField
                     v-model="listenText"
-                    label="Listen step text"
+                    :label="$t('Listen step text')"
                     type="textarea"
                     :rows="2"
                 />
             </div>
             <div class="grid gap-2">
-                <LessonsField v-model="repeatTitle" label="Repeat step title" />
+                <LessonsField
+                    v-model="repeatTitle"
+                    :label="$t('Repeat step title')"
+                />
                 <LessonsField
                     v-model="repeatText"
-                    label="Repeat step text"
+                    :label="$t('Repeat step text')"
                     type="textarea"
                     :rows="2"
                 />
             </div>
         </div>
         <div class="grid gap-4 md:grid-cols-3">
-            <LessonsField v-model="recordLabel" label="Record label" />
-            <LessonsField v-model="recordingLabel" label="Recording label" />
-            <LessonsField v-model="successText" label="Success text" />
+            <LessonsField v-model="recordLabel" :label="$t('Record label')" />
+            <LessonsField
+                v-model="recordingLabel"
+                :label="$t('Recording label')"
+            />
+            <LessonsField v-model="successText" :label="$t('Success text')" />
         </div>
-        <LessonsField v-model="tip" label="Tip" type="textarea" :rows="2" />
+        <LessonsField
+            v-model="tip"
+            :label="$t('Tip')"
+            type="textarea"
+            :rows="2"
+        />
 
         <div class="grid gap-2">
             <div class="flex items-center justify-between gap-3">
                 <span
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Sentences
+                    {{ $t('Sentences') }}
                 </span>
                 <Button
                     v-if="!readOnly"
@@ -128,7 +142,7 @@ function removeItem(index: number): void {
                     @click="addItem"
                 >
                     <CirclePlus class="size-3.5" aria-hidden="true" />
-                    Add sentence
+                    {{ $t('Add sentence') }}
                 </Button>
             </div>
 
@@ -141,7 +155,7 @@ function removeItem(index: number): void {
                     <div class="grid flex-1 gap-2">
                         <LessonsField
                             :model-value="item.text"
-                            label="English"
+                            :label="$t('English')"
                             @update:model-value="
                                 (value) =>
                                     updateItem(index, {
@@ -154,7 +168,7 @@ function removeItem(index: number): void {
                         />
                         <LessonsField
                             :model-value="item.arabic"
-                            label="Arabic (behind Show Meaning)"
+                            :label="$t('Arabic (behind Show Meaning)')"
                             dir="rtl"
                             @update:model-value="
                                 (value) =>
@@ -171,7 +185,9 @@ function removeItem(index: number): void {
                         v-if="!readOnly"
                         type="button"
                         class="text-ink-faint hover:bg-danger-tint hover:text-danger-text inline-flex size-9 items-center justify-center rounded-md"
-                        :aria-label="`Remove sentence ${index + 1}`"
+                        :aria-label="
+                            $t('Remove sentence :number', { number: index + 1 })
+                        "
                         @click="removeItem(index)"
                     >
                         <Trash2 class="size-4" aria-hidden="true" />

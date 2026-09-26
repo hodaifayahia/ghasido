@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import type { BlockSettings, LessonBlockRow } from '@/types';
 
 /**
@@ -42,9 +43,9 @@ const objectives = computed(() =>
 );
 
 const icons = [
-    { value: 'chat', label: 'Speech bubble' },
-    { value: 'people', label: 'People' },
-    { value: 'check', label: 'Check mark' },
+    { value: 'chat', label: tk('Speech bubble') },
+    { value: 'people', label: tk('People') },
+    { value: 'check', label: tk('Check mark') },
 ];
 
 function setObjectives(next: Objective[]): void {
@@ -78,10 +79,10 @@ function removeObjective(index: number): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="quote"
-            label="Quote"
+            :label="$t('Quote')"
             type="textarea"
             :rows="2"
-            hint="Shown in the quote box under the objectives."
+            :hint="$t('Shown in the quote box under the objectives.')"
         />
 
         <div class="grid gap-2">
@@ -89,7 +90,7 @@ function removeObjective(index: number): void {
                 <span
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Objective rows
+                    {{ $t('Objective rows') }}
                 </span>
                 <Button
                     v-if="!readOnly"
@@ -99,7 +100,7 @@ function removeObjective(index: number): void {
                     @click="addObjective"
                 >
                     <CirclePlus class="size-3.5" aria-hidden="true" />
-                    Add row
+                    {{ $t('Add row') }}
                 </Button>
             </div>
 
@@ -115,7 +116,11 @@ function removeObjective(index: number): void {
                 >
                     <SelectTrigger
                         class="border-line text-ink bg-surface h-10 rounded-sm text-[13px] shadow-none"
-                        :aria-label="`Icon of objective ${index + 1}`"
+                        :aria-label="
+                            $t('Icon of objective :number', {
+                                number: index + 1,
+                            })
+                        "
                     >
                         <SelectValue />
                     </SelectTrigger>
@@ -126,7 +131,7 @@ function removeObjective(index: number): void {
                             :value="icon.value"
                             class="text-[13px]"
                         >
-                            {{ icon.label }}
+                            {{ $t(icon.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -134,7 +139,7 @@ function removeObjective(index: number): void {
                     :value="objective.text"
                     type="text"
                     :readonly="readOnly"
-                    :aria-label="`Objective ${index + 1}`"
+                    :aria-label="$t('Objective :number', { number: index + 1 })"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 w-full rounded-sm border px-3 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
                     @input="
                         updateObjective(index, {
@@ -146,7 +151,9 @@ function removeObjective(index: number): void {
                     v-if="!readOnly"
                     type="button"
                     class="text-ink-faint hover:bg-danger-tint hover:text-danger-text inline-flex size-10 items-center justify-center rounded-md"
-                    :aria-label="`Remove objective ${index + 1}`"
+                    :aria-label="
+                        $t('Remove objective :number', { number: index + 1 })
+                    "
                     @click="removeObjective(index)"
                 >
                     <Trash2 class="size-4" aria-hidden="true" />

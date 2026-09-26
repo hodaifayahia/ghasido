@@ -215,7 +215,7 @@ onBeforeUnmount(clearCoverPreview);
                 <h2
                     class="font-heading text-brand-800 truncate text-base font-semibold"
                 >
-                    Edit Scenario
+                    {{ $t('Edit Scenario') }}
                 </h2>
 
                 <button
@@ -235,7 +235,7 @@ onBeforeUnmount(clearCoverPreview);
                     @click="emit('apply-draft')"
                 >
                     <Sparkles class="size-3.5" aria-hidden="true" />
-                    Apply AI Draft
+                    {{ $t('Apply AI Draft') }}
                 </Button>
                 <Button
                     v-else-if="editor.generateUrl"
@@ -251,8 +251,8 @@ onBeforeUnmount(clearCoverPreview);
                     <Sparkles class="size-3.5" aria-hidden="true" />
                     {{
                         editor.aiStatus === 'failed'
-                            ? 'Regenerate with Qwen'
-                            : 'Generate with Qwen'
+                            ? $t('Regenerate with Qwen')
+                            : $t('Generate with Qwen')
                     }}
                 </Button>
             </div>
@@ -263,11 +263,11 @@ onBeforeUnmount(clearCoverPreview);
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <p class="text-ai text-[12px] font-semibold">
-                        Qwen draft ready for review
+                        {{ $t('Qwen draft ready for review') }}
                     </p>
-                    <span class="text-ai text-[11px] font-medium"
-                        >Apply only after checking the wording</span
-                    >
+                    <span class="text-ai text-[11px] font-medium">{{
+                        $t('Apply only after checking the wording')
+                    }}</span>
                 </div>
                 <p class="text-ink mt-1 text-[12px] leading-[1.45]">
                     {{ String(editor.aiDraft.description ?? '') }}
@@ -283,7 +283,7 @@ onBeforeUnmount(clearCoverPreview);
                         for="scenario-title"
                         class="text-brand-900 text-[12px] font-semibold"
                     >
-                        Scenario Title *
+                        {{ $t('Scenario Title *') }}
                     </label>
                     <span class="text-ink-faint text-[11px] font-medium">
                         {{ editor.titleCount }}
@@ -299,7 +299,7 @@ onBeforeUnmount(clearCoverPreview);
             <div class="grid gap-3 md:grid-cols-2">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Department *
+                        {{ $t('Department *') }}
                     </label>
                     <Select
                         :model-value="department"
@@ -325,7 +325,7 @@ onBeforeUnmount(clearCoverPreview);
 
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
-                        Level *
+                        {{ $t('Level *') }}
                     </label>
                     <Select
                         :model-value="level"
@@ -366,14 +366,16 @@ onBeforeUnmount(clearCoverPreview);
                                 id="scenario-lesson-connection"
                                 class="text-brand-900 text-[12px] font-semibold"
                             >
-                                Lesson connection
+                                {{ $t('Lesson connection') }}
                             </h3>
                             <p
                                 class="text-ink-slate mt-1 text-[11.5px] leading-[1.45]"
                             >
-                                Add this scenario to a lesson from its AI
-                                Role-play block. The same scenario can be reused
-                                in more than one lesson.
+                                {{
+                                    $t(
+                                        'Add this scenario to a lesson from its AI Role-play block. The same scenario can be reused in more than one lesson.',
+                                    )
+                                }}
                             </p>
                         </div>
                     </div>
@@ -381,7 +383,7 @@ onBeforeUnmount(clearCoverPreview);
                         :href="lessonsContent()"
                         class="text-brand-700 hover:bg-brand-100 inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-semibold"
                     >
-                        Open Lessons &amp; Content
+                        {{ $t('Open Lessons & Content') }}
                         <ExternalLink class="size-3.5" aria-hidden="true" />
                     </InertiaLink>
                 </div>
@@ -407,34 +409,39 @@ onBeforeUnmount(clearCoverPreview);
                                 >
                             </span>
                         </span>
-                        <span class="text-ink-faint shrink-0 capitalize">{{
-                            lesson.status
+                        <span class="text-ink-faint shrink-0">{{
+                            lesson.status === 'published'
+                                ? $t('Published')
+                                : $t('Draft')
                         }}</span>
                     </InertiaLink>
                 </div>
                 <p v-else class="text-ink-muted mt-3 text-[11.5px]">
-                    Not attached to a lesson yet. Open Lessons &amp; Content,
-                    add an AI Role-play block, and select this scenario.
+                    {{
+                        $t(
+                            'Not attached to a lesson yet. Open Lessons & Content, add an AI Role-play block, and select this scenario.',
+                        )
+                    }}
                 </p>
             </section>
 
             <div class="grid gap-1.5">
                 <label class="text-brand-900 text-[12px] font-semibold">
-                    Scenario Image *
+                    {{ $t('Scenario Image *') }}
                 </label>
 
                 <div class="ai-scenario-image-layout grid gap-3 md:items-start">
                     <img
                         v-if="coverPreview"
                         :src="coverPreview"
-                        alt="Selected scenario cover"
+                        :alt="$t('Selected scenario cover')"
                         class="border-line aspect-[1200/628] w-full rounded-md border object-cover"
                     />
                     <LessonsMockupCrop
                         v-else
                         :crop="editor.coverCrop"
                         src="/decor/ai-scenarios-mockup.jpg"
-                        alt="Guest check-in scenario cover"
+                        :alt="$t('Guest check-in scenario cover')"
                         class="border-line w-full rounded-md border"
                     />
 
@@ -453,7 +460,7 @@ onBeforeUnmount(clearCoverPreview);
                             @click="chooseImage"
                         >
                             <Image class="size-3.5" aria-hidden="true" />
-                            Change Image
+                            {{ $t('Change Image') }}
                         </Button>
                         <Button
                             type="button"
@@ -465,7 +472,7 @@ onBeforeUnmount(clearCoverPreview);
                             @click="clearCoverPreview"
                         >
                             <Trash2 class="size-3.5" aria-hidden="true" />
-                            Remove
+                            {{ $t('Remove') }}
                         </Button>
                         <p class="text-ink-faint text-[11px] leading-4.5">
                             <span
@@ -473,8 +480,8 @@ onBeforeUnmount(clearCoverPreview);
                                 class="text-success-text block truncate"
                                 >{{ imageName }}</span
                             >
-                            Recommended size: 1200 x 628 px<br />
-                            (JPG, PNG - Max 5MB)
+                            {{ $t('Recommended size: 1200 x 628 px') }}<br />
+                            {{ $t('(JPG, PNG - Max 5MB)') }}
                         </p>
                     </div>
                 </div>
@@ -482,7 +489,7 @@ onBeforeUnmount(clearCoverPreview);
 
             <div class="grid gap-1.5">
                 <label class="text-brand-900 text-[12px] font-semibold">
-                    Scenario Description *
+                    {{ $t('Scenario Description *') }}
                 </label>
 
                 <div class="border-line overflow-hidden rounded-md border">
@@ -492,7 +499,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border text-[12px] font-bold"
-                            aria-label="Bold description"
+                            :aria-label="$t('Bold description')"
                             @click="formatDescription('bold')"
                         >
                             B
@@ -500,7 +507,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border text-[12px] italic"
-                            aria-label="Italic description"
+                            :aria-label="$t('Italic description')"
                             @click="formatDescription('italic')"
                         >
                             I
@@ -508,7 +515,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border text-[12px] underline"
-                            aria-label="Underline description"
+                            :aria-label="$t('Underline description')"
                             @click="formatDescription('underline')"
                         >
                             U
@@ -516,7 +523,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border"
-                            aria-label="Bulleted list"
+                            :aria-label="$t('Bulleted list')"
                             @click="formatDescription('list')"
                         >
                             <List class="size-3.5" aria-hidden="true" />
@@ -524,7 +531,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border"
-                            aria-label="Numbered list"
+                            :aria-label="$t('Numbered list')"
                             @click="formatDescription('ordered')"
                         >
                             <ListOrdered class="size-3.5" aria-hidden="true" />
@@ -532,7 +539,7 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-brand-900 border-line flex h-7 w-7 items-center justify-center rounded-md border"
-                            aria-label="Insert link"
+                            :aria-label="$t('Insert link')"
                             @click="formatDescription('link')"
                         >
                             <Link2 class="size-3.5" aria-hidden="true" />
@@ -561,7 +568,7 @@ onBeforeUnmount(clearCoverPreview);
                     class="border-line bg-surface rounded-md border px-3 py-3"
                 >
                     <h3 class="text-brand-900 text-[12px] font-semibold">
-                        AI Role (Guest) *
+                        {{ $t('AI Role (Guest) *') }}
                     </h3>
                     <div class="mt-2 flex items-start gap-2.5">
                         <span
@@ -580,7 +587,7 @@ onBeforeUnmount(clearCoverPreview);
                         @click="emit('open-instructions')"
                     >
                         <Sparkles class="size-3.5" aria-hidden="true" />
-                        Edit AI Instructions
+                        {{ $t('Edit AI Instructions') }}
                     </Button>
                 </section>
 
@@ -588,7 +595,7 @@ onBeforeUnmount(clearCoverPreview);
                     class="border-line bg-surface rounded-md border px-3 py-3"
                 >
                     <h3 class="text-brand-900 text-[12px] font-semibold">
-                        Employee Role (User) *
+                        {{ $t('Employee Role (User) *') }}
                     </h3>
                     <div class="mt-2 flex items-start gap-2.5">
                         <span
@@ -606,7 +613,7 @@ onBeforeUnmount(clearCoverPreview);
             <div class="grid gap-2">
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="text-brand-900 text-[12px] font-semibold">
-                        Learning Objectives *
+                        {{ $t('Learning Objectives *') }}
                     </h2>
                     <Button
                         type="button"
@@ -615,7 +622,7 @@ onBeforeUnmount(clearCoverPreview);
                         @click="addingObjective = !addingObjective"
                     >
                         <CirclePlus class="size-3.5" aria-hidden="true" />
-                        Add Objective
+                        {{ $t('Add Objective') }}
                     </Button>
                 </div>
 
@@ -623,7 +630,7 @@ onBeforeUnmount(clearCoverPreview);
                     <Input
                         v-model="newObjective"
                         autofocus
-                        placeholder="Add a learning objective"
+                        :placeholder="$t('Add a learning objective')"
                         class="border-line h-10 text-[12px]"
                         @keyup.enter="addObjective"
                     />
@@ -632,7 +639,7 @@ onBeforeUnmount(clearCoverPreview);
                         class="bg-brand-600 hover:bg-brand-700 h-10 shrink-0 px-3 text-xs font-semibold text-white"
                         @click="addObjective"
                     >
-                        Add
+                        {{ $t('Add') }}
                     </Button>
                 </div>
 
@@ -653,7 +660,9 @@ onBeforeUnmount(clearCoverPreview);
                         <button
                             type="button"
                             class="text-ink-faint hover:bg-brand-50 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
-                            :aria-label="`Remove ${objective}`"
+                            :aria-label="
+                                $t('Remove :item', { item: objective })
+                            "
                             @click="removeObjective(index)"
                         >
                             <Trash2 class="size-3.5" aria-hidden="true" />

@@ -34,6 +34,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useCan } from '@/composables/useCan';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { store as storeBlock } from '@/routes/blocks';
 import type {
@@ -139,7 +140,7 @@ function onDragStart(event: DragEvent, block: LessonBuilderBlock): void {
 }
 
 function tileTitle(block: LessonBuilderBlock): string | undefined {
-    return block.type === null ? 'Not available yet' : undefined;
+    return block.type === null ? t('Not available yet') : undefined;
 }
 
 // Library filters live in the query string; only the library prop reloads.
@@ -185,13 +186,13 @@ function onChoose(image: LessonLibraryImage): void {
 <template>
     <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
         <PanelCard
-            title="Add Content Blocks"
+            :title="$t('Add Content Blocks')"
             title-id="lesson-content-blocks"
             class="px-3 pt-3 pb-3"
             body-class="mt-1.5"
         >
             <p class="text-ink-slate mb-2 text-[11.5px]">
-                Click to add a section to your lesson.
+                {{ $t('Click to add a section to your lesson.') }}
             </p>
 
             <div class="grid grid-cols-3 gap-2">
@@ -243,13 +244,13 @@ function onChoose(image: LessonLibraryImage): void {
         </PanelCard>
 
         <PanelCard
-            title="Image Library"
+            :title="$t('Image Library')"
             title-id="lesson-image-library"
             class="px-3 pt-3 pb-3"
             body-class="mt-1.5"
         >
             <p class="text-ink-slate mb-2 text-[11.5px]">
-                Upload your own images or choose from the gallery.
+                {{ $t('Upload your own images or choose from the gallery.') }}
             </p>
 
             <div class="mb-2 grid grid-cols-3 gap-1.5">
@@ -283,8 +284,8 @@ function onChoose(image: LessonLibraryImage): void {
                     <Input
                         v-model="search"
                         type="search"
-                        placeholder="Search images..."
-                        aria-label="Search images"
+                        :placeholder="$t('Search images...')"
+                        :aria-label="$t('Search images')"
                         data-test="library-search-input"
                         class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-8 pe-3 text-[12px] shadow-none"
                         @input="onSearch"
@@ -296,7 +297,7 @@ function onChoose(image: LessonLibraryImage): void {
                     @update:model-value="onCategory"
                 >
                     <SelectTrigger
-                        aria-label="Category"
+                        :aria-label="$t('Category')"
                         class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[12px] shadow-none"
                     >
                         <SelectValue />
@@ -318,7 +319,7 @@ function onChoose(image: LessonLibraryImage): void {
                 v-if="library.images.length === 0"
                 class="text-ink-slate border-line rounded-md border border-dashed px-3 py-4 text-center text-[11.5px]"
             >
-                No image here yet. Upload one or open another tab.
+                {{ $t('No image here yet. Upload one or open another tab.') }}
             </p>
 
             <div v-else class="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -326,7 +327,9 @@ function onChoose(image: LessonLibraryImage): void {
                     v-for="image in library.images"
                     :key="image.id"
                     type="button"
-                    :title="manage ? 'Use as the lesson cover' : image.label"
+                    :title="
+                        manage ? $t('Use as the lesson cover') : image.label
+                    "
                     :data-test="`library-image-${image.id}`"
                     class="focus-visible:ring-brand-600/15 flex min-w-0 flex-col items-start gap-1.5 rounded-md focus-visible:ring-3 focus-visible:outline-none"
                     @click="onChoose(image)"
@@ -359,10 +362,10 @@ function onChoose(image: LessonLibraryImage): void {
                         aria-hidden="true"
                     />
                     <span class="text-brand-900 text-[12px] font-semibold">
-                        Upload New Image
+                        {{ $t('Upload New Image') }}
                     </span>
                     <span class="text-ink-faint text-[10.5px]">
-                        JPG, PNG - Max 5MB
+                        {{ $t('JPG, PNG - Max 5MB') }}
                     </span>
                 </button>
 
@@ -373,7 +376,7 @@ function onChoose(image: LessonLibraryImage): void {
                     class="border-line text-brand-700 hover:bg-brand-50 h-auto min-h-[72px] rounded-md px-3 text-[12px] font-semibold shadow-none"
                     @click="pickerOpen = true"
                 >
-                    Browse Images
+                    {{ $t('Browse Images') }}
                 </Button>
             </div>
         </PanelCard>

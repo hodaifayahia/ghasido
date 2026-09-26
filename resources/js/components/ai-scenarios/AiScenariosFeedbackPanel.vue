@@ -157,11 +157,14 @@ const statusTone: Record<AiScenarioStatus, string> = {
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0">
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Feedback Templates
+                    {{ $t('Feedback Templates') }}
                 </h2>
                 <p class="text-ink-slate mt-0.5 text-[12.5px]">
-                    Reusable criteria and weights the AI uses to score each
-                    role-play attempt.
+                    {{
+                        $t(
+                            'Reusable criteria and weights the AI uses to score each role-play attempt.',
+                        )
+                    }}
                 </p>
             </div>
             <Button
@@ -170,7 +173,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                 @click="newTemplate"
             >
                 <CirclePlus class="size-4" aria-hidden="true" />
-                New Template
+                {{ $t('New Template') }}
             </Button>
         </div>
 
@@ -179,45 +182,45 @@ const statusTone: Record<AiScenarioStatus, string> = {
             class="border-brand-200 bg-brand-50/35 mt-4 grid gap-3 rounded-lg border p-3 md:grid-cols-2"
         >
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Template name</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Template name')
+                }}</label>
                 <Input
                     v-model="name"
-                    placeholder="e.g. Complaint Coaching"
+                    :placeholder="$t('e.g. Complaint Coaching')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Feedback tone</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Feedback tone')
+                }}</label>
                 <Input
                     v-model="tone"
-                    placeholder="Encouraging"
+                    :placeholder="$t('Encouraging')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5 md:col-span-2">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Description</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Description')
+                }}</label>
                 <Input
                     v-model="description"
-                    placeholder="Explain when this template is used."
+                    :placeholder="$t('Explain when this template is used.')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Status</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Status')
+                }}</label>
                 <select
                     v-model="status"
                     class="border-line text-ink bg-surface h-9 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{{ $t('Draft') }}</option>
+                    <option value="published">{{ $t('Published') }}</option>
                 </select>
             </div>
             <div class="flex items-end justify-end gap-2">
@@ -226,13 +229,13 @@ const statusTone: Record<AiScenarioStatus, string> = {
                     variant="outline"
                     class="border-line h-9 text-[12px] shadow-none"
                     @click="cancelEdit"
-                    >Cancel</Button
+                    >{{ $t('Cancel') }}</Button
                 >
                 <Button
                     type="button"
                     class="bg-brand-600 hover:bg-brand-700 h-9 text-[12px] font-semibold text-white"
                     @click="saveTemplate"
-                    >Save template</Button
+                    >{{ $t('Save template') }}</Button
                 >
             </div>
 
@@ -242,11 +245,14 @@ const statusTone: Record<AiScenarioStatus, string> = {
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <p class="text-brand-900 text-[12px] font-semibold">
-                            Scoring criteria and weights
+                            {{ $t('Scoring criteria and weights') }}
                         </p>
                         <p class="text-ink-slate mt-0.5 text-[11px]">
-                            These weights are sent to the AI with each
-                            evaluation.
+                            {{
+                                $t(
+                                    'These weights are sent to the AI with each evaluation.',
+                                )
+                            }}
                         </p>
                     </div>
                     <Button
@@ -256,7 +262,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                         @click="addCriterion"
                     >
                         <Plus class="size-3.5" aria-hidden="true" />
-                        Add criterion
+                        {{ $t('Add criterion') }}
                     </Button>
                 </div>
                 <div class="mt-2 grid gap-2">
@@ -267,7 +273,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                     >
                         <Input
                             v-model="criterion.label"
-                            placeholder="e.g. Task completion"
+                            :placeholder="$t('e.g. Task completion')"
                             class="border-line h-9 min-w-0 flex-1 text-[12px]"
                         />
                         <div class="relative w-24 shrink-0">
@@ -277,7 +283,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                                 min="0"
                                 max="100"
                                 class="border-line h-9 pe-7 text-[12px]"
-                                aria-label="Criterion weight"
+                                :aria-label="$t('Criterion weight')"
                             />
                             <span
                                 class="text-ink-faint pointer-events-none absolute inset-y-0 end-2 flex items-center text-[11px]"
@@ -288,7 +294,13 @@ const statusTone: Record<AiScenarioStatus, string> = {
                             v-if="criteria.length > 1"
                             type="button"
                             class="text-danger hover:bg-danger-tint inline-flex size-8 shrink-0 items-center justify-center rounded-md"
-                            :aria-label="`Remove ${criterion.label || 'criterion'}`"
+                            :aria-label="
+                                criterion.label
+                                    ? $t('Remove :item', {
+                                          item: criterion.label,
+                                      })
+                                    : $t('Remove criterion')
+                            "
                             @click="removeCriterion(index)"
                         >
                             <Trash2 class="size-3.5" aria-hidden="true" />
@@ -300,7 +312,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
 
         <div class="border-line bg-app-alt mt-4 rounded-md border px-3 py-3">
             <p class="text-brand-900 text-[12px] font-semibold">
-                Every attempt returns these sections
+                {{ $t('Every attempt returns these sections') }}
             </p>
             <div class="mt-2 flex flex-wrap gap-2">
                 <span
@@ -338,7 +350,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                                     class="rounded-pill bg-brand-100 text-brand-700 inline-flex min-h-5 items-center gap-1 px-2 text-[10.5px] font-semibold"
                                 >
                                     <Star class="size-3" aria-hidden="true" />
-                                    Default
+                                    {{ $t('Default') }}
                                 </span>
                                 <span
                                     :class="
@@ -350,8 +362,8 @@ const statusTone: Record<AiScenarioStatus, string> = {
                                 >
                                     {{
                                         template.status === 'published'
-                                            ? 'Published'
-                                            : 'Draft'
+                                            ? $t('Published')
+                                            : $t('Draft')
                                     }}
                                 </span>
                             </div>
@@ -364,17 +376,23 @@ const statusTone: Record<AiScenarioStatus, string> = {
                         type="button"
                         class="text-ink-faint hover:bg-brand-50 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
                         @click="editTemplate(template)"
-                        :aria-label="`More actions for ${template.name}`"
+                        :aria-label="
+                            $t('More actions for :name', {
+                                name: template.name,
+                            })
+                        "
                     >
                         <EllipsisVertical class="size-4" aria-hidden="true" />
                     </button>
                     <button
                         type="button"
                         class="text-danger hover:bg-danger-tint inline-flex size-7 shrink-0 items-center justify-center rounded-md"
-                        :aria-label="'Delete ' + template.name"
+                        :aria-label="
+                            $t('Delete :name', { name: template.name })
+                        "
                         @click="removeTemplate(template.id)"
                     >
-                        <span class="sr-only">Delete</span>
+                        <span class="sr-only">{{ $t('Delete') }}</span>
                         ×
                     </button>
                 </div>
@@ -408,7 +426,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
 
                 <div class="mt-3 flex items-center justify-between gap-3">
                     <span class="text-ink-slate text-[11.5px]">
-                        Tone: {{ template.tone }}
+                        {{ $t('Tone: :tone', { tone: template.tone }) }}
                     </span>
                     <Button
                         type="button"
@@ -416,7 +434,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                         class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="editTemplate(template)"
                     >
-                        Edit Template
+                        {{ $t('Edit Template') }}
                     </Button>
                 </div>
             </article>

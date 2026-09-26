@@ -18,7 +18,7 @@ Route::get('reports-export', ReportsExportController::class)
 // format=csv|xlsx|pdf, plus the page's filters. The anonymised dataset
 // additionally requires reports.export_anonymised (checked by the request).
 Route::get('reports-export/export', ReportExportController::class)
-    ->middleware(Permission::ReportsExport->middleware())
+    ->middleware([Permission::ReportsExport->middleware(), 'english-data'])
     ->name('reports.export');
 
 // Adjusting an AI score (AIE-05; spec 0005 §2.5): replace it with a reason,

@@ -13,6 +13,7 @@ import ActivityFeed from '@/components/data/ActivityFeed.vue';
 import NeedsAttentionList from '@/components/data/NeedsAttentionList.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
+import { tk } from '@/lib/i18n';
 import { dashboard } from '@/routes';
 import type {
     AiCreditAccount,
@@ -49,7 +50,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
         ],
@@ -58,21 +59,25 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head :title="$t('Dashboard')" />
 
     <div class="flex min-w-0 flex-col gap-3 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
             :title="
                 isManager
-                    ? 'Hotel Manager Dashboard'
+                    ? $t('Hotel Manager Dashboard')
                     : isHotelAdmin
-                      ? 'Hotel Admin Dashboard'
-                      : 'Admin Dashboard'
+                      ? $t('Hotel Admin Dashboard')
+                      : $t('Admin Dashboard')
             "
             :description="
                 isManager || isHotelAdmin
-                    ? 'Manage your employees, follow training progress and keep your team moving.'
-                    : 'Manage your hotels, staff, content and track progress'
+                    ? $t(
+                          'Manage your employees, follow training progress and keep your team moving.',
+                      )
+                    : $t(
+                          'Manage your hotels, staff, content and track progress',
+                      )
             "
             class="mb-1"
         >

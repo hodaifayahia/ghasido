@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
 import { computed } from 'vue';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 type Status = 'inactive' | 'not_started' | 'pretest_done';
@@ -15,9 +16,9 @@ type Props = {
 const props = defineProps<Props>();
 
 const labels: Record<Status, string> = {
-    inactive: 'Inactive',
-    not_started: 'Not started',
-    pretest_done: 'Pre-test done',
+    inactive: tk('Inactive'),
+    not_started: tk('Not started'),
+    pretest_done: tk('Pre-test done'),
 };
 
 const tones: Record<Status, string> = {
@@ -39,6 +40,6 @@ const text = computed(() => props.label ?? labels[props.status]);
             )
         "
     >
-        {{ text }}
+        {{ $t(text) }}
     </span>
 </template>

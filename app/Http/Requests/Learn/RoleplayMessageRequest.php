@@ -39,7 +39,7 @@ class RoleplayMessageRequest extends FormRequest
     {
         $text = trim((string) $this->validated('text'));
 
-        return $text !== '' ? $text : __('[voice message]');
+        return $text !== '' ? $text : __('[voice message]', [], 'en');
     }
 
     public function recordingMediaId(): ?int

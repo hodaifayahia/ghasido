@@ -20,6 +20,8 @@ import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     TestMedia,
@@ -42,6 +44,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const emit = defineEmits<{
     save: [settings: TestSettings];
     preview: [];
@@ -60,14 +64,26 @@ const previewIndex = ref(0);
 const pickerOpen = ref(false);
 const uploadOpen = ref(false);
 
-const libraryTabs = [
-    { key: 'guesvia-library', label: 'GHASIDO Library' },
-    { key: 'my-images', label: 'My Images' },
-    { key: 'icons-stickers', label: 'Icons & Stickers' },
-];
-const libraryCategories = [
-    { value: 'all-categories', label: 'All categories' },
-];
+const libraryTabs = computed(() => [
+    { key: 'guesvia-library', label: t('GHASIDO Library') },
+    { key: 'my-images', label: t('My Images') },
+    { key: 'icons-stickers', label: t('Icons & Stickers') },
+]);
+const libraryCategories = computed(() => [
+    { value: 'all-categories', label: t('All categories') },
+]);
+
+const uploadLabels: Record<TestMediaTabKey, string> = {
+    image: tk('Upload image'),
+    audio: tk('Upload audio'),
+    video: tk('Upload video'),
+};
+
+const removeLabels: Record<TestMediaTabKey, string> = {
+    image: tk('Remove image'),
+    audio: tk('Remove audio'),
+    video: tk('Remove video'),
+};
 
 watch(
     () => props.settings,
@@ -179,7 +195,7 @@ const resultValueTone: Record<TestResultTone, string> = {
         >
             <div class="flex items-center justify-between gap-3">
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Question Preview
+                    {{ $t('Question Preview') }}
                 </h2>
                 <div class="flex items-center gap-1.5">
                     <span class="text-ink-slate text-[11.5px] font-medium">
@@ -192,7 +208,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                     <button
                         type="button"
                         class="border-line text-brand-700 hover:bg-brand-50 inline-flex size-6 items-center justify-center rounded-md border"
-                        aria-label="Previous question"
+                        :aria-label="$t('Previous question')"
                         :disabled="props.preview.questions.length < 2"
                         @click="movePreview(-1)"
                     >
@@ -201,7 +217,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                     <button
                         type="button"
                         class="border-line text-brand-700 hover:bg-brand-50 inline-flex size-6 items-center justify-center rounded-md border"
-                        aria-label="Next question"
+                        :aria-label="$t('Next question')"
                         :disabled="props.preview.questions.length < 2"
                         @click="movePreview(1)"
                     >
@@ -224,7 +240,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                     v-else
                     :crop="currentPreview?.imageCrop ?? preview.imageCrop"
                     src="/decor/tests-mockup.jpg"
-                    alt="Question preview image"
+                    :alt="$t('Question preview image')"
                     class="border-line w-[92px] shrink-0 self-start rounded-md border"
                 />
                 <div class="min-w-0 flex-1">
@@ -254,7 +270,7 @@ const resultValueTone: Record<TestResultTone, string> = {
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <h2 class="font-heading text-brand-800 text-base font-semibold">
-                Add Media to Question
+                {{ $t('Add Media to Question') }}
             </h2>
 
             <div class="tests-media-layout mt-3 grid gap-3">
@@ -294,16 +310,16 @@ const resultValueTone: Record<TestResultTone, string> = {
                         >
                             {{
                                 mediaRef(activeMediaTab)?.label ??
-                                `Upload ${activeMediaTab}`
+                                $t(uploadLabels[activeMediaTab])
                             }}
                         </p>
                         <p class="text-ink-faint text-[10.5px]">
                             {{
                                 activeMediaTab === 'image'
-                                    ? 'JPG, PNG · Max 5MB'
+                                    ? $t('JPG, PNG · Max 5MB')
                                     : activeMediaTab === 'audio'
-                                      ? 'MP3, WAV, M4A or WebM · Max 20MB'
-                                      : 'MP4 or WebM · Max 200MB'
+                                      ? $t('MP3, WAV, M4A or WebM · Max 20MB')
+                                      : $t('MP4 or WebM · Max 200MB')
                             }}
                         </p>
                     </div>
@@ -318,8 +334,8 @@ const resultValueTone: Record<TestResultTone, string> = {
                             <Image class="size-3.5" aria-hidden="true" />
                             {{
                                 activeMediaTab === 'image'
-                                    ? 'Browse Images'
-                                    : 'Upload File'
+                                    ? $t('Browse Images')
+                                    : $t('Upload File')
                             }}
                         </Button>
                         <Button
@@ -329,7 +345,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                             @click="openMediaPicker"
                         >
                             <FolderOpen class="size-3.5" aria-hidden="true" />
-                            Use from Library
+                            {{ $t('Use from Library') }}
                         </Button>
                     </div>
                     <Button
@@ -339,13 +355,13 @@ const resultValueTone: Record<TestResultTone, string> = {
                         class="text-danger-text hover:bg-danger-tint mt-1 h-8 px-1.5 text-[11px]"
                         @click="removeMedia"
                     >
-                        Remove {{ activeMediaTab }}
+                        {{ $t(removeLabels[activeMediaTab]) }}
                     </Button>
                 </div>
 
                 <div class="min-w-0">
                     <h3 class="text-brand-900 text-[11.5px] font-semibold">
-                        Suggested Images
+                        {{ $t('Suggested Images') }}
                     </h3>
                     <div class="mt-2 grid grid-cols-2 gap-1.5">
                         <button
@@ -353,7 +369,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                             :key="image.id"
                             type="button"
                             class="border-line hover:border-brand-500 overflow-hidden rounded-md border"
-                            :aria-label="`Use ${image.label}`"
+                            :aria-label="$t('Use :name', { name: image.label })"
                             @click="
                                 activeMediaTab = 'image';
                                 chooseMedia(image);
@@ -371,7 +387,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                         class="text-brand-600 mt-2 text-[11.5px] font-semibold hover:underline"
                         @click="openMediaPicker"
                     >
-                        View More
+                        {{ $t('View More') }}
                     </button>
                 </div>
             </div>
@@ -381,7 +397,7 @@ const resultValueTone: Record<TestResultTone, string> = {
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <h2 class="font-heading text-brand-800 text-base font-semibold">
-                Test Settings
+                {{ $t('Test Settings') }}
             </h2>
 
             <div class="tests-settings-layout mt-3 grid gap-4">
@@ -407,7 +423,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                         for="test-pass-mark"
                         class="text-brand-900 text-[12px] font-semibold"
                     >
-                        Pass mark (%)
+                        {{ $t('Pass mark (%)') }}
                     </label>
                     <Input
                         id="test-pass-mark"
@@ -421,7 +437,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                         @click="saveSettings"
                     >
                         <Save class="size-4" aria-hidden="true" />
-                        Save Test
+                        {{ $t('Save Test') }}
                     </Button>
                     <Button
                         type="button"
@@ -430,7 +446,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                         @click="emit('preview')"
                     >
                         <Eye class="size-4" aria-hidden="true" />
-                        Preview Test
+                        {{ $t('Preview Test') }}
                     </Button>
                 </div>
             </div>
@@ -453,14 +469,14 @@ const resultValueTone: Record<TestResultTone, string> = {
         >
             <div class="flex items-center justify-between gap-3">
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Recent Results
+                    {{ $t('Recent Results') }}
                 </h2>
                 <button
                     type="button"
                     class="text-brand-600 text-[11.5px] font-semibold hover:underline"
                     @click="emit('view-results')"
                 >
-                    View All Results
+                    {{ $t('View All Results') }}
                 </button>
             </div>
 

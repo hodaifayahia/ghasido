@@ -40,7 +40,7 @@ const props = withDefaults(defineProps<Props>(), {
     tone: 'brand',
     number: undefined,
     hasResult: false,
-    checkLabel: 'Check',
+    checkLabel: undefined,
     tipClass: undefined,
 });
 
@@ -74,7 +74,7 @@ const previous =
         >
             <Link :href="backUrl" :class="outline">
                 <ArrowLeft class="size-4" aria-hidden="true" />
-                Back to Practice
+                {{ $t('Back to Practice') }}
             </Link>
 
             <div
@@ -117,7 +117,12 @@ const previous =
                         {{ department }}
                     </span>
                     <span class="text-ink-slate text-sm font-semibold">
-                        Lesson {{ lessonNumber }} / {{ lessonCount }}
+                        {{
+                            $t('Lesson :current / :total', {
+                                current: lessonNumber,
+                                total: lessonCount,
+                            })
+                        }}
                     </span>
                 </div>
             </div>
@@ -130,7 +135,12 @@ const previous =
                     class="h-56 md:h-[289px] md:-translate-y-[3px]"
                 />
                 <slot name="side" />
-                <TipCard v-if="tip" title="Tip" :text="tip" :class="tipClass" />
+                <TipCard
+                    v-if="tip"
+                    :title="$t('Tip')"
+                    :text="tip"
+                    :class="tipClass"
+                />
             </div>
 
             <div class="min-w-0">
@@ -143,7 +153,7 @@ const previous =
         >
             <button type="button" :class="previous" @click="emit('prev')">
                 <ArrowLeft class="size-4" aria-hidden="true" />
-                Previous
+                {{ $t('Previous') }}
             </button>
 
             <div class="flex items-center gap-2">
@@ -151,7 +161,7 @@ const previous =
                     v-for="i in total"
                     :key="i"
                     type="button"
-                    :aria-label="`Item ${i}`"
+                    :aria-label="$t('Item :number', { number: i })"
                     :aria-current="i - 1 === current"
                     class="focus-visible:ring-brand-600/40 size-2.5 rounded-full focus-visible:ring-3 focus-visible:outline-none"
                     :class="
@@ -179,7 +189,7 @@ const previous =
                 @click="emit('check')"
             >
                 <Check class="size-4" aria-hidden="true" />
-                {{ checkLabel }}
+                {{ checkLabel ?? $t('Check') }}
             </button>
         </div>
     </div>

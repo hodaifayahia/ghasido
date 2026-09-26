@@ -11,6 +11,8 @@ import {
 import { ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
+import { intlLocale, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     IndividualFilters,
@@ -32,6 +34,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t, tc } = useI18n();
 
 const emit = defineEmits<{
     add: [];
@@ -76,17 +80,17 @@ const windowTone: Record<IndividualWindowState, string> = {
 };
 
 const windowLabel: Record<IndividualWindowState, string> = {
-    active: 'Active',
-    upcoming: 'Starts later',
-    ended: 'Ended',
+    active: tk('Active'),
+    upcoming: tk('Starts later'),
+    ended: tk('Ended'),
 };
 
 function formatDate(value: string | null): string {
     if (value === null) {
-        return 'No end date';
+        return t('No end date');
     }
 
-    return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
+    return new Date(`${value}T00:00:00`).toLocaleDateString(intlLocale(), {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -95,16 +99,22 @@ function formatDate(value: string | null): string {
 
 function accessLine(row: IndividualRow): string {
     if (row.windowState === 'upcoming') {
-        return `From ${formatDate(row.startsOn)}`;
+        return t('From :date', { date: formatDate(row.startsOn) });
     }
 
     if (row.endsOn === null) {
-        return 'No end date';
+        return t('No end date');
     }
 
     return row.windowState === 'ended'
-        ? `Ended ${formatDate(row.endsOn)}`
-        : `Until ${formatDate(row.endsOn)} · ${row.daysRemaining} days left`;
+        ? t('Ended :date', { date: formatDate(row.endsOn) })
+        : tc(
+              'Until :date · :count day left|Until :date · :count days left',
+              row.daysRemaining ?? 0,
+              {
+                  date: formatDate(row.endsOn),
+              },
+          );
 }
 
 function pointsPercent(row: IndividualRow): number {
@@ -116,15 +126,15 @@ function pointsPercent(row: IndividualRow): number {
 }
 
 const states = [
-    { value: 'all', label: 'All' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'ended', label: 'Ended' },
+    { value: 'all', label: tk('All') },
+    { value: 'inactive', label: tk('Inactive') },
+    { value: 'ended', label: tk('Ended') },
 ];
 </script>
 
 <template>
     <PanelCard
-        title="Individual subscribers"
+        :title="$t('Individual subscribers')"
         title-id="individual-subscribers-title"
         body-class="-mx-4 -mb-4 mt-3"
     >
@@ -137,14 +147,16 @@ const states = [
                 @click="emit('add')"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                <span class="hidden sm:inline">Add subscriber</span>
-                <span class="sm:hidden">Add</span>
+                <span class="hidden sm:inline">{{ $t('Add subscriber') }}</span>
+                <span class="sm:hidden">{{ $t('Add') }}</span>
             </Button>
         </template>
 
         <div class="flex flex-wrap items-center gap-2 px-4 pb-3">
             <label class="relative min-w-0 flex-1 sm:max-w-xs">
-                <span class="sr-only">Search individual subscribers</span>
+                <span class="sr-only">{{
+                    $t('Search individual subscribers')
+                }}</span>
                 <Search
                     class="text-ink-faint pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
                     aria-hidden="true"
@@ -152,7 +164,7 @@ const states = [
                 <input
                     v-model="search"
                     type="search"
-                    placeholder="Search name, username or email"
+                    :placeholder="$t('Search name, username or email')"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 w-full rounded-md border ps-9 pe-3 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
                     @input="onSearch"
                 />
@@ -160,7 +172,7 @@ const states = [
             <div
                 class="border-line bg-app flex rounded-md border p-0.5"
                 role="group"
-                aria-label="Filter by state"
+                :aria-label="$t('Filter by state')"
             >
                 <button
                     v-for="option in states"
@@ -177,7 +189,7 @@ const states = [
                     "
                     @click="onState(option.value)"
                 >
-                    {{ option.label }}
+                    {{ $t(option.label) }}
                 </button>
             </div>
         </div>
@@ -188,7 +200,11 @@ const states = [
                 class="w-full table-fixed border-collapse text-start text-[13px]"
             >
                 <caption class="sr-only">
-                    Individual subscribers, their access period and AI allowance
+                    {{
+                        $t(
+                            'Individual subscribers, their access period and AI allowance',
+                        )
+                    }}
                 </caption>
                 <colgroup>
                     <col class="w-[26%]" />
@@ -202,19 +218,19 @@ const states = [
                 >
                     <tr>
                         <th scope="col" class="px-4 py-2.5 text-start">
-                            Subscriber
+                            {{ $t('Subscriber') }}
                         </th>
                         <th scope="col" class="px-4 py-2.5 text-start">
-                            Department
+                            {{ $t('Department') }}
                         </th>
                         <th scope="col" class="px-4 py-2.5 text-start">
-                            Access
+                            {{ $t('Access') }}
                         </th>
                         <th scope="col" class="px-4 py-2.5 text-start">
-                            AI this month
+                            {{ $t('AI this month') }}
                         </th>
                         <th scope="col" class="px-4 py-2.5 text-end">
-                            Actions
+                            {{ $t('Actions') }}
                         </th>
                     </tr>
                 </thead>
@@ -260,7 +276,7 @@ const states = [
                                 v-if="row.status === 'inactive'"
                                 class="bg-app text-ink-slate mt-1 inline-flex rounded-[5px] px-2 py-0.5 text-[10px] font-semibold"
                             >
-                                Inactive
+                                {{ $t('Inactive') }}
                             </span>
                         </td>
                         <td class="px-4 py-3">
@@ -272,7 +288,7 @@ const states = [
                                     )
                                 "
                             >
-                                {{ windowLabel[row.windowState] }}
+                                {{ $t(windowLabel[row.windowState]) }}
                             </span>
                             <span
                                 class="text-ink-slate mt-1 block text-[11.5px]"
@@ -286,11 +302,13 @@ const states = [
                                     class="text-brand-900 block text-[12.5px] font-semibold"
                                 >
                                     {{ row.aiPointsLeft.toLocaleString('en') }}
-                                    <span class="text-ink-slate font-normal"
-                                        >/
-                                        {{ row.aiPoints.toLocaleString('en') }}
-                                        pts left</span
-                                    >
+                                    <span class="text-ink-slate font-normal">{{
+                                        $t('/ :total pts left', {
+                                            total: row.aiPoints.toLocaleString(
+                                                'en',
+                                            ),
+                                        })
+                                    }}</span>
                                 </span>
                                 <span
                                     class="bg-tint-track mt-1.5 block h-1.5 w-full max-w-[160px] overflow-hidden rounded-full"
@@ -308,7 +326,7 @@ const states = [
                                     class="text-ink-slate mt-1 inline-flex items-center gap-1 text-[11px]"
                                 >
                                     <MicOff class="size-3" aria-hidden="true" />
-                                    Voice off
+                                    {{ $t('Voice off') }}
                                 </span>
                             </template>
                             <span
@@ -316,7 +334,7 @@ const states = [
                                 class="bg-app text-ink-slate inline-flex items-center gap-1 rounded-[5px] px-2 py-0.5 text-[10.5px] font-semibold"
                             >
                                 <Bot class="size-3" aria-hidden="true" />
-                                AI not included
+                                {{ $t('AI not included') }}
                             </span>
                         </td>
                         <td class="px-4 py-3 text-end">
@@ -328,7 +346,9 @@ const states = [
                                     type="button"
                                     variant="outline"
                                     class="border-line text-ink h-9 gap-1.5 rounded-md px-2.5"
-                                    :aria-label="`Edit ${row.name}`"
+                                    :aria-label="
+                                        $t('Edit :name', { name: row.name })
+                                    "
                                     :data-test="`edit-individual-${row.id}`"
                                     @click="emit('edit', row)"
                                 >
@@ -336,7 +356,7 @@ const states = [
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    Edit
+                                    {{ $t('Edit') }}
                                 </Button>
                                 <Button
                                     type="button"
@@ -351,13 +371,17 @@ const states = [
                                     "
                                     :aria-label="
                                         row.status === 'active'
-                                            ? `Deactivate ${row.name}`
-                                            : `Activate ${row.name}`
+                                            ? $t('Deactivate :name', {
+                                                  name: row.name,
+                                              })
+                                            : $t('Activate :name', {
+                                                  name: row.name,
+                                              })
                                     "
                                     :title="
                                         row.status === 'active'
-                                            ? 'Deactivate'
-                                            : 'Activate'
+                                            ? $t('Deactivate')
+                                            : $t('Activate')
                                     "
                                     @click="emit('toggle', row)"
                                 >
@@ -371,8 +395,11 @@ const states = [
                             colspan="5"
                             class="text-ink-slate px-4 py-10 text-center"
                         >
-                            No individual subscribers yet. Add one to give a
-                            learner access without a hotel.
+                            {{
+                                $t(
+                                    'No individual subscribers yet. Add one to give a learner access without a hotel.',
+                                )
+                            }}
                         </td>
                     </tr>
                 </tbody>
@@ -409,20 +436,36 @@ const states = [
                     >
                         {{
                             row.status === 'inactive'
-                                ? 'Inactive'
-                                : windowLabel[row.windowState]
+                                ? $t('Inactive')
+                                : $t(windowLabel[row.windowState])
                         }}
                     </span>
                 </div>
                 <p class="text-ink-slate text-[12px]">{{ accessLine(row) }}</p>
                 <p class="text-ink-slate text-[12px]">
                     <template v-if="row.aiEnabled">
-                        AI: {{ row.aiPointsLeft.toLocaleString('en') }} /
-                        {{ row.aiPoints.toLocaleString('en') }} points left{{
-                            row.voiceEnabled ? '' : ' · voice off'
+                        {{
+                            row.voiceEnabled
+                                ? $t('AI: :left / :total points left', {
+                                      left: row.aiPointsLeft.toLocaleString(
+                                          'en',
+                                      ),
+                                      total: row.aiPoints.toLocaleString('en'),
+                                  })
+                                : $t(
+                                      'AI: :left / :total points left · voice off',
+                                      {
+                                          left: row.aiPointsLeft.toLocaleString(
+                                              'en',
+                                          ),
+                                          total: row.aiPoints.toLocaleString(
+                                              'en',
+                                          ),
+                                      },
+                                  )
                         }}
                     </template>
-                    <template v-else>AI not included</template>
+                    <template v-else>{{ $t('AI not included') }}</template>
                 </p>
                 <div v-if="canManage" class="grid grid-cols-2 gap-2">
                     <Button
@@ -432,7 +475,7 @@ const states = [
                         @click="emit('edit', row)"
                     >
                         <Pencil class="size-3.5" aria-hidden="true" />
-                        Edit
+                        {{ $t('Edit') }}
                     </Button>
                     <Button
                         type="button"
@@ -449,7 +492,9 @@ const states = [
                     >
                         <Power class="size-4" aria-hidden="true" />
                         {{
-                            row.status === 'active' ? 'Deactivate' : 'Activate'
+                            row.status === 'active'
+                                ? $t('Deactivate')
+                                : $t('Activate')
                         }}
                     </Button>
                 </div>
@@ -458,18 +503,23 @@ const states = [
                 v-if="rows.length === 0"
                 class="text-ink-slate px-2 py-8 text-center text-[13px]"
             >
-                No individual subscribers yet.
+                {{ $t('No individual subscribers yet.') }}
             </li>
         </ul>
 
         <nav
             v-if="pagination.lastPage > 1"
-            aria-label="Subscriber pages"
+            :aria-label="$t('Subscriber pages')"
             class="border-line flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-[12px]"
         >
             <span class="text-ink-slate">
-                {{ pagination.from }}–{{ pagination.to }} of
-                {{ pagination.total }}
+                {{
+                    $t(':from–:to of :total', {
+                        from: pagination.from,
+                        to: pagination.to,
+                        total: pagination.total,
+                    })
+                }}
             </span>
             <div class="flex gap-1.5">
                 <Button
@@ -479,7 +529,7 @@ const states = [
                     :disabled="pagination.currentPage <= 1"
                     @click="emit('page', pagination.currentPage - 1)"
                 >
-                    Previous
+                    {{ $t('Previous') }}
                 </Button>
                 <Button
                     type="button"
@@ -488,7 +538,7 @@ const states = [
                     :disabled="pagination.currentPage >= pagination.lastPage"
                     @click="emit('page', pagination.currentPage + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                 </Button>
             </div>
         </nav>

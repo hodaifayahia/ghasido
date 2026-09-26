@@ -41,7 +41,11 @@ const deviceButton = (active: boolean): string =>
          past a phone screen (RESP-01). -->
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex gap-1.5" role="group" aria-label="Preview device">
+            <div
+                class="flex gap-1.5"
+                role="group"
+                :aria-label="$t('Preview device')"
+            >
                 <Button
                     type="button"
                     variant="outline"
@@ -51,7 +55,7 @@ const deviceButton = (active: boolean): string =>
                     @click="device = 'phone'"
                 >
                     <Smartphone class="size-3.5" aria-hidden="true" />
-                    Phone (390px)
+                    {{ $t('Phone (390px)') }}
                 </Button>
                 <Button
                     type="button"
@@ -62,7 +66,7 @@ const deviceButton = (active: boolean): string =>
                     @click="device = 'desktop'"
                 >
                     <Monitor class="size-3.5" aria-hidden="true" />
-                    Desktop
+                    {{ $t('Desktop') }}
                 </Button>
             </div>
             <a
@@ -73,21 +77,24 @@ const deviceButton = (active: boolean): string =>
                 class="text-brand-700 hover:bg-brand-50 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[12px] font-semibold"
             >
                 <ExternalLink class="size-3.5" aria-hidden="true" />
-                Open in a new tab
+                {{ $t('Open in a new tab') }}
             </a>
         </div>
 
         <p class="text-ink-slate text-[12px]">
-            This is the lesson exactly as an employee sees it, step by step.
-            Nothing you do here is recorded as progress; use the step tracker in
-            the frame to move between the {{ visible.length }} visible steps.
+            {{
+                $tc(
+                    'This is the lesson exactly as an employee sees it, step by step. Nothing you do here is recorded as progress; use the step tracker in the frame to move between the :count visible step.|This is the lesson exactly as an employee sees it, step by step. Nothing you do here is recorded as progress; use the step tracker in the frame to move between the :count visible steps.',
+                    visible.length,
+                )
+            }}
         </p>
 
         <div
             v-if="url === null || visible.length === 0"
             class="border-line bg-brand-50/40 text-ink-slate flex min-h-40 items-center justify-center rounded-md border border-dashed px-4 text-center text-[13px]"
         >
-            Add at least one visible block to preview this lesson.
+            {{ $t('Add at least one visible block to preview this lesson.') }}
         </div>
 
         <div
@@ -99,7 +106,7 @@ const deviceButton = (active: boolean): string =>
             >
                 <iframe
                     :src="url"
-                    title="Lesson preview on a phone"
+                    :title="$t('Lesson preview on a phone')"
                     class="bg-surface block h-[700px] w-full rounded-[22px]"
                     data-test="preview-frame"
                 />
@@ -116,7 +123,7 @@ const deviceButton = (active: boolean): string =>
             >
                 <iframe
                     :src="url"
-                    title="Lesson preview on a desktop"
+                    :title="$t('Lesson preview on a desktop')"
                     class="bg-surface absolute top-0 left-0 h-[853px] w-[1280px] origin-top-left"
                     :style="{ transform: `scale(${scale})` }"
                     data-test="preview-frame"

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import PracticeActivityCard from '@/components/learning/practice/PracticeActivityCard.vue';
 import PracticeProgressPill from '@/components/learning/practice/PracticeProgressPill.vue';
+import { useI18n } from '@/composables/useI18n';
 import type { LessonSummary, StepBlockOf } from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
@@ -19,6 +20,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const cards = computed(() => props.block.activities);
 const completed = computed(
     () => cards.value.filter((card) => card.done).length,
@@ -26,11 +29,11 @@ const completed = computed(
 const subtitle = computed(
     () =>
         props.block.settings.subtitle ??
-        'Choose a practice activity to improve your skills.',
+        t('Choose a practice activity to improve your skills.'),
 );
 const motto = computed(() => props.block.settings.motto ?? null);
 const heading = computed(
-    () => `${props.number ? `${props.number}. ` : ''}Practice`,
+    () => `${props.number ? `${props.number}. ` : ''}${t('Practice')}`,
 );
 </script>
 

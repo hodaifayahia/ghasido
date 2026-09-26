@@ -24,8 +24,16 @@ function onSuccess(): void {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`Reset password for ${employee?.name ?? 'employee'}`"
-        description="A new password is generated and shown to you once. The current password stops working immediately."
+        :title="
+            $t('Reset password for :name', {
+                name: employee?.name ?? $t('employee'),
+            })
+        "
+        :description="
+            $t(
+                'A new password is generated and shown to you once. The current password stops working immediately.',
+            )
+        "
     >
         <Form
             v-if="employee"
@@ -43,7 +51,7 @@ function onSuccess(): void {
                 data-test="cancel-reset-password-button"
                 @click="open = false"
             >
-                Cancel
+                {{ $t('Cancel') }}
             </Button>
             <Button
                 type="submit"
@@ -51,7 +59,7 @@ function onSuccess(): void {
                 class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                 data-test="confirm-reset-password-button"
             >
-                Reset password
+                {{ $t('Reset password') }}
             </Button>
         </Form>
     </HotelsModal>

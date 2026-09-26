@@ -17,6 +17,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { EmployeeRecord, EmployeeRowAction } from '@/types';
 
@@ -27,6 +28,7 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { size: 'table' });
+const { t } = useI18n();
 
 const emit = defineEmits<{
     select: [action: EmployeeRowAction];
@@ -53,15 +55,19 @@ type Item = {
  * Part D). The server checks every action again regardless (ROLE-01).
  */
 const items = computed<Item[]>(() => [
-    { action: 'reset-password', label: 'Reset password', icon: KeyRound },
+    {
+        action: 'reset-password',
+        label: t('Reset password'),
+        icon: KeyRound,
+    },
     props.employee.accountStatus === 'active'
         ? {
               action: 'deactivate',
-              label: 'Deactivate',
+              label: t('Deactivate'),
               icon: UserX,
               destructive: true,
           }
-        : { action: 'activate', label: 'Activate', icon: UserCheck },
+        : { action: 'activate', label: t('Activate'), icon: UserCheck },
 ]);
 
 function choose(action: EmployeeRowAction): void {
@@ -83,7 +89,7 @@ const triggerClass = computed(() =>
         <button
             type="button"
             :class="triggerClass"
-            :aria-label="`More actions for ${employee.name}`"
+            :aria-label="$t('More actions for :name', { name: employee.name })"
             :data-test="`employee-${employee.id}-actions-button`"
             @click="sheetOpen = true"
         >
@@ -109,7 +115,7 @@ const triggerClass = computed(() =>
                         {{ employee.name }}
                     </SheetTitle>
                     <SheetDescription class="text-ink-slate text-[12.5px]">
-                        More actions for this employee
+                        {{ $t('More actions for this employee') }}
                     </SheetDescription>
                 </SheetHeader>
                 <ul class="mt-2 grid gap-1">
@@ -145,7 +151,9 @@ const triggerClass = computed(() =>
             <button
                 type="button"
                 :class="triggerClass"
-                :aria-label="`More actions for ${employee.name}`"
+                :aria-label="
+                    $t('More actions for :name', { name: employee.name })
+                "
                 :data-test="`employee-${employee.id}-actions-button`"
             >
                 <EllipsisVertical

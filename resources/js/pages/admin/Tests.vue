@@ -18,6 +18,7 @@ import TestsResultsPanel from '@/components/tests/TestsResultsPanel.vue';
 import TestsSidebarPanel from '@/components/tests/TestsSidebarPanel.vue';
 import TestsSettingsPanel from '@/components/tests/TestsSettingsPanel.vue';
 import TestsToolbar from '@/components/tests/TestsToolbar.vue';
+import { tk } from '@/lib/i18n';
 import { dashboard, tests } from '@/routes';
 import testActions from '@/routes/tests';
 import type {
@@ -319,11 +320,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Pre-test & Post-test',
+                title: tk('Pre-test & Post-test'),
                 href: tests(),
             },
         ],
@@ -333,17 +334,25 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="Pre-test & Post-test" />
+    <Head :title="$t('Pre-test & Post-test')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">Pre-test &amp; Post-test</h1>
+        <h1 class="sr-only">{{ $t('Pre-test & Post-test') }}</h1>
 
         <PageHeader
-            :title="builderOpen ? 'Create / Edit Test' : 'Pre-test & Post-test'"
+            :title="
+                builderOpen
+                    ? $t('Create / Edit Test')
+                    : $t('Pre-test & Post-test')
+            "
             :description="
                 builderOpen
-                    ? 'Build questions, configure test rules and preview the employee experience.'
-                    : 'Create, manage and analyse tests to measure employees\' progress.'
+                    ? $t(
+                          'Build questions, configure test rules and preview the employee experience.',
+                      )
+                    : $t(
+                          'Create, manage and analyse tests to measure employees\' progress.',
+                      )
             "
             class="mb-1"
         >
@@ -377,7 +386,7 @@ defineOptions({
                     data-test="back-to-test-library"
                 >
                     <ArrowLeft class="size-3.5" aria-hidden="true" />
-                    Back to Test Library
+                    {{ $t('Back to Test Library') }}
                 </Link>
                 <Button
                     type="button"
@@ -385,7 +394,7 @@ defineOptions({
                     class="border-line text-brand-700 hover:bg-brand-50 h-8 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
                     @click="createTestOpen = true"
                 >
-                    Create another test
+                    {{ $t('Create another test') }}
                 </Button>
             </div>
 

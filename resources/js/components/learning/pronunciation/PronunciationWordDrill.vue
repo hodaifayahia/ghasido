@@ -63,7 +63,9 @@ function onRecorded(payload: {
     >
         <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-                <p class="text-ink-slate text-sm">Practise this word</p>
+                <p class="text-ink-slate text-sm">
+                    {{ $t('Practise this word') }}
+                </p>
                 <p class="font-heading text-ink text-2xl font-bold break-words">
                     {{ word.text }}
                 </p>
@@ -79,7 +81,7 @@ function onRecorded(payload: {
             </div>
             <button
                 type="button"
-                aria-label="Close the word practice"
+                :aria-label="$t('Close the word practice')"
                 class="text-ink-slate hover:bg-tint-grid focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full focus-visible:ring-3 focus-visible:outline-none"
                 @click="emit('close')"
             >
@@ -116,7 +118,7 @@ function onRecorded(payload: {
             aria-live="polite"
         >
             <Spinner class="size-4" />
-            Checking “{{ word.text }}”…
+            {{ $t('Checking “:word”…', { word: word.text }) }}
         </p>
         <p
             v-else-if="drill.error.value"
@@ -144,8 +146,15 @@ function onRecorded(payload: {
             <span>
                 {{
                     verdict.status === 'correct'
-                        ? `Great! “${word.text}” was clear.`
-                        : `${WORD_STATUS[verdict.status].label}. ${weakWordHint(verdict.status, verdict.heard, verdict.sound)} Try again.`
+                        ? $t('Great! “:word” was clear.', { word: word.text })
+                        : $t(':status. :hint Try again.', {
+                              status: $t(WORD_STATUS[verdict.status].label),
+                              hint: weakWordHint(
+                                  verdict.status,
+                                  verdict.heard,
+                                  verdict.sound,
+                              ),
+                          })
                 }}
             </span>
         </div>

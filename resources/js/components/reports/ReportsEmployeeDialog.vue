@@ -3,6 +3,7 @@ import { Check, Circle } from '@lucide/vue';
 import { computed } from 'vue';
 import ReportsModal from '@/components/reports/ReportsModal.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { ReportEmployeeDetail, ReportRowStatus } from '@/types';
 
@@ -12,6 +13,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const open = defineModel<boolean>('open', { required: true });
 
@@ -30,20 +33,23 @@ const figures = computed(() => {
     }
 
     return [
-        { label: 'Pre-test', value: score(detail.preScore) },
-        { label: 'Post-test', value: score(detail.postScore) },
+        { label: t('Pre-test'), value: score(detail.preScore) },
+        { label: t('Post-test'), value: score(detail.postScore) },
         {
-            label: 'Lessons',
+            label: t('Lessons'),
             value: `${detail.lessonsCompleted} / ${detail.lessonsTotal}`,
         },
         {
-            label: 'AI scenarios',
+            label: t('AI scenarios'),
             value: `${detail.scenariosCompleted} / ${detail.scenariosTotal}`,
         },
-        { label: 'Last activity', value: detail.lastActivity },
-        { label: 'Training started', value: detail.trainingStarted },
-        { label: 'Training completed', value: detail.trainingCompleted },
-        { label: 'Participant code', value: detail.participantCode ?? '—' },
+        { label: t('Last activity'), value: detail.lastActivity },
+        { label: t('Training started'), value: detail.trainingStarted },
+        { label: t('Training completed'), value: detail.trainingCompleted },
+        {
+            label: t('Participant code'),
+            value: detail.participantCode ?? '—',
+        },
     ];
 });
 
@@ -57,10 +63,10 @@ const skeletonRows = [0, 1, 2, 3];
 <template>
     <ReportsModal
         v-model:open="open"
-        :title="detail?.name ?? 'Employee details'"
+        :title="detail?.name ?? $t('Employee details')"
         :description="
             detail === null
-                ? 'Loading this employee\'s results…'
+                ? $t('Loading this employee\'s results…')
                 : `${detail.department} · ${detail.hotel}`
         "
         size="sm:max-w-[720px]"
@@ -123,7 +129,7 @@ const skeletonRows = [0, 1, 2, 3];
                 <h3
                     class="font-heading text-brand-900 text-[13px] font-semibold"
                 >
-                    Lessons
+                    {{ $t('Lessons') }}
                 </h3>
                 <ul
                     v-if="detail.lessons.length > 0"
@@ -153,12 +159,12 @@ const skeletonRows = [0, 1, 2, 3];
                             </span>
                         </span>
                         <span class="text-ink-muted shrink-0 text-[11.5px]">
-                            {{ lesson.completedAt ?? 'Not started' }}
+                            {{ lesson.completedAt ?? $t('Not started') }}
                         </span>
                     </li>
                 </ul>
                 <p v-else class="text-ink-slate mt-2 text-[12.5px]">
-                    No published lessons for this department yet.
+                    {{ $t('No published lessons for this department yet.') }}
                 </p>
             </section>
 
@@ -167,7 +173,7 @@ const skeletonRows = [0, 1, 2, 3];
                     <h3
                         class="font-heading text-brand-900 text-[13px] font-semibold"
                     >
-                        Tests
+                        {{ $t('Tests') }}
                     </h3>
                     <ul
                         v-if="detail.tests.length > 0"
@@ -183,7 +189,12 @@ const skeletonRows = [0, 1, 2, 3];
                             >
                                 {{ test.title }}
                                 <span class="text-ink-slate">
-                                    · attempt {{ test.attemptNo }}
+                                    ·
+                                    {{
+                                        $t('attempt :number', {
+                                            number: test.attemptNo,
+                                        })
+                                    }}
                                 </span>
                             </span>
                             <span class="text-brand-700 shrink-0 font-semibold">
@@ -192,7 +203,7 @@ const skeletonRows = [0, 1, 2, 3];
                         </li>
                     </ul>
                     <p v-else class="text-ink-slate mt-2 text-[12.5px]">
-                        No test submitted yet.
+                        {{ $t('No test submitted yet.') }}
                     </p>
                 </section>
 
@@ -200,7 +211,7 @@ const skeletonRows = [0, 1, 2, 3];
                     <h3
                         class="font-heading text-brand-900 text-[13px] font-semibold"
                     >
-                        AI role-play
+                        {{ $t('AI role-play') }}
                     </h3>
                     <ul
                         v-if="detail.roleplays.length > 0"
@@ -216,7 +227,12 @@ const skeletonRows = [0, 1, 2, 3];
                             >
                                 {{ attempt.scenario }}
                                 <span class="text-ink-slate">
-                                    · attempt {{ attempt.attemptNo }}
+                                    ·
+                                    {{
+                                        $t('attempt :number', {
+                                            number: attempt.attemptNo,
+                                        })
+                                    }}
                                 </span>
                             </span>
                             <span class="text-ai shrink-0 font-semibold">
@@ -225,7 +241,7 @@ const skeletonRows = [0, 1, 2, 3];
                         </li>
                     </ul>
                     <p v-else class="text-ink-slate mt-2 text-[12.5px]">
-                        No role-play attempt yet.
+                        {{ $t('No role-play attempt yet.') }}
                     </p>
                 </section>
             </div>

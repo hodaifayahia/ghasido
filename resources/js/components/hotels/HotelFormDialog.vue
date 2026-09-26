@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { store, update } from '@/routes/hotels';
+import { tk } from '@/lib/i18n';
 import type { HotelRecord } from '@/types';
 
 type Props = {
@@ -31,24 +32,24 @@ const action = computed(() =>
 );
 
 const fields = [
-    { name: 'name', label: 'Hotel name', type: 'text', span: 2 },
-    { name: 'city', label: 'City', type: 'text', span: 1 },
-    { name: 'manager_name', label: 'Manager name', type: 'text', span: 1 },
+    { name: 'name', label: tk('Hotel name'), type: 'text', span: 2 },
+    { name: 'city', label: tk('City'), type: 'text', span: 1 },
+    { name: 'manager_name', label: tk('Manager name'), type: 'text', span: 1 },
     {
         name: 'manager_email',
-        label: 'Manager email',
+        label: tk('Manager email'),
         type: 'email',
         span: 2,
     },
     {
         name: 'contract_starts_on',
-        label: 'Contract start',
+        label: tk('Contract start'),
         type: 'date',
         span: 1,
     },
     {
         name: 'contract_ends_on',
-        label: 'Contract end',
+        label: tk('Contract end'),
         type: 'date',
         span: 1,
     },
@@ -84,11 +85,19 @@ function onSuccess(): void {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="editing ? `Edit ${hotel?.name ?? 'hotel'}` : 'Add Hotel'"
+        :title="
+            editing
+                ? $t('Edit :name', { name: hotel?.name ?? $t('hotel') })
+                : $t('Add Hotel')
+        "
         :description="
             editing
-                ? 'Update the hotel\'s contact details and planned contract dates.'
-                : 'A new hotel waits for your approval before anyone can sign in.'
+                ? $t(
+                      'Update the hotel\'s contact details and planned contract dates.',
+                  )
+                : $t(
+                      'A new hotel waits for your approval before anyone can sign in.',
+                  )
         "
     >
         <Form
@@ -113,7 +122,7 @@ function onSuccess(): void {
                         :for="`hotel-${field.name}`"
                         class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                     >
-                        {{ field.label }}
+                        {{ $t(field.label) }}
                     </Label>
                     <Input
                         :id="`hotel-${field.name}`"
@@ -139,7 +148,7 @@ function onSuccess(): void {
                     data-test="cancel-hotel-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -147,7 +156,7 @@ function onSuccess(): void {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-hotel-button"
                 >
-                    {{ editing ? 'Save changes' : 'Create hotel' }}
+                    {{ editing ? $t('Save changes') : $t('Create hotel') }}
                 </Button>
             </div>
         </Form>

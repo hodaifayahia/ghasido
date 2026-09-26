@@ -29,16 +29,19 @@ const rows = computed((): Row[] =>
 <template>
     <div class="grid gap-3">
         <p class="text-ink-slate text-[12px]">
-            {{ rows.length }} practice activities in this lesson. Every edit to
-            a question writes a new version; answers already given keep the
-            version they answered (DATA-11).
+            {{
+                $tc(
+                    ':count practice activity in this lesson. Every edit to a question writes a new version; answers already given keep the version they answered (DATA-11).|:count practice activities in this lesson. Every edit to a question writes a new version; answers already given keep the version they answered (DATA-11).',
+                    rows.length,
+                )
+            }}
         </p>
 
         <p
             v-if="rows.length === 0"
             class="border-line bg-brand-50/40 text-ink-slate rounded-md border border-dashed px-4 py-8 text-center text-[13px]"
         >
-            No activity yet. Open the Practice block and add one.
+            {{ $t('No activity yet. Open the Practice block and add one.') }}
         </p>
 
         <ul v-else class="grid gap-2">
@@ -62,15 +65,17 @@ const rows = computed((): Row[] =>
                         {{ row.prompt }}
                     </p>
                     <p class="text-ink-faint mt-0.5 text-[11px]">
-                        {{ row.label }} · {{ row.itemCount }}
-                        {{ row.itemCount === 1 ? 'item' : 'items' }} · v{{
-                            row.version
-                        }}
+                        {{ row.label }} ·
+                        {{ $tc(':count item|:count items', row.itemCount) }} ·
+                        v{{ row.version }}
                         ·
                         {{
                             row.attemptsAllowed === 0
-                                ? 'unlimited attempts'
-                                : `${row.attemptsAllowed} attempts`
+                                ? $t('unlimited attempts')
+                                : $tc(
+                                      ':count attempt|:count attempts',
+                                      row.attemptsAllowed,
+                                  )
                         }}
                         · {{ row.block }}
                     </p>

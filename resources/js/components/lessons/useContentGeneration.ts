@@ -6,6 +6,7 @@ import {
     getJson,
     postJson,
 } from '@/components/lessons/lessonsHttp';
+import { t } from '@/lib/i18n';
 import { retry, show } from '@/routes/lesson-generations';
 import type { ContentGeneration, ContentGenerationResponse } from '@/types';
 
@@ -27,10 +28,10 @@ function messageOf(error: unknown): string {
     if (error instanceof JsonRequestError) {
         const first = Object.values(error.errors)[0];
 
-        return first ?? 'The request failed. Please try again.';
+        return first ?? t('The request failed. Please try again.');
     }
 
-    return 'The request failed. Please try again.';
+    return t('The request failed. Please try again.');
 }
 
 /**

@@ -58,7 +58,7 @@ onMounted(() => {
             :aria-valuenow="course.percent"
             aria-valuemin="0"
             aria-valuemax="100"
-            :aria-label="`${course.title} progress`"
+            :aria-label="$t(':course progress', { course: course.title })"
         >
             <div
                 :class="
@@ -71,8 +71,12 @@ onMounted(() => {
             />
         </div>
         <p class="text-ink-slate text-sm">
-            {{ course.lessonsCompleted }} of {{ course.lessonsTotal }} lessons
-            completed
+            {{
+                $t(':completed of :total lessons completed', {
+                    completed: course.lessonsCompleted,
+                    total: course.lessonsTotal,
+                })
+            }}
         </p>
     </section>
 </template>

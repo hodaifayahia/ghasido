@@ -55,7 +55,7 @@ const looks: Record<MessageMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Reminder summary"
+        :aria-label="$t('Reminder summary')"
         tabindex="0"
         :class="
             cn(

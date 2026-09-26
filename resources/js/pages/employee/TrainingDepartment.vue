@@ -43,13 +43,17 @@ function choose(id: number): void {
 </script>
 
 <template>
-    <Head title="Choose a department" />
-    <h1 class="sr-only">Choose a department to train in</h1>
+    <Head :title="$t('Choose a department')" />
+    <h1 class="sr-only">{{ $t('Choose a department to train in') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Choose a department to train in"
-            description="Pick the department whose training you want to work through. You can switch department at any time."
+            :title="$t('Choose a department to train in')"
+            :description="
+                $t(
+                    'Pick the department whose training you want to work through. You can switch department at any time.',
+                )
+            "
         />
 
         <div
@@ -85,8 +89,8 @@ function choose(id: number): void {
                     <span class="text-ink-slate text-[13px]">
                         {{
                             department.id === currentDepartmentId
-                                ? 'Currently training here'
-                                : 'Start training'
+                                ? $t('Currently training here')
+                                : $t('Start training')
                         }}
                     </span>
                 </span>
@@ -103,9 +107,11 @@ function choose(id: number): void {
             class="border-line bg-surface shadow-card max-w-2xl rounded-lg border p-6"
         >
             <p class="text-ink text-sm leading-6">
-                There is no published training for your hotel's departments yet.
-                Your platform administrator will let you know when a course is
-                ready.
+                {{
+                    $t(
+                        "There is no published training for your hotel's departments yet. Your platform administrator will let you know when a course is ready.",
+                    )
+                }}
             </p>
         </div>
     </div>

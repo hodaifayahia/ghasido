@@ -26,6 +26,7 @@ import type {
     DepartmentRowAction,
     DepartmentSelectOption,
 } from '@/types';
+import { tk } from '@/lib/i18n';
 
 type Props = {
     stats: DepartmentMetric[];
@@ -42,11 +43,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Departments',
+                title: tk('Departments'),
                 href: departmentsRoute(),
             },
         ],
@@ -226,12 +227,16 @@ function onQuick(action: DepartmentQuickAction): void {
 </script>
 
 <template>
-    <Head title="Departments" />
+    <Head :title="$t('Departments')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Departments"
-            description="Configure department scope, seat quotas and content coverage across your hotel portfolio."
+            :title="$t('Departments')"
+            :description="
+                $t(
+                    'Configure department scope, seat quotas and content coverage across your hotel portfolio.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>

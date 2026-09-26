@@ -44,13 +44,13 @@ function onImage(item: LessonMediaRef | null): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="body"
-            :label="block.type === 'note' ? 'Note' : 'Text'"
+            :label="block.type === 'note' ? $t('Note') : $t('Text')"
             type="textarea"
             :rows="4"
         />
         <LessonsField
             v-model="arabic"
-            label="Arabic (behind Show Meaning)"
+            :label="$t('Arabic (behind Show Meaning)')"
             type="textarea"
             :rows="2"
             dir="rtl"
@@ -66,8 +66,12 @@ function onImage(item: LessonMediaRef | null): void {
         <div class="grid gap-2">
             <LessonsField
                 v-model="audioText"
-                label="Sentence to play"
-                hint="Audio is generated once per sentence and served from the stored file."
+                :label="$t('Sentence to play')"
+                :hint="
+                    $t(
+                        'Audio is generated once per sentence and served from the stored file.',
+                    )
+                "
             />
             <LessonsAudioChips
                 v-if="typeof audioText === 'string' && audioText !== ''"

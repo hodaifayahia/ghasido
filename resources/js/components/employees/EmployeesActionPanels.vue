@@ -99,7 +99,7 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                 <h2
                     class="font-heading text-brand-800 text-[15px] font-semibold"
                 >
-                    Bulk Actions
+                    {{ $t('Bulk Actions') }}
                 </h2>
             </header>
 
@@ -110,7 +110,7 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     @update:model-value="onSelect"
                 >
                     <SelectTrigger
-                        aria-label="Bulk action"
+                        :aria-label="$t('Bulk action')"
                         data-test="employees-bulk-action"
                         class="border-line text-ink bg-surface h-9 flex-1 rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -142,7 +142,7 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     data-test="apply-bulk-action-button"
                     @click="apply"
                 >
-                    Apply
+                    {{ $t('Apply') }}
                 </Button>
             </div>
         </article>
@@ -163,10 +163,12 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     <h2
                         class="font-heading text-brand-800 text-[15px] font-semibold"
                     >
-                        Export Employees
+                        {{ $t('Export Employees') }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12px] leading-4">
-                        Download the employee list with progress data.
+                        {{
+                            $t('Download the employee list with progress data.')
+                        }}
                     </p>
                 </div>
             </header>
@@ -183,7 +185,7 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     >
                         <FileSpreadsheet class="size-3.5" aria-hidden="true" />
                     </span>
-                    Export to Excel
+                    {{ $t('Export to Excel') }}
                 </a>
 
                 <a
@@ -197,7 +199,7 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     >
                         <FileText class="size-3.5" aria-hidden="true" />
                     </span>
-                    Export to CSV
+                    {{ $t('Export to CSV') }}
                 </a>
             </div>
         </article>
@@ -215,10 +217,14 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                     <h2
                         class="font-heading text-brand-800 text-[15px] font-semibold"
                     >
-                        Send Reminder
+                        {{ $t('Send Reminder') }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12px] leading-4">
-                        Send a training reminder to selected employees.
+                        {{
+                            $t(
+                                'Send a training reminder to selected employees.',
+                            )
+                        }}
                     </p>
                 </div>
             </header>
@@ -229,14 +235,17 @@ function exportUrl(format: 'xlsx' | 'csv'): string {
                 :disabled="!canManage || busy || selected.length === 0"
                 :title="
                     selected.length === 0
-                        ? 'Select employees in the table first'
-                        : `Send a reminder to ${selected.length} selected`
+                        ? $t('Select employees in the table first')
+                        : $tc(
+                              'Send a reminder to :count selected employee|Send a reminder to :count selected employees',
+                              selected.length,
+                          )
                 "
                 class="border-brand-200 text-brand-700 hover:bg-brand-50 bg-brand-50/45 mt-3.5 min-h-10 w-full rounded-md text-[12.5px] font-semibold shadow-none disabled:opacity-100"
                 data-test="send-reminder-button"
                 @click="emit('remind')"
             >
-                Send Reminder
+                {{ $t('Send Reminder') }}
             </Button>
         </article>
     </section>

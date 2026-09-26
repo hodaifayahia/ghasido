@@ -74,23 +74,28 @@ function texts(item: LexiconItemRow): string[] {
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
         <LessonsField
             v-model="sideTitle"
-            label="Side panel title"
-            hint="e.g. “Related Words”."
+            :label="$t('Side panel title')"
+            :hint="$t('e.g. “Related Words”.')"
         />
-        <LessonsField v-model="tip" label="Tip" type="textarea" :rows="2" />
+        <LessonsField
+            v-model="tip"
+            :label="$t('Tip')"
+            type="textarea"
+            :rows="2"
+        />
 
         <div class="grid gap-2">
             <div class="flex items-center justify-between gap-3">
                 <span
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Words &amp; expressions
+                    {{ $t('Words & expressions') }}
                 </span>
                 <Button
                     v-if="!readOnly"
@@ -101,14 +106,22 @@ function texts(item: LexiconItemRow): string[] {
                     @click="openAdd"
                 >
                     <CirclePlus class="size-3.5" aria-hidden="true" />
-                    {{ kind === 'expression' ? 'Add expression' : 'Add word' }}
+                    {{
+                        kind === 'expression'
+                            ? $t('Add expression')
+                            : $t('Add word')
+                    }}
                 </Button>
             </div>
             <p
                 v-if="block.lexiconItems.length === 0"
                 class="text-ink-muted text-[12.5px]"
             >
-                No words or expressions are attached to this block yet.
+                {{
+                    $t(
+                        'No words or expressions are attached to this block yet.',
+                    )
+                }}
             </p>
             <div
                 v-for="item in block.lexiconItems"
@@ -130,7 +143,7 @@ function texts(item: LexiconItemRow): string[] {
                         class="bg-brand-50 text-brand-700 rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold"
                     >
                         <Languages class="size-3" aria-hidden="true" />
-                        Show Meaning
+                        {{ $t('Show Meaning') }}
                     </span>
                     <button
                         v-if="!readOnly"
@@ -140,7 +153,7 @@ function texts(item: LexiconItemRow): string[] {
                         @click="openEdit(item)"
                     >
                         <Pencil class="size-3" aria-hidden="true" />
-                        Edit
+                        {{ $t('Edit') }}
                     </button>
                 </div>
                 <p

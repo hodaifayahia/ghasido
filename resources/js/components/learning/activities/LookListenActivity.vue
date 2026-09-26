@@ -84,18 +84,22 @@ function onCheck(): void {
         tone="success"
         :number="number"
         :label="activity.label"
-        subtitle="Look at the picture and choose the correct audio."
+        :subtitle="$t('Look at the picture and choose the correct audio.')"
         :department="lesson.department.name"
         :lesson-number="lesson.positionInCourse"
         :lesson-count="lesson.courseLessonCount"
         :side-photo="item?.image ?? lesson.cover"
-        tip="Look carefully at the picture and listen to all the audios before you choose."
+        :tip="
+            $t(
+                'Look carefully at the picture and listen to all the audios before you choose.',
+            )
+        "
         :total="runner.total.value"
         :current="runner.current.value"
         :answered="runner.answeredIndexes.value"
         :can-check="runner.canCheck.value"
         :has-result="result !== null"
-        :check-label="result !== null ? 'Back to Practice' : 'Check'"
+        :check-label="result !== null ? $t('Back to Practice') : $t('Check')"
         @check="onCheck"
         @prev="runner.prev()"
         @select="runner.goto($event)"
@@ -113,7 +117,7 @@ function onCheck(): void {
                     />
                 </span>
                 <p class="text-ink text-lg font-semibold">
-                    Which audio matches the picture?
+                    {{ $t('Which audio matches the picture?') }}
                 </p>
             </div>
 
@@ -123,7 +127,9 @@ function onCheck(): void {
                     :key="option.id"
                     role="radio"
                     :aria-checked="runner.selected(item.id) === option.id"
-                    :aria-label="`Option ${letter(index)}`"
+                    :aria-label="
+                        $t('Option :letter', { letter: letter(index) })
+                    "
                     :tabindex="runner.locked.value ? -1 : 0"
                     :class="
                         cn(
@@ -156,7 +162,11 @@ function onCheck(): void {
                         >
                             <button
                                 type="button"
-                                :aria-label="`Play option ${letter(index)}`"
+                                :aria-label="
+                                    $t('Play option :letter', {
+                                        letter: letter(index),
+                                    })
+                                "
                                 class="text-brand-600 focus-visible:ring-brand-600/40 grid size-8 place-items-center rounded-full focus-visible:ring-3 focus-visible:outline-none"
                                 @click.stop="playOption(option)"
                             >
@@ -179,7 +189,8 @@ function onCheck(): void {
                         "
                         class="text-success-text inline-flex items-center gap-1 text-sm font-semibold"
                     >
-                        <Check class="size-4" aria-hidden="true" /> Correct
+                        <Check class="size-4" aria-hidden="true" />
+                        {{ $t('Correct') }}
                     </span>
                     <span
                         v-else-if="
@@ -188,7 +199,8 @@ function onCheck(): void {
                         "
                         class="text-danger inline-flex items-center gap-1 text-sm font-semibold"
                     >
-                        <X class="size-4" aria-hidden="true" /> Not quite
+                        <X class="size-4" aria-hidden="true" />
+                        {{ $t('Not quite') }}
                     </span>
                 </div>
             </div>

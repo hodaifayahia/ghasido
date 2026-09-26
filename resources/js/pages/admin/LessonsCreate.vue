@@ -4,6 +4,8 @@ import { computed, ref, watch } from 'vue';
 import { ArrowLeft, Check, CirclePlus } from '@lucide/vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
+import TransText from '@/components/common/TransText.vue';
+
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +21,7 @@ import { dashboard, lessonsContent } from '@/routes';
 import { create as createLessonPage } from '@/routes/lessons-content';
 import { store as storeLesson } from '@/routes/lessons';
 import type { LessonCreateCourse, LessonFilterOption } from '@/types';
+import { tk } from '@/lib/i18n';
 
 type Props = {
     departments: LessonFilterOption[];
@@ -32,9 +35,9 @@ const props = defineProps<Props>();
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Lessons & Content', href: lessonsContent() },
-            { title: 'Create Lesson', href: createLessonPage() },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Lessons & Content'), href: lessonsContent() },
+            { title: tk('Create Lesson'), href: createLessonPage() },
         ],
     },
 });
@@ -69,20 +72,30 @@ function onDepartment(value: string): void {
 <template>
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            title="Create Lesson"
-            description="Set the lesson location and title, then edit its content and employee steps."
+            :title="$t('Create Lesson')"
+            :description="
+                $t(
+                    'Set the lesson location and title, then edit its content and employee steps.',
+                )
+            "
         />
 
-        <p v-if="departmentName" class="text-ink-slate -mt-1 text-[12.5px]">
-            Department:
-            <span class="text-brand-900 font-semibold">{{
-                departmentName
-            }}</span>
-        </p>
+        <TransText
+            v-if="departmentName"
+            tag="p"
+            text="Department: :name"
+            class="text-ink-slate -mt-1 text-[12.5px]"
+        >
+            <template #name>
+                <span class="text-brand-900 font-semibold">{{
+                    departmentName
+                }}</span>
+            </template>
+        </TransText>
 
         <div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <PanelCard
-                title="Lesson details"
+                :title="$t('Lesson details')"
                 title-id="create-lesson-title"
                 class="px-4 py-4 md:px-5"
                 body-class="mt-4"
@@ -105,7 +118,8 @@ function onDepartment(value: string): void {
                             for="create-department"
                             class="text-brand-900 text-[12px] font-semibold"
                         >
-                            Department <span class="text-danger-text">*</span>
+                            {{ $t('Department') }}
+                            <span class="text-danger-text">*</span>
                         </label>
                         <Select
                             :model-value="department"
@@ -119,7 +133,7 @@ function onDepartment(value: string): void {
                                 data-test="lesson-create-department"
                             >
                                 <SelectValue
-                                    placeholder="Choose a department"
+                                    :placeholder="$t('Choose a department')"
                                 />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
@@ -140,7 +154,8 @@ function onDepartment(value: string): void {
                             for="create-course"
                             class="text-brand-900 text-[12px] font-semibold"
                         >
-                            Course <span class="text-danger-text">*</span>
+                            {{ $t('Course') }}
+                            <span class="text-danger-text">*</span>
                         </label>
                         <Select v-model="courseId">
                             <SelectTrigger
@@ -148,7 +163,9 @@ function onDepartment(value: string): void {
                                 class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
                                 data-test="lesson-create-course"
                             >
-                                <SelectValue placeholder="Choose a course" />
+                                <SelectValue
+                                    :placeholder="$t('Choose a course')"
+                                />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
                                 <SelectItem
@@ -165,7 +182,9 @@ function onDepartment(value: string): void {
                             v-if="courses.length === 0"
                             class="text-warning text-[12px]"
                         >
-                            No course exists for this department yet.
+                            {{
+                                $t('No course exists for this department yet.')
+                            }}
                         </p>
                     </div>
 
@@ -174,7 +193,8 @@ function onDepartment(value: string): void {
                             for="create-unit"
                             class="text-brand-900 text-[12px] font-semibold"
                         >
-                            Unit <span class="text-danger-text">*</span>
+                            {{ $t('Unit') }}
+                            <span class="text-danger-text">*</span>
                         </label>
                         <Select v-model="unitId" :disabled="units.length === 0">
                             <SelectTrigger
@@ -182,7 +202,9 @@ function onDepartment(value: string): void {
                                 class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
                                 data-test="lesson-create-unit"
                             >
-                                <SelectValue placeholder="Choose a unit" />
+                                <SelectValue
+                                    :placeholder="$t('Choose a unit')"
+                                />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
                                 <SelectItem
@@ -203,14 +225,15 @@ function onDepartment(value: string): void {
                             for="create-lesson-title"
                             class="text-brand-900 text-[12px] font-semibold"
                         >
-                            Lesson title <span class="text-danger-text">*</span>
+                            {{ $t('Lesson title') }}
+                            <span class="text-danger-text">*</span>
                         </label>
                         <Input
                             id="create-lesson-title"
                             name="title"
                             required
                             maxlength="120"
-                            placeholder="e.g. Handling a room request"
+                            :placeholder="$t('e.g. Handling a room request')"
                             :aria-invalid="errors.title ? true : undefined"
                             data-test="lesson-create-title"
                             class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
@@ -225,7 +248,7 @@ function onDepartment(value: string): void {
                             :model-value="withBlocks"
                             @update:model-value="withBlocks = $event === true"
                         />
-                        Start with the default nine employee steps
+                        {{ $t('Start with the default nine employee steps') }}
                     </label>
 
                     <div
@@ -239,7 +262,7 @@ function onDepartment(value: string): void {
                         >
                             <a :href="lessonsContent.url()">
                                 <ArrowLeft class="size-4" aria-hidden="true" />
-                                Cancel
+                                {{ $t('Cancel') }}
                             </a>
                         </Button>
                         <Button
@@ -249,14 +272,14 @@ function onDepartment(value: string): void {
                             data-test="submit-create-lesson"
                         >
                             <CirclePlus class="size-4" aria-hidden="true" />
-                            Create Lesson
+                            {{ $t('Create Lesson') }}
                         </Button>
                     </div>
                 </Form>
             </PanelCard>
 
             <PanelCard
-                title="What happens next"
+                :title="$t('What happens next')"
                 title-id="create-lesson-next"
                 class="h-fit px-4 py-4 md:px-5"
                 body-class="mt-3"
@@ -264,15 +287,23 @@ function onDepartment(value: string): void {
                 <ul class="text-ink-slate grid gap-3 text-[12.5px]">
                     <li class="flex items-start gap-2">
                         <Check class="text-success mt-0.5 size-4 shrink-0" />
-                        The lesson is saved as a draft.
+                        {{ $t('The lesson is saved as a draft.') }}
                     </li>
                     <li class="flex items-start gap-2">
                         <Check class="text-success mt-0.5 size-4 shrink-0" />
-                        The default employee steps are added automatically.
+                        {{
+                            $t(
+                                'The default employee steps are added automatically.',
+                            )
+                        }}
                     </li>
                     <li class="flex items-start gap-2">
                         <Check class="text-success mt-0.5 size-4 shrink-0" />
-                        You are taken to the lesson editor to add content.
+                        {{
+                            $t(
+                                'You are taken to the lesson editor to add content.',
+                            )
+                        }}
                     </li>
                 </ul>
             </PanelCard>

@@ -4,6 +4,7 @@ import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import MessagesPager from '@/components/messages/MessagesPager.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     MessageAbilities,
@@ -45,11 +46,11 @@ const logTone: Record<MessageLogStatus, string> = {
 };
 
 const logText: Record<MessageLogStatus, string> = {
-    sent: 'Sent',
-    scheduled: 'Scheduled',
-    queued: 'Queued',
-    blocked: 'Blocked',
-    failed: 'Failed',
+    sent: tk('Sent'),
+    scheduled: tk('Scheduled'),
+    queued: tk('Queued'),
+    blocked: tk('Blocked'),
+    failed: tk('Failed'),
 };
 
 const iconButton =
@@ -59,7 +60,7 @@ const iconButton =
 <template>
     <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
         <PanelCard
-            title="Reminder Templates"
+            :title="$t('Reminder Templates')"
             title-id="message-templates-title"
             body-class="flex flex-col gap-3"
         >
@@ -78,7 +79,7 @@ const iconButton =
                 v-if="templates.length === 0"
                 class="text-ink-muted rounded-md border border-dashed px-3 py-6 text-center text-[12.5px]"
             >
-                No reminder templates yet.
+                {{ $t('No reminder templates yet.') }}
             </p>
 
             <article
@@ -93,14 +94,16 @@ const iconButton =
                             v-if="!templateItem.isActive"
                             class="bg-danger-tint text-danger-text rounded-pill ms-1 inline-flex min-h-4 items-center px-1.5 align-middle text-[10px] font-semibold"
                         >
-                            Inactive
+                            {{ $t('Inactive') }}
                         </span>
                     </p>
                     <div class="flex shrink-0 items-center gap-1">
                         <button
                             type="button"
                             :class="iconButton"
-                            :aria-label="`Preview ${templateItem.name}`"
+                            :aria-label="
+                                $t('Preview :name', { name: templateItem.name })
+                            "
                             :data-test="`preview-template-${templateItem.id}-button`"
                             @click="emit('previewTemplate', templateItem)"
                         >
@@ -110,7 +113,9 @@ const iconButton =
                             v-if="abilities.manageTemplates"
                             type="button"
                             :class="iconButton"
-                            :aria-label="`Edit ${templateItem.name}`"
+                            :aria-label="
+                                $t('Edit :name', { name: templateItem.name })
+                            "
                             :data-test="`edit-template-${templateItem.id}-button`"
                             @click="emit('editTemplate', templateItem)"
                         >
@@ -119,13 +124,17 @@ const iconButton =
                     </div>
                 </div>
                 <p class="text-ink-slate mt-1 text-[11.5px] leading-4.5">
-                    {{ templateItem.audience || 'Any employee' }}
+                    {{ templateItem.audience || $t('Any employee') }}
                 </p>
                 <p class="text-ink-muted mt-1 text-[11px] leading-4">
-                    Trigger: {{ templateItem.trigger || 'Manual send' }}
+                    {{
+                        $t('Trigger: :trigger', {
+                            trigger: templateItem.trigger || $t('Manual send'),
+                        })
+                    }}
                 </p>
                 <p class="text-ink-faint mt-0.5 text-[11px] leading-4">
-                    Updated {{ templateItem.updatedAt }}
+                    {{ $t('Updated :date', { date: templateItem.updatedAt }) }}
                 </p>
             </article>
 
@@ -138,12 +147,12 @@ const iconButton =
                 @click="emit('addTemplate')"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                Add Template
+                {{ $t('Add Template') }}
             </Button>
         </PanelCard>
 
         <PanelCard
-            title="Automation Rules"
+            :title="$t('Automation Rules')"
             title-id="message-automation-title"
             body-class="flex flex-col gap-3"
         >
@@ -164,7 +173,7 @@ const iconButton =
                     @click="emit('addRule')"
                 >
                     <Plus class="size-3.5" aria-hidden="true" />
-                    Add Rule
+                    {{ $t('Add Rule') }}
                 </button>
             </template>
 
@@ -172,7 +181,7 @@ const iconButton =
                 v-if="automations.length === 0"
                 class="text-ink-muted rounded-md border border-dashed px-3 py-6 text-center text-[12.5px]"
             >
-                No automation rules yet.
+                {{ $t('No automation rules yet.') }}
             </p>
 
             <article
@@ -197,14 +206,18 @@ const iconButton =
                                 )
                             "
                         >
-                            {{ rule.active ? 'Active' : 'Paused' }}
+                            {{ rule.active ? $t('Active') : $t('Paused') }}
                         </span>
                         <button
                             v-if="abilities.manageRules"
                             type="button"
                             role="switch"
                             :aria-checked="rule.active"
-                            :aria-label="`${rule.active ? 'Pause' : 'Activate'} ${rule.name}`"
+                            :aria-label="
+                                rule.active
+                                    ? $t('Pause :name', { name: rule.name })
+                                    : $t('Activate :name', { name: rule.name })
+                            "
                             :data-test="`toggle-rule-${rule.id}-button`"
                             :class="
                                 cn(
@@ -230,7 +243,7 @@ const iconButton =
                             v-if="abilities.manageRules"
                             type="button"
                             :class="iconButton"
-                            :aria-label="`Edit ${rule.name}`"
+                            :aria-label="$t('Edit :name', { name: rule.name })"
                             :data-test="`edit-rule-${rule.id}-button`"
                             @click="emit('editRule', rule)"
                         >
@@ -242,13 +255,13 @@ const iconButton =
                     {{ rule.trigger }}
                 </p>
                 <p class="text-ink-faint mt-0.5 text-[11px] leading-4">
-                    Audience: {{ rule.audience }}
+                    {{ $t('Audience: :audience', { audience: rule.audience }) }}
                 </p>
             </article>
         </PanelCard>
 
         <PanelCard
-            title="Reminder Log"
+            :title="$t('Reminder Log')"
             title-id="message-log-title"
             body-class="flex flex-col gap-3"
         >
@@ -264,7 +277,7 @@ const iconButton =
                 v-if="logs.length === 0"
                 class="text-ink-muted rounded-md border border-dashed px-3 py-6 text-center text-[12.5px]"
             >
-                No reminders have been sent yet.
+                {{ $t('No reminders have been sent yet.') }}
             </p>
 
             <article
@@ -293,7 +306,7 @@ const iconButton =
                             )
                         "
                     >
-                        {{ logText[log.status] }}
+                        {{ $t(logText[log.status]) }}
                     </span>
                 </div>
                 <p class="text-ink-faint mt-1 text-[11px] leading-4">
@@ -305,7 +318,7 @@ const iconButton =
                 v-if="logsPagination.total > logs.length"
                 :pagination="logsPagination"
                 noun="reminders"
-                label="Reminder log pagination"
+                :label="$t('Reminder log pagination')"
                 compact
                 @page="emit('logPage', $event)"
             />
@@ -317,7 +330,7 @@ const iconButton =
                 @click="emit('openLog')"
             >
                 <Mail class="size-4" aria-hidden="true" />
-                Open Full Log
+                {{ $t('Open Full Log') }}
             </Button>
         </PanelCard>
     </div>

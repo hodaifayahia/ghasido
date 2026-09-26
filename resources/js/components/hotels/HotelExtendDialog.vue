@@ -34,8 +34,16 @@ function onSuccess(): void {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`Extend contract for ${hotel?.name ?? 'hotel'}`"
-        description="Move the contract end date. An ended contract comes back to active on its own once the date is in the future."
+        :title="
+            $t('Extend contract for :name', {
+                name: hotel?.name ?? $t('hotel'),
+            })
+        "
+        :description="
+            $t(
+                'Move the contract end date. An ended contract comes back to active on its own once the date is in the future.',
+            )
+        "
     >
         <Form
             :key="hotel?.id ?? 0"
@@ -50,7 +58,7 @@ function onSuccess(): void {
                     for="hotel-contract-ends-on"
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    New contract end
+                    {{ $t('New contract end') }}
                 </Label>
                 <Input
                     id="hotel-contract-ends-on"
@@ -64,7 +72,11 @@ function onSuccess(): void {
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[13px] shadow-none focus-visible:ring-3"
                 />
                 <p class="text-ink-slate text-[12px]">
-                    Currently ends {{ hotel?.contractEnd ?? '—' }}.
+                    {{
+                        $t('Currently ends :date.', {
+                            date: hotel?.contractEnd ?? '—',
+                        })
+                    }}
                 </p>
                 <InputError :message="errors.contract_ends_on" />
             </div>
@@ -78,7 +90,7 @@ function onSuccess(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -86,7 +98,7 @@ function onSuccess(): void {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="confirm-extend-contract-button"
                 >
-                    Extend contract
+                    {{ $t('Extend contract') }}
                 </Button>
             </div>
         </Form>

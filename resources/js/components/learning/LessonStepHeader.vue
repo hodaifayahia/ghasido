@@ -68,7 +68,12 @@ const props = defineProps<Props>();
                 {{ department }}
             </span>
             <span class="text-ink text-lg leading-none font-medium">
-                Lesson {{ lessonNumber }} / {{ lessonCount }}
+                {{
+                    $t('Lesson :current / :total', {
+                        current: lessonNumber,
+                        total: lessonCount,
+                    })
+                }}
             </span>
         </div>
     </header>

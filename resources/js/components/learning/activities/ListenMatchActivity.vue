@@ -256,27 +256,37 @@ watch(current, () => {
         tone="ai"
         :number="number"
         :label="activity.label"
-        subtitle="Listen to the word and match it with the correct picture."
+        :subtitle="
+            $t('Listen to the word and match it with the correct picture.')
+        "
         :department="lesson.department.name"
         :lesson-number="lesson.positionInCourse"
         :lesson-count="lesson.courseLessonCount"
         :side-photo="activity.sideImage ?? lesson.cover"
-        tip="Listen carefully. You can play the audio as many times as you need."
+        :tip="
+            $t(
+                'Listen carefully. You can play the audio as many times as you need.',
+            )
+        "
         tip-class="p-2 ps-[18px] [&>svg]:size-7 [&_p]:leading-[18px]"
         :total="total"
         :current="current"
         :answered="answeredIndexes"
         :can-check="canCheck"
         :has-result="result !== null"
-        :check-label="result !== null ? 'Back to Practice' : 'Check Answers'"
+        :check-label="
+            result !== null ? $t('Back to Practice') : $t('Check Answers')
+        "
         @check="onCheck"
         @prev="previous"
         @select="goto"
     >
         <template #side>
             <TaskCard
-                title="Task"
-                text="Listen to each word and click the matching picture."
+                :title="$t('Task')"
+                :text="
+                    $t('Listen to each word and click the matching picture.')
+                "
                 :icon="FilePenLine"
                 class="p-2 ps-[18px] [&_h2]:text-base [&_h2]:leading-5 [&_p]:text-[13px] [&_p]:leading-[18px] [&>header>span]:size-9 [&>header>span>svg]:size-5"
             />
@@ -300,7 +310,7 @@ watch(current, () => {
                                 aria-hidden="true"
                             />
                         </span>
-                        Listen to the words:
+                        {{ $t('Listen to the words:') }}
                     </h2>
 
                     <div class="flex flex-col gap-2">
@@ -358,7 +368,7 @@ watch(current, () => {
 
                 <section
                     class="border-line bg-surface min-w-0 rounded-xl border p-3"
-                    aria-label="Pictures"
+                    :aria-label="$t('Pictures')"
                 >
                     <div class="ms-auto max-w-[463px]">
                         <SpeedRow
@@ -375,7 +385,12 @@ watch(current, () => {
                             :key="target.id"
                             type="button"
                             :disabled="locked || activePrompt === null"
-                            :aria-label="`Picture ${letter(index)}: ${target.label}`"
+                            :aria-label="
+                                $t('Picture :letter: :label', {
+                                    letter: letter(index),
+                                    label: target.label,
+                                })
+                            "
                             :class="
                                 cn(
                                     'bg-surface focus-visible:ring-brand-600/40 flex min-w-0 flex-col gap-2 rounded-lg border-2 p-1.5 text-start transition focus-visible:ring-3 focus-visible:outline-none disabled:cursor-default disabled:opacity-70',
@@ -413,7 +428,7 @@ watch(current, () => {
                                 class="text-success-text inline-flex items-center justify-center gap-1 text-xs font-semibold"
                             >
                                 <Check class="size-3.5" aria-hidden="true" />
-                                Correct
+                                {{ $t('Correct') }}
                             </span>
                             <span
                                 v-else-if="
@@ -422,7 +437,7 @@ watch(current, () => {
                                 class="text-danger inline-flex items-center justify-center gap-1 text-xs font-semibold"
                             >
                                 <X class="size-3.5" aria-hidden="true" />
-                                Not quite
+                                {{ $t('Not quite') }}
                             </span>
                         </button>
                     </div>

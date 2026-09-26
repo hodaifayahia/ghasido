@@ -2,6 +2,7 @@
 import { Check } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { JourneyState } from '@/types';
 
@@ -21,7 +22,12 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const stages = ['Pre-test', 'Training', 'Post-test', 'Certificate'];
+const stages = [
+    tk('Pre-test'),
+    tk('Training'),
+    tk('Post-test'),
+    tk('Certificate'),
+];
 
 // The first stage the learner has not finished is the active one.
 const active = computed((): number => {
@@ -45,7 +51,7 @@ const active = computed((): number => {
 
 <template>
     <ol
-        aria-label="Your training journey"
+        :aria-label="$t('Your training journey')"
         :class="
             cn(
                 'relative z-10 grid w-full list-none grid-cols-4 xl:ms-2 xl:w-[552px] xl:max-w-none',
@@ -94,8 +100,10 @@ const active = computed((): number => {
                     )
                 "
             >
-                {{ stage }}
-                <span v-if="index + 1 < active" class="sr-only">, done</span>
+                {{ $t(stage) }}
+                <span v-if="index + 1 < active" class="sr-only">{{
+                    $t(', done')
+                }}</span>
             </span>
         </li>
     </ol>

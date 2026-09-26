@@ -3,7 +3,7 @@ import { Link as InertiaLink } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
 import { computed } from 'vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
-import { settingField } from '@/components/lessons/lessonsBlocks';
+import { settingField, valueLabel } from '@/components/lessons/lessonsBlocks';
 import { cn } from '@/lib/utils';
 import { aiScenarios } from '@/routes';
 import type { BlockSettings, LessonScenarioOption } from '@/types';
@@ -53,29 +53,38 @@ function toggle(id: number): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
-        <LessonsField v-model="attemptsNote" label="Attempts note" />
-        <LessonsField v-model="tip" label="Tip" type="textarea" :rows="2" />
+        <LessonsField v-model="attemptsNote" :label="$t('Attempts note')" />
+        <LessonsField
+            v-model="tip"
+            :label="$t('Tip')"
+            type="textarea"
+            :rows="2"
+        />
 
         <div class="grid gap-2">
             <span
                 class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
             >
-                Scenarios in this block
+                {{ $t('Scenarios in this block') }}
             </span>
             <p
                 v-if="scenarios.length === 0"
                 class="text-ink-muted text-[12.5px]"
             >
-                No role-play scenarios exist for this lesson's department yet.
+                {{
+                    $t(
+                        'No role-play scenarios exist for this lesson’s department yet.',
+                    )
+                }}
                 <InertiaLink
                     :href="aiScenarios()"
                     class="text-brand-700 hover:underline"
                 >
-                    Create one in AI Role-play Scenarios.
+                    {{ $t('Create one in AI Role-play Scenarios.') }}
                 </InertiaLink>
             </p>
             <div v-else class="grid gap-2 sm:grid-cols-2">
@@ -114,7 +123,8 @@ function toggle(id: number): void {
                     <span class="grid gap-0.5">
                         <span class="font-semibold">{{ scenario.title }}</span>
                         <span class="text-ink-muted text-[11.5px] capitalize">
-                            {{ scenario.difficulty }} · {{ scenario.status }}
+                            {{ $t(valueLabel(scenario.difficulty)) }} ·
+                            {{ $t(valueLabel(scenario.status)) }}
                         </span>
                     </span>
                 </button>

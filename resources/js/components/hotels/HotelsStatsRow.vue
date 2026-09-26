@@ -56,7 +56,7 @@ const looks: Record<HotelMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Hotel summary"
+        :aria-label="$t('Hotel summary')"
         tabindex="0"
         :class="
             cn(

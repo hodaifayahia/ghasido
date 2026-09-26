@@ -97,9 +97,9 @@ class LessonGenerator
             ], $actor);
 
             $unit = $isCourse || $createdCourse
-                ? $this->lessons->createUnit($course, $isCourse ? __('AI course') : __('Unit 1'))
+                ? $this->lessons->createUnit($course, $isCourse ? __('AI course', [], 'en') : __('Unit 1', [], 'en'))
                 : (Unit::query()->where('course_id', $course->id)->orderByDesc('position')->orderByDesc('id')->first()
-                    ?? $this->lessons->createUnit($course, __('Unit 1')));
+                    ?? $this->lessons->createUnit($course, __('Unit 1', [], 'en')));
 
             $generation = ContentGeneration::query()->create([
                 'user_id' => $actor->id,
@@ -313,7 +313,7 @@ class LessonGenerator
         $course = $unit->course()->firstOrFail();
 
         $lesson = DB::transaction(function () use ($generation, $index, $draft, $actor, $unit, $course): Lesson {
-            $title = $draft->title !== '' ? $draft->title : ($generation->outlineLesson($index)['title'] ?: __('AI lesson'));
+            $title = $draft->title !== '' ? $draft->title : ($generation->outlineLesson($index)['title'] ?: __('AI lesson', [], 'en'));
 
             $lesson = $this->lessons->createLesson($unit, Str::limit($title, 120, ''), false);
             $lesson->forceFill([
@@ -583,7 +583,7 @@ class LessonGenerator
     {
         $this->addBlock($lesson, BlockType::Dialogue, [
             'image' => null,
-            'situation_caption' => __('Situation: :title', ['title' => $lesson->title]),
+            'situation_caption' => __('Situation: :title', ['title' => $lesson->title], 'en'),
             'lines' => array_map(
                 static fn (array $line): array => [
                     'speaker' => str_contains(strtolower($line['speaker']), 'guest') ? 'guest' : 'staff',
@@ -627,9 +627,9 @@ class LessonGenerator
         if ($items !== []) {
             $this->activities->create([
                 'type' => ActivityType::MultipleChoice,
-                'skill_label' => ActivityType::MultipleChoice->label(),
-                'title' => ActivityType::MultipleChoice->label(),
-                'prompt' => __('Read the situation and choose the best answer.'),
+                'skill_label' => ActivityType::MultipleChoice->label('en'),
+                'title' => ActivityType::MultipleChoice->label('en'),
+                'prompt' => __('Read the situation and choose the best answer.', [], 'en'),
                 'payload' => ['items' => $items],
                 'department_id' => $course->department_id,
                 'hotel_id' => $course->hotel_id,
@@ -655,9 +655,9 @@ class LessonGenerator
 
             $this->activities->create([
                 'type' => ActivityType::DialogueOrder,
-                'skill_label' => ActivityType::DialogueOrder->label(),
-                'title' => ActivityType::DialogueOrder->label(),
-                'prompt' => ActivityType::DialogueOrder->hubDescription(),
+                'skill_label' => ActivityType::DialogueOrder->label('en'),
+                'title' => ActivityType::DialogueOrder->label('en'),
+                'prompt' => ActivityType::DialogueOrder->hubDescription('en'),
                 'payload' => ['items' => [[
                     'id' => 'i1',
                     'audio_text' => implode(' ', array_column($lines, 'text')),
@@ -674,7 +674,7 @@ class LessonGenerator
     private function completeBlock(Lesson $lesson, LessonDraft $draft): void
     {
         $this->addBlock($lesson, BlockType::Complete, [
-            'subtitle' => $draft->subtitle !== '' ? $draft->subtitle : __('Great job! You have finished this lesson.'),
+            'subtitle' => $draft->subtitle !== '' ? $draft->subtitle : __('Great job! You have finished this lesson.', [], 'en'),
         ]);
     }
 
@@ -718,7 +718,7 @@ class LessonGenerator
                 'id' => $lesson->id,
                 'key' => 'cover_media_id',
                 'prompt' => $scene.' Photorealistic, modern hotel, adult professional staff, natural light, no text or letters in the image.',
-                'alt' => Str::limit(__('Situation: :title', ['title' => $lesson->title]), 200, ''),
+                'alt' => Str::limit(__('Situation: :title', ['title' => $lesson->title], 'en'), 200, ''),
                 'size' => ImageProvider::SIZE_LANDSCAPE,
             ];
         }
@@ -774,7 +774,7 @@ class LessonGenerator
     {
         $title = Str::limit(trim(preg_replace('/\s+/u', ' ', $prompt) ?? $prompt), 60, '');
 
-        return $title !== '' ? $title : ($isCourse ? __('AI course') : __('AI lesson'));
+        return $title !== '' ? $title : ($isCourse ? __('AI course', [], 'en') : __('AI lesson', [], 'en'));
     }
 
     /**

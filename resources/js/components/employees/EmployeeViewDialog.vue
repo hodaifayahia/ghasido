@@ -8,6 +8,8 @@ import {
     statusTone,
 } from '@/components/employees/employeeStatus';
 import HotelsModal from '@/components/hotels/HotelsModal.vue';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { EmployeeRecord } from '@/types';
 
@@ -18,11 +20,12 @@ type Props = {
 const props = defineProps<Props>();
 
 const open = defineModel<boolean>('open', { required: true });
+const { t } = useI18n();
 
 type Row = { label: string; value: string };
 
 function score(value: number | null): string {
-    return value === null ? 'Not taken' : `${value}%`;
+    return value === null ? t('Not taken') : `${value}%`;
 }
 
 const rows = computed<Row[]>(() => {
@@ -33,18 +36,18 @@ const rows = computed<Row[]>(() => {
     }
 
     return [
-        { label: 'Username', value: employee.username },
-        { label: 'Hotel', value: employee.hotel },
-        { label: 'Department', value: employee.department },
-        { label: 'Email', value: employee.email },
-        { label: 'Pre-test', value: score(employee.preTestScore) },
-        { label: 'Post-test', value: score(employee.postTestScore) },
-        { label: 'Last login', value: employee.lastLogin },
-        { label: 'Last activity', value: employee.lastActivity },
-        { label: 'Training started', value: employee.trainingStarted },
-        { label: 'Training completed', value: employee.trainingCompleted },
+        { label: tk('Username'), value: employee.username },
+        { label: tk('Hotel'), value: employee.hotel },
+        { label: tk('Department'), value: employee.department },
+        { label: tk('Email'), value: employee.email },
+        { label: tk('Pre-test'), value: score(employee.preTestScore) },
+        { label: tk('Post-test'), value: score(employee.postTestScore) },
+        { label: tk('Last login'), value: employee.lastLogin },
+        { label: tk('Last activity'), value: employee.lastActivity },
+        { label: tk('Training started'), value: employee.trainingStarted },
+        { label: tk('Training completed'), value: employee.trainingCompleted },
         {
-            label: 'Participant code',
+            label: tk('Participant code'),
             value: employee.participantCode ?? '-',
         },
     ];
@@ -54,8 +57,10 @@ const rows = computed<Row[]>(() => {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="employee?.name ?? 'Employee'"
-        description="Progress, test results, activity and consent for this account."
+        :title="employee?.name ?? $t('Employee')"
+        :description="
+            $t('Progress, test results, activity and consent for this account.')
+        "
     >
         <div v-if="employee" class="mt-2 grid gap-4">
             <div class="flex flex-wrap items-center gap-3">
@@ -67,14 +72,13 @@ const rows = computed<Row[]>(() => {
                         )
                     "
                 >
-                    {{ statusText[employee.status] }}
+                    {{ $t(statusText[employee.status]) }}
                 </span>
                 <span class="text-ink-slate text-[12.5px]">
-                    Account
                     {{
                         employee.accountStatus === 'active'
-                            ? 'active'
-                            : 'inactive'
+                            ? $t('Account active')
+                            : $t('Account inactive')
                     }}
                 </span>
             </div>
@@ -83,17 +87,21 @@ const rows = computed<Row[]>(() => {
                 <div
                     class="text-brand-900 mb-1.5 flex items-center justify-between text-[12.5px] font-semibold"
                 >
-                    <span>Progress</span>
+                    <span>{{ $t('Progress') }}</span>
                     <span>
                         {{ employee.progress }}% ·
-                        {{ employee.lessonsCompleted }} of
-                        {{ employee.lessonsTotal }} lessons
+                        {{
+                            $t(':completed of :total lessons', {
+                                completed: employee.lessonsCompleted,
+                                total: employee.lessonsTotal,
+                            })
+                        }}
                     </span>
                 </div>
                 <ProgressBar
                     :value="employee.progress"
                     :tone="progressTone[employee.status]"
-                    :label="`${employee.name} progress`"
+                    :label="$t(':name progress', { name: employee.name })"
                     class="h-2"
                 />
             </div>
@@ -104,7 +112,7 @@ const rows = computed<Row[]>(() => {
                     :key="row.label"
                     class="border-line flex items-baseline justify-between gap-3 border-b pb-1.5"
                 >
-                    <dt class="text-ink-slate shrink-0">{{ row.label }}</dt>
+                    <dt class="text-ink-slate shrink-0">{{ $t(row.label) }}</dt>
                     <dd class="text-brand-900 truncate text-end font-medium">
                         {{ row.value }}
                     </dd>
@@ -112,7 +120,9 @@ const rows = computed<Row[]>(() => {
                 <div
                     class="border-line flex items-center justify-between gap-3 border-b pb-1.5"
                 >
-                    <dt class="text-ink-slate shrink-0">Reminder emails</dt>
+                    <dt class="text-ink-slate shrink-0">
+                        {{ $t('Reminder emails') }}
+                    </dt>
                     <dd
                         :class="
                             cn(
@@ -128,7 +138,11 @@ const rows = computed<Row[]>(() => {
                             class="size-4"
                             aria-hidden="true"
                         />
-                        {{ employee.emailConsent ? 'Consented' : 'No consent' }}
+                        {{
+                            employee.emailConsent
+                                ? $t('Consented')
+                                : $t('No consent')
+                        }}
                     </dd>
                 </div>
             </dl>

@@ -78,8 +78,10 @@ export function useMeaning(text: () => string): UseMeaningReturn {
         const allowed =
             typeof injected === 'boolean' ? injected : injected.value;
 
-        // Nothing to translate: no button at all.
-        return allowed && /\p{L}/u.test(text());
+        // Only English has an Arabic meaning. Text with no Latin letters has
+        // nothing to reveal: the interface label already in Arabic when the
+        // Arabic interface is on (I18N-02), a number, a symbol.
+        return allowed && /[A-Za-z]/.test(text());
     }
 
     function stop(): void {

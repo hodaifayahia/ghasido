@@ -86,7 +86,11 @@ function toggle(id: number): void {
                         <button
                             v-if="item.showMeaning && item.meaning"
                             type="button"
-                            :aria-label="`Show the meaning of ${item.text}`"
+                            :aria-label="
+                                $t('Show the meaning of :text', {
+                                    text: item.text,
+                                })
+                            "
                             :aria-pressed="revealed.has(item.id)"
                             :class="
                                 cn(

@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { AiScenarioLibrary, AiScenarioStatus } from '@/types';
 
@@ -30,6 +31,8 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
     open: [id: string];
 }>();
+
+const { t } = useI18n();
 
 const search = ref(props.library.search);
 const department = ref(props.library.department);
@@ -111,13 +114,13 @@ const visiblePages = computed(() =>
 
 const showing = computed(() => {
     const total = filteredScenarios.value.length;
-    if (total === 0) return 'No scenarios found';
+    if (total === 0) return t('No scenarios found');
 
     const page = Math.min(currentPage.value, pageCount.value);
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, total);
 
-    return `Showing ${start}-${end} of ${total} scenarios`;
+    return t('Showing :start-:end of :total scenarios', { start, end, total });
 });
 
 function goToPage(page: number): void {
@@ -138,7 +141,7 @@ function goToPage(page: number): void {
             <h2
                 class="font-heading text-brand-800 truncate text-base font-semibold"
             >
-                Scenario Library
+                {{ $t('Scenario Library') }}
             </h2>
         </div>
 
@@ -151,7 +154,7 @@ function goToPage(page: number): void {
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search scenarios..."
+                    :placeholder="$t('Search scenarios...')"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
@@ -249,14 +252,18 @@ function goToPage(page: number): void {
                     >
                         {{
                             scenario.status === 'published'
-                                ? 'Published'
-                                : 'Draft'
+                                ? $t('Published')
+                                : $t('Draft')
                         }}
                     </span>
                     <button
                         type="button"
                         class="text-ink-faint hover:bg-brand-50 inline-flex size-6 items-center justify-center rounded-md"
-                        :aria-label="`More actions for ${scenario.title}`"
+                        :aria-label="
+                            $t('More actions for :name', {
+                                name: scenario.title,
+                            })
+                        "
                         @click.stop="emit('open', scenario.id)"
                     >
                         <EllipsisVertical class="size-4" aria-hidden="true" />
@@ -272,14 +279,14 @@ function goToPage(page: number): void {
 
             <nav
                 v-if="pageCount > 1"
-                aria-label="Scenario pages"
+                :aria-label="$t('Scenario pages')"
                 class="flex items-center gap-1.5"
             >
                 <button
                     type="button"
                     class="text-brand-700 hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
                     :disabled="currentPage === 1"
-                    aria-label="Previous scenario page"
+                    :aria-label="$t('Previous scenario page')"
                     @click="goToPage(currentPage - 1)"
                 >
                     <ChevronLeft class="size-4" aria-hidden="true" />
@@ -307,7 +314,7 @@ function goToPage(page: number): void {
                     type="button"
                     class="text-brand-700 hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
                     :disabled="currentPage === pageCount"
-                    aria-label="Next scenario page"
+                    :aria-label="$t('Next scenario page')"
                     @click="goToPage(currentPage + 1)"
                 >
                     <ChevronRight class="size-4" aria-hidden="true" />

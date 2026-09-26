@@ -12,6 +12,7 @@ import PracticeHubStep from '@/components/learning/steps/PracticeHubStep.vue';
 import SituationStep from '@/components/learning/steps/SituationStep.vue';
 import VideoStep from '@/components/learning/steps/VideoStep.vue';
 import VocabularyStep from '@/components/learning/steps/VocabularyStep.vue';
+import { useI18n } from '@/composables/useI18n';
 import { home } from '@/routes/learn';
 import { complete } from '@/routes/learn/lessons/step';
 import type { LessonStepNav, LessonSummary, StepBlock } from '@/types';
@@ -36,6 +37,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const isPreview = computed(() => props.preview === true);
 
 const current = computed(() => props.steps.find((step) => step.current));
@@ -48,14 +51,14 @@ const prev = computed(() => {
     if (isPreview.value) {
         return props.prevUrl === null
             ? null
-            : { label: 'Previous', href: props.prevUrl };
+            : { label: t('Previous'), href: props.prevUrl };
     }
 
     if (props.block.type === 'situation' || props.prevUrl === null) {
-        return { label: 'Back to Home', href: home().url };
+        return { label: t('Back to Home'), href: home().url };
     }
 
-    return { label: 'Previous', href: props.prevUrl };
+    return { label: t('Previous'), href: props.prevUrl };
 });
 
 const next = computed(() => {
@@ -65,19 +68,19 @@ const next = computed(() => {
             : {
                   label:
                       props.block.type === 'situation'
-                          ? 'Start Lesson'
-                          : 'Next',
+                          ? t('Start Lesson')
+                          : t('Next'),
                   href: props.nextUrl,
               };
     }
 
     switch (props.block.type) {
         case 'situation':
-            return { label: 'Start Lesson', form: completeForm.value };
+            return { label: t('Start Lesson'), form: completeForm.value };
         case 'complete':
-            return { label: 'Back to Home', form: completeForm.value };
+            return { label: t('Back to Home'), form: completeForm.value };
         default:
-            return { label: 'Next', form: completeForm.value };
+            return { label: t('Next'), form: completeForm.value };
     }
 });
 </script>

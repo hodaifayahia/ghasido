@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { tk } from '@/lib/i18n';
 import HotelSignupController from '@/actions/App/Http/Controllers/HotelSignupController';
+import TransText from '@/components/common/TransText.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
@@ -11,15 +13,16 @@ import { login } from '@/routes';
 
 defineOptions({
     layout: {
-        title: 'Register your hotel',
-        description:
+        title: tk('Register your hotel'),
+        description: tk(
             'Share the hotel details and create the first manager login for Super Admin approval.',
+        ),
     },
 });
 </script>
 
 <template>
-    <Head title="Register your hotel" />
+    <Head :title="$t('Register your hotel')" />
 
     <Form
         v-bind="HotelSignupController.store.form()"
@@ -28,7 +31,7 @@ defineOptions({
     >
         <div class="grid grid-cols-2 gap-x-3 gap-y-2.5 sm:gap-3">
             <div class="col-span-2 grid gap-1.5">
-                <Label for="hotel-name">Hotel name</Label>
+                <Label for="hotel-name">{{ $t('Hotel name') }}</Label>
                 <Input
                     id="hotel-name"
                     name="name"
@@ -36,7 +39,7 @@ defineOptions({
                     required
                     autofocus
                     autocomplete="organization"
-                    placeholder="Blue Coast Hotel"
+                    :placeholder="$t('Blue Coast Hotel')"
                     data-test="hotel-signup-name-input"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
@@ -44,14 +47,14 @@ defineOptions({
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="hotel-city">City</Label>
+                <Label for="hotel-city">{{ $t('City') }}</Label>
                 <Input
                     id="hotel-city"
                     name="city"
                     type="text"
                     required
                     autocomplete="address-level2"
-                    placeholder="Oran"
+                    :placeholder="$t('Oran')"
                     data-test="hotel-signup-city-input"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
@@ -59,14 +62,14 @@ defineOptions({
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="manager-name">Manager name</Label>
+                <Label for="manager-name">{{ $t('Manager name') }}</Label>
                 <Input
                     id="manager-name"
                     name="manager_name"
                     type="text"
                     required
                     autocomplete="name"
-                    placeholder="Nassim Benali"
+                    :placeholder="$t('Nassim Benali')"
                     data-test="hotel-signup-manager-name-input"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
@@ -74,7 +77,7 @@ defineOptions({
             </div>
 
             <div class="col-span-2 grid gap-1.5">
-                <Label for="manager-email">Manager email</Label>
+                <Label for="manager-email">{{ $t('Manager email') }}</Label>
                 <Input
                     id="manager-email"
                     name="manager_email"
@@ -89,7 +92,9 @@ defineOptions({
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="manager-username">Manager username</Label>
+                <Label for="manager-username">{{
+                    $t('Manager username')
+                }}</Label>
                 <Input
                     id="manager-username"
                     name="manager_username"
@@ -104,13 +109,13 @@ defineOptions({
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="password">Password</Label>
+                <Label for="password">{{ $t('Password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     required
                     autocomplete="new-password"
-                    placeholder="Create a password"
+                    :placeholder="$t('Create a password')"
                     data-test="hotel-signup-password-input"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
@@ -118,13 +123,15 @@ defineOptions({
             </div>
 
             <div class="col-span-2 grid gap-1.5">
-                <Label for="password-confirmation">Confirm password</Label>
+                <Label for="password-confirmation">{{
+                    $t('Confirm password')
+                }}</Label>
                 <PasswordInput
                     id="password-confirmation"
                     name="password_confirmation"
                     required
                     autocomplete="new-password"
-                    placeholder="Repeat the password"
+                    :placeholder="$t('Repeat the password')"
                     data-test="hotel-signup-password-confirmation-input"
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 rounded-sm text-[15px] shadow-none focus-visible:ring-3"
                 />
@@ -138,17 +145,19 @@ defineOptions({
             data-test="hotel-signup-submit-button"
         >
             <Spinner v-if="processing" />
-            Submit hotel request
+            {{ $t('Submit hotel request') }}
         </Button>
     </Form>
 
     <div class="text-body-sm text-ink-muted mt-3 text-center">
-        Already approved?
-        <Link
-            :href="login()"
-            class="text-brand-700 font-semibold underline underline-offset-4"
-        >
-            Sign in
-        </Link>
+        <TransText text="Already approved? :link">
+            <template #link>
+                <Link
+                    :href="login()"
+                    class="text-brand-700 font-semibold underline underline-offset-4"
+                    >{{ $t('Sign in') }}</Link
+                >
+            </template>
+        </TransText>
     </div>
 </template>

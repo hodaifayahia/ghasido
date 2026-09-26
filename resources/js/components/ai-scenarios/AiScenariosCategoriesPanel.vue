@@ -127,11 +127,14 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0">
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Scenario Categories
+                    {{ $t('Scenario Categories') }}
                 </h2>
                 <p class="text-ink-slate mt-0.5 text-[12.5px]">
-                    Group role-play scenarios by department and theme so staff
-                    find the right practice.
+                    {{
+                        $t(
+                            'Group role-play scenarios by department and theme so staff find the right practice.',
+                        )
+                    }}
                 </p>
             </div>
             <Button
@@ -140,7 +143,7 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                 @click="newCategory"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                New Category
+                {{ $t('New Category') }}
             </Button>
         </div>
 
@@ -149,39 +152,39 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
             class="border-brand-200 bg-brand-50/35 mt-4 grid gap-3 rounded-lg border p-3 md:grid-cols-2"
         >
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Category name</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Category name')
+                }}</label>
                 <Input
                     v-model="name"
-                    placeholder="e.g. Front Desk Essentials"
+                    :placeholder="$t('e.g. Front Desk Essentials')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Department</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Department')
+                }}</label>
                 <Input
                     v-model="department"
-                    placeholder="Reception"
+                    :placeholder="$t('Reception')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5 md:col-span-2">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Description</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Description')
+                }}</label>
                 <Input
                     v-model="description"
-                    placeholder="What conversations belong here?"
+                    :placeholder="$t('What conversations belong here?')"
                     class="border-line h-9 text-[12px]"
                 />
             </div>
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Scenario count</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Scenario count')
+                }}</label>
                 <Input
                     v-model.number="scenarioCount"
                     type="number"
@@ -190,15 +193,15 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                 />
             </div>
             <div class="grid gap-1.5">
-                <label class="text-brand-900 text-[12px] font-semibold"
-                    >Status</label
-                >
+                <label class="text-brand-900 text-[12px] font-semibold">{{
+                    $t('Status')
+                }}</label>
                 <select
                     v-model="status"
                     class="border-line text-ink bg-surface h-9 rounded-md border px-2 text-[12px]"
                 >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
+                    <option value="draft">{{ $t('Draft') }}</option>
+                    <option value="published">{{ $t('Published') }}</option>
                 </select>
             </div>
             <div class="flex justify-end gap-2 md:col-span-2">
@@ -207,13 +210,13 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                     variant="outline"
                     class="border-line h-9 text-[12px] shadow-none"
                     @click="cancelEdit"
-                    >Cancel</Button
+                    >{{ $t('Cancel') }}</Button
                 >
                 <Button
                     type="button"
                     class="bg-brand-600 hover:bg-brand-700 h-9 text-[12px] font-semibold text-white"
                     @click="saveCategory"
-                    >Save category</Button
+                    >{{ $t('Save category') }}</Button
                 >
             </div>
         </div>
@@ -275,8 +278,8 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                         >
                             {{
                                 category.status === 'published'
-                                    ? 'Published'
-                                    : 'Draft'
+                                    ? $t('Published')
+                                    : $t('Draft')
                             }}
                         </span>
                     </div>
@@ -288,11 +291,20 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                     >
                         <span class="inline-flex items-center gap-1">
                             <Users class="size-3.5" aria-hidden="true" />
-                            {{ category.department }}
+                            {{
+                                category.department === 'All Departments'
+                                    ? $t('All Departments')
+                                    : category.department
+                            }}
                         </span>
                         <span class="inline-flex items-center gap-1">
                             <BookOpen class="size-3.5" aria-hidden="true" />
-                            {{ category.scenarioCount }} scenarios
+                            {{
+                                $tc(
+                                    ':count scenario|:count scenarios',
+                                    category.scenarioCount,
+                                )
+                            }}
                         </span>
                     </div>
                 </div>
@@ -300,17 +312,19 @@ const summaryTone: Record<AiScenarioSummaryStat['tone'], string> = {
                     type="button"
                     class="text-ink-faint hover:bg-brand-50 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
                     @click="editCategory(category)"
-                    :aria-label="`More actions for ${category.name}`"
+                    :aria-label="
+                        $t('More actions for :name', { name: category.name })
+                    "
                 >
                     <EllipsisVertical class="size-4" aria-hidden="true" />
                 </button>
                 <button
                     type="button"
                     class="text-danger hover:bg-danger-tint inline-flex size-7 shrink-0 items-center justify-center rounded-md"
-                    :aria-label="'Delete ' + category.name"
+                    :aria-label="$t('Delete :name', { name: category.name })"
                     @click="removeCategory(category.id)"
                 >
-                    <span class="sr-only">Delete</span>
+                    <span class="sr-only">{{ $t('Delete') }}</span>
                     ×
                 </button>
             </article>

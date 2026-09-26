@@ -27,6 +27,22 @@ class PronunciationPresenter
         PronunciationOutcome::LEVEL_NOT_HEARD => 'Not heard',
     ];
 
+    /** The level's label in the interface language (I18N-02). */
+    public static function levelLabel(?string $level): ?string
+    {
+        if ($level === null || ! array_key_exists($level, self::LEVEL_LABELS)) {
+            return null;
+        }
+
+        return match ($level) {
+            'excellent' => __('Excellent'),
+            'good' => __('Good'),
+            'fair' => __('Keep practising'),
+            'try_again' => __('Try again'),
+            default => __('Not heard'),
+        };
+    }
+
     public function __construct(private readonly AudioLibrary $audio) {}
 
     /**
@@ -76,7 +92,7 @@ class PronunciationPresenter
             'attemptNo' => $attempt->attempt_no,
             'score' => self::number($attempt->score),
             'level' => $attempt->level,
-            'levelLabel' => $attempt->level === null ? null : (self::LEVEL_LABELS[$attempt->level] ?? null),
+            'levelLabel' => self::levelLabel($attempt->level),
             'scores' => [
                 'words' => self::number($attempt->words_score),
                 'clarity' => self::number($attempt->clarity_score),

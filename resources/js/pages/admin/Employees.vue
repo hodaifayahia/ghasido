@@ -14,6 +14,7 @@ import EmployeesStatsRow from '@/components/employees/EmployeesStatsRow.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { dashboard, employees as employeesRoute } from '@/routes';
 import { activate, bulk, deactivate, remind } from '@/routes/employees';
 import type {
@@ -44,11 +45,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Employees',
+                title: tk('Employees'),
                 href: employeesRoute(),
             },
         ],
@@ -235,12 +236,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="Manage Employees" />
+    <Head :title="$t('Manage Employees')" />
 
     <div class="flex w-full min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Manage Employees"
-            description="Create accounts, assign departments, track progress and send reminders."
+            :title="$t('Manage Employees')"
+            :description="
+                $t(
+                    'Create accounts, assign departments, track progress and send reminders.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>

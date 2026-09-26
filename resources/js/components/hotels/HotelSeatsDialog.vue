@@ -74,8 +74,16 @@ function onSuccess(): void {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`Manage seats for ${overview?.name ?? 'hotel'}`"
-        description="Allowed employee seats per department. Lowering a quota below its current usage keeps every account and only blocks the next one."
+        :title="
+            $t('Manage seats for :name', {
+                name: overview?.name ?? $t('hotel'),
+            })
+        "
+        :description="
+            $t(
+                'Allowed employee seats per department. Lowering a quota below its current usage keeps every account and only blocks the next one.',
+            )
+        "
         class="sm:max-w-[620px]"
     >
         <Form
@@ -90,7 +98,7 @@ function onSuccess(): void {
                 v-if="rows.length === 0"
                 class="text-ink-muted rounded-md border border-dashed px-3 py-6 text-center text-[13px]"
             >
-                No departments are available to this hotel yet.
+                {{ $t('No departments are available to this hotel yet.') }}
             </p>
 
             <ul v-else class="divide-line/80 divide-y">
@@ -120,20 +128,26 @@ function onSuccess(): void {
                                     )
                                 "
                             >
-                                {{ quotaText[row.state] }}
+                                {{ $t(quotaText[row.state]) }}
                             </span>
                         </div>
                         <div class="mt-1.5 flex items-center gap-2">
                             <ProgressBar
                                 :value="seatPercent(row.usedSeats, row.total)"
                                 :tone="progressTone[row.state]"
-                                :label="`${row.department} seats used`"
+                                :label="
+                                    $t(':name seats used', {
+                                        name: row.department,
+                                    })
+                                "
                                 class="h-[6px] w-full max-w-[180px]"
                             />
                             <span
                                 class="text-ink-slate text-[11.5px] whitespace-nowrap"
                             >
-                                {{ row.usedSeats }} used
+                                {{
+                                    $t(':count used', { count: row.usedSeats })
+                                }}
                             </span>
                         </div>
                     </div>
@@ -142,7 +156,11 @@ function onSuccess(): void {
                         class="col-start-2 md:col-start-2 md:justify-self-end"
                     >
                         <span class="sr-only">
-                            Allowed seats for {{ row.department }}
+                            {{
+                                $t('Allowed seats for :name', {
+                                    name: row.department,
+                                })
+                            }}
                         </span>
                         <input
                             v-model.number="allowed[row.departmentId]"
@@ -160,7 +178,12 @@ function onSuccess(): void {
                     <p
                         class="text-ink-muted col-span-2 text-[11.5px] md:col-span-1 md:col-start-3 md:text-end"
                     >
-                        {{ row.usedSeats }}/{{ row.total }} seats
+                        {{
+                            $t(':used/:total seats', {
+                                used: row.usedSeats,
+                                total: row.total,
+                            })
+                        }}
                     </p>
 
                     <InputError
@@ -176,8 +199,16 @@ function onSuccess(): void {
                 class="border-line/80 mt-1 flex flex-col-reverse gap-2 border-t pt-3 md:flex-row md:items-center md:justify-between"
             >
                 <p class="text-ink-slate text-[12.5px]">
-                    {{ totalUsed }} of {{ totalAllowed }} seats used across
-                    {{ rows.length }} departments
+                    {{
+                        $t(
+                            ':used of :total seats used across :departments departments',
+                            {
+                                used: totalUsed,
+                                total: totalAllowed,
+                                departments: rows.length,
+                            },
+                        )
+                    }}
                 </p>
                 <div class="flex flex-col-reverse gap-2 md:flex-row">
                     <Button
@@ -186,7 +217,7 @@ function onSuccess(): void {
                         class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                         @click="open = false"
                     >
-                        Cancel
+                        {{ $t('Cancel') }}
                     </Button>
                     <Button
                         type="submit"
@@ -194,7 +225,7 @@ function onSuccess(): void {
                         class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                         data-test="save-seat-quotas-button"
                     >
-                        Save seats
+                        {{ $t('Save seats') }}
                     </Button>
                 </div>
             </div>

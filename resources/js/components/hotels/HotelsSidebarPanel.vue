@@ -14,6 +14,7 @@ import {
     statusTone,
 } from '@/components/hotels/hotelStatus';
 import SolidBuildingIcon from '@/components/icons/SolidBuildingIcon.vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { HotelOverview } from '@/types';
 
@@ -24,6 +25,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t, tc } = useI18n();
 
 const occupancy = computed(() => {
     const overview = props.overview;
@@ -61,12 +64,12 @@ const overageSeats = computed(() =>
 const donutSegments = computed(() => {
     const segments = [
         {
-            label: 'Used Seats',
+            label: t('Used Seats'),
             value: usedSeats.value,
             colorClass: 'text-brand-600',
         },
         {
-            label: 'Available Seats',
+            label: t('Available Seats'),
             value: freeSeats.value,
             colorClass: 'text-success',
         },
@@ -74,7 +77,7 @@ const donutSegments = computed(() => {
 
     if (overageSeats.value > 0) {
         segments.push({
-            label: 'Over Quota',
+            label: t('Over Quota'),
             value: overageSeats.value,
             colorClass: 'text-danger',
         });
@@ -91,29 +94,29 @@ const daysText = computed(() => {
     }
 
     if (overview.status === 'paused') {
-        return 'Paused';
+        return t('Paused');
     }
 
     if (overview.status === 'ended') {
-        return 'Ended';
+        return t('Ended');
     }
 
     if (overview.status === 'pending') {
-        return 'Waiting for approval';
+        return t('Waiting for approval');
     }
 
     if (overview.status === 'archived') {
-        return 'Archived';
+        return t('Archived');
     }
 
-    return `${overview.daysRemaining ?? 0} days left`;
+    return tc(':count day left|:count days left', overview.daysRemaining ?? 0);
 });
 </script>
 
 <template>
     <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
         <PanelCard
-            title="Hotel Overview"
+            :title="$t('Hotel Overview')"
             title-id="hotels-overview-title"
             body-class="flex flex-col gap-4"
         >
@@ -136,11 +139,14 @@ const daysText = computed(() => {
                 <p
                     class="font-heading text-brand-900 text-[14px] font-semibold"
                 >
-                    No hotel selected
+                    {{ $t('No hotel selected') }}
                 </p>
                 <p class="text-ink-slate mt-1 text-[12.5px] leading-5">
-                    Nothing matches the current filters. Clear them, or add a
-                    hotel to see its overview here.
+                    {{
+                        $t(
+                            'Nothing matches the current filters. Clear them, or add a hotel to see its overview here.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -167,7 +173,7 @@ const daysText = computed(() => {
                             )
                         "
                     >
-                        {{ statusText[overview.status] }}
+                        {{ $t(statusText[overview.status]) }}
                     </span>
                 </div>
 
@@ -177,9 +183,9 @@ const daysText = computed(() => {
                             class="text-brand-700 size-3.5 shrink-0"
                             aria-hidden="true"
                         />
-                        <span class="truncate"
-                            >Manager: {{ overview.manager }}</span
-                        >
+                        <span class="truncate">{{
+                            $t('Manager: :name', { name: overview.manager })
+                        }}</span>
                     </p>
                     <p class="flex items-center gap-2">
                         <Mail
@@ -206,7 +212,7 @@ const daysText = computed(() => {
                     <p
                         class="font-heading text-brand-800 text-[13px] font-semibold"
                     >
-                        Contract Health
+                        {{ $t('Contract Health') }}
                     </p>
                     <p class="text-ink-muted mt-1 text-[12.5px] leading-5">
                         {{ daysText }}
@@ -238,7 +244,7 @@ const daysText = computed(() => {
                             {{ overview.employees }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Employees
+                            {{ $t('Employees') }}
                         </p>
                     </div>
                     <div
@@ -250,7 +256,7 @@ const daysText = computed(() => {
                             {{ overview.departments }}
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Departments
+                            {{ $t('Departments') }}
                         </p>
                     </div>
                     <div
@@ -262,7 +268,7 @@ const daysText = computed(() => {
                             {{ occupancy }}%
                         </p>
                         <p class="text-ink-slate text-[11px] leading-4">
-                            Seat Use
+                            {{ $t('Seat Use') }}
                         </p>
                     </div>
                 </div>
@@ -275,26 +281,30 @@ const daysText = computed(() => {
                             <p
                                 class="font-heading text-brand-800 text-[13px] font-semibold"
                             >
-                                Seat Occupancy
+                                {{ $t('Seat Occupancy') }}
                             </p>
                             <p
                                 class="text-ink-slate mt-0.5 text-[11.5px] leading-4"
                             >
-                                {{ overview.usedSeats }} /
-                                {{ overview.totalSeats }} seats used
+                                {{
+                                    $t(':used / :total seats used', {
+                                        used: overview.usedSeats,
+                                        total: overview.totalSeats,
+                                    })
+                                }}
                             </p>
                         </div>
                         <span
                             v-if="overageSeats > 0"
                             class="text-danger-text text-[11px] font-semibold"
                         >
-                            {{ overageSeats }} over
+                            {{ $t(':count over', { count: overageSeats }) }}
                         </span>
                         <span
                             v-else
                             class="text-success text-[11px] font-semibold"
                         >
-                            {{ freeSeats }} free
+                            {{ $t(':count free', { count: freeSeats }) }}
                         </span>
                     </div>
 
@@ -311,7 +321,11 @@ const daysText = computed(() => {
                             :thickness="12"
                             :gap="4"
                             rounded
-                            :label="`${overview.name} seat occupancy`"
+                            :label="
+                                $t(':name seat occupancy', {
+                                    name: overview.name,
+                                })
+                            "
                         >
                             <p
                                 class="font-heading text-brand-800 text-[23px] leading-none font-bold"
@@ -321,7 +335,7 @@ const daysText = computed(() => {
                             <p
                                 class="text-ink-slate mt-1 text-[11px] leading-4"
                             >
-                                Occupied
+                                {{ $t('Occupied') }}
                             </p>
                         </Donut>
                     </div>
@@ -330,7 +344,7 @@ const daysText = computed(() => {
         </PanelCard>
 
         <PanelCard
-            title="Department Seat Quotas"
+            :title="$t('Department Seat Quotas')"
             title-id="hotel-quotas-title"
             body-class="flex flex-col gap-3"
         >
@@ -352,8 +366,10 @@ const daysText = computed(() => {
             >
                 {{
                     overview === null
-                        ? 'Select a hotel to see its department quotas.'
-                        : 'No seat quotas yet. Use Manage seats to allocate departments.'
+                        ? $t('Select a hotel to see its department quotas.')
+                        : $t(
+                              'No seat quotas yet. Use Manage seats to allocate departments.',
+                          )
                 }}
             </p>
 
@@ -376,7 +392,7 @@ const daysText = computed(() => {
                             )
                         "
                     >
-                        {{ quotaText[quota.state] }}
+                        {{ $t(quotaText[quota.state]) }}
                     </span>
                 </div>
 
@@ -384,7 +400,9 @@ const daysText = computed(() => {
                     <ProgressBar
                         :value="seatPercent(quota.usedSeats, quota.totalSeats)"
                         :tone="progressTone[quota.state]"
-                        :label="`${quota.department} seats used`"
+                        :label="
+                            $t(':name seats used', { name: quota.department })
+                        "
                         class="h-[7px] flex-1"
                     />
                     <span class="text-brand-900 text-[11.5px] font-medium">

@@ -57,7 +57,7 @@ const controlClass =
             type="button"
             :aria-expanded="open"
             :aria-controls="`${id}-meaning`"
-            :aria-label="`Show Meaning for ${label}`"
+            :aria-label="$t('Show Meaning for :label', { label: $t(label) })"
             :class="
                 cn(
                     'focus-visible:ring-brand-600 hover:bg-brand-50 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-[11.5px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none md:min-h-8',
@@ -71,8 +71,8 @@ const controlClass =
             <span>
                 {{
                     hasMeaning
-                        ? 'Show Meaning: Arabic added'
-                        : 'Add Show Meaning'
+                        ? $t('Show Meaning: Arabic added')
+                        : $t('Add Show Meaning')
                 }}
             </span>
             <ChevronDown
@@ -90,7 +90,7 @@ const controlClass =
         >
             <label class="grid gap-1">
                 <span class="text-brand-900 text-[11.5px] font-semibold">
-                    Arabic meaning
+                    {{ $t('Arabic meaning') }}
                 </span>
                 <textarea
                     :value="modelValue?.arabic ?? ''"
@@ -117,14 +117,16 @@ const controlClass =
             </label>
             <label class="grid gap-1">
                 <span class="text-brand-900 text-[11.5px] font-semibold">
-                    Simple explanation
-                    <span class="text-ink-slate font-normal">(optional)</span>
+                    {{ $t('Simple explanation') }}
+                    <span class="text-ink-slate font-normal">{{
+                        $t('(optional)')
+                    }}</span>
                 </span>
                 <input
                     :value="modelValue?.explanation ?? ''"
                     maxlength="300"
                     :readonly="readOnly"
-                    placeholder="A short, simple English explanation"
+                    :placeholder="$t('A short, simple English explanation')"
                     :class="cn(controlClass, 'h-10')"
                     @input="
                         update({
@@ -136,8 +138,11 @@ const controlClass =
                 />
             </label>
             <p class="text-ink-slate text-[11px]">
-                Learners see this only after they tap Show Meaning. Never in a
-                test.
+                {{
+                    $t(
+                        'Learners see this only after they tap Show Meaning. Never in a test.',
+                    )
+                }}
             </p>
         </div>
     </div>

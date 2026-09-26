@@ -64,7 +64,7 @@ function onPoster(item: LessonMediaRef | null): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
@@ -84,18 +84,26 @@ function onPoster(item: LessonMediaRef | null): void {
             />
         </div>
         <div class="grid gap-4 md:grid-cols-2">
-            <LessonsField v-model="controlsTitle" label="Controls title" />
-            <LessonsField v-model="controlsNote" label="Controls note" />
+            <LessonsField
+                v-model="controlsTitle"
+                :label="$t('Controls title')"
+            />
+            <LessonsField v-model="controlsNote" :label="$t('Controls note')" />
         </div>
-        <LessonsField v-model="exampleTitle" label="Example title" />
-        <LessonsField v-model="exampleText" label="Example sentence" />
+        <LessonsField v-model="exampleTitle" :label="$t('Example title')" />
+        <LessonsField v-model="exampleText" :label="$t('Example sentence')" />
         <LessonsField
             v-model="exampleArabic"
-            label="Example Arabic (behind Show Meaning)"
+            :label="$t('Example Arabic (behind Show Meaning)')"
             dir="rtl"
         />
-        <LessonsField v-model="exampleNote" label="Example note" />
-        <LessonsField v-model="tip" label="Tip" type="textarea" :rows="2" />
+        <LessonsField v-model="exampleNote" :label="$t('Example note')" />
+        <LessonsField
+            v-model="tip"
+            :label="$t('Tip')"
+            type="textarea"
+            :rows="2"
+        />
         <LessonsAudioChips
             v-if="exampleTexts.length > 0"
             :texts="exampleTexts"

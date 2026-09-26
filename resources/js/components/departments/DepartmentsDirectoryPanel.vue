@@ -24,6 +24,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     DepartmentFilters,
@@ -59,6 +61,7 @@ const emit = defineEmits<{
 }>();
 
 const { can } = useCan();
+const { t, tc } = useI18n();
 const canManage = can('departments.manage');
 
 const search = ref(props.filters.search);
@@ -97,9 +100,9 @@ watchDebounced(
 );
 
 const statusText: Record<DepartmentStatus, string> = {
-    active: 'Active',
-    review: 'In Review',
-    draft: 'Draft',
+    active: tk('Active'),
+    review: tk('In Review'),
+    draft: tk('Draft'),
 };
 
 const statusTone: Record<DepartmentStatus, string> = {
@@ -122,7 +125,9 @@ const quotaTone: Record<DepartmentQuotaState, 'brand' | 'warning'> = {
 };
 
 function pillText(department: DepartmentRecord): string {
-    return department.isActive ? statusText[department.status] : 'Archived';
+    return department.isActive
+        ? t(statusText[department.status])
+        : t('Archived');
 }
 
 function pillTone(department: DepartmentRecord): string {
@@ -174,9 +179,7 @@ function quotaState(department: DepartmentRecord): DepartmentQuotaState {
 }
 
 function hotelsLabel(department: DepartmentRecord): string {
-    return department.hotelCount === 1
-        ? '1 hotel'
-        : `${department.hotelCount} hotels`;
+    return tc(':count hotel|:count hotels', department.hotelCount);
 }
 
 const iconButton =
@@ -187,7 +190,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
 
 <template>
     <section
-        aria-label="Departments directory"
+        :aria-label="$t('Departments directory')"
         class="border-line bg-surface shadow-card rounded-lg border p-2.5"
     >
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
@@ -199,8 +202,8 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search by department, focus or scope..."
-                    aria-label="Search departments"
+                    :placeholder="$t('Search by department, focus or scope...')"
+                    :aria-label="$t('Search departments')"
                     data-test="departments-search-input"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
@@ -212,7 +215,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     @update:model-value="onSelect('scope', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by scope"
+                        :aria-label="$t('Filter by scope')"
                         data-test="departments-scope-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -235,7 +238,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     @update:model-value="onSelect('status', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Filter by status"
+                        :aria-label="$t('Filter by status')"
                         data-test="departments-status-filter"
                         class="border-line text-ink bg-surface h-9 min-w-[148px] rounded-md px-3 text-[12.5px] shadow-none"
                     >
@@ -261,7 +264,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     @click="resetFilters"
                 >
                     <RotateCcw class="size-3.5" aria-hidden="true" />
-                    Reset
+                    {{ $t('Reset') }}
                 </Button>
             </div>
         </div>
@@ -280,31 +283,31 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                         >
                             <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
                             <th class="w-[170px] px-2 py-2 text-start">
-                                Department
+                                {{ $t('Department') }}
                             </th>
                             <th class="w-[116px] px-2 py-2 text-start">
-                                Scope
+                                {{ $t('Scope') }}
                             </th>
                             <th class="w-[78px] px-2 py-2 text-start">
-                                Hotels
+                                {{ $t('Hotels') }}
                             </th>
                             <th class="w-[86px] px-2 py-2 text-start">
-                                Employees
+                                {{ $t('Employees') }}
                             </th>
                             <th class="w-[154px] px-2 py-2 text-start">
-                                Seat Usage
+                                {{ $t('Seat Usage') }}
                             </th>
                             <th class="w-[92px] px-2 py-2 text-start">
-                                Lessons
+                                {{ $t('Lessons') }}
                             </th>
                             <th class="w-[114px] px-2 py-2 text-start">
-                                Assessments
+                                {{ $t('Assessments') }}
                             </th>
                             <th class="w-[104px] px-2 py-2 text-start">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th class="w-[108px] px-2 py-2 text-start">
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -335,11 +338,16 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                 <p
                                     class="font-heading text-brand-900 text-[14px] font-semibold"
                                 >
-                                    No departments match these filters
+                                    {{
+                                        $t('No departments match these filters')
+                                    }}
                                 </p>
                                 <p class="text-ink-slate mt-1 text-[12.5px]">
-                                    Try another search, or clear the filters to
-                                    see the whole catalogue.
+                                    {{
+                                        $t(
+                                            'Try another search, or clear the filters to see the whole catalogue.',
+                                        )
+                                    }}
                                 </p>
                                 <Button
                                     type="button"
@@ -351,7 +359,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    Clear filters
+                                    {{ $t('Clear filters') }}
                                 </Button>
                             </td>
                         </tr>
@@ -392,8 +400,8 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                 >
                                     {{
                                         department.scope === 'shared'
-                                            ? 'Shared'
-                                            : 'Hotel Specific'
+                                            ? $t('Shared')
+                                            : $t('Hotel Specific')
                                     }}
                                 </span>
                             </td>
@@ -421,7 +429,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                         :tone="
                                             quotaTone[quotaState(department)]
                                         "
-                                        :label="`${department.name} seat usage`"
+                                        :label="
+                                            $t(':name seat usage', {
+                                                name: department.name,
+                                            })
+                                        "
                                         class="h-[6px] w-[68px]"
                                     />
                                 </div>
@@ -429,20 +441,34 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                             <td
                                 class="text-ink-muted px-2 py-[7px] align-middle text-[11.5px]"
                             >
-                                {{ department.lessonCount }} lessons
+                                {{
+                                    $tc(
+                                        ':count lesson|:count lessons',
+                                        department.lessonCount,
+                                    )
+                                }}
                             </td>
                             <td class="px-2 py-[7px] align-middle">
                                 <div class="min-w-0">
                                     <span
                                         class="text-brand-900 block truncate text-[11.5px] font-medium"
                                     >
-                                        {{ department.testCount }} tests
+                                        {{
+                                            $tc(
+                                                ':count test|:count tests',
+                                                department.testCount,
+                                            )
+                                        }}
                                     </span>
                                     <span
                                         class="text-ink-slate block truncate text-[11px]"
                                     >
-                                        {{ department.scenarioCount }} AI
-                                        scenarios
+                                        {{
+                                            $tc(
+                                                ':count AI scenario|:count AI scenarios',
+                                                department.scenarioCount,
+                                            )
+                                        }}
                                     </span>
                                 </div>
                             </td>
@@ -463,7 +489,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                     <button
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`View ${department.name}`"
+                                        :aria-label="
+                                            $t('View :name', {
+                                                name: department.name,
+                                            })
+                                        "
                                         :data-test="`department-${department.id}-view-button`"
                                         @click="
                                             emit('action', 'view', department)
@@ -478,7 +508,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                         v-if="canManage"
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`Edit ${department.name}`"
+                                        :aria-label="
+                                            $t('Edit :name', {
+                                                name: department.name,
+                                            })
+                                        "
                                         :data-test="`department-${department.id}-edit-button`"
                                         @click="
                                             emit('action', 'edit', department)
@@ -492,7 +526,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                     <button
                                         type="button"
                                         :class="cn(iconButton, 'size-6.5')"
-                                        :aria-label="`Manage ${department.name} content`"
+                                        :aria-label="
+                                            $t('Manage :name content', {
+                                                name: department.name,
+                                            })
+                                        "
                                         :data-test="`department-${department.id}-content-button`"
                                         @click="
                                             emit(
@@ -529,10 +567,10 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     <p
                         class="font-heading text-brand-900 text-[15px] font-semibold"
                     >
-                        No departments match these filters
+                        {{ $t('No departments match these filters') }}
                     </p>
                     <p class="text-ink-slate mt-1 text-[13px]">
-                        Try another search, or clear the filters.
+                        {{ $t('Try another search, or clear the filters.') }}
                     </p>
                     <Button
                         type="button"
@@ -541,7 +579,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                         @click="resetFilters"
                     >
                         <RotateCcw class="size-3.5" aria-hidden="true" />
-                        Clear filters
+                        {{ $t('Clear filters') }}
                     </Button>
                 </li>
                 <li
@@ -594,23 +632,27 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                         class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
                     >
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Employees:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Employees:')
+                            }}</span>
                             {{ department.employeeCount }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Lessons:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Lessons:')
+                            }}</span>
                             {{ department.lessonCount }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Assessments:</span
-                            >
-                            {{ department.testCount }} tests /
-                            {{ department.scenarioCount }} AI
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Assessments:')
+                            }}</span>
+                            {{
+                                $t(':tests tests / :scenarios AI', {
+                                    tests: department.testCount,
+                                    scenarios: department.scenarioCount,
+                                })
+                            }}
                         </p>
                     </div>
 
@@ -623,7 +665,11 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                         <ProgressBar
                             :value="seatPercent(department)"
                             :tone="quotaTone[quotaState(department)]"
-                            :label="`${department.name} seat usage`"
+                            :label="
+                                $t(':name seat usage', {
+                                    name: department.name,
+                                })
+                            "
                             class="h-2 flex-1"
                         />
                     </div>
@@ -633,14 +679,20 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                             class="rounded-pill bg-ai/10 text-ai inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold"
                         >
                             <Bot class="size-3.5" aria-hidden="true" />
-                            {{ department.scenarioCount }} AI
+                            {{
+                                $t(':count AI', {
+                                    count: department.scenarioCount,
+                                })
+                            }}
                         </div>
 
                         <div class="ms-auto flex items-center gap-1.5">
                             <button
                                 type="button"
                                 :class="cn(iconButton, 'size-9')"
-                                :aria-label="`View ${department.name}`"
+                                :aria-label="
+                                    $t('View :name', { name: department.name })
+                                "
                                 @click="emit('action', 'view', department)"
                             >
                                 <Eye class="size-4" aria-hidden="true" />
@@ -649,7 +701,9 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                                 v-if="canManage"
                                 type="button"
                                 :class="cn(iconButton, 'size-9')"
-                                :aria-label="`Edit ${department.name}`"
+                                :aria-label="
+                                    $t('Edit :name', { name: department.name })
+                                "
                                 @click="emit('action', 'edit', department)"
                             >
                                 <Pencil class="size-4" aria-hidden="true" />
@@ -669,12 +723,17 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
             class="text-ink-muted mt-2.5 flex flex-col gap-2 text-[12.5px] leading-5 md:flex-row md:items-center md:justify-between"
         >
             <p>
-                Showing {{ pagination.from }}-{{ pagination.to }} of
-                {{ pagination.total }} departments
+                {{
+                    $t('Showing :from-:to of :total departments', {
+                        from: pagination.from,
+                        to: pagination.to,
+                        total: pagination.total,
+                    })
+                }}
             </p>
 
             <nav
-                aria-label="Departments pagination"
+                :aria-label="$t('Departments pagination')"
                 class="flex flex-wrap items-center gap-1.5"
             >
                 <button
@@ -684,7 +743,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     @click="emit('page', pagination.currentPage - 1)"
                 >
                     <ChevronLeft class="size-3.5" aria-hidden="true" />
-                    Previous
+                    {{ $t('Previous') }}
                 </button>
 
                 <template v-for="page in pagination.pages" :key="String(page)">
@@ -720,7 +779,7 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
                     class="text-brand-700 hover:bg-brand-50 inline-flex min-h-8 items-center gap-1 rounded-md px-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
                     @click="emit('page', pagination.currentPage + 1)"
                 >
-                    Next
+                    {{ $t('Next') }}
                     <ChevronRight class="size-3.5" aria-hidden="true" />
                 </button>
             </nav>

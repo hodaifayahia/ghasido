@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import AppLogo from '@/components/AppLogo.vue';
+import LanguageToggle from '@/components/landing/LanguageToggle.vue';
+import { tk } from '@/lib/i18n';
 import { home } from '@/routes';
 
 defineProps<{
@@ -9,9 +11,9 @@ defineProps<{
 }>();
 
 const highlights = [
-    'Department-based lessons',
-    'AI guest conversation practice',
-    'Progress and assessment reports',
+    tk('Department-based lessons'),
+    tk('AI guest conversation practice'),
+    tk('Progress and assessment reports'),
 ] as const;
 </script>
 
@@ -35,16 +37,21 @@ const highlights = [
 
                 <div class="relative mt-8">
                     <p class="text-label text-brand-700">
-                        English for hotel teams
+                        {{ $t('English for hotel teams') }}
                     </p>
                     <h2
                         class="font-heading text-ink-royal mt-3 max-w-[14ch] text-3xl leading-tight font-bold"
                     >
-                        Build confidence for every guest interaction.
+                        {{
+                            $t('Build confidence for every guest interaction.')
+                        }}
                     </h2>
                     <p class="text-body text-ink-slate mt-4 max-w-[54ch]">
-                        Focused lessons, realistic practice and clear progress
-                        for every hotel department.
+                        {{
+                            $t(
+                                'Focused lessons, realistic practice and clear progress for every hotel department.',
+                            )
+                        }}
                     </p>
 
                     <ul class="mt-6 grid gap-2.5">
@@ -53,7 +60,7 @@ const highlights = [
                             :key="highlight"
                             class="border-line bg-app-alt text-ink-indigo rounded-lg border px-4 py-2.5 text-sm font-medium"
                         >
-                            {{ highlight }}
+                            {{ $t(highlight) }}
                         </li>
                     </ul>
                 </div>
@@ -70,26 +77,35 @@ const highlights = [
             >
                 <div class="bg-grad-brand absolute inset-x-0 top-0 h-1" />
 
+                <!-- English / Arabic before signing in (I18N-02). -->
+                <LanguageToggle
+                    class="absolute end-2 top-2 z-10 sm:end-3 sm:top-3"
+                />
+
                 <Link
                     :href="home()"
                     class="mb-4 inline-flex max-w-full lg:hidden"
                 >
-                    <AppLogo class="origin-left scale-[0.82]" />
+                    <AppLogo
+                        class="origin-left scale-[0.82] rtl:origin-right"
+                    />
                 </Link>
 
                 <div class="relative">
-                    <p class="text-label text-brand-700">Secure access</p>
+                    <p class="text-label text-brand-700">
+                        {{ $t('Secure access') }}
+                    </p>
                     <h1
                         v-if="title"
                         class="font-heading text-ink-royal mt-2 text-2xl leading-tight font-bold sm:text-[28px]"
                     >
-                        {{ title }}
+                        {{ $t(title ?? '') }}
                     </h1>
                     <p
                         v-if="description"
                         class="text-body text-ink-slate mt-2 max-w-md"
                     >
-                        {{ description }}
+                        {{ $t(description ?? '') }}
                     </p>
                 </div>
 

@@ -3,6 +3,7 @@ import { Form } from '@inertiajs/vue3';
 import { Mail, MailOpen } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { read } from '@/routes/learn/messages';
 import type { LearnerMessage } from '@/types';
@@ -20,7 +21,7 @@ const props = defineProps<Props>();
 
 const sent = computed(() =>
     props.message.sentAt
-        ? new Date(props.message.sentAt).toLocaleDateString('en-GB', {
+        ? new Date(props.message.sentAt).toLocaleDateString(intlLocale(), {
               day: 'numeric',
               month: 'short',
               year: 'numeric',
@@ -70,7 +71,7 @@ const sent = computed(() =>
                         v-if="!message.read"
                         class="rounded-pill bg-brand-50 text-brand-700 ms-2 px-2 py-0.5 align-middle text-[11px] font-semibold"
                     >
-                        New
+                        {{ $t('New') }}
                     </span>
                 </h2>
                 <time
@@ -98,7 +99,7 @@ const sent = computed(() =>
                     class="text-brand-600 focus-visible:ring-brand-600/40 inline-flex min-h-11 items-center rounded-md px-2 text-sm font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
                     data-test="mark-message-read-button"
                 >
-                    Mark as read
+                    {{ $t('Mark as read') }}
                 </button>
             </Form>
         </div>

@@ -267,7 +267,7 @@ class LessonService
             $course = $lesson->course()->firstOrFail();
 
             $copy = $lesson->replicate(['slug', 'status', 'published_at', 'position']);
-            $copy->title = __(':title (copy)', ['title' => $lesson->title]);
+            $copy->title = __(':title (copy)', ['title' => $lesson->title], 'en');
             $copy->slug = $this->uniqueLessonSlug($course, $copy->title);
             $copy->status = ContentStatus::Draft;
             $copy->published_at = null;
