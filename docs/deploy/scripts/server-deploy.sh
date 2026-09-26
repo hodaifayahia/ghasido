@@ -74,12 +74,15 @@ if [ ! -d vendor ] && [ -d "$APP/vendor" ]; then
   echo "copying vendor/ from the live app"
   cp -a "$APP/vendor" vendor
 fi
-if ! out=$(composer install --no-dev --no-interaction --no-progress --prefer-dist 2>&1); then
+# --no-scripts: Composer runs its scripts through proc_open, which this host's
+# PHP disables, so package discovery runs through artisan directly below.
+if ! out=$(composer install --no-dev --no-interaction --no-progress --prefer-dist --no-scripts 2>&1); then
   echo "$out" | grep -v '^\s*$' | head -n 25
   echo "COMPOSER FAILED"
   exit 1
 fi
 echo "$out" | tail -n 3
+php artisan package:discover --ansi | tail -n 2
 if [ ! -f .env ]; then
   cp .env.example .env
   php artisan key:generate --no-interaction >/dev/null

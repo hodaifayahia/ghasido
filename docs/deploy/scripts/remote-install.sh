@@ -18,8 +18,11 @@ cd "$APP" || exit 1
 chmod 600 .env
 
 echo "== composer install"
-composer install --no-dev --optimize-autoloader --no-interaction --no-progress 2>&1 | tail -n 12
+# --no-scripts: Composer runs its scripts through proc_open, which this host's
+# PHP disables; package discovery runs through artisan instead.
+composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts 2>&1 | tail -n 12
 test -f vendor/autoload.php || { echo "COMPOSER FAILED"; exit 1; }
+php artisan package:discover --ansi 2>&1 | tail -n 3
 
 echo "== platform check"
 composer check-platform-reqs --no-dev 2>&1 | grep -v -E ' success$' | tail -n 8
