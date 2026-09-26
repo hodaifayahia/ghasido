@@ -40,6 +40,21 @@ on both; this is the one-time move of the live data.
 It never changes the SQLite file. `sessions`, `cache` and `cache_locks` are
 not copied (the live site keeps sessions and cache in files).
 
+## The switch from an SSH window only
+
+`scripts/server-deploy.sh` builds and deploys from a git clone on the server
+itself (it installs Node into `~/.local/node` the first time). After cloning
+the repository into `~/ghasido-src` with a read-only deploy key:
+
+```bash
+cd ~/ghasido-src && git pull
+SWITCH_TO_MYSQL=1 bash docs/deploy/scripts/server-deploy.sh
+```
+
+It asks for the MySQL database, user and password (the password is not
+shown), checks the login, deploys, switches and restarts the workers. Later
+deploys: the same two lines without `SWITCH_TO_MYSQL=1`.
+
 ## The switch from GitHub (no developer PC needed)
 
 `.github/workflows/deploy-hostinger.yml` builds the site on GitHub, uploads
