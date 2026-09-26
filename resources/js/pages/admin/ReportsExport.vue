@@ -11,6 +11,7 @@ import type { ReportFilterValues } from '@/components/reports/ReportsToolbar.vue
 import ReportsScoreDialog from '@/components/reports/ReportsScoreDialog.vue';
 import ReportsTranscriptDialog from '@/components/reports/ReportsTranscriptDialog.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { tk } from '@/lib/i18n';
 import { dashboard, reportsExport as reportsExportRoute } from '@/routes';
 import { exportMethod } from '@/routes/reports';
 import type {
@@ -63,11 +64,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Reports & Export',
+                title: tk('Reports & Export'),
                 href: reportsExportRoute(),
             },
         ],
@@ -348,14 +349,18 @@ function runExport(format: ReportExportFormat): void {
 </script>
 
 <template>
-    <Head title="Reports & Export" />
+    <Head :title="$t('Reports & Export')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">Reports & Export</h1>
+        <h1 class="sr-only">{{ $t('Reports & Export') }}</h1>
 
         <PageHeader
-            title="Reports & Export"
-            description="View detailed results, track progress and export data for your research."
+            :title="$t('Reports & Export')"
+            :description="
+                $t(
+                    'View detailed results, track progress and export data for your research.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>

@@ -7,6 +7,8 @@ import MessagesPager from '@/components/messages/MessagesPager.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     MessageConsentStatus,
@@ -28,6 +30,8 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { loading: false });
+
+const { t, tc } = useI18n();
 
 /** The ticked employees, by id, kept across pages (REM-02). */
 const selected = defineModel<number[]>('selected', { required: true });
@@ -122,14 +126,15 @@ function clearSelection(): void {
 
 const selectionSummary = computed(() => {
     if (allMatching.value) {
-        return `All ${props.pagination.total} employees matching the filters are selected.`;
+        return t('All :total employees matching the filters are selected.', {
+            total: props.pagination.total,
+        });
     }
 
-    const count = selected.value.length;
-
-    return count === 1
-        ? '1 employee selected.'
-        : `${count} employees selected.`;
+    return tc(
+        ':count employee selected.|:count employees selected.',
+        selected.value.length,
+    );
 });
 
 const consentTone: Record<MessageConsentStatus, string> = {
@@ -138,8 +143,8 @@ const consentTone: Record<MessageConsentStatus, string> = {
 };
 
 const consentText: Record<MessageConsentStatus, string> = {
-    granted: 'Granted',
-    not_granted: 'Missing',
+    granted: tk('Granted'),
+    not_granted: tk('Missing'),
 };
 
 const statusTone: Record<MessageRecipientStatus, string> = {
@@ -150,10 +155,10 @@ const statusTone: Record<MessageRecipientStatus, string> = {
 };
 
 const statusText: Record<MessageRecipientStatus, string> = {
-    active: 'Active',
-    in_progress: 'In progress',
-    inactive: 'Inactive',
-    consent_pending: 'Consent pending',
+    active: tk('Active'),
+    in_progress: tk('In progress'),
+    inactive: tk('Inactive'),
+    consent_pending: tk('Consent pending'),
 };
 
 const skeletonRows = [0, 1, 2, 3, 4];
@@ -172,10 +177,14 @@ const skeletonRows = [0, 1, 2, 3, 4];
         <div class="flex min-h-8 items-center justify-between gap-3">
             <div>
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
-                    Reminder Recipients
+                    {{ $t('Reminder Recipients') }}
                 </h2>
                 <p class="text-ink-slate mt-0.5 text-[12px] leading-4">
-                    Review consent, inactivity and send status before messaging.
+                    {{
+                        $t(
+                            'Review consent, inactivity and send status before messaging.',
+                        )
+                    }}
                 </p>
             </div>
         </div>
@@ -188,8 +197,8 @@ const skeletonRows = [0, 1, 2, 3, 4];
             <Input
                 v-model="search"
                 type="search"
-                placeholder="Search by employee, hotel or department..."
-                aria-label="Search recipients"
+                :placeholder="$t('Search by employee, hotel or department...')"
+                :aria-label="$t('Search recipients')"
                 data-test="messages-search-input"
                 class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
             />
@@ -208,7 +217,11 @@ const skeletonRows = [0, 1, 2, 3, 4];
                 data-test="select-all-matching-button"
                 @click="selectEveryone"
             >
-                Select all {{ pagination.total }} matching
+                {{
+                    $t('Select all :total matching', {
+                        total: pagination.total,
+                    })
+                }}
             </button>
             <button
                 type="button"
@@ -216,7 +229,7 @@ const skeletonRows = [0, 1, 2, 3, 4];
                 data-test="clear-selection-button"
                 @click="clearSelection"
             >
-                Clear
+                {{ $t('Clear') }}
             </button>
         </div>
 
@@ -241,31 +254,33 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                     :disabled="
                                         !canSend || recipients.length === 0
                                     "
-                                    aria-label="Select every employee on this page"
+                                    :aria-label="
+                                        $t('Select every employee on this page')
+                                    "
                                     data-test="select-page-checkbox"
                                     @update:model-value="togglePage"
                                 />
                             </th>
                             <th class="w-[168px] px-2 py-2 text-start">
-                                Employee
+                                {{ $t('Employee') }}
                             </th>
                             <th class="w-[126px] px-2 py-2 text-start">
-                                Hotel
+                                {{ $t('Hotel') }}
                             </th>
                             <th class="w-[100px] px-2 py-2 text-start">
-                                Department
+                                {{ $t('Department') }}
                             </th>
                             <th class="w-[104px] px-2 py-2 text-start">
-                                Last Activity
+                                {{ $t('Last Activity') }}
                             </th>
                             <th class="w-[94px] px-2 py-2 text-start">
-                                Consent
+                                {{ $t('Consent') }}
                             </th>
                             <th class="w-[112px] px-2 py-2 text-start">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th class="w-[112px] px-2 py-2 text-start">
-                                Action
+                                {{ $t('Action') }}
                             </th>
                         </tr>
                     </thead>
@@ -292,10 +307,14 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                 <p
                                     class="font-heading text-brand-900 text-[15px] font-semibold"
                                 >
-                                    No employees match these filters
+                                    {{ $t('No employees match these filters') }}
                                 </p>
                                 <p class="text-ink-slate mt-1 text-[13px]">
-                                    Try another search, or reset the filters.
+                                    {{
+                                        $t(
+                                            'Try another search, or reset the filters.',
+                                        )
+                                    }}
                                 </p>
                             </td>
                         </tr>
@@ -315,7 +334,11 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                 <Checkbox
                                     :model-value="isSelected(recipient.id)"
                                     :disabled="!canSend"
-                                    :aria-label="`Select ${recipient.name}`"
+                                    :aria-label="
+                                        $t('Select :name', {
+                                            name: recipient.name,
+                                        })
+                                    "
                                     :data-test="`select-recipient-${recipient.id}`"
                                     @update:model-value="
                                         toggle(recipient.id, $event)
@@ -362,7 +385,9 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                         )
                                     "
                                 >
-                                    {{ consentText[recipient.consentStatus] }}
+                                    {{
+                                        $t(consentText[recipient.consentStatus])
+                                    }}
                                 </span>
                             </td>
                             <td class="px-2 py-[7px] align-middle">
@@ -374,7 +399,7 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                         )
                                     "
                                 >
-                                    {{ statusText[recipient.status] }}
+                                    {{ $t(statusText[recipient.status]) }}
                                 </span>
                             </td>
                             <td class="px-2 py-[7px] align-middle">
@@ -382,12 +407,16 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                     type="button"
                                     :disabled="!canSend"
                                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 inline-flex h-8 min-w-[96px] items-center justify-center gap-1.5 rounded-md border px-3 text-[11.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                                    :aria-label="`Send reminder to ${recipient.name}`"
+                                    :aria-label="
+                                        $t('Send reminder to :name', {
+                                            name: recipient.name,
+                                        })
+                                    "
                                     :data-test="`send-to-${recipient.id}-button`"
                                     @click="emit('send', [recipient.id])"
                                 >
                                     <Mail class="size-3.5" aria-hidden="true" />
-                                    Send
+                                    {{ $t('Send') }}
                                 </button>
                             </td>
                         </tr>
@@ -403,10 +432,10 @@ const skeletonRows = [0, 1, 2, 3, 4];
                     <p
                         class="font-heading text-brand-900 text-[15px] font-semibold"
                     >
-                        No employees match these filters
+                        {{ $t('No employees match these filters') }}
                     </p>
                     <p class="text-ink-slate mt-1 text-[13px]">
-                        Try another search, or reset the filters.
+                        {{ $t('Try another search, or reset the filters.') }}
                     </p>
                 </li>
                 <li
@@ -430,7 +459,9 @@ const skeletonRows = [0, 1, 2, 3, 4];
                         <Checkbox
                             :model-value="isSelected(recipient.id)"
                             :disabled="!canSend"
-                            :aria-label="`Select ${recipient.name}`"
+                            :aria-label="
+                                $t('Select :name', { name: recipient.name })
+                            "
                             class="size-6"
                             @update:model-value="toggle(recipient.id, $event)"
                         />
@@ -440,21 +471,21 @@ const skeletonRows = [0, 1, 2, 3, 4];
                         class="text-ink-muted mt-3 grid gap-2 text-[13px] leading-5"
                     >
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Department:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Department:')
+                            }}</span>
                             {{ recipient.department }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Last Activity:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Last Activity:')
+                            }}</span>
                             {{ recipient.lastActivity }}
                         </p>
                         <p>
-                            <span class="text-brand-900 font-medium"
-                                >Inactivity:</span
-                            >
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Inactivity:')
+                            }}</span>
                             {{ recipient.inactivityLabel }}
                         </p>
                     </div>
@@ -468,7 +499,13 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                 )
                             "
                         >
-                            Consent {{ consentText[recipient.consentStatus] }}
+                            {{
+                                $t('Consent :status', {
+                                    status: $t(
+                                        consentText[recipient.consentStatus],
+                                    ),
+                                })
+                            }}
                         </span>
                         <span
                             :class="
@@ -478,7 +515,7 @@ const skeletonRows = [0, 1, 2, 3, 4];
                                 )
                             "
                         >
-                            {{ statusText[recipient.status] }}
+                            {{ $t(statusText[recipient.status]) }}
                         </span>
                     </div>
 
@@ -486,11 +523,15 @@ const skeletonRows = [0, 1, 2, 3, 4];
                         v-if="canSend"
                         type="button"
                         class="border-line text-brand-700 hover:bg-brand-50 bg-surface mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border text-[12.5px] font-semibold"
-                        :aria-label="`Send reminder to ${recipient.name}`"
+                        :aria-label="
+                            $t('Send reminder to :name', {
+                                name: recipient.name,
+                            })
+                        "
                         @click="emit('send', [recipient.id])"
                     >
                         <Mail class="size-4" aria-hidden="true" />
-                        Send Reminder
+                        {{ $t('Send Reminder') }}
                     </button>
                 </li>
             </ul>
@@ -499,7 +540,7 @@ const skeletonRows = [0, 1, 2, 3, 4];
         <MessagesPager
             :pagination="pagination"
             noun="employees"
-            label="Recipients pagination"
+            :label="$t('Recipients pagination')"
             class="mt-2.5"
             @page="emit('page', $event)"
         />

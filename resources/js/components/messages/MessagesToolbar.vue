@@ -11,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     MessageFilterValues,
@@ -61,18 +62,31 @@ watch(
 const filterFields: Array<{
     key: FilterKey;
     label: string;
+    ariaLabel: string;
     options: () => MessageSelectOption[];
 }> = [
-    { key: 'hotel', label: 'Hotel', options: () => props.filters.hotels },
+    {
+        key: 'hotel',
+        label: tk('Hotel'),
+        ariaLabel: tk('Filter by hotel'),
+        options: () => props.filters.hotels,
+    },
     {
         key: 'department',
-        label: 'Department',
+        label: tk('Department'),
+        ariaLabel: tk('Filter by department'),
         options: () => props.filters.departments,
     },
-    { key: 'consent', label: 'Consent', options: () => props.filters.consents },
+    {
+        key: 'consent',
+        label: tk('Consent'),
+        ariaLabel: tk('Filter by consent'),
+        options: () => props.filters.consents,
+    },
     {
         key: 'activity',
-        label: 'Activity',
+        label: tk('Activity'),
+        ariaLabel: tk('Filter by activity'),
         options: () => props.filters.activities,
     },
 ];
@@ -119,14 +133,14 @@ function resetFilters(): void {
                 class="border-line bg-surface shadow-card rounded-md border px-3 pt-[7px] pb-[5px]"
             >
                 <p class="text-brand-900 text-[11px] leading-4 font-semibold">
-                    {{ field.label }}
+                    {{ $t(field.label) }}
                 </p>
                 <Select
                     :model-value="values[field.key]"
                     @update:model-value="onSelect(field.key, $event)"
                 >
                     <SelectTrigger
-                        :aria-label="`Filter by ${field.label.toLowerCase()}`"
+                        :aria-label="$t(field.ariaLabel)"
                         :data-test="`messages-${field.key}-filter`"
                         class="text-ink-indigo h-6 border-0 px-0 py-0 text-[12.5px] font-medium shadow-none focus-visible:ring-0"
                     >
@@ -153,7 +167,7 @@ function resetFilters(): void {
                 @click="resetFilters"
             >
                 <RotateCcw class="size-4" aria-hidden="true" />
-                Reset Filters
+                {{ $t('Reset Filters') }}
             </Button>
         </div>
 
@@ -167,8 +181,10 @@ function resetFilters(): void {
                 <Send class="size-4" aria-hidden="true" />
                 {{
                     selectedCount > 0
-                        ? `Send Reminder (${selectedCount})`
-                        : 'Send Group Reminder'
+                        ? $t('Send Reminder (:count)', {
+                              count: selectedCount,
+                          })
+                        : $t('Send Group Reminder')
                 }}
             </Button>
         </div>

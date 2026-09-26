@@ -67,8 +67,10 @@ function create(): void {
 <template>
     <LessonsModal
         :open="open"
-        title="Create New Test"
-        description="Set up the test details, then build and preview its questions."
+        :title="$t('Create New Test')"
+        :description="
+            $t('Set up the test details, then build and preview its questions.')
+        "
         size="md"
         @update:open="emit('update:open', $event)"
     >
@@ -78,39 +80,45 @@ function create(): void {
                     for="new-test-title"
                     class="text-brand-900 text-xs font-semibold"
                 >
-                    Test title <span class="text-danger">*</span>
+                    {{ $t('Test title') }} <span class="text-danger">*</span>
                 </Label>
                 <Input
                     id="new-test-title"
                     v-model="title"
                     autofocus
-                    placeholder="e.g. Reception Pre-test"
+                    :placeholder="$t('e.g. Reception Pre-test')"
                     class="border-line h-11 text-sm"
                 />
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-1.5">
-                    <Label class="text-brand-900 text-xs font-semibold"
-                        >Test type</Label
-                    >
+                    <Label class="text-brand-900 text-xs font-semibold">{{
+                        $t('Test type')
+                    }}</Label>
                     <Select v-model="type">
                         <SelectTrigger class="border-line h-11 text-sm">
-                            <SelectValue placeholder="Choose type" />
+                            <SelectValue :placeholder="$t('Choose type')" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="pre">Pre-test</SelectItem>
-                            <SelectItem value="post">Post-test</SelectItem>
+                            <SelectItem value="pre">{{
+                                $t('Pre-test')
+                            }}</SelectItem>
+                            <SelectItem value="post">{{
+                                $t('Post-test')
+                            }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div class="space-y-1.5">
-                    <Label class="text-brand-900 text-xs font-semibold"
-                        >Department</Label
-                    >
+                    <Label class="text-brand-900 text-xs font-semibold">{{
+                        $t('Department')
+                    }}</Label>
                     <Select v-model="department">
                         <SelectTrigger class="border-line h-11 text-sm">
-                            <SelectValue placeholder="Choose department" />
+                            <SelectValue
+                                :placeholder="$t('Choose department')"
+                            />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
@@ -132,10 +140,10 @@ function create(): void {
                     for="new-test-time"
                     class="text-brand-900 text-xs font-semibold"
                 >
-                    Time limit
-                    <span class="text-ink-muted font-normal"
-                        >(minutes, optional)</span
-                    >
+                    {{ $t('Time limit') }}
+                    <span class="text-ink-muted font-normal">{{
+                        $t('(minutes, optional)')
+                    }}</span>
                 </Label>
                 <Input
                     id="new-test-time"
@@ -155,8 +163,11 @@ function create(): void {
                     aria-hidden="true"
                 />
                 <p class="text-ink-slate text-xs leading-5">
-                    After creating it, the question builder will open so you can
-                    add question types, media, settings and results rules.
+                    {{
+                        $t(
+                            'After creating it, the question builder will open so you can add question types, media, settings and results rules.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -169,14 +180,14 @@ function create(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 h-10 rounded-md px-4 text-xs font-semibold"
                     @click="emit('update:open', false)"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-xs font-semibold text-white"
                     :disabled="title.trim() === ''"
                 >
-                    Create &amp; Open Builder
+                    {{ $t('Create & Open Builder') }}
                 </Button>
             </div>
         </form>

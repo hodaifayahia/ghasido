@@ -3,10 +3,12 @@ import { Form } from '@inertiajs/vue3';
 import { Eye, Sparkles } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import TransText from '@/components/common/TransText.vue';
 import MessagesModal from '@/components/messages/MessagesModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import ReminderDraftController from '@/actions/App/Http/Controllers/Admin/Messages/ReminderDraftController';
 import { preview, store, update } from '@/routes/messages-reminders/templates';
 import type { MessageTemplate, MessageTemplatePreview } from '@/types';
@@ -21,6 +23,8 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { readonly: false });
+
+const { t } = useI18n();
 
 const open = defineModel<boolean>('open', { required: true });
 
@@ -133,7 +137,9 @@ async function loadPreview(): Promise<void> {
         );
 
         if (!response.ok) {
-            throw new Error(`Preview failed (${response.status}).`);
+            throw new Error(
+                t('Preview failed (:status).', { status: response.status }),
+            );
         }
 
         previewResult.value = (await response.json()) as MessageTemplatePreview;
@@ -141,7 +147,7 @@ async function loadPreview(): Promise<void> {
         previewError.value =
             error instanceof Error
                 ? error.message
-                : 'The preview could not be loaded.';
+                : t('The preview could not be loaded.');
     } finally {
         previewBusy.value = false;
     }
@@ -163,11 +169,11 @@ const draftPurpose = ref('');
 const draftTone = ref('friendly');
 const drafting = ref(false);
 const draftError = ref('');
-const draftTones = [
-    { value: 'friendly', label: 'Friendly' },
-    { value: 'encouraging', label: 'Encouraging' },
-    { value: 'formal', label: 'Formal' },
-];
+const draftTones = computed(() => [
+    { value: 'friendly', label: t('Friendly') },
+    { value: 'encouraging', label: t('Encouraging') },
+    { value: 'formal', label: t('Formal') },
+]);
 
 function xsrf(): string {
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/u);
@@ -205,7 +211,9 @@ async function requestDraft(): Promise<void> {
 
         if (!response.ok) {
             throw new Error(
-                `The draft could not be requested (${response.status}).`,
+                t('The draft could not be requested (:status).', {
+                    status: response.status,
+                }),
             );
         }
 
@@ -232,7 +240,9 @@ async function requestDraft(): Promise<void> {
         ) {
             throw new Error(
                 state.failedReason ??
-                    'The draft is taking longer than usual. Try again in a moment.',
+                    t(
+                        'The draft is taking longer than usual. Try again in a moment.',
+                    ),
             );
         }
 
@@ -244,7 +254,7 @@ async function requestDraft(): Promise<void> {
         draftError.value =
             error instanceof Error
                 ? error.message
-                : 'The draft could not be written.';
+                : t('The draft could not be written.');
     } finally {
         drafting.value = false;
     }
@@ -262,12 +272,18 @@ function onSuccess(): void {
 
 const title = computed(() => {
     if (props.readonly) {
-        return `Preview ${props.template?.name ?? 'template'}`;
+        return props.template
+            ? t('Preview :name', { name: props.template.name })
+            : t('Preview template');
     }
 
-    return editing.value
-        ? `Edit ${props.template?.name ?? 'template'}`
-        : 'Add Template';
+    if (!editing.value) {
+        return t('Add Template');
+    }
+
+    return props.template
+        ? t('Edit :name', { name: props.template.name })
+        : t('Edit template');
 });
 </script>
 
@@ -277,24 +293,33 @@ const title = computed(() => {
         :title="title"
         :description="
             readonly
-                ? 'How this template reads for a sample employee, every variable filled in.'
-                : 'Write the subject and body once; the variables are filled in for each employee when a reminder is sent.'
+                ? $t(
+                      'How this template reads for a sample employee, every variable filled in.',
+                  )
+                : $t(
+                      'Write the subject and body once; the variables are filled in for each employee when a reminder is sent.',
+                  )
         "
         class="sm:max-w-[640px]"
     >
         <div v-if="readonly" class="mt-2 grid gap-3">
             <p v-if="previewBusy" class="text-ink-slate text-[13px]">
-                Rendering the preview…
+                {{ $t('Rendering the preview…') }}
             </p>
             <p v-else-if="previewError" class="text-danger-text text-[13px]">
                 {{ previewError }}
             </p>
             <template v-else-if="previewResult">
                 <p class="text-ink-slate text-[12px]">
-                    Sample employee:
-                    <span class="text-brand-900 font-semibold">
-                        {{ previewResult.sample?.name ?? 'none yet' }}
-                    </span>
+                    <TransText text="Sample employee: :name">
+                        <template #name>
+                            <span class="text-brand-900 font-semibold">
+                                {{
+                                    previewResult.sample?.name ?? $t('none yet')
+                                }}
+                            </span>
+                        </template>
+                    </TransText>
                     <template v-if="previewResult.sample?.hotel">
                         · {{ previewResult.sample.hotel }}
                     </template>
@@ -317,7 +342,7 @@ const title = computed(() => {
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    Close
+                    {{ $t('Close') }}
                 </Button>
             </div>
         </div>
@@ -333,7 +358,7 @@ const title = computed(() => {
         >
             <div class="grid gap-1.5">
                 <Label for="template-name" :class="labelClass">
-                    Template name
+                    {{ $t('Template name') }}
                 </Label>
                 <Input
                     id="template-name"
@@ -350,7 +375,7 @@ const title = computed(() => {
 
             <div class="grid gap-1.5">
                 <Label for="template-subject" :class="labelClass">
-                    Subject
+                    {{ $t('Subject') }}
                 </Label>
                 <Input
                     id="template-subject"
@@ -368,7 +393,9 @@ const title = computed(() => {
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="template-body" :class="labelClass">Body</Label>
+                <Label for="template-body" :class="labelClass">{{
+                    $t('Body')
+                }}</Label>
                 <textarea
                     id="template-body"
                     ref="bodyInput"
@@ -386,7 +413,7 @@ const title = computed(() => {
 
                 <div class="flex flex-wrap items-center gap-1.5 pt-1">
                     <span class="text-ink-slate me-1 text-[11.5px]">
-                        Insert variable:
+                        {{ $t('Insert variable:') }}
                     </span>
                     <button
                         v-for="variable in variables"
@@ -409,7 +436,7 @@ const title = computed(() => {
                         @click="draftOpen = true"
                     >
                         <Sparkles class="text-ai size-4" aria-hidden="true" />
-                        Draft with AI
+                        {{ $t('Draft with AI') }}
                     </button>
 
                     <div
@@ -418,21 +445,25 @@ const title = computed(() => {
                         data-test="template-draft-panel"
                     >
                         <Label for="template-draft-purpose" :class="labelClass">
-                            What is this reminder for?
+                            {{ $t('What is this reminder for?') }}
                         </Label>
                         <textarea
                             id="template-draft-purpose"
                             v-model="draftPurpose"
                             rows="2"
                             maxlength="300"
-                            placeholder="For example: learners who have not practised for a week"
+                            :placeholder="
+                                $t(
+                                    'For example: learners who have not practised for a week',
+                                )
+                            "
                             :class="[fieldClass, 'py-2 leading-5']"
                         />
                         <div class="flex flex-wrap items-center gap-2">
                             <label
                                 for="template-draft-tone"
                                 class="text-ink-slate text-[12px]"
-                                >Tone</label
+                                >{{ $t('Tone') }}</label
                             >
                             <select
                                 id="template-draft-tone"
@@ -457,7 +488,11 @@ const title = computed(() => {
                                 @click="requestDraft"
                             >
                                 <Sparkles class="size-4" aria-hidden="true" />
-                                {{ drafting ? 'Writing…' : 'Write draft' }}
+                                {{
+                                    drafting
+                                        ? $t('Writing…')
+                                        : $t('Write draft')
+                                }}
                             </button>
                         </div>
                         <p
@@ -465,9 +500,11 @@ const title = computed(() => {
                             class="text-ink-slate text-[11.5px]"
                             aria-live="polite"
                         >
-                            Writing a draft. It will replace the subject and
-                            body above, and nothing is saved until you press
-                            Save.
+                            {{
+                                $t(
+                                    'Writing a draft. It will replace the subject and body above, and nothing is saved until you press Save.',
+                                )
+                            }}
                         </p>
                         <InputError :message="draftError" />
                     </div>
@@ -477,14 +514,14 @@ const title = computed(() => {
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="grid gap-1.5">
                     <Label for="template-audience" :class="labelClass">
-                        Audience (shown on the card)
+                        {{ $t('Audience (shown on the card)') }}
                     </Label>
                     <Input
                         id="template-audience"
                         v-model="audienceLabel"
                         name="audience_label"
                         maxlength="120"
-                        placeholder="Inactive employees"
+                        :placeholder="$t('Inactive employees')"
                         data-test="template-audience-input"
                         :class="[fieldClass, 'h-10 shadow-none']"
                     />
@@ -492,14 +529,14 @@ const title = computed(() => {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="template-trigger" :class="labelClass">
-                        Trigger (shown on the card)
+                        {{ $t('Trigger (shown on the card)') }}
                     </Label>
                     <Input
                         id="template-trigger"
                         v-model="triggerLabel"
                         name="trigger_label"
                         maxlength="120"
-                        placeholder="5 days without activity"
+                        :placeholder="$t('5 days without activity')"
                         data-test="template-trigger-input"
                         :class="[fieldClass, 'h-10 shadow-none']"
                     />
@@ -519,7 +556,7 @@ const title = computed(() => {
                     class="accent-brand-600 size-4"
                     data-test="template-active-checkbox"
                 />
-                Available in the Send dialog and to automation rules
+                {{ $t('Available in the Send dialog and to automation rules') }}
             </label>
 
             <div
@@ -531,14 +568,20 @@ const title = computed(() => {
                     {{ previewError }}
                 </p>
                 <template v-else-if="previewResult">
-                    <p class="text-ink-slate text-[11.5px]">
-                        Preview for
-                        <span class="text-brand-900 font-semibold">
-                            {{
-                                previewResult.sample?.name ?? 'no employee yet'
-                            }}
-                        </span>
-                    </p>
+                    <TransText
+                        tag="p"
+                        text="Preview for :name"
+                        class="text-ink-slate text-[11.5px]"
+                    >
+                        <template #name>
+                            <span class="text-brand-900 font-semibold">
+                                {{
+                                    previewResult.sample?.name ??
+                                    $t('no employee yet')
+                                }}
+                            </span>
+                        </template>
+                    </TransText>
                     <p class="text-brand-900 mt-1 text-[13.5px] font-semibold">
                         {{ previewResult.subject }}
                     </p>
@@ -562,7 +605,7 @@ const title = computed(() => {
                     @click="loadPreview"
                 >
                     <Eye class="size-4" aria-hidden="true" />
-                    {{ previewBusy ? 'Rendering…' : 'Preview' }}
+                    {{ previewBusy ? $t('Rendering…') : $t('Preview') }}
                 </Button>
                 <Button
                     type="button"
@@ -571,7 +614,7 @@ const title = computed(() => {
                     data-test="cancel-template-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -579,7 +622,7 @@ const title = computed(() => {
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-template-button"
                 >
-                    {{ editing ? 'Save changes' : 'Add template' }}
+                    {{ editing ? $t('Save changes') : $t('Add template') }}
                 </Button>
             </div>
         </Form>

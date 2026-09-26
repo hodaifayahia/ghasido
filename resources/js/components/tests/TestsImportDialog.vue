@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { importMethod, importTemplate } from '@/routes/tests/questions';
 import type { TestListItem } from '@/types';
@@ -68,12 +69,12 @@ const canSubmit = computed(
 );
 
 const kinds = [
-    ['multiple_choice', 'options A–F, correct = the right letter'],
-    ['true_false', 'no options needed, correct = A (true) or B (false)'],
-    ['fill_blank', 'use ___ in the question, options, correct letter'],
-    ['short_answer', 'a written answer, no options'],
-    ['speaking', 'a spoken answer, no options'],
-    ['ordering', 'options in the right order, no correct column'],
+    ['multiple_choice', tk('options A–F, correct = the right letter')],
+    ['true_false', tk('no options needed, correct = A (true) or B (false)')],
+    ['fill_blank', tk('use ___ in the question, options, correct letter')],
+    ['short_answer', tk('a written answer, no options')],
+    ['speaking', tk('a spoken answer, no options')],
+    ['ordering', tk('options in the right order, no correct column')],
 ] as const;
 
 function pick(files: FileList | null | undefined): void {
@@ -108,16 +109,20 @@ function submit(): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Import Questions"
-        description="Add many questions at once from a CSV file (Excel → Save As → CSV) or by pasting rows."
+        :title="$t('Import Questions')"
+        :description="
+            $t(
+                'Add many questions at once from a CSV file (Excel → Save As → CSV) or by pasting rows.',
+            )
+        "
         size="lg"
     >
         <form class="grid gap-4" @submit.prevent="submit">
             <div class="grid gap-1.5">
-                <Label for="import-test">Import into</Label>
+                <Label for="import-test">{{ $t('Import into') }}</Label>
                 <Select v-model="testId">
                     <SelectTrigger id="import-test" class="h-10">
-                        <SelectValue placeholder="Choose a test" />
+                        <SelectValue :placeholder="$t('Choose a test')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -127,7 +132,9 @@ function submit(): void {
                         >
                             {{ test.title }} ·
                             {{
-                                test.type === 'post' ? 'Post-test' : 'Pre-test'
+                                test.type === 'post'
+                                    ? $t('Post-test')
+                                    : $t('Pre-test')
                             }}
                         </SelectItem>
                     </SelectContent>
@@ -136,7 +143,7 @@ function submit(): void {
                     v-if="tests.length === 0"
                     class="text-danger-text text-[12px]"
                 >
-                    Create a test first, then import its questions.
+                    {{ $t('Create a test first, then import its questions.') }}
                 </p>
             </div>
 
@@ -144,12 +151,16 @@ function submit(): void {
                 class="bg-brand-50 flex flex-wrap items-center justify-between gap-3 rounded-md px-4 py-3"
             >
                 <p class="text-ink-indigo text-[12.5px] leading-5">
-                    <strong class="font-semibold">1.</strong> Download the
-                    template &nbsp;<strong class="font-semibold">2.</strong> One
-                    question per row &nbsp;<strong class="font-semibold"
+                    <strong class="font-semibold">1.</strong>
+                    {{ $t('Download the template') }} &nbsp;<strong
+                        class="font-semibold"
+                        >2.</strong
+                    >
+                    {{ $t('One question per row') }} &nbsp;<strong
+                        class="font-semibold"
                         >3.</strong
                     >
-                    Upload it here
+                    {{ $t('Upload it here') }}
                 </p>
                 <a
                     :href="importTemplate.url()"
@@ -157,19 +168,19 @@ function submit(): void {
                     data-test="download-question-template"
                 >
                     <Download class="size-4" aria-hidden="true" />
-                    CSV template
+                    {{ $t('CSV template') }}
                 </a>
             </div>
 
             <div
                 role="tablist"
-                aria-label="Import from"
+                :aria-label="$t('Import from')"
                 class="border-line bg-surface inline-grid w-fit grid-cols-2 gap-1 rounded-md border p-1"
             >
                 <button
                     v-for="option in [
-                        { key: 'file', label: 'Upload file' },
-                        { key: 'paste', label: 'Paste rows' },
+                        { key: 'file', label: tk('Upload file') },
+                        { key: 'paste', label: tk('Paste rows') },
                     ] as const"
                     :key="option.key"
                     type="button"
@@ -185,7 +196,7 @@ function submit(): void {
                     "
                     @click="mode = option.key"
                 >
-                    {{ option.label }}
+                    {{ $t(option.label) }}
                 </button>
             </div>
 
@@ -219,14 +230,14 @@ function submit(): void {
                         {{ form.file.name }}
                     </span>
                     <span v-else class="text-ink-indigo text-[13px]">
-                        <strong class="text-brand-700 font-semibold"
-                            >Choose a CSV file</strong
-                        >
-                        or drop it here
+                        <strong class="text-brand-700 font-semibold">{{
+                            $t('Choose a CSV file')
+                        }}</strong>
+                        {{ $t('or drop it here') }}
                     </span>
-                    <span class="text-ink-slate text-[11.5px]"
-                        >.csv, up to 2 MB, 200 questions</span
-                    >
+                    <span class="text-ink-slate text-[11.5px]">{{
+                        $t('.csv, up to 2 MB, 200 questions')
+                    }}</span>
                 </label>
                 <input
                     id="import-file"
@@ -247,13 +258,13 @@ function submit(): void {
                     "
                 >
                     <X class="size-3.5" aria-hidden="true" />
-                    Remove file
+                    {{ $t('Remove file') }}
                 </button>
             </div>
 
             <div v-else class="grid gap-1.5">
                 <Label for="import-rows">
-                    Paste rows (copied from Excel or the template)
+                    {{ $t('Paste rows (copied from Excel or the template)') }}
                 </Label>
                 <textarea
                     id="import-rows"
@@ -276,7 +287,7 @@ function submit(): void {
                     class="text-danger-text flex items-center gap-2 text-[13px] font-semibold"
                 >
                     <CircleAlert class="size-4" aria-hidden="true" />
-                    Nothing was imported. Please fix:
+                    {{ $t('Nothing was imported. Please fix:') }}
                 </p>
                 <ul
                     class="text-danger-text max-h-36 list-disc overflow-y-auto ps-6 text-[12.5px] leading-5"
@@ -293,19 +304,22 @@ function submit(): void {
                 <summary
                     class="text-brand-700 cursor-pointer font-semibold select-none"
                 >
-                    Question types you can import
+                    {{ $t('Question types you can import') }}
                 </summary>
                 <ul class="mt-2 grid gap-1">
                     <li v-for="[kind, hint] in kinds" :key="kind">
                         <code class="text-ink-night font-semibold">{{
                             kind
                         }}</code>
-                        — {{ hint }}
+                        — {{ $t(hint) }}
                     </li>
                 </ul>
                 <p class="mt-2">
-                    Listening, image and video questions need a media file: add
-                    those in the editor.
+                    {{
+                        $t(
+                            'Listening, image and video questions need a media file: add those in the editor.',
+                        )
+                    }}
                 </p>
             </details>
 
@@ -316,7 +330,7 @@ function submit(): void {
                     class="h-10"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -325,7 +339,11 @@ function submit(): void {
                     data-test="import-questions-button"
                 >
                     <Upload class="size-4" aria-hidden="true" />
-                    {{ form.processing ? 'Importing…' : 'Import questions' }}
+                    {{
+                        form.processing
+                            ? $t('Importing…')
+                            : $t('Import questions')
+                    }}
                 </Button>
             </div>
         </form>

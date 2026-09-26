@@ -11,12 +11,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { TestListItem, TestsList, TestsSelectOption } from '@/types';
 
 const props = defineProps<{
     list: TestsList;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     open: [id: string];
@@ -79,7 +82,11 @@ function resetFilters(): void {
 }
 
 function typeLabel(item: TestListItem): string {
-    return item.type === 'pre' ? 'Pre-test' : 'Post-test';
+    return item.type === 'pre' ? t('Pre-test') : t('Post-test');
+}
+
+function statusLabel(item: TestListItem): string {
+    return item.status === 'active' ? t('Active') : t('Draft');
 }
 
 function statusClass(item: TestListItem): string {
@@ -91,7 +98,7 @@ function statusClass(item: TestListItem): string {
 
 <template>
     <PanelCard
-        title="Test Library"
+        :title="$t('Test Library')"
         title-id="test-library-title"
         class="overflow-hidden px-0 pt-0 pb-0"
         body-class="mt-0"
@@ -105,7 +112,12 @@ function statusClass(item: TestListItem): string {
         </template>
         <template #actions>
             <span class="text-ink-muted text-xs font-medium">
-                {{ filteredItems.length }} of {{ list.items.length }} tests
+                {{
+                    $t(':shown of :total tests', {
+                        shown: filteredItems.length,
+                        total: list.items.length,
+                    })
+                }}
             </span>
         </template>
 
@@ -118,8 +130,8 @@ function statusClass(item: TestListItem): string {
                 <Input
                     v-model="search"
                     type="search"
-                    aria-label="Search tests"
-                    placeholder="Search tests..."
+                    :aria-label="$t('Search tests')"
+                    :placeholder="$t('Search tests...')"
                     class="border-line bg-surface h-10 rounded-md ps-9 text-sm"
                 />
             </div>
@@ -127,7 +139,7 @@ function statusClass(item: TestListItem): string {
             <div class="mt-2 grid gap-2 sm:grid-cols-3">
                 <Select v-model="hotel">
                     <SelectTrigger class="border-line bg-surface h-9 text-xs">
-                        <SelectValue placeholder="All Hotels" />
+                        <SelectValue :placeholder="$t('All Hotels')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -141,7 +153,7 @@ function statusClass(item: TestListItem): string {
                 </Select>
                 <Select v-model="department">
                     <SelectTrigger class="border-line bg-surface h-9 text-xs">
-                        <SelectValue placeholder="All Departments" />
+                        <SelectValue :placeholder="$t('All Departments')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -155,7 +167,7 @@ function statusClass(item: TestListItem): string {
                 </Select>
                 <Select v-model="type">
                     <SelectTrigger class="border-line bg-surface h-9 text-xs">
-                        <SelectValue placeholder="All Types" />
+                        <SelectValue :placeholder="$t('All Types')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -176,7 +188,7 @@ function statusClass(item: TestListItem): string {
                 @click="resetFilters"
             >
                 <RotateCcw class="size-3.5" aria-hidden="true" />
-                Reset filters
+                {{ $t('Reset filters') }}
             </Button>
         </div>
 
@@ -189,13 +201,13 @@ function statusClass(item: TestListItem): string {
                     class="bg-brand-50/35 text-ink-slate text-[11px] font-semibold tracking-[0.08em] uppercase"
                 >
                     <tr class="border-line border-b">
-                        <th class="px-5 py-3">Test</th>
-                        <th class="px-3 py-3">Type</th>
-                        <th class="px-3 py-3">Department</th>
-                        <th class="px-3 py-3">Questions</th>
-                        <th class="px-3 py-3">Time</th>
-                        <th class="px-3 py-3">Status</th>
-                        <th class="px-5 py-3 text-end">Open</th>
+                        <th class="px-5 py-3">{{ $t('Test') }}</th>
+                        <th class="px-3 py-3">{{ $t('Type') }}</th>
+                        <th class="px-3 py-3">{{ $t('Department') }}</th>
+                        <th class="px-3 py-3">{{ $t('Questions') }}</th>
+                        <th class="px-3 py-3">{{ $t('Time') }}</th>
+                        <th class="px-3 py-3">{{ $t('Status') }}</th>
+                        <th class="px-5 py-3 text-end">{{ $t('Open') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -254,7 +266,13 @@ function statusClass(item: TestListItem): string {
                             {{ item.questionCount }}
                         </td>
                         <td class="text-ink-slate px-3 py-3 text-xs">
-                            {{ item.timeLimit ? `${item.timeLimit} min` : '—' }}
+                            {{
+                                item.timeLimit
+                                    ? $t(':minutes min', {
+                                          minutes: item.timeLimit,
+                                      })
+                                    : '—'
+                            }}
                         </td>
                         <td class="px-3 py-3">
                             <span
@@ -270,7 +288,7 @@ function statusClass(item: TestListItem): string {
                                     class="size-3"
                                     aria-hidden="true"
                                 />
-                                {{ item.status }}
+                                {{ statusLabel(item) }}
                             </span>
                         </td>
                         <td class="px-5 py-3 text-end">
@@ -280,7 +298,7 @@ function statusClass(item: TestListItem): string {
                                 class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
                                 @click="emit('open', item.id)"
                             >
-                                Open
+                                {{ $t('Open') }}
                                 <ArrowRight
                                     class="size-3.5"
                                     aria-hidden="true"
@@ -317,7 +335,12 @@ function statusClass(item: TestListItem): string {
                     </span>
                     <span class="text-ink-muted mt-0.5 block text-[11px]">
                         {{ item.department }} ·
-                        {{ item.questionCount }} questions
+                        {{
+                            $tc(
+                                ':count question|:count questions',
+                                item.questionCount,
+                            )
+                        }}
                     </span>
                     <span class="mt-1 flex items-center gap-1.5">
                         <span
@@ -340,7 +363,7 @@ function statusClass(item: TestListItem): string {
                                 )
                             "
                         >
-                            {{ item.status }}
+                            {{ statusLabel(item) }}
                         </span>
                     </span>
                 </span>
@@ -358,10 +381,10 @@ function statusClass(item: TestListItem): string {
                 <Search class="size-5" aria-hidden="true" />
             </div>
             <p class="text-brand-900 mt-3 text-sm font-semibold">
-                No tests found
+                {{ $t('No tests found') }}
             </p>
             <p class="text-ink-muted mt-1 text-xs">
-                Try changing the search or filters.
+                {{ $t('Try changing the search or filters.') }}
             </p>
         </div>
 
@@ -369,14 +392,18 @@ function statusClass(item: TestListItem): string {
             class="border-line bg-brand-50/25 flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
             <p class="text-ink-muted text-xs">
-                Select a test to open its question builder and uploaded content.
+                {{
+                    $t(
+                        'Select a test to open its question builder and uploaded content.',
+                    )
+                }}
             </p>
             <Button
                 type="button"
                 class="bg-brand-600 shadow-btn hover:bg-brand-700 h-9 shrink-0 rounded-md px-3 text-xs font-semibold text-white"
                 @click="emit('create')"
             >
-                Create New Test
+                {{ $t('Create New Test') }}
             </Button>
         </div>
     </PanelCard>

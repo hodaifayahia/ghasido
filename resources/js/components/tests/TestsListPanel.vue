@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { TestsList, TestStatus, TestVariant } from '@/types';
 
@@ -37,8 +38,8 @@ const typeTone: Record<TestVariant, string> = {
 };
 
 const typeLabel: Record<TestVariant, string> = {
-    pre: 'Pre-test',
-    post: 'Post-test',
+    pre: tk('Pre-test'),
+    post: tk('Post-test'),
 };
 
 const statusTone: Record<TestStatus, string> = {
@@ -47,8 +48,8 @@ const statusTone: Record<TestStatus, string> = {
 };
 
 const statusLabel: Record<TestStatus, string> = {
-    active: 'Active',
-    draft: 'Draft',
+    active: tk('Active'),
+    draft: tk('Draft'),
 };
 
 function onSelect(
@@ -115,7 +116,7 @@ const filteredItems = computed(() => {
         <h2
             class="font-heading text-brand-800 truncate text-base font-semibold"
         >
-            Test List
+            {{ $t('Test List') }}
         </h2>
 
         <div class="mt-3 flex flex-col gap-2">
@@ -127,7 +128,7 @@ const filteredItems = computed(() => {
                 <Input
                     v-model="search"
                     type="search"
-                    placeholder="Search tests..."
+                    :placeholder="$t('Search tests...')"
                     class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-9 pe-3 text-[12.5px] shadow-none"
                 />
             </div>
@@ -240,7 +241,7 @@ const filteredItems = computed(() => {
                             )
                         "
                     >
-                        {{ typeLabel[item.type] }}
+                        {{ $t(typeLabel[item.type]) }}
                     </span>
                     <span
                         :class="
@@ -250,14 +251,16 @@ const filteredItems = computed(() => {
                             )
                         "
                     >
-                        {{ statusLabel[item.status] }}
+                        {{ $t(statusLabel[item.status]) }}
                     </span>
                 </div>
 
                 <button
                     type="button"
                     class="text-ink-faint hover:bg-brand-50 inline-flex size-6 shrink-0 items-center justify-center self-center rounded-md"
-                    :aria-label="`More actions for ${item.title}`"
+                    :aria-label="
+                        $t('More actions for :name', { name: item.title })
+                    "
                 >
                     <EllipsisVertical class="size-4" aria-hidden="true" />
                 </button>

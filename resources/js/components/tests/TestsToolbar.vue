@@ -75,7 +75,7 @@ const tabIcons: Record<TestsTabKey, Component> = {
                 @click="emit('create')"
             >
                 <CirclePlus class="size-4" aria-hidden="true" />
-                Create New Test
+                {{ $t('Create New Test') }}
             </Button>
             <Button
                 type="button"
@@ -85,7 +85,7 @@ const tabIcons: Record<TestsTabKey, Component> = {
                 @click="emit('import')"
             >
                 <Upload class="size-4" aria-hidden="true" />
-                Import Questions
+                {{ $t('Import Questions') }}
             </Button>
             <!-- Show Meaning translations (user request 2026-09-26). -->
             <Button
@@ -98,7 +98,7 @@ const tabIcons: Record<TestsTabKey, Component> = {
                     data-test="tests-translations-link"
                 >
                     <Languages class="size-4" aria-hidden="true" />
-                    Translations
+                    {{ $t('Translations') }}
                 </Link>
             </Button>
         </div>

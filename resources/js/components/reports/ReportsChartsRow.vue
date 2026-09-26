@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import Donut from '@/components/data/Donut.vue';
 import type { DonutSegment } from '@/components/data/Donut.vue';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type {
     ReportActivityBreakdown,
@@ -21,19 +22,21 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const completionSegments = computed<DonutSegment[]>(() => [
     {
-        label: 'Completed',
+        label: t('Completed'),
         value: props.completion.completed,
         colorClass: 'text-success',
     },
     {
-        label: 'In Progress',
+        label: t('In Progress'),
         value: props.completion.inProgress,
         colorClass: 'text-azure',
     },
     {
-        label: 'Not Started',
+        label: t('Not Started'),
         value: props.completion.notStarted,
         colorClass: 'text-ink-faint/35',
     },
@@ -41,17 +44,17 @@ const completionSegments = computed<DonutSegment[]>(() => [
 
 const activitySegments = computed<DonutSegment[]>(() => [
     {
-        label: 'Active this week',
+        label: t('Active this week'),
         value: props.activity.activeThisWeek,
         colorClass: 'text-success',
     },
     {
-        label: 'Active this month',
+        label: t('Active this month'),
         value: props.activity.activeThisMonth,
         colorClass: 'text-azure',
     },
     {
-        label: 'Inactive',
+        label: t('Inactive'),
         value: props.activity.inactive,
         colorClass: 'text-ink-faint/35',
     },
@@ -79,16 +82,16 @@ function percent(value: number, total: number): string {
                 <h2
                     class="font-heading text-brand-800 text-[15px] font-semibold"
                 >
-                    Pre-test vs Post-test Scores
+                    {{ $t('Pre-test vs Post-test Scores') }}
                 </h2>
                 <div class="text-ink-slate flex items-center gap-3 text-[11px]">
                     <span class="inline-flex items-center gap-1.5">
                         <span class="bg-azure size-2.5 rounded-full" />
-                        Pre-test
+                        {{ $t('Pre-test') }}
                     </span>
                     <span class="inline-flex items-center gap-1.5">
                         <span class="bg-brand-600 size-2.5 rounded-full" />
-                        Post-test
+                        {{ $t('Post-test') }}
                     </span>
                 </div>
             </div>
@@ -124,7 +127,7 @@ function percent(value: number, total: number): string {
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <h2 class="font-heading text-brand-800 text-[15px] font-semibold">
-                Lesson Completion Rate
+                {{ $t('Lesson Completion Rate') }}
             </h2>
 
             <div
@@ -137,7 +140,7 @@ function percent(value: number, total: number): string {
                     :thickness="24"
                     :gap="3"
                     rounded
-                    label="Lesson completion rate"
+                    :label="$t('Lesson completion rate')"
                 >
                     <p
                         class="font-heading text-brand-800 text-[28px] leading-none font-bold"
@@ -145,22 +148,34 @@ function percent(value: number, total: number): string {
                         {{ completion.overall }}%
                     </p>
                     <p class="text-ink-slate mt-1 text-[11px] leading-4">
-                        Overall Completion
+                        {{ $t('Overall Completion') }}
                     </p>
                 </Donut>
 
                 <ul class="text-ink-slate grid gap-2.5 text-[11.5px]">
                     <li class="flex items-center gap-2">
                         <span class="bg-success size-2.5 rounded-full" />
-                        Completed ({{ completion.completed }}%)
+                        {{
+                            $t('Completed (:percent%)', {
+                                percent: completion.completed,
+                            })
+                        }}
                     </li>
                     <li class="flex items-center gap-2">
                         <span class="bg-azure size-2.5 rounded-full" />
-                        In Progress ({{ completion.inProgress }}%)
+                        {{
+                            $t('In Progress (:percent%)', {
+                                percent: completion.inProgress,
+                            })
+                        }}
                     </li>
                     <li class="flex items-center gap-2">
                         <span class="bg-tint-grid size-2.5 rounded-full" />
-                        Not Started ({{ completion.notStarted }}%)
+                        {{
+                            $t('Not Started (:percent%)', {
+                                percent: completion.notStarted,
+                            })
+                        }}
                     </li>
                 </ul>
             </div>
@@ -173,13 +188,13 @@ function percent(value: number, total: number): string {
                 <h2
                     class="font-heading text-brand-800 text-[15px] font-semibold"
                 >
-                    AI Role-play Performance
+                    {{ $t('AI Role-play Performance') }}
                 </h2>
                 <span
                     class="text-ink-slate inline-flex items-center gap-1.5 text-[11px]"
                 >
                     <span class="bg-ai size-2.5 rounded-full" />
-                    Average Score (%)
+                    {{ $t('Average Score (%)') }}
                 </span>
             </div>
 
@@ -210,7 +225,7 @@ function percent(value: number, total: number): string {
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <h2 class="font-heading text-brand-800 text-[15px] font-semibold">
-                Employee Activity Status
+                {{ $t('Employee Activity Status') }}
             </h2>
 
             <div
@@ -223,7 +238,7 @@ function percent(value: number, total: number): string {
                     :thickness="24"
                     :gap="3"
                     rounded
-                    label="Employee activity status"
+                    :label="$t('Employee activity status')"
                 >
                     <p
                         class="font-heading text-brand-800 text-[28px] leading-none font-bold"
@@ -231,28 +246,46 @@ function percent(value: number, total: number): string {
                         {{ activity.total }}
                     </p>
                     <p class="text-ink-slate mt-1 text-[11px] leading-4">
-                        Employees
+                        {{ $t('Employees') }}
                     </p>
                 </Donut>
 
                 <ul class="text-ink-slate grid gap-2.5 text-[11.5px]">
                     <li class="flex items-center gap-2">
                         <span class="bg-success size-2.5 rounded-full" />
-                        Active this week {{ activity.activeThisWeek }} ({{
-                            percent(activity.activeThisWeek, activity.total)
-                        }})
+                        {{
+                            $t('Active this week :count (:percent)', {
+                                count: activity.activeThisWeek,
+                                percent: percent(
+                                    activity.activeThisWeek,
+                                    activity.total,
+                                ),
+                            })
+                        }}
                     </li>
                     <li class="flex items-center gap-2">
                         <span class="bg-azure size-2.5 rounded-full" />
-                        Active this month {{ activity.activeThisMonth }} ({{
-                            percent(activity.activeThisMonth, activity.total)
-                        }})
+                        {{
+                            $t('Active this month :count (:percent)', {
+                                count: activity.activeThisMonth,
+                                percent: percent(
+                                    activity.activeThisMonth,
+                                    activity.total,
+                                ),
+                            })
+                        }}
                     </li>
                     <li class="flex items-center gap-2">
                         <span class="bg-tint-grid size-2.5 rounded-full" />
-                        Inactive {{ activity.inactive }} ({{
-                            percent(activity.inactive, activity.total)
-                        }})
+                        {{
+                            $t('Inactive :count (:percent)', {
+                                count: activity.inactive,
+                                percent: percent(
+                                    activity.inactive,
+                                    activity.total,
+                                ),
+                            })
+                        }}
                     </li>
                 </ul>
             </div>

@@ -35,6 +35,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     TestAiGeneratePayload,
@@ -54,6 +56,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     save: [payload: TestEditorSavePayload];
@@ -80,14 +84,14 @@ const imagePickerOpen = computed({
         if (!open) imagePickerFor.value = null;
     },
 });
-const libraryTabs = [
-    { key: 'guesvia-library', label: 'GHASIDO Library' },
-    { key: 'my-images', label: 'My Images' },
-    { key: 'icons-stickers', label: 'Icons & Stickers' },
-];
-const libraryCategories = [
-    { value: 'all-categories', label: 'All categories' },
-];
+const libraryTabs = computed(() => [
+    { key: 'guesvia-library', label: t('GHASIDO Library') },
+    { key: 'my-images', label: t('My Images') },
+    { key: 'icons-stickers', label: t('Icons & Stickers') },
+]);
+const libraryCategories = computed(() => [
+    { value: 'all-categories', label: t('All categories') },
+]);
 
 /** Kinds with no options to edit: the prompt is the only field. */
 const textOnlyKinds: TestQuestionKind[] = [
@@ -103,11 +107,11 @@ const aiBusy = computed(
 );
 
 const audioLabels: Record<TestQuestionAudioStatus, string> = {
-    missing: 'No audio yet',
-    pending: 'Audio queued…',
-    running: 'Generating audio…',
-    failed: 'Audio failed',
-    done: 'Audio ready',
+    missing: tk('No audio yet'),
+    pending: tk('Audio queued…'),
+    running: tk('Generating audio…'),
+    failed: tk('Audio failed'),
+    done: tk('Audio ready'),
 };
 
 function chooseImage(media: { id: string }): void {
@@ -332,7 +336,7 @@ defineExpose({ save });
         "
     >
         <h2 class="font-heading text-brand-800 text-base font-semibold">
-            Create / Edit Test
+            {{ $t('Create / Edit Test') }}
         </h2>
 
         <div class="mt-3 grid gap-3 md:grid-cols-2">
@@ -341,7 +345,7 @@ defineExpose({ save });
                     for="test-title"
                     class="text-brand-900 text-[12px] font-semibold"
                 >
-                    Test Title <span class="text-danger">*</span>
+                    {{ $t('Test Title') }} <span class="text-danger">*</span>
                 </label>
                 <Input
                     id="test-title"
@@ -352,7 +356,7 @@ defineExpose({ save });
 
             <div class="grid gap-1.5">
                 <label class="text-brand-900 text-[12px] font-semibold">
-                    Test Type
+                    {{ $t('Test Type') }}
                 </label>
                 <Select
                     :model-value="type"
@@ -380,7 +384,7 @@ defineExpose({ save });
         <div class="mt-3 grid gap-3 md:grid-cols-3">
             <div class="grid gap-1.5">
                 <label class="text-brand-900 text-[12px] font-semibold">
-                    Department <span class="text-danger">*</span>
+                    {{ $t('Department') }} <span class="text-danger">*</span>
                 </label>
                 <Select
                     :model-value="department"
@@ -409,7 +413,7 @@ defineExpose({ save });
                     for="test-time-limit"
                     class="text-brand-900 text-[12px] font-semibold"
                 >
-                    Time Limit (minutes)
+                    {{ $t('Time Limit (minutes)') }}
                 </label>
                 <Input
                     id="test-time-limit"
@@ -424,7 +428,7 @@ defineExpose({ save });
                     for="test-question-count"
                     class="text-brand-900 text-[12px] font-semibold"
                 >
-                    Number of Questions
+                    {{ $t('Number of Questions') }}
                 </label>
                 <Input
                     id="test-question-count"
@@ -440,7 +444,7 @@ defineExpose({ save });
                 for="test-description"
                 class="text-brand-900 text-[12px] font-semibold"
             >
-                Test Description (optional)
+                {{ $t('Test Description (optional)') }}
             </label>
             <textarea
                 id="test-description"
@@ -457,7 +461,7 @@ defineExpose({ save });
 
         <div class="mt-4 flex items-center justify-between gap-3">
             <h3 class="font-heading text-brand-800 text-base font-semibold">
-                Questions
+                {{ $t('Questions') }}
             </h3>
             <div class="flex flex-wrap items-center justify-end gap-2">
                 <Button
@@ -467,7 +471,7 @@ defineExpose({ save });
                     class="border-line text-brand-700 hover:bg-brand-50 h-9 rounded-md px-3 text-[12px] font-semibold shadow-none"
                     @click="emit('publish')"
                 >
-                    Publish Test
+                    {{ $t('Publish Test') }}
                 </Button>
                 <Button
                     type="button"
@@ -475,7 +479,7 @@ defineExpose({ save });
                     @click="addQuestion"
                 >
                     <CirclePlus class="size-4" aria-hidden="true" />
-                    Add Question
+                    {{ $t('Add Question') }}
                 </Button>
             </div>
         </div>
@@ -536,11 +540,11 @@ defineExpose({ save });
                 />
                 <p class="min-w-0 leading-5">
                     <span v-if="aiBusy" class="text-brand-900 font-semibold">
-                        Generating questions with AI…
+                        {{ $t('Generating questions with AI…') }}
                     </span>
                     <template v-else-if="editor.ai.status === 'failed'">
                         <span class="text-danger-text font-semibold">
-                            Generation failed.
+                            {{ $t('Generation failed.') }}
                         </span>
                         <span class="text-ink-slate">
                             {{ editor.ai.failedReason }}
@@ -550,11 +554,18 @@ defineExpose({ save });
                         v-else-if="editor.ai.status === 'done'"
                         class="text-brand-900 font-semibold"
                     >
-                        AI drafts added. Review them, then approve or publish.
+                        {{
+                            $t(
+                                'AI drafts added. Review them, then approve or publish.',
+                            )
+                        }}
                     </span>
                     <span v-else class="text-brand-900">
-                        Draft new questions with AI. They stay hidden until you
-                        approve them.
+                        {{
+                            $t(
+                                'Draft new questions with AI. They stay hidden until you approve them.',
+                            )
+                        }}
                     </span>
                 </p>
             </div>
@@ -572,7 +583,7 @@ defineExpose({ save });
                     @click="emit('regenerate-ai')"
                 >
                     <RefreshCw class="size-3.5" aria-hidden="true" />
-                    Regenerate
+                    {{ $t('Regenerate') }}
                 </Button>
                 <Button
                     v-if="questions.some((q) => q.audio)"
@@ -583,7 +594,7 @@ defineExpose({ save });
                     @click="emit('generate-all-audio')"
                 >
                     <Volume2 class="size-3.5" aria-hidden="true" />
-                    Generate all audio
+                    {{ $t('Generate all audio') }}
                 </Button>
                 <Button
                     type="button"
@@ -594,7 +605,7 @@ defineExpose({ save });
                     @click="aiDialogOpen = true"
                 >
                     <Sparkles class="size-3.5" aria-hidden="true" />
-                    Generate with AI
+                    {{ $t('Generate with AI') }}
                 </Button>
             </div>
         </div>
@@ -612,12 +623,16 @@ defineExpose({ save });
                 <span
                     class="text-brand-900 min-w-0 flex-1 truncate text-[13px] font-semibold"
                 >
-                    Question {{ question.index }}
+                    {{ $t('Question :number', { number: question.index }) }}
                 </span>
                 <button
                     type="button"
                     class="text-ink-faint hover:bg-brand-50 inline-flex size-7 items-center justify-center rounded-md"
-                    :aria-label="`Duplicate question ${question.index}`"
+                    :aria-label="
+                        $t('Duplicate question :number', {
+                            number: question.index,
+                        })
+                    "
                     @click="duplicateQuestion(question)"
                 >
                     <Copy class="size-4" aria-hidden="true" />
@@ -625,7 +640,11 @@ defineExpose({ save });
                 <button
                     type="button"
                     class="text-danger-text hover:bg-danger-tint inline-flex size-7 items-center justify-center rounded-md"
-                    :aria-label="`Delete question ${question.index}`"
+                    :aria-label="
+                        $t('Delete question :number', {
+                            number: question.index,
+                        })
+                    "
                     @click="removeQuestion(question)"
                 >
                     <Trash2 class="size-4" aria-hidden="true" />
@@ -641,7 +660,7 @@ defineExpose({ save });
                     class="bg-ai-tint text-ai rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold whitespace-nowrap"
                 >
                     <Sparkles class="size-3" aria-hidden="true" />
-                    AI draft · hidden from learners
+                    {{ $t('AI draft · hidden from learners') }}
                 </span>
                 <Button
                     v-if="question.releaseUrl"
@@ -652,7 +671,7 @@ defineExpose({ save });
                     @click="emit('release-question', question)"
                 >
                     <Check class="size-3.5" aria-hidden="true" />
-                    Approve
+                    {{ $t('Approve') }}
                 </Button>
             </div>
 
@@ -685,7 +704,8 @@ defineExpose({ save });
                         class="text-brand-900 text-[12px] font-semibold"
                         :for="`question-text-${question.id}`"
                     >
-                        Question Text <span class="text-danger">*</span>
+                        {{ $t('Question Text') }}
+                        <span class="text-danger">*</span>
                     </label>
                     <textarea
                         :id="`question-text-${question.id}`"
@@ -720,7 +740,11 @@ defineExpose({ save });
                         v-else-if="question.imageCrop"
                         :crop="question.imageCrop"
                         src="/decor/tests-mockup.jpg"
-                        :alt="`Question ${question.index} image`"
+                        :alt="
+                            $t('Question :number image', {
+                                number: question.index,
+                            })
+                        "
                         class="border-line w-full rounded-md border"
                     />
                     <div class="flex items-center gap-2">
@@ -731,12 +755,12 @@ defineExpose({ save });
                             @click="imagePickerFor = question"
                         >
                             <Image class="size-3.5" aria-hidden="true" />
-                            Change Image
+                            {{ $t('Change Image') }}
                         </Button>
                         <button
                             type="button"
                             class="border-line text-danger-text hover:bg-danger-tint inline-flex size-8 shrink-0 items-center justify-center rounded-md border disabled:opacity-40"
-                            aria-label="Remove image"
+                            :aria-label="$t('Remove image')"
                             :disabled="!question.media.image"
                             @click="emit('attach-image', question, null)"
                         >
@@ -799,7 +823,7 @@ defineExpose({ save });
                         class="size-3.5 animate-spin motion-reduce:animate-none"
                         aria-hidden="true"
                     />
-                    {{ audioLabels[question.audio.status] }}
+                    {{ $t(audioLabels[question.audio.status]) }}
                 </span>
                 <span
                     v-if="question.audio.failedReason"
@@ -817,7 +841,7 @@ defineExpose({ save });
                     class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
                     @click="emit('generate-audio', question)"
                 >
-                    Generate audio
+                    {{ $t('Generate audio') }}
                 </Button>
             </div>
 
@@ -835,13 +859,13 @@ defineExpose({ save });
                     class="text-brand-700 hover:bg-brand-50 h-8 px-2 text-[11.5px] font-semibold"
                     @click="saveQuestion(question)"
                 >
-                    Save question
+                    {{ $t('Save question') }}
                 </Button>
             </div>
 
             <div v-else class="mt-3 grid gap-2">
                 <span class="text-brand-900 text-[12px] font-semibold">
-                    Options <span class="text-danger">*</span>
+                    {{ $t('Options') }} <span class="text-danger">*</span>
                 </span>
 
                 <div
@@ -884,12 +908,14 @@ defineExpose({ save });
                         class="bg-success-tint text-success-text inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold whitespace-nowrap"
                     >
                         <Check class="size-3.5" aria-hidden="true" />
-                        Correct answer
+                        {{ $t('Correct answer') }}
                     </span>
                     <button
                         type="button"
                         class="text-ink-faint hover:bg-brand-50 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
-                        :aria-label="`Delete option ${option.id}`"
+                        :aria-label="
+                            $t('Delete option :option', { option: option.id })
+                        "
                         @click="removeOption(question, option.id)"
                     >
                         <Trash2 class="size-4" aria-hidden="true" />
@@ -904,7 +930,7 @@ defineExpose({ save });
                         @click="addOption(question)"
                     >
                         <CirclePlus class="size-4" aria-hidden="true" />
-                        Add Option
+                        {{ $t('Add Option') }}
                     </Button>
                 </div>
 
@@ -915,7 +941,7 @@ defineExpose({ save });
                         class="text-brand-700 hover:bg-brand-50 h-8 px-2 text-[11.5px] font-semibold"
                         @click="saveQuestion(question)"
                     >
-                        Save question
+                        {{ $t('Save question') }}
                     </Button>
                 </div>
             </div>

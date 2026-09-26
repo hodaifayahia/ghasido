@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import MessagesModal from '@/components/messages/MessagesModal.vue';
 import MessagesPager from '@/components/messages/MessagesPager.vue';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { MessageLog, MessageLogStatus, MessagePagination } from '@/types';
 
@@ -13,6 +15,8 @@ type Props = {
 withDefaults(defineProps<Props>(), { loading: false });
 
 const open = defineModel<boolean>('open', { required: true });
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     page: [page: number];
@@ -27,17 +31,17 @@ const tone: Record<MessageLogStatus, string> = {
 };
 
 const text: Record<MessageLogStatus, string> = {
-    sent: 'Sent',
-    scheduled: 'Scheduled',
-    queued: 'Queued',
-    blocked: 'Blocked',
-    failed: 'Failed',
+    sent: tk('Sent'),
+    scheduled: tk('Scheduled'),
+    queued: tk('Queued'),
+    blocked: tk('Blocked'),
+    failed: tk('Failed'),
 };
 
 const reasons: Record<string, string> = {
-    no_consent: 'no consent',
-    no_email: 'no email address',
-    recipient_missing: 'recipient missing',
+    no_consent: tk('no consent'),
+    no_email: tk('no email address'),
+    recipient_missing: tk('recipient missing'),
 };
 
 function reasonText(log: MessageLog): string {
@@ -45,15 +49,21 @@ function reasonText(log: MessageLog): string {
         return '';
     }
 
-    return reasons[log.reason] ?? log.reason;
+    const reason = reasons[log.reason];
+
+    return reason === undefined ? log.reason : t(reason);
 }
 </script>
 
 <template>
     <MessagesModal
         v-model:open="open"
-        title="Reminder Log"
-        description="Every reminder written for the employees you can see, newest first. A blocked row is a reminder that was not sent because consent or an address was missing."
+        :title="$t('Reminder Log')"
+        :description="
+            $t(
+                'Every reminder written for the employees you can see, newest first. A blocked row is a reminder that was not sent because consent or an address was missing.',
+            )
+        "
         class="sm:max-w-[760px]"
     >
         <div
@@ -65,11 +75,17 @@ function reasonText(log: MessageLog): string {
                     <tr
                         class="text-brand-900 text-[12px] leading-4 font-semibold"
                     >
-                        <th class="px-3 py-2 text-start">Recipient</th>
-                        <th class="px-2 py-2 text-start">Template</th>
-                        <th class="px-2 py-2 text-start">Channel</th>
-                        <th class="px-2 py-2 text-start">When</th>
-                        <th class="px-2 py-2 text-start">Status</th>
+                        <th class="px-3 py-2 text-start">
+                            {{ $t('Recipient') }}
+                        </th>
+                        <th class="px-2 py-2 text-start">
+                            {{ $t('Template') }}
+                        </th>
+                        <th class="px-2 py-2 text-start">
+                            {{ $t('Channel') }}
+                        </th>
+                        <th class="px-2 py-2 text-start">{{ $t('When') }}</th>
+                        <th class="px-2 py-2 text-start">{{ $t('Status') }}</th>
                     </tr>
                 </thead>
                 <tbody class="bg-surface text-ink text-[12.5px]">
@@ -81,7 +97,7 @@ function reasonText(log: MessageLog): string {
                             colspan="5"
                             class="text-ink-slate px-3 py-8 text-center"
                         >
-                            No reminders yet.
+                            {{ $t('No reminders yet.') }}
                         </td>
                     </tr>
                     <tr
@@ -98,11 +114,15 @@ function reasonText(log: MessageLog): string {
                                 v-if="log.automatic"
                                 class="text-ink-faint block text-[11px]"
                             >
-                                automatic
+                                {{ $t('automatic') }}
                             </span>
                         </td>
                         <td class="text-ink-muted px-2 py-2">
-                            {{ log.channel === 'in_app' ? 'In-app' : 'Email' }}
+                            {{
+                                log.channel === 'in_app'
+                                    ? $t('In-app')
+                                    : $t('Email')
+                            }}
                         </td>
                         <td class="text-ink-muted px-2 py-2 whitespace-nowrap">
                             {{ log.sentAt }}
@@ -116,7 +136,7 @@ function reasonText(log: MessageLog): string {
                                     )
                                 "
                             >
-                                {{ text[log.status] }}
+                                {{ $t(text[log.status]) }}
                             </span>
                             <span
                                 v-if="reasonText(log)"
@@ -133,7 +153,7 @@ function reasonText(log: MessageLog): string {
         <MessagesPager
             :pagination="pagination"
             noun="reminders"
-            label="Full reminder log pagination"
+            :label="$t('Full reminder log pagination')"
             class="mt-3"
             @page="emit('page', $event)"
         />

@@ -15,6 +15,7 @@ import {
     dashboard,
     messagesReminders as messagesRemindersRoute,
 } from '@/routes';
+import { tk } from '@/lib/i18n';
 import { toggle } from '@/routes/messages-reminders/rules';
 import type {
     MessageAbilities,
@@ -49,11 +50,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Messages & Reminders',
+                title: tk('Messages & Reminders'),
                 href: messagesRemindersRoute(),
             },
         ],
@@ -263,14 +264,18 @@ const ruleDepartments = computed(() =>
 </script>
 
 <template>
-    <Head title="Messages & Reminders" />
+    <Head :title="$t('Messages & Reminders')" />
 
     <div class="flex w-full min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <h1 class="sr-only">Messages & Reminders</h1>
+        <h1 class="sr-only">{{ $t('Messages & Reminders') }}</h1>
 
         <PageHeader
-            title="Messages & Reminders"
-            description="Send training reminders, manage templates and review consent-aware delivery history."
+            :title="$t('Messages & Reminders')"
+            :description="
+                $t(
+                    'Send training reminders, manage templates and review consent-aware delivery history.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>

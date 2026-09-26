@@ -86,8 +86,13 @@ function submit(): void {
 <template>
     <LessonsModal
         :open="open"
-        title="Generate questions with AI"
-        :description="`New questions for ${testTitle} arrive as drafts. Review them, then publish the test.`"
+        :title="$t('Generate questions with AI')"
+        :description="
+            $t(
+                'New questions for :test arrive as drafts. Review them, then publish the test.',
+                { test: testTitle },
+            )
+        "
         size="md"
         @update:open="emit('update:open', $event)"
     >
@@ -104,12 +109,16 @@ function submit(): void {
                 />
                 <span class="text-brand-900 text-xs leading-5">
                     <span class="font-semibold">
-                        Generate paired questions from the Pre-test
+                        {{ $t('Generate paired questions from the Pre-test') }}
                     </span>
                     <span class="text-ink-slate block">
                         {{ ai.pairedSource.title }} ·
-                        {{ ai.pairedSource.questionCount }} questions. Same
-                        skills and difficulty, different items.
+                        {{
+                            $t(
+                                ':count questions. Same skills and difficulty, different items.',
+                                { count: ai.pairedSource.questionCount },
+                            )
+                        }}
                     </span>
                 </span>
             </label>
@@ -119,15 +128,21 @@ function submit(): void {
                     for="ai-test-prompt"
                     class="text-brand-900 text-xs font-semibold"
                 >
-                    Topic or instructions
-                    <span class="text-ink-muted font-normal">(optional)</span>
+                    {{ $t('Topic or instructions') }}
+                    <span class="text-ink-muted font-normal">{{
+                        $t('(optional)')
+                    }}</span>
                 </Label>
                 <textarea
                     id="ai-test-prompt"
                     v-model="prompt"
                     rows="3"
                     maxlength="1000"
-                    placeholder="e.g. Check-in, room problems and polite requests at reception"
+                    :placeholder="
+                        $t(
+                            'e.g. Check-in, room problems and polite requests at reception',
+                        )
+                    "
                     class="border-line text-ink bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 w-full resize-none rounded-md border px-3 py-2 text-sm leading-5 outline-none focus-visible:ring-3"
                 />
             </div>
@@ -138,7 +153,7 @@ function submit(): void {
                         for="ai-test-count"
                         class="text-brand-900 text-xs font-semibold"
                     >
-                        Number of questions
+                        {{ $t('Number of questions') }}
                     </Label>
                     <Input
                         id="ai-test-count"
@@ -152,11 +167,11 @@ function submit(): void {
                 </div>
                 <div class="space-y-1.5">
                     <Label class="text-brand-900 text-xs font-semibold">
-                        Level
+                        {{ $t('Level') }}
                     </Label>
                     <Select v-model="level">
                         <SelectTrigger class="border-line h-11 w-full text-sm">
-                            <SelectValue placeholder="Choose level" />
+                            <SelectValue :placeholder="$t('Choose level')" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
@@ -173,7 +188,7 @@ function submit(): void {
 
             <fieldset class="space-y-2" :disabled="paired">
                 <legend class="text-brand-900 text-xs font-semibold">
-                    Skill mix
+                    {{ $t('Skill mix') }}
                 </legend>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <label
@@ -204,7 +219,7 @@ function submit(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 h-11 rounded-md px-4 text-xs font-semibold sm:h-10"
                     @click="emit('update:open', false)"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -214,7 +229,9 @@ function submit(): void {
                 >
                     <Sparkles class="size-4" aria-hidden="true" />
                     {{
-                        paired ? 'Generate paired questions' : 'Generate drafts'
+                        paired
+                            ? $t('Generate paired questions')
+                            : $t('Generate drafts')
                     }}
                 </Button>
             </div>

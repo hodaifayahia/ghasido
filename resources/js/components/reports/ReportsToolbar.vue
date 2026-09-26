@@ -26,6 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type {
     ReportExportFormat,
@@ -59,6 +60,8 @@ export type ReportFilterValues = {
 };
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     /** A filter changed: the caller reloads page 1 with these values. */
@@ -99,38 +102,58 @@ watch(
 );
 
 const filterFields = computed<
-    Array<{ key: FilterKey; label: string; options: ReportSelectOption[] }>
+    Array<{
+        key: FilterKey;
+        label: string;
+        ariaLabel: string;
+        options: ReportSelectOption[];
+    }>
 >(() => [
-    { key: 'hotel', label: 'Hotel', options: props.filters.hotels },
+    {
+        key: 'hotel',
+        label: t('Hotel'),
+        ariaLabel: t('Filter by hotel'),
+        options: props.filters.hotels,
+    },
     {
         key: 'department',
-        label: 'Department',
+        label: t('Department'),
+        ariaLabel: t('Filter by department'),
         options: props.filters.departments,
     },
-    { key: 'employee', label: 'Employee', options: props.filters.employees },
+    {
+        key: 'employee',
+        label: t('Employee'),
+        ariaLabel: t('Filter by employee'),
+        options: props.filters.employees,
+    },
     {
         key: 'activityType',
-        label: 'Activity Type',
+        label: t('Activity Type'),
+        ariaLabel: t('Filter by activity type'),
         options: props.filters.activityTypes,
     },
     {
         key: 'completionStatus',
-        label: 'Completion Status',
+        label: t('Completion Status'),
+        ariaLabel: t('Filter by completion status'),
         options: props.filters.completionStatuses,
     },
 ]);
 
 const isCustomRange = computed(() => dateRange.value === 'custom');
 
-const exportFormats: Array<{
-    format: ReportExportFormat;
-    label: string;
-    icon: Component;
-}> = [
-    { format: 'xlsx', label: 'Excel (.xlsx)', icon: FileSpreadsheet },
-    { format: 'csv', label: 'CSV (.csv)', icon: FileText },
-    { format: 'pdf', label: 'PDF report (print)', icon: Printer },
-];
+const exportFormats = computed<
+    Array<{
+        format: ReportExportFormat;
+        label: string;
+        icon: Component;
+    }>
+>(() => [
+    { format: 'xlsx', label: t('Excel (.xlsx)'), icon: FileSpreadsheet },
+    { format: 'csv', label: t('CSV (.csv)'), icon: FileText },
+    { format: 'pdf', label: t('PDF report (print)'), icon: Printer },
+]);
 
 function current(): ReportFilterValues {
     return {
@@ -185,7 +208,7 @@ function applyCustomRange(): void {
                     @update:model-value="onSelect('range', $event)"
                 >
                     <SelectTrigger
-                        aria-label="Date range"
+                        :aria-label="$t('Date range')"
                         data-test="reports-range-select"
                         class="border-line text-ink bg-surface shadow-card h-10 rounded-md ps-9 pe-3 text-[12.5px] font-medium"
                     >
@@ -212,7 +235,7 @@ function applyCustomRange(): void {
                         class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white"
                     >
                         <Download class="size-4" aria-hidden="true" />
-                        Export Data
+                        {{ $t('Export Data') }}
                         <ChevronDown class="size-4" aria-hidden="true" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -243,7 +266,7 @@ function applyCustomRange(): void {
             class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end"
         >
             <label class="text-brand-900 grid gap-1 text-[11px] font-semibold">
-                From
+                {{ $t('From') }}
                 <Input
                     v-model="dateRange.from"
                     type="date"
@@ -253,7 +276,7 @@ function applyCustomRange(): void {
                 />
             </label>
             <label class="text-brand-900 grid gap-1 text-[11px] font-semibold">
-                To
+                {{ $t('To') }}
                 <Input
                     v-model="dateRange.to"
                     type="date"
@@ -278,7 +301,7 @@ function applyCustomRange(): void {
                     @update:model-value="onSelect(field.key, $event)"
                 >
                     <SelectTrigger
-                        :aria-label="`Filter by ${field.label.toLowerCase()}`"
+                        :aria-label="field.ariaLabel"
                         :data-test="`reports-${field.key}-filter`"
                         class="text-ink-indigo h-6 border-0 px-0 py-0 text-[12.5px] font-medium shadow-none focus-visible:ring-0"
                     >
@@ -305,7 +328,7 @@ function applyCustomRange(): void {
                 @click="emit('reset')"
             >
                 <RotateCcw class="size-4" aria-hidden="true" />
-                Reset Filters
+                {{ $t('Reset Filters') }}
             </Button>
         </div>
     </div>

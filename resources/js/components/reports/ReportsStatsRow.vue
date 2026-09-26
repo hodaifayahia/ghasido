@@ -71,7 +71,7 @@ const looks: Record<ReportMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Reports summary"
+        :aria-label="$t('Reports summary')"
         tabindex="0"
         :class="
             cn(

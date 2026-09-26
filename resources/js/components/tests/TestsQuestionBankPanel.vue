@@ -32,7 +32,7 @@ const filtered = computed(() => {
 
 <template>
     <PanelCard
-        title="Question Bank"
+        :title="$t('Question Bank')"
         title-id="test-question-bank-title"
         class="min-w-0"
     >
@@ -48,7 +48,9 @@ const filtered = computed(() => {
                 <span
                     class="text-ink-muted hidden text-xs font-medium sm:inline"
                 >
-                    {{ filtered.length }} questions
+                    {{
+                        $tc(':count question|:count questions', filtered.length)
+                    }}
                 </span>
                 <Button
                     type="button"
@@ -56,7 +58,7 @@ const filtered = computed(() => {
                     @click="emit('create')"
                 >
                     <CirclePlus class="size-3.5" aria-hidden="true" />
-                    Create Question
+                    {{ $t('Create Question') }}
                 </Button>
             </div>
         </template>
@@ -69,8 +71,8 @@ const filtered = computed(() => {
             <Input
                 v-model="search"
                 type="search"
-                placeholder="Search the question bank..."
-                aria-label="Search the question bank"
+                :placeholder="$t('Search the question bank...')"
+                :aria-label="$t('Search the question bank')"
                 class="border-line bg-surface h-10 rounded-md ps-9 text-sm"
             />
         </div>
@@ -110,8 +112,21 @@ const filtered = computed(() => {
                     <div
                         class="text-ink-muted text-start text-[11px] md:text-end"
                     >
-                        <p>{{ item.uses }} test uses</p>
-                        <p>Version {{ item.version }}</p>
+                        <p>
+                            {{
+                                $tc(
+                                    ':count test use|:count test uses',
+                                    item.uses,
+                                )
+                            }}
+                        </p>
+                        <p>
+                            {{
+                                $t('Version :version', {
+                                    version: item.version,
+                                })
+                            }}
+                        </p>
                     </div>
                     <div class="flex items-center justify-start md:justify-end">
                         <Button
@@ -121,11 +136,11 @@ const filtered = computed(() => {
                             class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
                             @click="emit('open', item)"
                         >
-                            Open Test
+                            {{ $t('Open Test') }}
                             <ArrowRight class="size-3.5" aria-hidden="true" />
                         </Button>
                         <span v-else class="text-ink-faint text-[11px]">
-                            No linked test
+                            {{ $t('No linked test') }}
                         </span>
                     </div>
                 </article>
@@ -136,7 +151,7 @@ const filtered = computed(() => {
             v-else
             class="text-ink-slate border-line mt-3 rounded-md border border-dashed px-4 py-10 text-center text-sm"
         >
-            No question matches your search.
+            {{ $t('No question matches your search.') }}
         </p>
     </PanelCard>
 </template>

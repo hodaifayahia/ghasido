@@ -7,6 +7,7 @@ import InputError from '@/components/InputError.vue';
 import ReportsModal from '@/components/reports/ReportsModal.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { ReportScoreTarget } from '@/types';
 
@@ -21,14 +22,16 @@ type Props = {
 
 const props = defineProps<Props>();
 
+const { t } = useI18n();
+
 const open = defineModel<boolean>('open', { required: true });
 
 const busy = ref(false);
 
 const title = computed(() =>
     props.target === null
-        ? 'Adjust score'
-        : `Adjust score · ${props.target.row.employee}`,
+        ? t('Adjust score')
+        : t('Adjust score · :name', { name: props.target.row.employee }),
 );
 
 const description = computed(() => {
@@ -38,7 +41,9 @@ const description = computed(() => {
 
     return props.target.kind === 'answer'
         ? `${props.target.row.context} · ${props.target.row.skill}`
-        : `${props.target.row.scenario} · attempt ${props.target.row.attemptNo}`;
+        : `${props.target.row.scenario} · ${t('attempt :number', {
+              number: props.target.row.attemptNo,
+          })}`;
 });
 
 const current = computed((): number | null => {
@@ -149,21 +154,21 @@ const outlineButton =
                 <li
                     class="bg-brand-100/70 text-brand-700 rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold"
                 >
-                    Current
+                    {{ $t('Current') }}
                     <span>{{ current ?? '—' }} / {{ max }}</span>
                 </li>
                 <li
                     v-if="target.row.overridden"
                     class="bg-ai-tint text-ai rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold"
                 >
-                    Original score
+                    {{ $t('Original score') }}
                     <span>{{ target.row.originalScore ?? '—' }}</span>
                 </li>
                 <li
                     v-if="grading"
                     class="bg-warning-tint text-warning-text rounded-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold"
                 >
-                    AI grading in progress
+                    {{ $t('AI grading in progress') }}
                 </li>
             </ul>
 
@@ -171,7 +176,9 @@ const outlineButton =
                 v-if="target.row.overridden && target.row.overrideReason"
                 class="bg-app text-ink-slate rounded-md px-3 py-2 text-[12.5px]"
             >
-                <span class="text-ink font-semibold">Why it changed:</span>
+                <span class="text-ink font-semibold">{{
+                    $t('Why it changed:')
+                }}</span>
                 {{ target.row.overrideReason }}
             </p>
 
@@ -184,7 +191,9 @@ const outlineButton =
                 @success="close"
             >
                 <div class="grid gap-2">
-                    <Label for="override-score">New score (0–{{ max }})</Label>
+                    <Label for="override-score">{{
+                        $t('New score (0–:max)', { max })
+                    }}</Label>
                     <Input
                         id="override-score"
                         name="score"
@@ -200,20 +209,27 @@ const outlineButton =
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="override-reason">Reason</Label>
+                    <Label for="override-reason">{{ $t('Reason') }}</Label>
                     <textarea
                         id="override-reason"
                         name="reason"
                         rows="3"
                         maxlength="500"
                         required
-                        placeholder="For example: the recording was clear and the guest's request was fully handled."
+                        :placeholder="
+                            $t(
+                                'For example: the recording was clear and the guest\'s request was fully handled.',
+                            )
+                        "
                         class="border-line text-ink bg-surface placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 w-full resize-none rounded-md border px-3 py-2 text-[13.5px] shadow-none focus-visible:ring-3 focus-visible:outline-none"
                     />
                     <InputError :message="errors.reason" />
                     <p class="text-ink-faint text-[11.5px]">
-                        The original score is kept beside yours and both appear
-                        in the research export.
+                        {{
+                            $t(
+                                'The original score is kept beside yours and both appear in the research export.',
+                            )
+                        }}
                     </p>
                 </div>
 
@@ -230,7 +246,7 @@ const outlineButton =
                             @click="regrade"
                         >
                             <Sparkles class="size-4" aria-hidden="true" />
-                            Grade again with AI
+                            {{ $t('Grade again with AI') }}
                         </button>
                         <button
                             v-if="target.row.overridden"
@@ -241,7 +257,7 @@ const outlineButton =
                             @click="restore"
                         >
                             <RotateCcw class="size-4" aria-hidden="true" />
-                            Restore original score
+                            {{ $t('Restore original score') }}
                         </button>
                     </div>
                     <div class="flex gap-2 sm:justify-end">
@@ -250,7 +266,7 @@ const outlineButton =
                             :class="cn(outlineButton, 'flex-1 sm:flex-none')"
                             @click="close"
                         >
-                            Cancel
+                            {{ $t('Cancel') }}
                         </button>
                         <button
                             type="submit"
@@ -258,7 +274,7 @@ const outlineButton =
                             class="bg-brand-600 shadow-btn hover:bg-brand-700 focus-visible:ring-brand-600/15 inline-flex h-10 flex-1 items-center justify-center rounded-md px-5 text-[13px] font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] disabled:opacity-50 sm:flex-none"
                             data-test="report-score-save-button"
                         >
-                            Save score
+                            {{ $t('Save score') }}
                         </button>
                     </div>
                 </div>

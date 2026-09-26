@@ -25,6 +25,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { ReportEmployeeRow, ReportRowAction } from '@/types';
 
@@ -37,6 +38,8 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { size: 'table' });
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
     select: [action: ReportRowAction];
@@ -60,28 +63,33 @@ type Item = {
 
 const items = computed<Item[]>(() => {
     const list: Item[] = [
-        { action: 'details', label: 'View details', icon: Eye, group: 'read' },
+        {
+            action: 'details',
+            label: t('View details'),
+            icon: Eye,
+            group: 'read',
+        },
         {
             action: 'answers',
-            label: 'Detailed answers',
+            label: t('Detailed answers'),
             icon: ListChecks,
             group: 'tabs',
         },
         {
             action: 'roleplay',
-            label: 'AI role-play logs',
+            label: t('AI role-play logs'),
             icon: Bot,
             group: 'tabs',
         },
         {
             action: 'lessons',
-            label: 'Lesson progress',
+            label: t('Lesson progress'),
             icon: BookOpen,
             group: 'tabs',
         },
         {
             action: 'comparison',
-            label: 'Pre/Post comparison',
+            label: t('Pre/Post comparison'),
             icon: ChartColumn,
             group: 'tabs',
         },
@@ -90,7 +98,7 @@ const items = computed<Item[]>(() => {
     if (props.canExport) {
         list.push({
             action: 'export',
-            label: 'Export answers (.csv)',
+            label: t('Export answers (.csv)'),
             icon: Download,
             group: 'export',
         });
@@ -129,7 +137,7 @@ const triggerClass = computed(() =>
         <button
             type="button"
             :class="triggerClass"
-            :aria-label="`More actions for ${row.name}`"
+            :aria-label="$t('More actions for :name', { name: row.name })"
             :data-test="`report-${row.id}-actions-button`"
             @click="sheetOpen = true"
         >
@@ -155,7 +163,7 @@ const triggerClass = computed(() =>
                         {{ row.name }}
                     </SheetTitle>
                     <SheetDescription class="text-ink-slate text-[12.5px]">
-                        Reports for this employee
+                        {{ $t('Reports for this employee') }}
                     </SheetDescription>
                 </SheetHeader>
                 <ul class="mt-2 grid gap-1">
@@ -184,7 +192,7 @@ const triggerClass = computed(() =>
             <button
                 type="button"
                 :class="triggerClass"
-                :aria-label="`More actions for ${row.name}`"
+                :aria-label="$t('More actions for :name', { name: row.name })"
                 :data-test="`report-${row.id}-actions-button`"
             >
                 <EllipsisVertical
