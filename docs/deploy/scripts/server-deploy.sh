@@ -90,8 +90,22 @@ fi
 php artisan migrate --force --no-interaction >/dev/null
 export NODE_OPTIONS=--max-old-space-size=1536
 npm ci --no-audit --no-fund 2>&1 | tail -n 2
-npm run build 2>&1 | tail -n 3
-test -f public/build/manifest.json || { echo "BUILD FAILED"; exit 1; }
+# Shared hosting caps processes and threads; keep the Rust tools small. If
+# the vite-plus CLI (vp) still fails here, fall back to plain vite, which
+# reads the same vite.config.ts.
+export RAYON_NUM_THREADS=2 TOKIO_WORKER_THREADS=2 UV_THREADPOOL_SIZE=2
+rm -rf public/build
+if ! out=$(npm run build 2>&1); then
+  echo "$out" | grep -v '^\s*at ' | tail -n 15
+  echo "-- vp build failed; trying plain vite"
+  if ! out=$(npx vite build 2>&1); then
+    echo "$out" | grep -v '^\s*at ' | tail -n 25
+    echo "BUILD FAILED"
+    exit 1
+  fi
+fi
+echo "$out" | tail -n 3
+test -f public/build/manifest.json || { echo "BUILD FAILED (no manifest)"; exit 1; }
 
 # ---- copy the release into the live app
 echo "== copy"
