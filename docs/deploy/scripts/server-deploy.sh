@@ -68,7 +68,18 @@ echo "node $(node -v), npm $(npm -v)"
 
 # ---- build (in the clone; its own throwaway .env and SQLite file)
 echo "== build"
-composer install --no-dev --no-interaction --no-progress --prefer-dist 2>&1 | tail -n 3
+# Start from the live app's packages: the same composer.lock mostly means
+# nothing to download (this host's GitHub API access is often rate-limited).
+if [ ! -d vendor ] && [ -d "$APP/vendor" ]; then
+  echo "copying vendor/ from the live app"
+  cp -a "$APP/vendor" vendor
+fi
+if ! out=$(composer install --no-dev --no-interaction --no-progress --prefer-dist 2>&1); then
+  echo "$out" | grep -v '^\s*$' | head -n 25
+  echo "COMPOSER FAILED"
+  exit 1
+fi
+echo "$out" | tail -n 3
 if [ ! -f .env ]; then
   cp .env.example .env
   php artisan key:generate --no-interaction >/dev/null
