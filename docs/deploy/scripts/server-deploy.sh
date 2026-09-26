@@ -48,6 +48,20 @@ if [ "${SWITCH_TO_MYSQL:-0}" = 1 ]; then
   php -r 'try { new PDO("mysql:host=".$argv[1].";dbname=".$argv[2], $argv[3], rtrim(stream_get_contents(STDIN), "\n")); echo "MySQL login OK\n"; } catch (Throwable $e) { fwrite(STDERR, "MySQL login failed: ".$e->getMessage()."\n"); exit(1); }' \
     "$MYSQL_HOST" "$MYSQL_DATABASE" "$MYSQL_USERNAME" <<<"$MYSQL_PASSWORD" || exit 1
   # The password is only in the here-string above, not on a command line.
+
+  # The switch needs an EMPTY MySQL database; leftovers of an earlier failed
+  # attempt must be removed in hPanel first. Checked here, before anything
+  # changes, so the site never goes into maintenance for nothing.
+  tables=$(php -r 'try { $db = new PDO("mysql:host=".$argv[1].";dbname=".$argv[2], $argv[3], rtrim(stream_get_contents(STDIN), "\n")); echo count($db->query("SHOW TABLES")->fetchAll()); } catch (Throwable $e) { echo "?"; }' \
+    "$MYSQL_HOST" "$MYSQL_DATABASE" "$MYSQL_USERNAME" <<<"$MYSQL_PASSWORD")
+  if [ "$tables" != "0" ]; then
+    echo "The MySQL database $MYSQL_DATABASE is not empty ($tables tables)."
+    echo "Nothing was changed; the site is still running on SQLite."
+    echo "Empty it first: hPanel -> Databases -> MySQL Databases -> delete and recreate"
+    echo "$MYSQL_DATABASE (or drop all its tables in phpMyAdmin), then run this again."
+    exit 1
+  fi
+  echo "MySQL database is empty: OK"
 fi
 
 # ---- Node (Hostinger has none; the official build goes into ~/.local/node)
