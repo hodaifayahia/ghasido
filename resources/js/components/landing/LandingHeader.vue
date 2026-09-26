@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Menu, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import InstallAppButton from '@/components/landing/InstallAppButton.vue';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contact, dashboard, login } from '@/routes';
@@ -89,6 +90,7 @@ const mobileMenuOpen = ref(false);
             </nav>
 
             <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+                <InstallAppButton variant="nav" class="hidden sm:inline-flex" />
                 <Link
                     :href="signInHref"
                     class="text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600 hidden min-h-11 items-center rounded-md px-3 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:inline-flex"
@@ -176,6 +178,10 @@ const mobileMenuOpen = ref(false);
                             : content.navigation.login
                     }}
                 </Link>
+                <InstallAppButton
+                    variant="menu"
+                    @opened="mobileMenuOpen = false"
+                />
             </div>
         </nav>
     </header>

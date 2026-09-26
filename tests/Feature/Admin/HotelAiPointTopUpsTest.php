@@ -114,5 +114,4 @@ class HotelAiPointTopUpsTest extends TestCase
 
         $this->assertDatabaseCount('hotel_ai_point_top_ups', 0);
     }
-
 }

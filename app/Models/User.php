@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -60,6 +61,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $english_level_assessed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read IndividualSubscription|null $individualSubscription
  */
 #[Fillable([
     'name',
@@ -205,6 +207,23 @@ class User extends Authenticatable implements PasskeyUser
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * An individual subscriber's own configuration: a learner with no hotel
+     * (user request 2026-09-25).
+     *
+     * @return HasOne<IndividualSubscription, $this>
+     */
+    public function individualSubscription(): HasOne
+    {
+        return $this->hasOne(IndividualSubscription::class);
+    }
+
+    /** A learner with no hotel, on their own subscription. */
+    public function isIndividual(): bool
+    {
+        return $this->hotel_id === null && $this->individualSubscription !== null;
     }
 
     /**

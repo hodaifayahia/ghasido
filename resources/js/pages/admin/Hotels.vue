@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import HotelDepartmentsDialog from '@/components/hotels/HotelDepartmentsDialog.vue';
 import HotelExtendDialog from '@/components/hotels/HotelExtendDialog.vue';
 import HotelFormDialog from '@/components/hotels/HotelFormDialog.vue';
 import HotelReasonDialog from '@/components/hotels/HotelReasonDialog.vue';
@@ -150,6 +151,7 @@ function selectHotel(hotel: HotelRecord, onSuccess?: () => void): void {
 const formOpen = ref(false);
 const formHotel = ref<HotelRecord | null>(null);
 const seatsOpen = ref(false);
+const departmentsOpen = ref(false);
 const reasonOpen = ref(false);
 const reasonMode = ref<'reject' | 'archive'>('archive');
 const extendOpen = ref(false);
@@ -199,6 +201,11 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
             // so the hotel is selected first when it is not already.
             selectHotel(hotel, () => {
                 seatsOpen.value = true;
+            });
+            return;
+        case 'departments':
+            selectHotel(hotel, () => {
+                departmentsOpen.value = true;
             });
             return;
         case 'approve':
@@ -271,6 +278,10 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
     <template v-if="canManage">
         <HotelFormDialog v-model:open="formOpen" :hotel="formHotel" />
         <HotelSeatsDialog v-model:open="seatsOpen" :overview="seatsOverview" />
+        <HotelDepartmentsDialog
+            v-model:open="departmentsOpen"
+            :overview="seatsOverview"
+        />
         <HotelReasonDialog
             v-model:open="reasonOpen"
             :hotel="actionHotel"

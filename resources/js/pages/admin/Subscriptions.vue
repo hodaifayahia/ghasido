@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     Building2,
     CreditCard,
@@ -14,7 +14,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import PanelCard from '@/components/common/PanelCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
-import { dashboard, subscriptions } from '@/routes';
+import { dashboard, individuals, subscriptions } from '@/routes';
 import { hotelPlan } from '@/routes/subscriptions';
 import { update as updatePlan } from '@/routes/subscriptions/plans';
 
@@ -297,6 +297,14 @@ function savePaymentMethod(): void {
                 >
                     Payment methods
                 </button>
+                <!-- Individual subscribers have their own page (user request 2026-09-25). -->
+                <Link
+                    :href="individuals()"
+                    class="text-ink-slate hover:bg-brand-50 focus-visible:ring-brand-600/15 rounded px-3 py-2 text-[12px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                    data-test="subscriptions-individuals-link"
+                >
+                    Individuals
+                </Link>
             </div>
             <p class="text-ink-muted text-[11.5px]">
                 Changes are recorded in the audit log.
