@@ -118,7 +118,7 @@ function badgeClass(role: RoleRecord): string {
 
             <div class="min-w-0 overflow-hidden rounded-b-lg">
                 <table
-                    class="w-full table-fixed border-collapse text-left text-[13px]"
+                    class="w-full table-fixed border-collapse text-start text-[13px]"
                 >
                     <caption class="sr-only">
                         Roles, account counts, permission coverage and actions
@@ -135,19 +135,19 @@ function badgeClass(role: RoleRecord): string {
                             </th>
                             <th
                                 scope="col"
-                                class="hidden px-3 py-2.5 text-right sm:table-cell sm:w-[14%] sm:px-4"
+                                class="hidden px-3 py-2.5 text-end sm:table-cell sm:w-[14%] sm:px-4"
                             >
                                 Accounts
                             </th>
                             <th
                                 scope="col"
-                                class="hidden px-3 py-2.5 text-right sm:table-cell sm:w-[16%] sm:px-4"
+                                class="hidden px-3 py-2.5 text-end sm:table-cell sm:w-[16%] sm:px-4"
                             >
                                 Permissions
                             </th>
                             <th
                                 scope="col"
-                                class="w-[32%] px-3 py-2.5 text-right sm:w-[22%] sm:px-4"
+                                class="w-[32%] px-3 py-2.5 text-end sm:w-[22%] sm:px-4"
                             >
                                 Actions
                             </th>
@@ -161,7 +161,7 @@ function badgeClass(role: RoleRecord): string {
                         >
                             <th
                                 scope="row"
-                                class="px-3 py-3 text-left font-normal sm:px-4"
+                                class="px-3 py-3 text-start font-normal sm:px-4"
                             >
                                 <div class="flex min-w-0 items-start gap-2.5">
                                     <span
@@ -222,12 +222,12 @@ function badgeClass(role: RoleRecord): string {
                                 </div>
                             </th>
                             <td
-                                class="hidden px-3 py-3 text-right tabular-nums sm:table-cell sm:px-4"
+                                class="hidden px-3 py-3 text-end tabular-nums sm:table-cell sm:px-4"
                             >
                                 {{ role.userCount }}
                             </td>
                             <td
-                                class="hidden px-3 py-3 text-right tabular-nums sm:table-cell sm:px-4"
+                                class="hidden px-3 py-3 text-end tabular-nums sm:table-cell sm:px-4"
                             >
                                 <span class="font-semibold">{{
                                     role.locked
@@ -280,7 +280,7 @@ function badgeClass(role: RoleRecord): string {
                                 </div>
                                 <span
                                     v-else
-                                    class="text-ink-slate block text-right text-[12px]"
+                                    class="text-ink-slate block text-end text-[12px]"
                                 >
                                     {{ role.isSystem ? 'Built in' : 'Custom' }}
                                 </span>

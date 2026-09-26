@@ -2,6 +2,7 @@
 import { FlaskConical } from '@lucide/vue';
 import { computed, useId } from 'vue';
 import AiCheckResult from '@/components/settings/AiCheckResult.vue';
+import { useI18n } from '@/composables/useI18n';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -50,6 +51,7 @@ const mode = defineModel<AiCapabilityMode>('mode');
 const emit = defineEmits<{ test: [capability: AiCheckCapability] }>();
 
 const selectId = useId();
+const { t } = useI18n();
 
 // reka-ui's SelectItem refuses an empty value, so "follow .env" is 'env'.
 const selectValue = computed({
@@ -62,7 +64,9 @@ const selectValue = computed({
 const realLabel = computed((): string => {
     const env = props.envProvider;
 
-    return `On — real provider (${env && env !== 'fake' ? env : props.realDefault})`;
+    return t('On — real provider (:provider)', {
+        provider: (env && env !== 'fake' ? env : props.realDefault) ?? '',
+    });
 });
 
 function busy(check: AiCheckState | null): boolean {
@@ -83,7 +87,7 @@ function busy(check: AiCheckState | null): boolean {
 
         <div v-if="mode !== undefined" class="grid gap-1.5">
             <Label :for="selectId" class="text-brand-900 text-xs font-semibold">
-                Provider
+                {{ $t('Provider') }}
             </Label>
             <Select v-model="selectValue">
                 <SelectTrigger :id="selectId" class="border-line h-11 w-full">
@@ -91,10 +95,14 @@ function busy(check: AiCheckState | null): boolean {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="env">
-                        Follow .env ({{ envProvider }})
+                        {{
+                            $t('Follow .env (:provider)', {
+                                provider: envProvider ?? '',
+                            })
+                        }}
                     </SelectItem>
                     <SelectItem value="fake">
-                        Off — fake, no network, no bill
+                        {{ $t('Off — fake, no network, no bill') }}
                     </SelectItem>
                     <SelectItem value="real">{{ realLabel }}</SelectItem>
                 </SelectContent>
@@ -114,7 +122,7 @@ function busy(check: AiCheckState | null): boolean {
                         {{ row.label }}:
                         <span class="text-ink-muted font-normal break-all">
                             {{ row.effective.provider }} ·
-                            {{ row.effective.model || 'no model set' }}
+                            {{ row.effective.model || $t('no model set') }}
                         </span>
                     </p>
                     <p
@@ -124,7 +132,7 @@ function busy(check: AiCheckState | null): boolean {
                         "
                         class="text-warning-text text-xs"
                     >
-                        No key in .env for this provider.
+                        {{ $t('No key in .env for this provider.') }}
                     </p>
                     <AiCheckResult :check="row.check" />
                 </div>
@@ -137,7 +145,7 @@ function busy(check: AiCheckState | null): boolean {
                     @click="emit('test', row.capability)"
                 >
                     <FlaskConical class="size-4" aria-hidden="true" />
-                    Test
+                    {{ $t('Test') }}
                 </Button>
             </li>
         </ul>

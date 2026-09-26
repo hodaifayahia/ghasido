@@ -217,7 +217,7 @@ const filteredItems = computed(() => {
                     >
                         <button
                             type="button"
-                            class="text-brand-900 block max-w-full truncate text-left text-[12.5px] font-semibold hover:underline"
+                            class="text-brand-900 block max-w-full truncate text-start text-[12.5px] font-semibold hover:underline"
                             @click="emit('open', item.id)"
                         >
                             {{ item.title }}

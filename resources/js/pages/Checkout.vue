@@ -70,7 +70,7 @@ function submit(): void {
             <div
                 class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8 lg:px-10"
             >
-                <Link href="/" aria-label="GHASIDO home">
+                <Link href="/" :aria-label="$t('GHASIDO home')">
                     <img
                         src="/brand/ghasido-logo.png"
                         alt="GHASIDO"
@@ -91,11 +91,11 @@ function submit(): void {
 
         <main class="relative isolate overflow-hidden">
             <div
-                class="bg-brand-100/70 pointer-events-none absolute -top-48 -right-24 size-[32rem] rounded-full blur-3xl"
+                class="bg-brand-100/70 pointer-events-none absolute -end-24 -top-48 size-[32rem] rounded-full blur-3xl"
                 aria-hidden="true"
             />
             <div
-                class="bg-aqua-tint/80 pointer-events-none absolute top-1/2 -left-40 size-96 rounded-full blur-3xl"
+                class="bg-aqua-tint/80 pointer-events-none absolute -start-40 top-1/2 size-96 rounded-full blur-3xl"
                 aria-hidden="true"
             />
 
@@ -142,15 +142,20 @@ function submit(): void {
                                 <p
                                     class="text-ink-slate mt-1 text-[13px] leading-5"
                                 >
-                                    Tell us about the hotel and create the
-                                    account its manager will use after approval.
+                                    {{
+                                        $t(
+                                            'Tell us about the hotel and create the account its manager will use after approval.',
+                                        )
+                                    }}
                                 </p>
                             </div>
                         </div>
 
                         <div class="mt-7 grid gap-5 sm:grid-cols-2">
                             <div class="grid gap-2 sm:col-span-2">
-                                <Label for="hotel-name">Hotel name</Label>
+                                <Label for="hotel-name">{{
+                                    $t('Hotel name')
+                                }}</Label>
                                 <Input
                                     id="hotel-name"
                                     v-model="form.name"
@@ -158,35 +163,37 @@ function submit(): void {
                                     required
                                     autofocus
                                     autocomplete="organization"
-                                    placeholder="Blue Coast Hotel"
+                                    :placeholder="$t('Blue Coast Hotel')"
                                     class="border-line bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-12 rounded-md text-[15px] shadow-none focus-visible:ring-3"
                                 />
                                 <InputError :message="form.errors.name" />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="hotel-city">City</Label>
+                                <Label for="hotel-city">{{ $t('City') }}</Label>
                                 <Input
                                     id="hotel-city"
                                     v-model="form.city"
                                     name="city"
                                     required
                                     autocomplete="address-level2"
-                                    placeholder="Oran"
+                                    :placeholder="$t('Oran')"
                                     class="border-line bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-12 rounded-md text-[15px] shadow-none focus-visible:ring-3"
                                 />
                                 <InputError :message="form.errors.city" />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="manager-name">Manager name</Label>
+                                <Label for="manager-name">{{
+                                    $t('Manager name')
+                                }}</Label>
                                 <Input
                                     id="manager-name"
                                     v-model="form.manager_name"
                                     name="manager_name"
                                     required
                                     autocomplete="name"
-                                    placeholder="Nassim Benali"
+                                    :placeholder="$t('Nassim Benali')"
                                     class="border-line bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-12 rounded-md text-[15px] shadow-none focus-visible:ring-3"
                                 />
                                 <InputError
@@ -195,7 +202,9 @@ function submit(): void {
                             </div>
 
                             <div class="grid gap-2 sm:col-span-2">
-                                <Label for="manager-email">Manager email</Label>
+                                <Label for="manager-email">{{
+                                    $t('Manager email')
+                                }}</Label>
                                 <Input
                                     id="manager-email"
                                     v-model="form.manager_email"
@@ -212,9 +221,9 @@ function submit(): void {
                             </div>
 
                             <div class="grid gap-2 sm:col-span-2">
-                                <Label for="manager-username"
-                                    >Manager username</Label
-                                >
+                                <Label for="manager-username">{{
+                                    $t('Manager username')
+                                }}</Label>
                                 <Input
                                     id="manager-username"
                                     v-model="form.manager_username"
@@ -230,30 +239,32 @@ function submit(): void {
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="password">Password</Label>
+                                <Label for="password">{{
+                                    $t('Password')
+                                }}</Label>
                                 <PasswordInput
                                     id="password"
                                     v-model="form.password"
                                     name="password"
                                     required
                                     autocomplete="new-password"
-                                    placeholder="At least 8 characters"
+                                    :placeholder="$t('At least 8 characters')"
                                     class="border-line bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-12 rounded-md text-[15px] shadow-none focus-visible:ring-3"
                                 />
                                 <InputError :message="form.errors.password" />
                             </div>
 
                             <div class="grid gap-2">
-                                <Label for="password-confirmation"
-                                    >Confirm password</Label
-                                >
+                                <Label for="password-confirmation">{{
+                                    $t('Confirm password')
+                                }}</Label>
                                 <PasswordInput
                                     id="password-confirmation"
                                     v-model="form.password_confirmation"
                                     name="password_confirmation"
                                     required
                                     autocomplete="new-password"
-                                    placeholder="Repeat password"
+                                    :placeholder="$t('Repeat password')"
                                     class="border-line bg-surface focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-12 rounded-md text-[15px] shadow-none focus-visible:ring-3"
                                 />
                             </div>
@@ -299,7 +310,7 @@ function submit(): void {
                             aria-labelledby="plan-summary-title"
                         >
                             <div
-                                class="bg-ai/20 pointer-events-none absolute -top-20 -right-16 size-52 rounded-full blur-3xl"
+                                class="bg-ai/20 pointer-events-none absolute -end-16 -top-20 size-52 rounded-full blur-3xl"
                             />
                             <div class="relative">
                                 <p

@@ -37,6 +37,8 @@ declare module '@inertiajs/core' {
             trainingContext: TrainingContext | null;
             /** Only on the owner console's routes (spec 0007). */
             owner?: OwnerIdentity;
+            /** The interface language and its direction (I18N-02). */
+            locale: { current: 'en' | 'ar'; direction: 'ltr' | 'rtl' };
             [key: string]: unknown;
         };
     }
@@ -47,5 +49,9 @@ declare module 'vue' {
         $inertia: typeof Router;
         $page: Page;
         $headManager: ReturnType<typeof createHeadManager>;
+        /** The interface text for an English key (I18N-02). */
+        $t: typeof import('@/lib/i18n').t;
+        /** The plural form of a `|` separated key for `count`. */
+        $tc: typeof import('@/lib/i18n').tc;
     }
 }

@@ -1,3 +1,5 @@
+import { intlLocale } from '@/lib/i18n';
+
 /*
  * Number formats for the owner console (spec 0007). Dollars keep two
  * decimals, and four below one dollar so a cheap model's cost is never
@@ -29,7 +31,7 @@ export function formatDate(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleDateString('en-GB', {
+    return new Date(iso).toLocaleDateString(intlLocale(), {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -41,7 +43,7 @@ export function formatDateTime(iso: string | null): string {
         return '';
     }
 
-    return new Date(iso).toLocaleString('en-GB', {
+    return new Date(iso).toLocaleString(intlLocale(), {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',

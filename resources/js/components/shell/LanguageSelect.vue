@@ -8,10 +8,11 @@ import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useI18n } from '@/composables/useI18n';
+import type { Locale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -24,6 +25,19 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+// The interface language, English or Arabic (I18N-02). Each language names
+// itself, so a reader of either can always find their own.
+const { t, locale, switchLocale } = useI18n();
+
+const languages: { value: Locale; code: string; name: string }[] = [
+    { value: 'en', code: 'EN', name: 'English' },
+    { value: 'ar', code: 'AR', name: 'العربية' },
+];
+
+function choose(value: Locale): void {
+    void switchLocale(value);
+}
 </script>
 
 <template>
@@ -31,7 +45,8 @@ const props = defineProps<Props>();
         <DropdownMenuTrigger as-child>
             <button
                 type="button"
-                aria-label="Language: English"
+                :aria-label="t('Language')"
+                data-test="language-select"
                 :class="
                     cn(
                         'border-line bg-surface shadow-card ease-brand hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 data-[state=open]:bg-brand-50 ms-2 flex h-11 shrink-0 items-center rounded-md border ps-2.5 pe-1.5 transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none md:ms-6 md:h-[46px] md:w-[111px] md:ps-[17px] md:pe-[11px]',
@@ -58,7 +73,7 @@ const props = defineProps<Props>();
                         )
                     "
                 >
-                    EN
+                    {{ locale === 'ar' ? 'AR' : 'EN' }}
                 </span>
                 <ChevronDown
                     :class="
@@ -77,19 +92,21 @@ const props = defineProps<Props>();
             class="min-w-44 rounded-md"
         >
             <DropdownMenuLabel class="text-ink-muted text-xs">
-                Language
+                {{ t('Language') }}
             </DropdownMenuLabel>
-            <DropdownMenuCheckboxItem :model-value="true">
-                English
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuItem disabled class="justify-between ps-8">
-                <span lang="ar" dir="rtl">العربية</span>
+            <DropdownMenuCheckboxItem
+                v-for="language in languages"
+                :key="language.value"
+                :model-value="locale === language.value"
+                :data-test="`language-${language.value}`"
+                @select="choose(language.value)"
+            >
                 <span
-                    class="rounded-pill bg-tint-grid text-ink-muted px-1.5 py-0.5 text-[10px] leading-none font-semibold uppercase"
+                    :lang="language.value"
+                    :dir="language.value === 'ar' ? 'rtl' : 'ltr'"
+                    >{{ language.name }}</span
                 >
-                    Soon
-                </span>
-            </DropdownMenuItem>
+            </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
     </DropdownMenu>
 </template>

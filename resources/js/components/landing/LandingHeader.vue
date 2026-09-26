@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Menu, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InstallAppButton from '@/components/landing/InstallAppButton.vue';
+import LanguageToggle from '@/components/landing/LanguageToggle.vue';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contact, dashboard, login } from '@/routes';
@@ -37,10 +38,10 @@ const mobileMenuOpen = ref(false);
         <div
             class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-8 lg:px-10"
         >
-            <Link href="/" aria-label="GHASIDO home" class="shrink-0">
+            <Link href="/" :aria-label="$t('GHASIDO home')" class="shrink-0">
                 <img
                     src="/brand/ghasido-logo.png"
-                    alt="GHASIDO — English for hotel staff"
+                    :alt="$t('GHASIDO — English for hotel staff')"
                     width="600"
                     height="180"
                     class="h-11 w-auto object-contain sm:h-13"
@@ -49,7 +50,7 @@ const mobileMenuOpen = ref(false);
 
             <nav
                 class="text-ink-indigo hidden items-center gap-5 text-[12px] font-semibold lg:flex xl:gap-7"
-                aria-label="Main navigation"
+                :aria-label="$t('Main navigation')"
             >
                 <a
                     :href="`${anchorBase}#ai`"
@@ -90,6 +91,7 @@ const mobileMenuOpen = ref(false);
             </nav>
 
             <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+                <LanguageToggle class="hidden sm:inline-flex" />
                 <InstallAppButton variant="nav" class="hidden sm:inline-flex" />
                 <Link
                     :href="signInHref"
@@ -113,7 +115,7 @@ const mobileMenuOpen = ref(false);
                 <button
                     type="button"
                     class="border-line text-brand-800 hover:bg-brand-50 focus-visible:ring-brand-600 inline-flex size-11 items-center justify-center rounded-md border transition-colors focus-visible:ring-2 focus-visible:outline-none lg:hidden"
-                    aria-label="Toggle navigation"
+                    :aria-label="$t('Toggle navigation')"
                     aria-controls="mobile-landing-navigation"
                     :aria-expanded="mobileMenuOpen"
                     @click="mobileMenuOpen = !mobileMenuOpen"
@@ -128,7 +130,7 @@ const mobileMenuOpen = ref(false);
             v-if="mobileMenuOpen"
             id="mobile-landing-navigation"
             class="border-line bg-surface shadow-hover absolute inset-x-0 top-full border-b px-5 py-4 lg:hidden"
-            aria-label="Mobile navigation"
+            :aria-label="$t('Mobile navigation')"
         >
             <div class="mx-auto grid max-w-7xl gap-1">
                 <a
@@ -178,6 +180,7 @@ const mobileMenuOpen = ref(false);
                             : content.navigation.login
                     }}
                 </Link>
+                <LanguageToggle class="justify-start sm:hidden" />
                 <InstallAppButton
                     variant="menu"
                     @opened="mobileMenuOpen = false"

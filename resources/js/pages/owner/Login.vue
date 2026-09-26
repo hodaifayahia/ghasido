@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import TransText from '@/components/common/TransText.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { tk } from '@/lib/i18n';
 import { store } from '@/routes/owner/login';
 
 /*
@@ -16,9 +18,10 @@ import { store } from '@/routes/owner/login';
  */
 defineOptions({
     layout: {
-        title: 'Owner console',
-        description:
+        title: tk('Owner console'),
+        description: tk(
             'Sign in to manage the API keys, credit and prices behind GHASIDO’s AI features.',
+        ),
     },
 });
 
@@ -27,7 +30,7 @@ const fieldClass =
 </script>
 
 <template>
-    <Head title="Owner sign in" />
+    <Head :title="$t('Owner sign in')" />
 
     <Form
         v-bind="store.form()"
@@ -37,7 +40,7 @@ const fieldClass =
     >
         <div class="grid gap-4">
             <div class="grid gap-1.5">
-                <Label for="owner-email">E-mail</Label>
+                <Label for="owner-email">{{ $t('E-mail') }}</Label>
                 <Input
                     id="owner-email"
                     type="email"
@@ -52,13 +55,13 @@ const fieldClass =
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="owner-password">Password</Label>
+                <Label for="owner-password">{{ $t('Password') }}</Label>
                 <PasswordInput
                     id="owner-password"
                     name="password"
                     required
                     autocomplete="current-password"
-                    placeholder="Password"
+                    :placeholder="$t('Password')"
                     :class="fieldClass"
                 />
                 <InputError :message="errors.password" />
@@ -71,7 +74,7 @@ const fieldClass =
                 data-test="owner-login-button"
             >
                 <Spinner v-if="processing" />
-                Sign in
+                {{ $t('Sign in') }}
             </Button>
         </div>
     </Form>
@@ -79,10 +82,16 @@ const fieldClass =
     <p
         class="border-line bg-app-alt text-body-sm text-ink-slate mt-4 rounded-lg border p-3"
     >
-        Forgot the password? Reset it on the server:
-        <code class="text-ink font-mono text-[12.5px] whitespace-nowrap"
-            >php artisan owner:create</code
+        <TransText
+            text="Forgot the password? Reset it on the server: :command followed by your e-mail."
         >
-        followed by your e-mail.
+            <template #command>
+                <code
+                    class="text-ink font-mono text-[12.5px] whitespace-nowrap"
+                    dir="ltr"
+                    >php artisan owner:create</code
+                >
+            </template>
+        </TransText>
     </p>
 </template>

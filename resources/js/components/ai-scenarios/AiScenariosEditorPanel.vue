@@ -400,7 +400,7 @@ onBeforeUnmount(clearCoverPreview);
                             <span class="font-semibold">{{
                                 lesson.title
                             }}</span>
-                            <span class="text-ink-muted ml-1">
+                            <span class="text-ink-muted ms-1">
                                 {{ lesson.course
                                 }}<span v-if="lesson.unit">
                                     · {{ lesson.unit }}</span

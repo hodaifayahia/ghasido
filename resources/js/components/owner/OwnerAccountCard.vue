@@ -16,6 +16,9 @@ import ProgressBar from '@/components/data/ProgressBar.vue';
 import type { ProgressTone } from '@/components/data/ProgressBar.vue';
 import InputError from '@/components/InputError.vue';
 import AiCheckResult from '@/components/settings/AiCheckResult.vue';
+import TransText from '@/components/common/TransText.vue';
+import { useI18n } from '@/composables/useI18n';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { balance, check, pause } from '@/routes/owner/accounts';
 import {
@@ -45,16 +48,17 @@ type Props = {
 };
 
 const props = withDefaults(defineProps<Props>(), { deepgramBalance: null });
+const { t } = useI18n();
 
 const id = computed(() => `account-${props.card.account}`);
 const editingKey = ref(false);
 
 const stateLabel: Record<ApiAccountState, string> = {
-    unlimited: 'No limit set',
-    active: 'Active',
-    low: 'Low credit',
-    exhausted: 'Out of credit',
-    paused: 'Paused',
+    unlimited: tk('No limit set'),
+    active: tk('Active'),
+    low: tk('Low credit'),
+    exhausted: tk('Out of credit'),
+    paused: tk('Paused'),
 };
 
 const stateTone: Record<ApiAccountState, string> = {
@@ -73,13 +77,15 @@ function tone(share: number | null): ProgressTone {
 // Seconds are entered and shown as minutes (spec 0007, D10).
 function units(meter: ApiAccountMeter, value: number): string {
     return meter.meter === 'seconds'
-        ? `${formatCount(Math.floor(value / 60))} min`
+        ? t(':count min', { count: formatCount(Math.floor(value / 60)) })
         : formatCount(value);
 }
 
 function meterText(meter: ApiAccountMeter): string {
     if (!meter.limited) {
-        return `${units(meter, meter.used)} used · not limited`;
+        return t(':used used · not limited', {
+            used: units(meter, meter.used),
+        });
     }
 
     const left = meter.granted - meter.used;
@@ -87,8 +93,14 @@ function meterText(meter: ApiAccountMeter): string {
     // Calls already running when a meter ran out can overspend a little;
     // the figure stays at zero and the overspend is said in words.
     return left < 0
-        ? `0 left of ${units(meter, meter.granted)} · ${units(meter, -left)} over`
-        : `${units(meter, left)} left of ${units(meter, meter.granted)}`;
+        ? t('0 left of :granted · :over over', {
+              granted: units(meter, meter.granted),
+              over: units(meter, -left),
+          })
+        : t(':left left of :granted', {
+              left: units(meter, left),
+              granted: units(meter, meter.granted),
+          });
 }
 
 function meterShare(meter: ApiAccountMeter): number {
@@ -98,9 +110,9 @@ function meterShare(meter: ApiAccountMeter): number {
 }
 
 const historyHeads: Record<ApiAccountMeter['meter'], string> = {
-    tokens: 'Tokens',
-    characters: 'Characters',
-    seconds: 'Minutes',
+    tokens: tk('Tokens'),
+    characters: tk('Characters'),
+    seconds: tk('Minutes'),
 };
 
 function historyValue(
@@ -121,20 +133,29 @@ const amountsGrid = computed(() =>
     props.card.meters.length > 1 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
 );
 
-const unitWords = computed(() =>
-    props.card.meters.map((meter) => meter.label.toLowerCase()).join(' and '),
-);
+const unitWords = computed(() => {
+    const words = props.card.meters.map((meter) => meter.label.toLowerCase());
+
+    return words.length > 1
+        ? t(':list and :last', {
+              list: words.slice(0, -1).join(t(', ')),
+              last: words[words.length - 1],
+          })
+        : (words[0] ?? '');
+});
 
 const keySource = computed((): string => {
     switch (props.card.key.source) {
         case 'owner':
             return props.card.key.updatedAt
-                ? `Set here on ${formatDate(props.card.key.updatedAt)}`
-                : 'Set here';
+                ? t('Set here on :date', {
+                      date: formatDate(props.card.key.updatedAt),
+                  })
+                : t('Set here');
         case 'env':
-            return 'From the server .env file';
+            return t('From the server .env file');
         default:
-            return 'No key set';
+            return t('No key set');
     }
 });
 
@@ -191,7 +212,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 "
                 :data-test="`${card.account}-state`"
             >
-                {{ stateLabel[card.state] }}
+                {{ $t(stateLabel[card.state]) }}
             </span>
         </template>
 
@@ -205,7 +226,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
         <!-- Her balance and your cost (D10, D11) -->
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid content-start gap-1.5">
-                <p :class="labelClass">Her balance</p>
+                <p :class="labelClass">{{ $t('Her balance') }}</p>
                 <template v-if="card.mode !== 'none'">
                     <p
                         class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
@@ -216,45 +237,65 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                     <ProgressBar
                         :value="(card.client.shareLeft ?? 0) * 100"
                         :tone="tone(card.client.shareLeft)"
-                        :label="`${card.label} balance left`"
+                        :label="$t(':name balance left', { name: card.label })"
                     />
                     <p class="text-ink-slate text-[12px]">
-                        of {{ formatUsd(card.client.creditUsd) }} credited. This
-                        is what the Super Admin sees.
+                        {{
+                            $t(
+                                'of :credit credited. This is what the Super Admin sees.',
+                                { credit: formatUsd(card.client.creditUsd) },
+                            )
+                        }}
                     </p>
                 </template>
                 <template v-else>
                     <p
                         class="font-heading text-brand-800 text-[26px] leading-8 font-bold"
                     >
-                        No limit
+                        {{ $t('No limit') }}
                     </p>
                     <p class="text-ink-slate text-[12px]">
-                        The app keeps calling {{ card.label }} until your first
-                        recharge starts the count.
+                        {{
+                            $t(
+                                'The app keeps calling :name until your first recharge starts the count.',
+                                { name: card.label },
+                            )
+                        }}
                     </p>
                 </template>
             </div>
 
             <div class="grid content-start gap-1.5">
-                <p :class="labelClass">Your cost at provider prices</p>
+                <p :class="labelClass">
+                    {{ $t('Your cost at provider prices') }}
+                </p>
                 <p
                     class="font-heading text-ink-indigo text-[26px] leading-8 font-bold"
                 >
                     {{ formatUsd(card.costUsd) }}
                 </p>
                 <p class="text-ink-slate text-[12px]">
-                    {{ formatCount(card.calls) }} calls
                     {{
                         card.since
-                            ? `since ${formatDate(card.since)}`
-                            : 'so far'
-                    }}. Only you see this.
+                            ? $t(
+                                  ':calls calls since :date. Only you see this.',
+                                  {
+                                      calls: formatCount(card.calls),
+                                      date: formatDate(card.since),
+                                  },
+                              )
+                            : $t(':calls calls so far. Only you see this.', {
+                                  calls: formatCount(card.calls),
+                              })
+                    }}
                 </p>
             </div>
         </div>
 
-        <ul class="grid gap-3" :aria-label="`${card.label} usage by unit`">
+        <ul
+            class="grid gap-3"
+            :aria-label="$t(':name usage by unit', { name: card.label })"
+        >
             <li
                 v-for="meter in card.meters"
                 :key="meter.meter"
@@ -271,7 +312,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                     v-if="meter.limited"
                     :value="meterShare(meter) * 100"
                     :tone="tone(meterShare(meter))"
-                    :label="`${meter.label} left`"
+                    :label="$t(':name left', { name: meter.label })"
                 />
                 <p class="text-ink-faint text-[11.5px]">{{ meter.covers }}</p>
             </li>
@@ -284,9 +325,16 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
         >
             <CircleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
-                No price yet for
-                {{ card.unpricedModels.map((row) => row.model).join(', ') }}:
-                your cost for them shows as $0 until you add one under Prices.
+                {{
+                    $t(
+                        'No price yet for :models: your cost for them shows as $0 until you add one under Prices.',
+                        {
+                            models: card.unpricedModels
+                                .map((row) => row.model)
+                                .join(', '),
+                        },
+                    )
+                }}
             </span>
         </p>
 
@@ -298,12 +346,12 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             v-slot="{ errors, processing }"
             class="border-line grid gap-2 border-t pt-4"
         >
-            <h3 :class="sectionTitle">Recharge</h3>
+            <h3 :class="sectionTitle">{{ $t('Recharge') }}</h3>
             <div :class="cn('grid gap-2', amountsGrid)">
                 <div class="grid content-start gap-1">
-                    <label :for="`${id}-usd`" :class="labelClass"
-                        >Dollars she sees</label
-                    >
+                    <label :for="`${id}-usd`" :class="labelClass">{{
+                        $t('Dollars she sees')
+                    }}</label>
                     <input
                         :id="`${id}-usd`"
                         name="usd"
@@ -345,15 +393,15 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
             >
                 <div class="grid content-start gap-1">
-                    <label :for="`${id}-note`" :class="labelClass"
-                        >Note (optional)</label
-                    >
+                    <label :for="`${id}-note`" :class="labelClass">{{
+                        $t('Note (optional)')
+                    }}</label>
                     <input
                         :id="`${id}-note`"
                         name="note"
                         type="text"
                         maxlength="255"
-                        placeholder="Invoice or month"
+                        :placeholder="$t('Invoice or month')"
                         :class="fieldClass"
                     />
                 </div>
@@ -364,15 +412,17 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                     :data-test="`${card.account}-recharge-button`"
                 >
                     <Wallet class="size-4" aria-hidden="true" />
-                    Recharge
+                    {{ $t('Recharge') }}
                 </button>
             </div>
             <InputError :message="errors.note" />
             <p class="text-ink-faint text-[12px] leading-5">
-                She sees the dollars; the {{ unitWords }} are the limit. Her
-                dollars go down as the units are used, and AI pauses when any
-                limited unit runs out. Dollars with no units are spent at your
-                prices instead. A negative amount corrects a mistake.
+                {{
+                    $t(
+                        'She sees the dollars; the :units are the limit. Her dollars go down as the units are used, and AI pauses when any limited unit runs out. Dollars with no units are spent at your prices instead. A negative amount corrects a mistake.',
+                        { units: unitWords },
+                    )
+                }}
             </p>
         </Form>
 
@@ -381,7 +431,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             class="border-line grid gap-2 border-t pt-4"
             :aria-labelledby="`${id}-key`"
         >
-            <h3 :id="`${id}-key`" :class="sectionTitle">API key</h3>
+            <h3 :id="`${id}-key`" :class="sectionTitle">{{ $t('API key') }}</h3>
             <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <KeyRound
                     class="text-brand-700 size-4 shrink-0"
@@ -390,7 +440,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 <span
                     class="text-ink font-mono text-[13px]"
                     :data-test="`${card.account}-key-masked`"
-                    >{{ card.key.masked ?? 'None' }}</span
+                    >{{ card.key.masked ?? $t('None') }}</span
                 >
                 <span class="text-ink-slate text-[12.5px]">{{
                     keySource
@@ -406,9 +456,9 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 class="grid gap-1.5"
                 @success="editingKey = false"
             >
-                <label :for="`${id}-new-key`" :class="labelClass"
-                    >New {{ card.label }} key</label
-                >
+                <label :for="`${id}-new-key`" :class="labelClass">{{
+                    $t('New :name key', { name: card.label })
+                }}</label>
                 <div class="flex flex-col gap-2 sm:flex-row">
                     <input
                         :id="`${id}-new-key`"
@@ -417,7 +467,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                         autocomplete="off"
                         spellcheck="false"
                         required
-                        placeholder="Paste the key"
+                        :placeholder="$t('Paste the key')"
                         :class="cn(fieldClass, 'font-mono sm:flex-1')"
                     />
                     <div class="flex gap-2">
@@ -427,14 +477,14 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                             :class="primaryButton"
                             :data-test="`${card.account}-save-key-button`"
                         >
-                            Save key
+                            {{ $t('Save key') }}
                         </button>
                         <button
                             type="button"
                             :class="outlineButton"
                             @click="editingKey = false"
                         >
-                            Cancel
+                            {{ $t('Cancel') }}
                         </button>
                     </div>
                 </div>
@@ -447,7 +497,11 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                     :class="outlineButton"
                     @click="editingKey = true"
                 >
-                    {{ card.key.source === 'none' ? 'Add key' : 'Replace key' }}
+                    {{
+                        card.key.source === 'none'
+                            ? $t('Add key')
+                            : $t('Replace key')
+                    }}
                 </button>
                 <Form
                     v-if="card.key.source === 'owner'"
@@ -460,13 +514,16 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                         :disabled="processing"
                         class="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-600/15 inline-flex h-10 items-center rounded-md px-2 text-[13px] font-semibold hover:underline focus-visible:ring-3 focus-visible:outline-none"
                     >
-                        Use the .env key instead
+                        {{ $t('Use the .env key instead') }}
                     </button>
                 </Form>
             </div>
             <p class="text-ink-faint text-[12px]">
-                Stored encrypted on the server and used from the next AI call.
-                Only the last four characters are ever shown.
+                {{
+                    $t(
+                        'Stored encrypted on the server and used from the next AI call. Only the last four characters are ever shown.',
+                    )
+                }}
             </p>
         </section>
 
@@ -477,7 +534,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
         >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 :id="`${id}-connection`" :class="sectionTitle">
-                    Connection
+                    {{ $t('Connection') }}
                 </h3>
                 <div class="flex flex-wrap gap-2">
                     <Form
@@ -495,8 +552,8 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                             <Wallet class="size-4" aria-hidden="true" />
                             {{
                                 processing
-                                    ? 'Reading…'
-                                    : 'Read Deepgram balance'
+                                    ? $t('Reading…')
+                                    : $t('Read Deepgram balance')
                             }}
                         </button>
                     </Form>
@@ -512,7 +569,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                             :data-test="`${card.account}-test-button`"
                         >
                             <PlugZap class="size-4" aria-hidden="true" />
-                            Test
+                            {{ $t('Test') }}
                         </button>
                     </Form>
                 </div>
@@ -536,16 +593,27 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                                         ? formatUsd(item.amount)
                                         : `${formatCount(item.amount)} ${item.units}`,
                                 )
-                                .join(' + ') || 'No balance'
+                                .join(' + ') || $t('No balance')
                         }}
                     </span>
-                    left on the Deepgram account
-                    <template v-if="deepgramBalance.project"
-                        >“{{ deepgramBalance.project }}”</template
+                    {{ ' ' }}
+                    <TransText
+                        v-if="deepgramBalance.project"
+                        text="left on the Deepgram account “:project”"
                     >
+                        <template #project>{{
+                            deepgramBalance.project
+                        }}</template>
+                    </TransText>
+                    <template v-else>{{
+                        $t('left on the Deepgram account')
+                    }}</template>
                     <span class="text-ink-faint">
-                        · read
-                        {{ formatDateTime(deepgramBalance.fetchedAt) }}</span
+                        {{
+                            $t('· read :time', {
+                                time: formatDateTime(deepgramBalance.fetchedAt),
+                            })
+                        }}</span
                     >
                 </p>
                 <p v-else class="text-danger-text flex gap-2">
@@ -570,7 +638,11 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 </li>
             </ul>
             <p class="text-ink-faint text-[12px]">
-                A test makes one small real call, metered like any other.
+                {{
+                    $t(
+                        'A test makes one small real call, metered like any other.',
+                    )
+                }}
             </p>
         </section>
 
@@ -581,13 +653,19 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
         >
             <div class="min-w-0 flex-1">
                 <h3 :id="`${id}-pause`" :class="sectionTitle">
-                    {{ card.paused ? 'Paused' : 'Running' }}
+                    {{ card.paused ? $t('Paused') : $t('Running') }}
                 </h3>
                 <p class="text-ink-slate text-[12.5px]">
                     {{
                         card.paused
-                            ? `The app makes no calls to ${card.label} until you resume.`
-                            : `Pause to stop every AI call that uses ${card.label} at once, whatever the credit.`
+                            ? $t(
+                                  'The app makes no calls to :name until you resume.',
+                                  { name: card.label },
+                              )
+                            : $t(
+                                  'Pause to stop every AI call that uses :name at once, whatever the credit.',
+                                  { name: card.label },
+                              )
                     }}
                 </p>
             </div>
@@ -608,7 +686,7 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                         aria-hidden="true"
                     />
                     <Pause v-else class="size-4" aria-hidden="true" />
-                    {{ card.paused ? 'Resume' : 'Pause' }}
+                    {{ card.paused ? $t('Resume') : $t('Pause') }}
                 </button>
             </Form>
         </section>
@@ -620,19 +698,21 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             :aria-labelledby="`${id}-features`"
         >
             <h3 :id="`${id}-features`" :class="sectionTitle">
-                Spend by feature{{
-                    card.since ? ' since the first recharge' : ''
+                {{
+                    card.since
+                        ? $t('Spend by feature since the first recharge')
+                        : $t('Spend by feature')
                 }}
             </h3>
             <table class="w-full table-fixed border-collapse">
                 <thead class="bg-app-alt">
                     <tr class="h-[26px]">
-                        <th scope="col" :class="head">Feature</th>
+                        <th scope="col" :class="head">{{ $t('Feature') }}</th>
                         <th scope="col" :class="cn(head, 'w-20 text-end')">
-                            Calls
+                            {{ $t('Calls') }}
                         </th>
                         <th scope="col" :class="cn(head, 'w-24 text-end')">
-                            Cost
+                            {{ $t('Cost') }}
                         </th>
                     </tr>
                 </thead>
@@ -659,19 +739,23 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             class="border-line grid gap-2 border-t pt-4"
             :aria-labelledby="`${id}-history`"
         >
-            <h3 :id="`${id}-history`" :class="sectionTitle">Recharges</h3>
+            <h3 :id="`${id}-history`" :class="sectionTitle">
+                {{ $t('Recharges') }}
+            </h3>
             <p
                 v-if="card.topups.length === 0"
                 class="text-ink-slate text-[13px]"
             >
-                No recharge yet.
+                {{ $t('No recharge yet.') }}
             </p>
             <table v-else class="w-full border-collapse sm:table-fixed">
                 <thead class="bg-app-alt">
                     <tr class="h-[26px]">
-                        <th scope="col" :class="cn(head, 'sm:w-24')">Date</th>
+                        <th scope="col" :class="cn(head, 'sm:w-24')">
+                            {{ $t('Date') }}
+                        </th>
                         <th scope="col" :class="cn(head, 'text-end sm:w-24')">
-                            Dollars
+                            {{ $t('Dollars') }}
                         </th>
                         <th
                             v-for="meter in card.meters"
@@ -679,9 +763,9 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                             scope="col"
                             :class="cn(head, 'text-end sm:w-24')"
                         >
-                            {{ historyHeads[meter.meter] }}
+                            {{ $t(historyHeads[meter.meter]) }}
                         </th>
-                        <th scope="col" :class="head">Note</th>
+                        <th scope="col" :class="head">{{ $t('Note') }}</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -276,7 +276,7 @@ const statusTone: Record<AiScenarioStatus, string> = {
                                 type="number"
                                 min="0"
                                 max="100"
-                                class="border-line h-9 pr-7 text-[12px]"
+                                class="border-line h-9 pe-7 text-[12px]"
                                 aria-label="Criterion weight"
                             />
                             <span

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\TrainingDepartments;
 use App\Services\Subscriptions\AiPointsBalanceService;
+use App\Support\Locales;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -140,6 +141,13 @@ class HandleInertiaRequests extends Middleware
             // Monthly employee or hotel AI balance for the shared navbar
             // (AIL-01). Hotel admins/managers receive only their own hotel's aggregate (ROLE-02).
             'aiPointBalance' => $user === null ? null : $this->aiPoints->forUser($user),
+            // The interface language and its direction (I18N-02). The
+            // Arabic strings themselves ship as a lazily loaded bundle, not
+            // on every response.
+            'locale' => [
+                'current' => app()->getLocale(),
+                'direction' => Locales::direction(app()->getLocale()),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // The global topbar notification menu (REM-08, AIL-01): this user's
             // recent reminders plus outstanding Super Admin recharge requests.

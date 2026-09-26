@@ -6,6 +6,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HotelSignupController;
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\MeaningController;
 use App\Http\Controllers\MediaController;
@@ -15,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', LandingPageController::class)->name('home');
+
+// English or Arabic interface (I18N-02), for guests and signed-in users.
+Route::put('locale', [LocaleController::class, 'update'])
+    ->middleware('throttle:30,1')
+    ->name('locale.update');
 
 // Public Contact Us page (client decision 2026-09-26). Open to everyone,
 // signed in or not; the form is throttled against abuse.

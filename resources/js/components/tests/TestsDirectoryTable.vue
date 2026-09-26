@@ -112,7 +112,7 @@ function statusClass(item: TestListItem): string {
         <div class="border-line bg-brand-50/30 border-y px-4 py-3">
             <div class="relative">
                 <Search
-                    class="text-ink-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                    class="text-ink-muted pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
                     aria-hidden="true"
                 />
                 <Input
@@ -184,7 +184,7 @@ function statusClass(item: TestListItem): string {
             v-if="filteredItems.length"
             class="hidden overflow-x-auto md:block"
         >
-            <table class="w-full min-w-[760px] border-collapse text-left">
+            <table class="w-full min-w-[760px] border-collapse text-start">
                 <thead
                     class="bg-brand-50/35 text-ink-slate text-[11px] font-semibold tracking-[0.08em] uppercase"
                 >
@@ -195,7 +195,7 @@ function statusClass(item: TestListItem): string {
                         <th class="px-3 py-3">Questions</th>
                         <th class="px-3 py-3">Time</th>
                         <th class="px-3 py-3">Status</th>
-                        <th class="px-5 py-3 text-right">Open</th>
+                        <th class="px-5 py-3 text-end">Open</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -207,7 +207,7 @@ function statusClass(item: TestListItem): string {
                         <td class="max-w-[270px] px-5 py-3">
                             <button
                                 type="button"
-                                class="flex min-w-0 items-center gap-3 text-left"
+                                class="flex min-w-0 items-center gap-3 text-start"
                                 @click="emit('open', item.id)"
                             >
                                 <span
@@ -273,7 +273,7 @@ function statusClass(item: TestListItem): string {
                                 {{ item.status }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-right">
+                        <td class="px-5 py-3 text-end">
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -297,7 +297,7 @@ function statusClass(item: TestListItem): string {
                 v-for="item in filteredItems"
                 :key="item.id"
                 type="button"
-                class="hover:bg-brand-50/40 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
+                class="hover:bg-brand-50/40 flex w-full items-center gap-3 px-4 py-3 text-start transition-colors"
                 @click="emit('open', item.id)"
             >
                 <span

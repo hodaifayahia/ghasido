@@ -39,7 +39,7 @@ const listId = `${id}-presets`;
             :placeholder="
                 props.envValue
                     ? `.env: ${props.envValue}`
-                    : 'Type any model id, or leave blank for .env'
+                    : $t('Type any model id, or leave blank for .env')
             "
         />
         <datalist :id="listId">

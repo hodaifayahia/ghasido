@@ -9,6 +9,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { tk } from '@/lib/i18n';
 import { edit } from '@/routes/profile';
 
 /*
@@ -37,7 +38,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Profile settings',
+                title: tk('Profile settings'),
                 href: edit(),
             },
         ],
@@ -49,18 +50,20 @@ const user = computed(() => page.props.auth.user);
 </script>
 
 <template>
-    <Head title="Profile settings" />
+    <Head :title="$t('Profile settings')" />
 
-    <h1 class="sr-only">Profile settings</h1>
+    <h1 class="sr-only">{{ $t('Profile settings') }}</h1>
 
     <div class="flex flex-col space-y-6">
         <Heading
             variant="small"
-            title="Profile"
+            :title="$t('Profile')"
             :description="
                 adminProfile
-                    ? 'Your name and how to reach you: email, phone and address'
-                    : 'Update your name and email address'
+                    ? $t(
+                          'Your name and how to reach you: email, phone and address',
+                      )
+                    : $t('Update your name and email address')
             "
         />
 
@@ -72,8 +75,11 @@ const user = computed(() => page.props.auth.user);
         >
             <CircleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span>
-                Complete your profile to continue. The platform uses it to reach
-                you, for example when the AI credit runs low.
+                {{
+                    $t(
+                        'Complete your profile to continue. The platform uses it to reach you, for example when the AI credit runs low.',
+                    )
+                }}
             </span>
         </p>
 
@@ -85,7 +91,7 @@ const user = computed(() => page.props.auth.user);
             <template v-if="adminProfile">
                 <div class="grid gap-6 sm:grid-cols-2">
                     <div class="grid gap-2">
-                        <Label for="first_name">First name</Label>
+                        <Label for="first_name">{{ $t('First name') }}</Label>
                         <Input
                             id="first_name"
                             class="mt-1 block w-full"
@@ -93,12 +99,12 @@ const user = computed(() => page.props.auth.user);
                             :default-value="adminProfile.firstName ?? ''"
                             required
                             autocomplete="given-name"
-                            placeholder="First name"
+                            :placeholder="$t('First name')"
                         />
                         <InputError class="mt-2" :message="errors.first_name" />
                     </div>
                     <div class="grid gap-2">
-                        <Label for="last_name">Last name</Label>
+                        <Label for="last_name">{{ $t('Last name') }}</Label>
                         <Input
                             id="last_name"
                             class="mt-1 block w-full"
@@ -106,7 +112,7 @@ const user = computed(() => page.props.auth.user);
                             :default-value="adminProfile.lastName ?? ''"
                             required
                             autocomplete="family-name"
-                            placeholder="Last name"
+                            :placeholder="$t('Last name')"
                         />
                         <InputError class="mt-2" :message="errors.last_name" />
                     </div>
@@ -114,7 +120,7 @@ const user = computed(() => page.props.auth.user);
             </template>
 
             <div v-else class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">{{ $t('Name') }}</Label>
                 <Input
                     id="name"
                     class="mt-1 block w-full"
@@ -122,13 +128,13 @@ const user = computed(() => page.props.auth.user);
                     :default-value="user.name"
                     required
                     autocomplete="name"
-                    placeholder="Full name"
+                    :placeholder="$t('Full name')"
                 />
                 <InputError class="mt-2" :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">{{ $t('Email address') }}</Label>
                 <Input
                     id="email"
                     type="email"
@@ -137,14 +143,14 @@ const user = computed(() => page.props.auth.user);
                     :default-value="user.email"
                     required
                     autocomplete="email"
-                    placeholder="Email address"
+                    :placeholder="$t('Email address')"
                 />
                 <InputError class="mt-2" :message="errors.email" />
             </div>
 
             <template v-if="adminProfile">
                 <div class="grid gap-2">
-                    <Label for="phone">Phone</Label>
+                    <Label for="phone">{{ $t('Phone') }}</Label>
                     <Input
                         id="phone"
                         type="tel"
@@ -159,7 +165,7 @@ const user = computed(() => page.props.auth.user);
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="address">Address</Label>
+                    <Label for="address">{{ $t('Address') }}</Label>
                     <Input
                         id="address"
                         class="mt-1 block w-full"
@@ -167,15 +173,17 @@ const user = computed(() => page.props.auth.user);
                         :default-value="adminProfile.address ?? ''"
                         required
                         autocomplete="street-address"
-                        placeholder="Street, city, country"
+                        :placeholder="$t('Street, city, country')"
                     />
                     <InputError class="mt-2" :message="errors.address" />
                 </div>
             </template>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
+                <Button
+                    :disabled="processing"
+                    data-test="update-profile-button"
+                    >{{ $t('Save') }}</Button
                 >
             </div>
         </Form>

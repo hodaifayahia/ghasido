@@ -63,7 +63,7 @@ const filtered = computed(() => {
 
         <div class="relative">
             <Search
-                class="text-ink-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                class="text-ink-muted pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
                 aria-hidden="true"
             />
             <Input
@@ -108,7 +108,7 @@ const filtered = computed(() => {
                         }}</span>
                     </div>
                     <div
-                        class="text-ink-muted text-left text-[11px] md:text-right"
+                        class="text-ink-muted text-start text-[11px] md:text-end"
                     >
                         <p>{{ item.uses }} test uses</p>
                         <p>Version {{ item.version }}</p>

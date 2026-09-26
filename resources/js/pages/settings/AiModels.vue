@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import { check, edit, update } from '@/routes/ai-models';
 import type {
     AiCheckCapability,
@@ -40,7 +41,7 @@ const props = defineProps<Props>();
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'AI models', href: edit() }],
+        breadcrumbs: [{ title: tk('AI models'), href: edit() }],
     },
 });
 
@@ -124,44 +125,52 @@ watch(
 );
 
 const expressivityOptions = [
-    { value: '-2', label: 'Very calm (−2)' },
-    { value: '-1', label: 'Calm (−1)' },
-    { value: '0', label: 'Neutral (0)' },
-    { value: '1', label: 'Lively (+1)' },
-    { value: '2', label: 'Very lively (+2)' },
+    { value: '-2', label: tk('Very calm (−2)') },
+    { value: '-1', label: tk('Calm (−1)') },
+    { value: '0', label: tk('Neutral (0)') },
+    { value: '1', label: tk('Lively (+1)') },
+    { value: '2', label: tk('Very lively (+2)') },
 ];
 </script>
 
 <template>
-    <Head title="AI models" />
+    <Head :title="$t('AI models')" />
 
-    <h1 class="sr-only">AI models</h1>
+    <h1 class="sr-only">{{ $t('AI models') }}</h1>
 
     <div class="flex min-w-0 flex-col space-y-6">
         <Heading
             variant="small"
-            title="AI models"
-            description="Switch the models behind lesson generation, images, audio and transcription. Blank fields follow the server's .env. Keys stay on the server."
+            :title="$t('AI models')"
+            :description="
+                $t(
+                    'Switch the models behind lesson generation, images, audio and transcription. Blank fields follow the server\'s .env. Keys stay on the server.',
+                )
+            "
         />
 
         <form class="grid min-w-0 gap-4" @submit.prevent="save">
             <AiCapabilityCard
                 v-model:mode="form.aiMode"
-                title="Text generation"
-                description="Lessons, tests, scenarios and evaluations use the main model; learner-facing role-play turns use the fast one."
+                :title="$t('Text generation')"
+                :description="
+                    $t(
+                        'Lessons, tests, scenarios and evaluations use the main model; learner-facing role-play turns use the fast one.',
+                    )
+                "
                 :env-provider="env.aiProvider"
                 :real-default="settings.realDefaults.ai"
                 :testing="testing"
                 :checks="[
                     {
                         capability: 'ai',
-                        label: 'Main model',
+                        label: $t('Main model'),
                         check: checks.ai,
                         effective: effective.ai,
                     },
                     {
                         capability: 'fast',
-                        label: 'Fast model',
+                        label: $t('Fast model'),
                         check: checks.fast,
                         effective: effective.fast,
                     },
@@ -170,32 +179,34 @@ const expressivityOptions = [
             >
                 <AiModelCombobox
                     v-model="form.aiModel"
-                    label="Main model"
+                    :label="$t('Main model')"
                     :presets="settings.presets.text"
                     :env-value="env.aiModel"
                     :error="errors.aiModel"
                 />
                 <AiModelCombobox
                     v-model="form.aiFastModel"
-                    label="Fast model"
+                    :label="$t('Fast model')"
                     :presets="settings.presets.text"
                     :env-value="env.aiFastModel || env.aiModel"
                     :error="errors.aiFastModel"
-                    hint="Blank uses AI_FAST_MODEL, then the main model."
+                    :hint="$t('Blank uses AI_FAST_MODEL, then the main model.')"
                 />
             </AiCapabilityCard>
 
             <AiCapabilityCard
                 v-model:mode="form.imageMode"
-                title="Images"
-                description="Lesson covers, situations and vocabulary pictures."
+                :title="$t('Images')"
+                :description="
+                    $t('Lesson covers, situations and vocabulary pictures.')
+                "
                 :env-provider="env.imageProvider"
                 :real-default="settings.realDefaults.image"
                 :testing="testing"
                 :checks="[
                     {
                         capability: 'image',
-                        label: 'Image model',
+                        label: $t('Image model'),
                         check: checks.image,
                         effective: effective.image,
                     },
@@ -204,7 +215,7 @@ const expressivityOptions = [
             >
                 <AiModelCombobox
                     v-model="form.imageModel"
-                    label="Image model"
+                    :label="$t('Image model')"
                     :presets="settings.presets.image"
                     :env-value="env.imageModel"
                     :error="errors.imageModel"
@@ -212,34 +223,38 @@ const expressivityOptions = [
                 <div class="grid gap-4 md:grid-cols-2">
                     <AiModelCombobox
                         v-model="form.imageSizeLandscape"
-                        label="Landscape size"
+                        :label="$t('Landscape size')"
                         :presets="settings.presets.imageLandscape"
                         :env-value="env.imageSizeLandscape"
                         :error="errors.imageSizeLandscape"
-                        hint="Width*height, e.g. 1664*928."
+                        :hint="$t('Width*height, e.g. 1664*928.')"
                     />
                     <AiModelCombobox
                         v-model="form.imageSizeSquare"
-                        label="Square size"
+                        :label="$t('Square size')"
                         :presets="settings.presets.imageSquare"
                         :env-value="env.imageSizeSquare"
                         :error="errors.imageSizeSquare"
-                        hint="Used by the Test button too."
+                        :hint="$t('Used by the Test button too.')"
                     />
                 </div>
             </AiCapabilityCard>
 
             <AiCapabilityCard
                 v-model:mode="form.ttsMode"
-                title="Speech (lesson audio)"
-                description="The stored normal and slow audio for every sentence. Changing the voice makes new clips; regenerate old ones from the lesson screen."
+                :title="$t('Speech (lesson audio)')"
+                :description="
+                    $t(
+                        'The stored normal and slow audio for every sentence. Changing the voice makes new clips; regenerate old ones from the lesson screen.',
+                    )
+                "
                 :env-provider="env.ttsProvider"
                 :real-default="settings.realDefaults.tts"
                 :testing="testing"
                 :checks="[
                     {
                         capability: 'tts',
-                        label: 'Voice',
+                        label: $t('Voice'),
                         check: checks.tts,
                         effective: effective.tts,
                     },
@@ -249,7 +264,7 @@ const expressivityOptions = [
                 <div class="grid gap-4 md:grid-cols-2">
                     <AiModelCombobox
                         v-model="form.ttsVoice"
-                        label="Voice / model"
+                        :label="$t('Voice / model')"
                         :presets="settings.presets.ttsVoices"
                         :env-value="env.ttsVoice"
                         :error="errors.ttsVoice"
@@ -259,7 +274,7 @@ const expressivityOptions = [
                             for="tts-expressivity"
                             class="text-brand-900 text-xs font-semibold"
                         >
-                            Expressivity
+                            {{ $t('Expressivity') }}
                         </Label>
                         <Select v-model="expressivityValue">
                             <SelectTrigger
@@ -270,14 +285,18 @@ const expressivityOptions = [
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="env">
-                                    Follow .env ({{ env.ttsExpressivity }})
+                                    {{
+                                        $t('Follow .env (:provider)', {
+                                            provider: env.ttsExpressivity ?? '',
+                                        })
+                                    }}
                                 </SelectItem>
                                 <SelectItem
                                     v-for="option in expressivityOptions"
                                     :key="option.value"
                                     :value="option.value"
                                 >
-                                    {{ option.label }}
+                                    {{ $t(option.label) }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -293,15 +312,19 @@ const expressivityOptions = [
 
             <AiCapabilityCard
                 v-model:mode="form.sttMode"
-                title="Transcription"
-                description="Turns recorded spoken answers into text before the AI scores them. The Test button transcribes a spoken test sentence."
+                :title="$t('Transcription')"
+                :description="
+                    $t(
+                        'Turns recorded spoken answers into text before the AI scores them. The Test button transcribes a spoken test sentence.',
+                    )
+                "
                 :env-provider="env.sttProvider"
                 :real-default="settings.realDefaults.stt"
                 :testing="testing"
                 :checks="[
                     {
                         capability: 'stt',
-                        label: 'Transcription model',
+                        label: $t('Transcription model'),
                         check: checks.stt,
                         effective: effective.stt,
                     },
@@ -310,7 +333,7 @@ const expressivityOptions = [
             >
                 <AiModelCombobox
                     v-model="form.sttModel"
-                    label="Transcription model"
+                    :label="$t('Transcription model')"
                     :presets="settings.presets.stt"
                     :env-value="env.sttModel"
                     :error="errors.sttModel"
@@ -324,10 +347,14 @@ const expressivityOptions = [
                     :disabled="saving"
                     data-test="update-ai-models-button"
                 >
-                    Save
+                    {{ $t('Save') }}
                 </Button>
                 <p class="text-ink-muted text-xs">
-                    Saved models apply to the next job; Test uses what is saved.
+                    {{
+                        $t(
+                            'Saved models apply to the next job; Test uses what is saved.',
+                        )
+                    }}
                 </p>
             </div>
         </form>
@@ -337,10 +364,14 @@ const expressivityOptions = [
         >
             <div class="grid gap-0.5">
                 <h3 class="font-heading text-brand-800 text-base font-semibold">
-                    Live voice call
+                    {{ $t('Live voice call') }}
                 </h3>
                 <p class="text-ink-muted text-sm">
-                    How the spoken role-play agent listens, thinks and speaks.
+                    {{
+                        $t(
+                            'How the spoken role-play agent listens, thinks and speaks.',
+                        )
+                    }}
                 </p>
             </div>
             <Button
@@ -351,7 +382,7 @@ const expressivityOptions = [
                 @click="voiceSettingsOpen = true"
             >
                 <AudioLines class="size-4" aria-hidden="true" />
-                Voice call settings
+                {{ $t('Voice call settings') }}
             </Button>
         </section>
 
