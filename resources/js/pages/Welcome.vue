@@ -26,6 +26,7 @@ import type { Component } from 'vue';
 import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
+import InstallAppButton from '@/components/landing/InstallAppButton.vue';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contact } from '@/routes';
@@ -166,6 +167,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     content.hero.secondary_cta
                                 }}</a>
                             </Button>
+                            <InstallAppButton variant="outline" />
                         </div>
                         <div
                             class="border-line mt-8 grid gap-3 border-t pt-5 sm:grid-cols-3"
@@ -1106,15 +1108,18 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     {{ content.call_to_action.description }}
                                 </p>
                             </div>
-                            <Button
-                                as-child
-                                class="bg-surface text-brand-800 hover:bg-brand-50 h-12 rounded-md px-6 text-[14px] font-semibold"
-                            >
-                                <a href="#pricing">
-                                    {{ content.call_to_action.button_text }}
-                                    <ArrowRight class="size-4" />
-                                </a>
-                            </Button>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <Button
+                                    as-child
+                                    class="bg-surface text-brand-800 hover:bg-brand-50 h-12 rounded-md px-6 text-[14px] font-semibold"
+                                >
+                                    <a href="#pricing">
+                                        {{ content.call_to_action.button_text }}
+                                        <ArrowRight class="size-4" />
+                                    </a>
+                                </Button>
+                                <InstallAppButton variant="light" />
+                            </div>
                         </div>
                     </div>
                 </div>
