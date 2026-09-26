@@ -135,8 +135,10 @@ function onUploaded(image: LessonLibraryImage): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="Browse Images"
-        description="Choose an image from the library, or upload a new one."
+        :title="$t('Browse Images')"
+        :description="
+            $t('Choose an image from the library, or upload a new one.')
+        "
         size="lg"
     >
         <div class="mt-2 grid gap-3">
@@ -157,7 +159,7 @@ function onUploaded(image: LessonLibraryImage): void {
                     "
                     @click="tab = item.key"
                 >
-                    {{ item.label }}
+                    {{ $t(item.label) }}
                 </button>
             </div>
 
@@ -170,8 +172,8 @@ function onUploaded(image: LessonLibraryImage): void {
                     <Input
                         v-model="search"
                         type="search"
-                        placeholder="Search images..."
-                        aria-label="Search images"
+                        :placeholder="$t('Search images...')"
+                        :aria-label="$t('Search images')"
                         class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-8 pe-3 text-[12px] shadow-none"
                     />
                 </div>
@@ -181,7 +183,7 @@ function onUploaded(image: LessonLibraryImage): void {
                 >
                     <SelectTrigger
                         class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[12px] shadow-none"
-                        aria-label="Category"
+                        :aria-label="$t('Category')"
                     >
                         <SelectValue />
                     </SelectTrigger>
@@ -192,7 +194,7 @@ function onUploaded(image: LessonLibraryImage): void {
                             :value="option.value"
                             class="text-[12px]"
                         >
-                            {{ option.label }}
+                            {{ $t(option.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -204,7 +206,7 @@ function onUploaded(image: LessonLibraryImage): void {
                     @click="uploadOpen = true"
                 >
                     <Upload class="size-3.5" aria-hidden="true" />
-                    Upload
+                    {{ $t('Upload') }}
                 </Button>
             </div>
 
@@ -225,9 +227,9 @@ function onUploaded(image: LessonLibraryImage): void {
                 class="text-danger-text bg-danger-tint rounded-md px-3 py-2 text-[12.5px]"
                 role="alert"
             >
-                The library could not be loaded.
+                {{ $t('The library could not be loaded.') }}
                 <button type="button" class="underline" @click="load">
-                    Try again
+                    {{ $t('Try again') }}
                 </button>
             </p>
 
@@ -235,7 +237,7 @@ function onUploaded(image: LessonLibraryImage): void {
                 v-else-if="images.length === 0"
                 class="text-ink-slate rounded-md px-1 py-6 text-center text-[12.5px]"
             >
-                No image matches. Upload one, or clear the search.
+                {{ $t('No image matches. Upload one, or clear the search.') }}
             </p>
 
             <div
@@ -270,7 +272,13 @@ function onUploaded(image: LessonLibraryImage): void {
                 class="flex items-center justify-between gap-2 pt-1"
             >
                 <span class="text-ink-slate text-[12px]">
-                    {{ total }} images · page {{ page }} of {{ lastPage }}
+                    {{
+                        $t(':total images · page :page of :last', {
+                            total,
+                            page,
+                            last: lastPage,
+                        })
+                    }}
                 </span>
                 <div class="flex gap-1.5">
                     <Button
@@ -280,7 +288,7 @@ function onUploaded(image: LessonLibraryImage): void {
                         class="border-line text-brand-700 h-8 rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="goTo(page - 1)"
                     >
-                        Previous
+                        {{ $t('Previous') }}
                     </Button>
                     <Button
                         type="button"
@@ -289,7 +297,7 @@ function onUploaded(image: LessonLibraryImage): void {
                         class="border-line text-brand-700 h-8 rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="goTo(page + 1)"
                     >
-                        Next
+                        {{ $t('Next') }}
                     </Button>
                 </div>
             </div>

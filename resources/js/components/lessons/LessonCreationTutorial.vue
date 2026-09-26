@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, CircleHelp } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 
 type Callout = {
     number: string;
@@ -36,18 +37,22 @@ const currentIndex = ref(0);
 const steps: GuideStep[] = [
     {
         number: '1',
-        kicker: 'Build the structure first',
-        title: 'Course > Unit > Lesson',
-        description:
+        kicker: tk('Build the structure first'),
+        title: tk('Course > Unit > Lesson'),
+        description: tk(
             'A Course is the large category, a Unit is a chapter, and a Lesson is the topic employees complete. Start by choosing Course in the Add dialog, then save it.',
+        ),
         image: '/tutorial/lesson-builder/09-add-course.png',
-        alt: 'GHASIDO Add Course dialog with arrows pointing to the course fields',
-        caption:
+        alt: tk(
+            'GHASIDO Add Course dialog with arrows pointing to the course fields',
+        ),
+        caption: tk(
             'This is the real Add Course screen. The same Add menu is used for Units and Lessons.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Choose Course',
+                label: tk('Choose Course'),
                 targetX: 50,
                 targetY: 38,
                 labelX: 16,
@@ -55,7 +60,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Department',
+                label: tk('Department'),
                 targetX: 39,
                 targetY: 57,
                 labelX: 15,
@@ -63,7 +68,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Hotel scope',
+                label: tk('Hotel scope'),
                 targetX: 66,
                 targetY: 57,
                 labelX: 84,
@@ -71,7 +76,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '4',
-                label: 'Course title',
+                label: tk('Course title'),
                 targetX: 50,
                 targetY: 73,
                 labelX: 17,
@@ -80,33 +85,37 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Course example',
+                title: tk('Course example'),
                 text: 'Front Desk English',
             },
             {
-                title: 'Unit example',
+                title: tk('Unit example'),
                 text: 'Welcoming Guests',
             },
             {
-                title: 'Lesson example',
+                title: tk('Lesson example'),
                 text: 'Handling a Room Request',
             },
         ],
     },
     {
         number: '2',
-        kicker: 'Create the lesson',
-        title: 'Choose the Course, Unit and title',
-        description:
+        kicker: tk('Create the lesson'),
+        title: tk('Choose the Course, Unit and title'),
+        description: tk(
             'Select the Course and Unit that should contain the lesson, enter the lesson title, and leave the default nine employee steps checked. Then click Create Lesson.',
+        ),
         image: '/tutorial/lesson-builder/02-create-lesson.png',
-        alt: 'GHASIDO Create Lesson screen with arrows pointing to course, unit, title and default steps',
-        caption:
+        alt: tk(
+            'GHASIDO Create Lesson screen with arrows pointing to course, unit, title and default steps',
+        ),
+        caption: tk(
             'This page creates a draft and then takes you directly to the lesson editor.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Course',
+                label: tk('Course'),
                 targetX: 27,
                 targetY: 45,
                 labelX: 12,
@@ -114,7 +123,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Unit',
+                label: tk('Unit'),
                 targetX: 27,
                 targetY: 55,
                 labelX: 12,
@@ -122,7 +131,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Lesson title',
+                label: tk('Lesson title'),
                 targetX: 45,
                 targetY: 64,
                 labelX: 77,
@@ -130,7 +139,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '4',
-                label: 'Keep nine steps',
+                label: tk('Keep nine steps'),
                 targetX: 31,
                 targetY: 72,
                 labelX: 73,
@@ -139,29 +148,35 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'The draft is safe',
-                text: 'You can edit everything before publishing.',
+                title: tk('The draft is safe'),
+                text: tk('You can edit everything before publishing.'),
             },
             {
-                title: 'Nine starter steps',
-                text: 'Situation, Vocabulary, Expressions, Listen & Repeat, Dialogue, Video, Practice, AI Role-play and Complete.',
+                title: tk('Nine starter steps'),
+                text: tk(
+                    'Situation, Vocabulary, Expressions, Listen & Repeat, Dialogue, Video, Practice, AI Role-play and Complete.',
+                ),
             },
         ],
     },
     {
         number: '3',
-        kicker: 'Open a lesson',
-        title: 'Use Lesson Directory > Edit',
-        description:
+        kicker: tk('Open a lesson'),
+        title: tk('Use Lesson Directory > Edit'),
+        description: tk(
             'The Lesson Directory shows every lesson and its status. Click Edit on the lesson you want to fill. Draft lessons are not visible to employees until you publish them.',
+        ),
         image: '/tutorial/lesson-builder/01-lesson-directory.png',
-        alt: 'GHASIDO Lesson Directory with arrows pointing to Edit and the lesson guide button',
-        caption:
+        alt: tk(
+            'GHASIDO Lesson Directory with arrows pointing to Edit and the lesson guide button',
+        ),
+        caption: tk(
             'You can reopen this visual guide at any time with How to create a lesson.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Open your lesson',
+                label: tk('Open your lesson'),
                 targetX: 89,
                 targetY: 46,
                 labelX: 69,
@@ -169,7 +184,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Draft / Published',
+                label: tk('Draft / Published'),
                 targetX: 75,
                 targetY: 38,
                 labelX: 88,
@@ -177,7 +192,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Open this guide',
+                label: tk('Open this guide'),
                 targetX: 90,
                 targetY: 28,
                 labelX: 65,
@@ -186,29 +201,37 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Status meaning',
-                text: 'Draft = still hidden. Published = available to the correct employees.',
+                title: tk('Status meaning'),
+                text: tk(
+                    'Draft = still hidden. Published = available to the correct employees.',
+                ),
             },
             {
-                title: 'Edit is safe',
-                text: 'You can return to the builder whenever you need to change content.',
+                title: tk('Edit is safe'),
+                text: tk(
+                    'You can return to the builder whenever you need to change content.',
+                ),
             },
         ],
     },
     {
         number: '4',
-        kicker: 'Fill the lesson content',
-        title: 'Cover, introduction and blocks',
-        description:
+        kicker: tk('Fill the lesson content'),
+        title: tk('Cover, introduction and blocks'),
+        description: tk(
             'At the top of Lesson Content, set the title, choose the cover image, and write a short introduction. On the right, click a content block to add it to the employee journey.',
+        ),
         image: '/tutorial/lesson-builder/03-lesson-editor.png',
-        alt: 'GHASIDO lesson editor with the lesson title, cover image, introduction and content block palette visible',
-        caption:
+        alt: tk(
+            'GHASIDO lesson editor with the lesson title, cover image, introduction and content block palette visible',
+        ),
+        caption: tk(
             'This is the real editor: the middle is your lesson, the right side adds employee steps.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Lesson title',
+                label: tk('Lesson title'),
                 targetX: 56,
                 targetY: 45,
                 labelX: 29,
@@ -216,7 +239,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Cover image',
+                label: tk('Cover image'),
                 targetX: 56,
                 targetY: 59,
                 labelX: 28,
@@ -224,7 +247,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Introduction',
+                label: tk('Introduction'),
                 targetX: 57,
                 targetY: 83,
                 labelX: 76,
@@ -232,7 +255,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '4',
-                label: 'Add blocks here',
+                label: tk('Add blocks here'),
                 targetX: 85,
                 targetY: 58,
                 labelX: 87,
@@ -241,28 +264,35 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Keep the introduction short',
-                text: 'One or two simple sentences are enough.',
+                title: tk('Keep the introduction short'),
+                text: tk('One or two simple sentences are enough.'),
             },
             {
-                title: 'English first',
-                text: 'English is always visible. Arabic belongs behind Show Meaning.',
+                title: tk('English first'),
+                text: tk(
+                    'English is always visible. Arabic belongs behind Show Meaning.',
+                ),
             },
         ],
     },
     {
         number: '5',
-        kicker: 'Organise employee steps',
-        title: 'Objectives and Lesson Blocks',
-        description:
+        kicker: tk('Organise employee steps'),
+        title: tk('Objectives and Lesson Blocks'),
+        description: tk(
             'Add learning objectives, then use each Lesson Block row as one employee step. Click Edit to fill it, the arrows to reorder it, the eye to hide it, duplicate to copy it, and the trash icon to remove it.',
+        ),
         image: '/tutorial/lesson-builder/08-lesson-objectives.png',
-        alt: 'GHASIDO lesson objectives and lesson blocks with arrows pointing to objectives and block edit controls',
-        caption: 'Every visible block becomes one step in the employee lesson.',
+        alt: tk(
+            'GHASIDO lesson objectives and lesson blocks with arrows pointing to objectives and block edit controls',
+        ),
+        caption: tk(
+            'Every visible block becomes one step in the employee lesson.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Add Objective',
+                label: tk('Add Objective'),
                 targetX: 71,
                 targetY: 16,
                 labelX: 87,
@@ -270,7 +300,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'One block = one step',
+                label: tk('One block = one step'),
                 targetX: 61,
                 targetY: 45,
                 labelX: 27,
@@ -278,7 +308,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Edit Vocabulary',
+                label: tk('Edit Vocabulary'),
                 targetX: 74,
                 targetY: 59,
                 labelX: 87,
@@ -286,7 +316,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '4',
-                label: 'Reorder / hide / copy / delete',
+                label: tk('Reorder / hide / copy / delete'),
                 targetX: 68,
                 targetY: 46,
                 labelX: 22,
@@ -295,33 +325,43 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Recommended order',
-                text: 'Situation > Vocabulary > Expressions > Listen & Repeat > Dialogue > Video > Practice > AI Role-play > Complete.',
+                title: tk('Recommended order'),
+                text: tk(
+                    'Situation > Vocabulary > Expressions > Listen & Repeat > Dialogue > Video > Practice > AI Role-play > Complete.',
+                ),
             },
             {
-                title: 'You can customise it',
-                text: 'Remove steps you do not need and drag the remaining steps into the order you want.',
+                title: tk('You can customise it'),
+                text: tk(
+                    'Remove steps you do not need and drag the remaining steps into the order you want.',
+                ),
             },
             {
-                title: 'Practice and AI Role-play',
-                text: 'Practice uses activities that already exist. If it says No activity yet, the current builder does not have Add Activity there yet. Create AI scenarios under AI Scenarios before attaching them to AI Role-play.',
+                title: tk('Practice and AI Role-play'),
+                text: tk(
+                    'Practice uses activities that already exist. If it says No activity yet, the current builder does not have Add Activity there yet. Create AI scenarios under AI Scenarios before attaching them to AI Role-play.',
+                ),
             },
         ],
     },
     {
         number: '6',
-        kicker: 'Add vocabulary',
-        title: 'Edit Vocabulary, then Add word',
-        description:
+        kicker: tk('Add vocabulary'),
+        title: tk('Edit Vocabulary, then Add word'),
+        description: tk(
             'Open the Vocabulary block and click Add word. A word can include an image, pronunciation, Arabic meaning, simple explanation, hotel example and its own Normal and Slow audio.',
+        ),
         image: '/tutorial/lesson-builder/04-vocabulary-block.png',
-        alt: 'GHASIDO Vocabulary block editor with Add word, Show Meaning and Normal and Slow audio visible',
-        caption:
+        alt: tk(
+            'GHASIDO Vocabulary block editor with Add word, Show Meaning and Normal and Slow audio visible',
+        ),
+        caption: tk(
             'The vocabulary editor keeps all word content together in one block.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Add word',
+                label: tk('Add word'),
                 targetX: 87,
                 targetY: 66,
                 labelX: 85,
@@ -329,7 +369,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Show Meaning',
+                label: tk('Show Meaning'),
                 targetX: 39,
                 targetY: 71,
                 labelX: 20,
@@ -337,7 +377,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Normal + Slow audio',
+                label: tk('Normal + Slow audio'),
                 targetX: 58,
                 targetY: 92,
                 labelX: 80,
@@ -346,29 +386,37 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'What employees see',
-                text: 'The English word is visible. Arabic and the explanation appear only when Show Meaning is tapped.',
+                title: tk('What employees see'),
+                text: tk(
+                    'The English word is visible. Arabic and the explanation appear only when Show Meaning is tapped.',
+                ),
             },
             {
-                title: 'Audio',
-                text: 'If a clip is missing, scroll below the word and click Generate TTS audio.',
+                title: tk('Audio'),
+                text: tk(
+                    'If a clip is missing, scroll below the word and click Generate TTS audio.',
+                ),
             },
         ],
     },
     {
         number: '7',
-        kicker: 'Fill one word completely',
-        title: 'English, meaning and hotel example',
-        description:
+        kicker: tk('Fill one word completely'),
+        title: tk('English, meaning and hotel example'),
+        description: tk(
             'Type the English word first. Then add the Arabic meaning, a very simple explanation, and an example employees might hear at the hotel. Save the word when finished.',
+        ),
         image: '/tutorial/lesson-builder/05-add-word.png',
-        alt: 'GHASIDO Add word form with arrows pointing to English, Arabic meaning, explanation, hotel example and Save',
-        caption:
+        alt: tk(
+            'GHASIDO Add word form with arrows pointing to English, Arabic meaning, explanation, hotel example and Save',
+        ),
+        caption: tk(
             'This is the exact Add word form. The same form is used for Useful Expressions.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'English',
+                label: tk('English'),
                 targetX: 42,
                 targetY: 28,
                 labelX: 17,
@@ -376,7 +424,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Arabic meaning',
+                label: tk('Arabic meaning'),
                 targetX: 36,
                 targetY: 68,
                 labelX: 15,
@@ -384,7 +432,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Simple explanation',
+                label: tk('Simple explanation'),
                 targetX: 64,
                 targetY: 68,
                 labelX: 83,
@@ -392,7 +440,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '4',
-                label: 'Hotel example',
+                label: tk('Hotel example'),
                 targetX: 36,
                 targetY: 82,
                 labelX: 14,
@@ -400,7 +448,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '5',
-                label: 'Save',
+                label: tk('Save'),
                 targetX: 75,
                 targetY: 91,
                 labelX: 87,
@@ -409,29 +457,33 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Example word',
+                title: tk('Example word'),
                 text: 'towel — منشفة — a cloth used to dry your hands or body.',
             },
             {
-                title: 'Example sentence',
+                title: tk('Example sentence'),
                 text: 'Of course. I will send an extra towel to your room.',
             },
         ],
     },
     {
         number: '8',
-        kicker: 'Add a dialogue and audio',
-        title: 'Staff and Guest, line by line',
-        description:
+        kicker: tk('Add a dialogue and audio'),
+        title: tk('Staff and Guest, line by line'),
+        description: tk(
             'Open Dialogue, choose a scene image, and click Add line. Choose Staff or Guest, write one English sentence, and add Arabic for Show Meaning. After the sentences exist, generate the Normal and Slow audio clips lower in the same editor.',
+        ),
         image: '/tutorial/lesson-builder/06-dialogue-audio.png',
-        alt: 'GHASIDO Dialogue block editor with scene image, Add line and conversation lines visible',
-        caption:
+        alt: tk(
+            'GHASIDO Dialogue block editor with scene image, Add line and conversation lines visible',
+        ),
+        caption: tk(
             'A dialogue is a real conversation: one short sentence per line and a speaker for every line.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Scene image',
+                label: tk('Scene image'),
                 targetX: 33,
                 targetY: 47,
                 labelX: 16,
@@ -439,7 +491,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Add line',
+                label: tk('Add line'),
                 targetX: 84,
                 targetY: 89,
                 labelX: 83,
@@ -447,7 +499,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Staff or Guest',
+                label: tk('Staff or Guest'),
                 targetX: 21,
                 targetY: 96,
                 labelX: 15,
@@ -456,33 +508,39 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Guest example',
+                title: tk('Guest example'),
                 text: 'Could I have an extra towel, please?',
             },
             {
-                title: 'Staff example',
+                title: tk('Staff example'),
                 text: 'Of course. I will send one right away.',
             },
             {
-                title: 'Audio step',
-                text: 'Scroll down inside the Dialogue editor and click Generate TTS audio for the missing Normal and Slow clips.',
+                title: tk('Audio step'),
+                text: tk(
+                    'Scroll down inside the Dialogue editor and click Generate TTS audio for the missing Normal and Slow clips.',
+                ),
             },
         ],
     },
     {
         number: '9',
-        kicker: 'Check before employees see it',
-        title: 'Preview, save a draft, then publish',
-        description:
+        kicker: tk('Check before employees see it'),
+        title: tk('Preview, save a draft, then publish'),
+        description: tk(
             'Open Preview and check Phone (390px) and Desktop. Use Save Draft while you are still working. Publish Lesson only after every block is complete and the employee view looks correct.',
+        ),
         image: '/tutorial/lesson-builder/07-lesson-preview.png',
-        alt: 'GHASIDO lesson Preview tab showing the phone employee experience and Desktop switch',
-        caption:
+        alt: tk(
+            'GHASIDO lesson Preview tab showing the phone employee experience and Desktop switch',
+        ),
+        caption: tk(
             'Preview is safe: it shows the employee experience without recording employee progress.',
+        ),
         callouts: [
             {
                 number: '1',
-                label: 'Phone (390px)',
+                label: tk('Phone (390px)'),
                 targetX: 43,
                 targetY: 41,
                 labelX: 24,
@@ -490,7 +548,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '2',
-                label: 'Desktop',
+                label: tk('Desktop'),
                 targetX: 52,
                 targetY: 41,
                 labelX: 67,
@@ -498,7 +556,7 @@ const steps: GuideStep[] = [
             },
             {
                 number: '3',
-                label: 'Save Draft / Publish',
+                label: tk('Save Draft / Publish'),
                 targetX: 88,
                 targetY: 35,
                 labelX: 84,
@@ -507,12 +565,16 @@ const steps: GuideStep[] = [
         ],
         notes: [
             {
-                title: 'Save Draft',
-                text: 'Use this while content is unfinished. Employees do not see the lesson yet.',
+                title: tk('Save Draft'),
+                text: tk(
+                    'Use this while content is unfinished. Employees do not see the lesson yet.',
+                ),
             },
             {
-                title: 'Publish Lesson',
-                text: 'Use this only when the lesson is ready for the selected department and hotel scope.',
+                title: tk('Publish Lesson'),
+                text: tk(
+                    'Use this only when the lesson is ready for the selected department and hotel scope.',
+                ),
             },
         ],
     },
@@ -543,8 +605,12 @@ watch(open, (value) => {
 <template>
     <LessonsModal
         v-model:open="open"
-        title="How to create a lesson"
-        description="A visual walkthrough of the real GHASIDO lesson builder, from Course to Publish."
+        :title="$t('How to create a lesson')"
+        :description="
+            $t(
+                'A visual walkthrough of the real GHASIDO lesson builder, from Course to Publish.',
+            )
+        "
         size="xl"
     >
         <div class="mt-2 grid gap-3">
@@ -554,10 +620,14 @@ watch(open, (value) => {
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <p class="text-[12px] font-semibold">
-                            Follow the real screens
+                            {{ $t('Follow the real screens') }}
                         </p>
                         <p class="text-ink-slate mt-1 text-[11.5px]">
-                            Course > Unit > Lesson > Blocks > Preview > Publish
+                            {{
+                                $t(
+                                    'Course > Unit > Lesson > Blocks > Preview > Publish',
+                                )
+                            }}
                         </p>
                     </div>
                     <span
@@ -577,10 +647,10 @@ watch(open, (value) => {
                 >
                     <div class="min-w-0">
                         <p class="text-brand-100 text-[10.5px] font-semibold">
-                            {{ currentStep.kicker }}
+                            {{ $t(currentStep.kicker) }}
                         </p>
                         <h3 class="mt-0.5 truncate text-[14px] font-semibold">
-                            {{ currentStep.title }}
+                            {{ $t(currentStep.title) }}
                         </h3>
                     </div>
                     <div class="flex shrink-0 items-center gap-1.5">
@@ -589,7 +659,7 @@ watch(open, (value) => {
                             variant="outline"
                             :disabled="currentIndex === 0"
                             class="border-brand-200/40 text-brand-100 hover:bg-brand-800 h-8 w-8 rounded-md p-0 shadow-none"
-                            aria-label="Previous visual guide step"
+                            :aria-label="$t('Previous visual guide step')"
                             @click="previous"
                         >
                             <ArrowLeft class="size-3.5" aria-hidden="true" />
@@ -600,7 +670,7 @@ watch(open, (value) => {
                             :disabled="currentIndex === steps.length - 1"
                             @click="next"
                         >
-                            Next
+                            {{ $t('Next') }}
                             <ArrowRight class="size-3.5" aria-hidden="true" />
                         </Button>
                     </div>
@@ -612,7 +682,7 @@ watch(open, (value) => {
                     >
                         <img
                             :src="currentStep.image"
-                            :alt="currentStep.alt"
+                            :alt="$t(currentStep.alt)"
                             class="absolute inset-0 h-full w-full object-cover"
                         />
                         <svg
@@ -668,7 +738,7 @@ watch(open, (value) => {
                                 >
                                     {{ callout.number }}
                                 </span>
-                                {{ callout.label }}
+                                {{ $t(callout.label) }}
                             </span>
                         </div>
                     </div>
@@ -676,12 +746,12 @@ watch(open, (value) => {
 
                 <div class="grid gap-2 px-3 py-3 sm:px-4">
                     <p class="text-ink-slate text-[12px] leading-5">
-                        {{ currentStep.description }}
+                        {{ $t(currentStep.description) }}
                     </p>
                     <p
                         class="text-brand-700 bg-brand-50/70 rounded-md px-3 py-2 text-[11px] leading-5"
                     >
-                        {{ currentStep.caption }}
+                        {{ $t(currentStep.caption) }}
                     </p>
                     <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         <div
@@ -692,12 +762,12 @@ watch(open, (value) => {
                             <p
                                 class="text-brand-900 text-[11.5px] font-semibold"
                             >
-                                {{ note.title }}
+                                {{ $t(note.title) }}
                             </p>
                             <p
                                 class="text-ink-slate mt-1 text-[11px] leading-4.5"
                             >
-                                {{ note.text }}
+                                {{ $t(note.text) }}
                             </p>
                         </div>
                     </div>
@@ -709,7 +779,11 @@ watch(open, (value) => {
                     v-for="(step, index) in steps"
                     :key="step.number"
                     type="button"
-                    :aria-label="`Open visual guide step ${step.number}`"
+                    :aria-label="
+                        $t('Open visual guide step :number', {
+                            number: step.number,
+                        })
+                    "
                     :aria-current="currentIndex === index ? 'step' : undefined"
                     :class="[
                         'grid size-6 place-items-center rounded-full text-[10px] font-semibold transition-colors',
@@ -731,10 +805,11 @@ watch(open, (value) => {
                     aria-hidden="true"
                 />
                 <p class="text-ink-slate text-[12px] leading-5">
-                    Save as Draft while you work. Publish only after checking
-                    Preview on Phone and Desktop. Practice activities are added
-                    from the Quiz / Practice block when activities are
-                    available.
+                    {{
+                        $t(
+                            'Save as Draft while you work. Publish only after checking Preview on Phone and Desktop. Practice activities are added from the Quiz / Practice block when activities are available.',
+                        )
+                    }}
                 </p>
             </div>
 
@@ -742,9 +817,11 @@ watch(open, (value) => {
                 v-if="!props.hasLesson"
                 class="text-ink-slate bg-app-alt rounded-md px-3 py-2 text-[11.5px]"
             >
-                To start the live arrow tour, open a lesson first. This visual
-                guide is available from the Lesson Directory even before you
-                have created your first lesson.
+                {{
+                    $t(
+                        'To start the live arrow tour, open a lesson first. This visual guide is available from the Lesson Directory even before you have created your first lesson.',
+                    )
+                }}
             </p>
 
             <div class="flex flex-col-reverse justify-end gap-2 sm:flex-row">
@@ -754,7 +831,7 @@ watch(open, (value) => {
                     data-test="close-lesson-creation-tutorial"
                     @click="open = false"
                 >
-                    Close
+                    {{ $t('Close') }}
                 </Button>
                 <Button
                     type="button"
@@ -766,7 +843,7 @@ watch(open, (value) => {
                         open = false;
                     "
                 >
-                    Start live tour with arrows
+                    {{ $t('Start live tour with arrows') }}
                 </Button>
             </div>
         </div>

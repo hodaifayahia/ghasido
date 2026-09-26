@@ -23,6 +23,7 @@ import LessonsSettingsTab from '@/components/lessons/tabs/LessonsSettingsTab.vue
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCan } from '@/composables/useCan';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/lessons';
 import type {
@@ -173,11 +174,11 @@ defineExpose({ setCover: onCover });
 const saveHint = computed(() => {
     switch (saveState.value) {
         case 'saving':
-            return 'Saving…';
+            return t('Saving…');
         case 'saved':
-            return 'Saved';
+            return t('Saved');
         case 'error':
-            return 'Could not save';
+            return t('Could not save');
         default:
             return '';
     }
@@ -201,8 +202,11 @@ const toolbarButton =
             v-if="editor.id === null"
             class="text-ink-slate flex min-h-40 items-center justify-center text-center text-[13px]"
         >
-            No lesson selected. Pick one in the Course Structure, or add one
-            under a unit.
+            {{
+                $t(
+                    'No lesson selected. Pick one in the Course Structure, or add one under a unit.',
+                )
+            }}
         </div>
 
         <LessonsPreviewTab
@@ -244,7 +248,7 @@ const toolbarButton =
                         for="lesson-title"
                         class="text-brand-900 text-[12px] font-semibold"
                     >
-                        Lesson Title *
+                        {{ $t('Lesson Title *') }}
                     </label>
                     <span class="text-ink-faint text-[11px] font-medium">
                         <span
@@ -278,7 +282,7 @@ const toolbarButton =
 
             <div class="grid gap-1.5">
                 <label class="text-brand-900 text-[12px] font-semibold">
-                    Lesson Image (Cover) *
+                    {{ $t('Lesson Image (Cover) *') }}
                 </label>
 
                 <img
@@ -292,7 +296,7 @@ const toolbarButton =
                     class="border-line bg-brand-50/40 text-ink-slate flex aspect-[351/93] w-full items-center justify-center rounded-md border border-dashed text-[12.5px]"
                 >
                     <Image class="me-1.5 size-4" aria-hidden="true" />
-                    No cover image yet
+                    {{ $t('No cover image yet') }}
                 </div>
 
                 <div
@@ -307,7 +311,7 @@ const toolbarButton =
                         @click="pickerOpen = true"
                     >
                         <Image class="size-3.5" aria-hidden="true" />
-                        Change Image
+                        {{ $t('Change Image') }}
                     </Button>
                     <Button
                         type="button"
@@ -318,7 +322,7 @@ const toolbarButton =
                         @click="removeCover"
                     >
                         <Trash2 class="size-3.5" aria-hidden="true" />
-                        Remove
+                        {{ $t('Remove') }}
                     </Button>
                 </div>
             </div>
@@ -328,7 +332,7 @@ const toolbarButton =
                     for="lesson-introduction"
                     class="text-brand-900 text-[12px] font-semibold"
                 >
-                    Lesson Introduction *
+                    {{ $t('Lesson Introduction *') }}
                 </label>
 
                 <div class="border-line overflow-hidden rounded-md border">
@@ -339,7 +343,7 @@ const toolbarButton =
                         <span
                             class="text-ink border-line flex h-7 items-center gap-1 rounded-md border px-2 text-[11.5px] font-medium"
                         >
-                            Paragraph
+                            {{ $t('Paragraph') }}
                             <ChevronDown class="size-3.5" />
                         </span>
                         <span
@@ -396,7 +400,7 @@ const toolbarButton =
             <div class="grid gap-2">
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="text-brand-900 text-[12px] font-semibold">
-                        Lesson Objectives
+                        {{ $t('Lesson Objectives') }}
                     </h2>
                     <Button
                         v-if="manage"
@@ -407,7 +411,7 @@ const toolbarButton =
                         @click="addingObjective = true"
                     >
                         <CirclePlus class="size-3.5" aria-hidden="true" />
-                        Add Objective
+                        {{ $t('Add Objective') }}
                     </Button>
                 </div>
 
@@ -429,7 +433,9 @@ const toolbarButton =
                             v-if="manage"
                             type="button"
                             class="text-ink-faint hover:bg-brand-50 focus-visible:ring-brand-600/15 inline-flex size-7 shrink-0 items-center justify-center rounded-md focus-visible:ring-3 focus-visible:outline-none"
-                            :aria-label="`Remove ${objective}`"
+                            :aria-label="
+                                $t('Remove :item', { item: objective })
+                            "
                             :data-test="`remove-objective-${index}`"
                             @click="removeObjective(index)"
                         >
@@ -450,8 +456,10 @@ const toolbarButton =
                             v-model="newObjective"
                             type="text"
                             maxlength="160"
-                            placeholder="What will the learner be able to do?"
-                            aria-label="New objective"
+                            :placeholder="
+                                $t('What will the learner be able to do?')
+                            "
+                            :aria-label="$t('New objective')"
                             data-test="new-objective-input"
                             class="text-ink placeholder:text-ink-faint min-w-0 flex-1 border-0 bg-transparent p-0 text-[13px] outline-none"
                             autofocus
@@ -465,7 +473,7 @@ const toolbarButton =
                         v-if="objectives.length === 0 && !addingObjective"
                         class="text-ink-faint text-[12px]"
                     >
-                        No objectives yet.
+                        {{ $t('No objectives yet.') }}
                     </p>
                 </div>
             </div>

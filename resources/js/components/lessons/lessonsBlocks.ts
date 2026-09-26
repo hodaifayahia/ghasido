@@ -17,6 +17,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { Component, Ref, WritableComputedRef } from 'vue';
+import { tk } from '@/lib/i18n';
 import type { BlockSettings, LessonMediaRef } from '@/types';
 
 /**
@@ -66,6 +67,21 @@ export function nestedField(
             };
         },
     });
+}
+
+/** English labels of stored status and difficulty values, translated where rendered. */
+export const valueLabels: Record<string, string> = {
+    draft: tk('Draft'),
+    published: tk('Published'),
+    archived: tk('Archived'),
+    beginner: tk('Beginner'),
+    elementary: tk('Elementary'),
+    intermediate: tk('Intermediate'),
+};
+
+/** The label of a stored value, or the value itself when it has none. */
+export function valueLabel(value: string): string {
+    return valueLabels[value] ?? value;
 }
 
 /** MIME type of a palette tile while it is being dragged onto the block list. */

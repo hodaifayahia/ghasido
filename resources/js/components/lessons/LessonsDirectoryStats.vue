@@ -49,7 +49,7 @@ const looks: Record<LessonDirectoryMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Lesson library summary"
+        :aria-label="$t('Lesson library summary')"
         :class="
             cn(
                 'grid grid-cols-2 gap-2 pb-1',

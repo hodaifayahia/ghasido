@@ -26,6 +26,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useCan } from '@/composables/useCan';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { publish, update } from '@/routes/lessons';
 import type {
@@ -70,15 +71,15 @@ const filterFields = computed(
         label: string;
         options: LessonFilterOption[];
     }> => [
-        { key: 'hotel', label: 'Hotel', options: props.filters.hotels },
+        { key: 'hotel', label: tk('Hotel'), options: props.filters.hotels },
         {
             key: 'department',
-            label: 'Department',
+            label: tk('Department'),
             options: props.filters.departments,
         },
-        { key: 'course', label: 'Course', options: props.filters.courses },
-        { key: 'unit', label: 'Unit', options: props.filters.units },
-        { key: 'lesson', label: 'Lesson', options: props.filters.lessons },
+        { key: 'course', label: tk('Course'), options: props.filters.courses },
+        { key: 'unit', label: tk('Unit'), options: props.filters.units },
+        { key: 'lesson', label: tk('Lesson'), options: props.filters.lessons },
     ],
 );
 
@@ -143,7 +144,7 @@ function publishLesson(): void {
                 class="border-line bg-surface shadow-card rounded-md border px-3 pt-[7px] pb-[5px]"
             >
                 <p class="text-brand-900 text-[11px] leading-4 font-semibold">
-                    {{ field.label }}
+                    {{ $t(field.label) }}
                 </p>
                 <Select
                     :model-value="filters[field.key]"
@@ -156,7 +157,7 @@ function publishLesson(): void {
                     >
                         <SelectValue
                             :placeholder="
-                                field.options.length === 0 ? 'None yet' : ''
+                                field.options.length === 0 ? $t('None yet') : ''
                             "
                         />
                     </SelectTrigger>
@@ -217,7 +218,7 @@ function publishLesson(): void {
                     @click="saveDraft"
                 >
                     <Save class="size-4" aria-hidden="true" />
-                    Save Draft
+                    {{ $t('Save Draft') }}
                 </Button>
 
                 <Button
@@ -228,7 +229,7 @@ function publishLesson(): void {
                     @click="publishLesson"
                 >
                     <CirclePlus class="size-4" aria-hidden="true" />
-                    Publish Lesson
+                    {{ $t('Publish Lesson') }}
                 </Button>
             </div>
         </div>

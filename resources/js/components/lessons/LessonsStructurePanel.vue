@@ -98,7 +98,7 @@ function startAdd(mode: AddMode, parentId: number | null = null): void {
 
 <template>
     <PanelCard
-        title="Course Structure"
+        :title="$t('Course Structure')"
         title-id="course-structure"
         :class="cn('min-w-0 px-3 pt-3 pb-3.5', props.class)"
         body-class="mt-2.5"
@@ -112,7 +112,7 @@ function startAdd(mode: AddMode, parentId: number | null = null): void {
                 @click="startAdd('course')"
             >
                 <CirclePlus class="size-4" aria-hidden="true" />
-                Add
+                {{ $t('Add') }}
             </Button>
         </template>
 
@@ -120,7 +120,11 @@ function startAdd(mode: AddMode, parentId: number | null = null): void {
             v-if="courses.length === 0"
             class="text-ink-slate rounded-md px-1 py-2 text-[12.5px]"
         >
-            No course in this department yet. Use Add to create the first one.
+            {{
+                $t(
+                    'No course in this department yet. Use Add to create the first one.',
+                )
+            }}
         </p>
 
         <div class="space-y-1.5">

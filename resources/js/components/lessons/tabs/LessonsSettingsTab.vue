@@ -12,6 +12,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useCan } from '@/composables/useCan';
+import { intlLocale, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/lessons';
 import type {
@@ -61,8 +62,8 @@ watch(
 );
 
 const accents: LessonFilterOption[] = [
-    { value: 'en-GB', label: 'British English' },
-    { value: 'en-US', label: 'American English' },
+    { value: 'en-GB', label: tk('British English') },
+    { value: 'en-US', label: tk('American English') },
 ];
 
 function onAccent(value: AcceptableValue): void {
@@ -72,14 +73,17 @@ function onAccent(value: AcceptableValue): void {
 }
 
 const rules: LessonFilterOption[] = [
-    { value: 'all_steps', label: 'Every visible step completed' },
-    { value: 'last_step', label: 'The last step reached' },
-    { value: 'practice_passed', label: 'Practice passed with a minimum score' },
+    { value: 'all_steps', label: tk('Every visible step completed') },
+    { value: 'last_step', label: tk('The last step reached') },
+    {
+        value: 'practice_passed',
+        label: tk('Practice passed with a minimum score'),
+    },
 ];
 
 const statuses: LessonFilterOption[] = [
-    { value: 'draft', label: 'Draft — hidden from learners' },
-    { value: 'published', label: 'Published — visible to learners' },
+    { value: 'draft', label: tk('Draft — hidden from learners') },
+    { value: 'published', label: tk('Published — visible to learners') },
 ];
 
 function onRule(value: AcceptableValue): void {
@@ -147,16 +151,16 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
         <div class="grid gap-4 md:grid-cols-2">
             <LessonsField
                 v-model="minutes"
-                label="Estimated minutes"
+                :label="$t('Estimated minutes')"
                 type="number"
                 :min="1"
                 :max="600"
-                hint="Shown on the lesson card."
+                :hint="$t('Shown on the lesson card.')"
                 :error="errors.estimated_minutes"
             />
 
             <div class="grid gap-1.5">
-                <span :class="labelClass">Visibility</span>
+                <span :class="labelClass">{{ $t('Visibility') }}</span>
                 <Select :model-value="status" @update:model-value="onStatus">
                     <SelectTrigger
                         :class="selectTrigger"
@@ -171,7 +175,7 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                             :value="option.value"
                             class="text-[13px]"
                         >
-                            {{ option.label }}
+                            {{ $t(option.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -179,15 +183,22 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                     v-if="editor.publishedAt"
                     class="text-ink-faint text-[11.5px]"
                 >
-                    First published
-                    {{ new Date(editor.publishedAt).toLocaleDateString() }}.
+                    {{
+                        $t('First published :date.', {
+                            date: new Date(
+                                editor.publishedAt,
+                            ).toLocaleDateString(intlLocale()),
+                        })
+                    }}
                 </p>
             </div>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
             <div class="grid gap-1.5">
-                <span :class="labelClass">Completion condition</span>
+                <span :class="labelClass">{{
+                    $t('Completion condition')
+                }}</span>
                 <Select :model-value="rule" @update:model-value="onRule">
                     <SelectTrigger
                         :class="selectTrigger"
@@ -202,20 +213,23 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                             :value="option.value"
                             class="text-[13px]"
                         >
-                            {{ option.label }}
+                            {{ $t(option.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
                 <p class="text-ink-faint text-[11.5px]">
-                    Decides when the lesson counts as done for the journey
-                    (JOURNEY-04).
+                    {{
+                        $t(
+                            'Decides when the lesson counts as done for the journey (JOURNEY-04).',
+                        )
+                    }}
                 </p>
             </div>
 
             <LessonsField
                 v-if="rule === 'practice_passed'"
                 v-model="minScore"
-                label="Minimum practice score (%)"
+                :label="$t('Minimum practice score (%)')"
                 type="number"
                 :min="0"
                 :max="100"
@@ -225,7 +239,7 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
 
         <div class="grid gap-4 md:grid-cols-2">
             <div class="grid gap-1.5">
-                <span :class="labelClass">Accent</span>
+                <span :class="labelClass">{{ $t('Accent') }}</span>
                 <Select :model-value="accent" @update:model-value="onAccent">
                     <SelectTrigger
                         :class="selectTrigger"
@@ -240,7 +254,7 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                             :value="option.value"
                             class="text-[13px]"
                         >
-                            {{ option.label }}
+                            {{ $t(option.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -248,9 +262,11 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                     {{ errors.accent }}
                 </p>
                 <p v-else class="text-ink-faint text-[11.5px]">
-                    The voice of the lesson audio and the accent a learner's
-                    pronunciation is checked against. Changing it queues new
-                    Normal and Slow audio.
+                    {{
+                        $t(
+                            "The voice of the lesson audio and the accent a learner's pronunciation is checked against. Changing it queues new Normal and Slow audio.",
+                        )
+                    }}
                 </p>
             </div>
         </div>
@@ -259,19 +275,23 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
             class="border-line bg-brand-50/40 grid gap-2 rounded-md border px-4 py-3 text-[12.5px] md:grid-cols-2"
         >
             <div>
-                <dt class="text-ink-slate">Department</dt>
+                <dt class="text-ink-slate">{{ $t('Department') }}</dt>
                 <dd class="text-ink font-medium">
                     {{ editor.departmentLabel ?? '—' }}
                 </dd>
             </div>
             <div>
-                <dt class="text-ink-slate">Hotel scope</dt>
+                <dt class="text-ink-slate">{{ $t('Hotel scope') }}</dt>
                 <dd class="text-ink font-medium">
                     {{ editor.hotelLabel ?? '—' }}
                 </dd>
             </div>
             <p class="text-ink-faint md:col-span-2">
-                Scope follows the course: move the course to change it (CMS-04).
+                {{
+                    $t(
+                        'Scope follows the course: move the course to change it (CMS-04).',
+                    )
+                }}
             </p>
         </dl>
 
@@ -286,7 +306,7 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                     )
                 "
             >
-                {{ saving ? 'Saving…' : 'Save settings' }}
+                {{ saving ? $t('Saving…') : $t('Save settings') }}
             </Button>
         </div>
     </form>

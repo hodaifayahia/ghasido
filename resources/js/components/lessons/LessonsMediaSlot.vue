@@ -6,6 +6,7 @@ import LessonsImageGenerateDialog from '@/components/lessons/LessonsImageGenerat
 import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
 import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
 import { Button } from '@/components/ui/button';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
     ContentGenerationMedia,
@@ -37,15 +38,23 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), {
     kind: 'image',
     tabs: () => [
-        { key: 'my-images', label: 'My Images' },
-        { key: 'guesvia-library', label: 'GHASIDO Library' },
-        { key: 'icons-stickers', label: 'Icons & Stickers' },
+        { key: 'my-images', label: tk('My Images') },
+        { key: 'guesvia-library', label: tk('GHASIDO Library') },
+        { key: 'icons-stickers', label: tk('Icons & Stickers') },
     ],
-    categories: () => [{ value: 'all-categories', label: 'All Categories' }],
+    categories: () => [
+        { value: 'all-categories', label: tk('All Categories') },
+    ],
     compact: false,
     generatePrompt: '',
     generateSize: 'landscape',
 });
+
+const emptyLabels: Record<NonNullable<Props['kind']>, string> = {
+    image: tk('No image yet'),
+    audio: tk('No audio yet'),
+    video: tk('No video yet'),
+};
 
 const emit = defineEmits<{
     change: [media: LessonMediaRef | null];
@@ -91,7 +100,7 @@ const buttonClass =
 <template>
     <div :class="cn('grid gap-1.5', props.class)">
         <p class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]">
-            {{ label }}
+            {{ $t(label) }}
         </p>
 
         <div
@@ -128,7 +137,7 @@ const buttonClass =
                     {{ media.label }}
                 </p>
                 <p class="text-ink-faint truncate text-[11px]">
-                    {{ media.alt || 'No alt text' }}
+                    {{ media.alt || $t('No alt text') }}
                 </p>
             </div>
         </div>
@@ -138,7 +147,7 @@ const buttonClass =
             class="border-line bg-brand-50/40 text-ink-slate flex min-h-14 items-center justify-center rounded-md border border-dashed px-3 text-[12px]"
         >
             <Image class="me-1.5 size-4" aria-hidden="true" />
-            No {{ kind }} yet
+            {{ $t(emptyLabels[kind]) }}
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -150,7 +159,7 @@ const buttonClass =
                 @click="uploadOpen = true"
             >
                 <Upload class="size-3.5" aria-hidden="true" />
-                {{ filled && kind !== 'image' ? 'Replace' : 'Upload' }}
+                {{ filled && kind !== 'image' ? $t('Replace') : $t('Upload') }}
             </Button>
             <Button
                 v-if="kind === 'image'"
@@ -161,7 +170,7 @@ const buttonClass =
                 @click="pickerOpen = true"
             >
                 <Replace class="size-3.5" aria-hidden="true" />
-                {{ filled ? 'Replace' : 'Choose' }}
+                {{ filled ? $t('Replace') : $t('Choose') }}
             </Button>
             <Button
                 v-if="kind === 'image'"
@@ -172,7 +181,7 @@ const buttonClass =
                 @click="generateOpen = true"
             >
                 <Sparkles class="size-3.5" aria-hidden="true" />
-                {{ filled ? 'Regenerate' : 'Generate' }}
+                {{ filled ? $t('Regenerate') : $t('Generate') }}
             </Button>
             <Button
                 v-if="filled"
@@ -183,7 +192,7 @@ const buttonClass =
                 @click="emit('change', null)"
             >
                 <Trash2 class="size-3.5" aria-hidden="true" />
-                Remove
+                {{ $t('Remove') }}
             </Button>
         </div>
 

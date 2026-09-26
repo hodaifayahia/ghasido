@@ -18,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { tk } from '@/lib/i18n';
 import type {
     BlockSettings,
     LessonBlockRow,
@@ -56,8 +57,8 @@ const lineTexts = computed(() =>
 );
 
 const speakers = [
-    { value: 'staff', label: 'Staff' },
-    { value: 'guest', label: 'Guest' },
+    { value: 'staff', label: tk('Staff') },
+    { value: 'guest', label: tk('Guest') },
 ];
 
 function onImage(item: LessonMediaRef | null): void {
@@ -99,7 +100,7 @@ function removeLine(index: number): void {
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            label="Subtitle"
+            :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
@@ -119,15 +120,23 @@ function removeLine(index: number): void {
                 @change="onAvatar"
             />
         </div>
-        <LessonsField v-model="situationCaption" label="Situation caption" />
-        <LessonsField v-model="tip" label="Tip" type="textarea" :rows="2" />
+        <LessonsField
+            v-model="situationCaption"
+            :label="$t('Situation caption')"
+        />
+        <LessonsField
+            v-model="tip"
+            :label="$t('Tip')"
+            type="textarea"
+            :rows="2"
+        />
 
         <div class="grid gap-2">
             <div class="flex items-center justify-between gap-3">
                 <span
                     class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
                 >
-                    Conversation lines
+                    {{ $t('Conversation lines') }}
                 </span>
                 <Button
                     v-if="!readOnly"
@@ -138,7 +147,7 @@ function removeLine(index: number): void {
                     @click="addLine"
                 >
                     <CirclePlus class="size-3.5" aria-hidden="true" />
-                    Add line
+                    {{ $t('Add line') }}
                 </Button>
             </div>
 
@@ -155,7 +164,11 @@ function removeLine(index: number): void {
                     >
                         <SelectTrigger
                             class="border-line text-ink bg-surface h-9 w-32 rounded-sm text-[13px] shadow-none"
-                            :aria-label="`Speaker of line ${index + 1}`"
+                            :aria-label="
+                                $t('Speaker of line :number', {
+                                    number: index + 1,
+                                })
+                            "
                         >
                             <SelectValue />
                         </SelectTrigger>
@@ -166,7 +179,7 @@ function removeLine(index: number): void {
                                 :value="speaker.value"
                                 class="text-[13px]"
                             >
-                                {{ speaker.label }}
+                                {{ $t(speaker.label) }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -174,7 +187,9 @@ function removeLine(index: number): void {
                         v-if="!readOnly"
                         type="button"
                         class="text-ink-faint hover:bg-danger-tint hover:text-danger-text inline-flex size-9 items-center justify-center rounded-md"
-                        :aria-label="`Remove line ${index + 1}`"
+                        :aria-label="
+                            $t('Remove line :number', { number: index + 1 })
+                        "
                         @click="removeLine(index)"
                     >
                         <Trash2 class="size-4" aria-hidden="true" />
@@ -183,7 +198,7 @@ function removeLine(index: number): void {
                 <LessonsField
                     :model-value="line.text"
                     data-tour="dialogue-english-field"
-                    label="English"
+                    :label="$t('English')"
                     type="textarea"
                     :rows="2"
                     @update:model-value="
@@ -195,7 +210,7 @@ function removeLine(index: number): void {
                 />
                 <LessonsField
                     :model-value="line.arabic"
-                    label="Arabic (behind Show Meaning)"
+                    :label="$t('Arabic (behind Show Meaning)')"
                     type="textarea"
                     :rows="2"
                     dir="rtl"

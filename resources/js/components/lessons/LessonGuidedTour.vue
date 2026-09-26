@@ -9,6 +9,7 @@ import {
     watch,
 } from 'vue';
 import { Button } from '@/components/ui/button';
+import { t, tk } from '@/lib/i18n';
 
 type Placement = 'top' | 'bottom';
 
@@ -40,135 +41,198 @@ const retrying = ref(false);
 const steps: TourStep[] = [
     {
         target: '[data-test="lesson-title-input"]',
-        title: '1. Lesson title',
-        body: 'This is the name employees will see. Click the field and type a clear topic, such as Handling a Room Request.',
-        tip: 'The title saves automatically when you click outside the field.',
+        title: tk('1. Lesson title'),
+        body: tk(
+            'This is the name employees will see. Click the field and type a clear topic, such as Handling a Room Request.',
+        ),
+        tip: tk(
+            'The title saves automatically when you click outside the field.',
+        ),
         placement: 'bottom',
     },
     {
         target: '[data-test="change-cover-button"]',
-        title: '2. Lesson cover image',
-        body: 'Click Change Image to choose an image from the library or upload your own hotel image.',
-        tip: 'Use an image that helps the employee understand the situation before reading.',
+        title: tk('2. Lesson cover image'),
+        body: tk(
+            'Click Change Image to choose an image from the library or upload your own hotel image.',
+        ),
+        tip: tk(
+            'Use an image that helps the employee understand the situation before reading.',
+        ),
         placement: 'bottom',
     },
     {
         target: '[data-test="lesson-introduction-input"]',
-        title: '3. Lesson introduction',
-        body: 'Write one short explanation of what the employee will practise in this lesson.',
-        tip: 'Keep it short and practical. Example: Learn how to respond when a guest asks for an extra towel.',
+        title: tk('3. Lesson introduction'),
+        body: tk(
+            'Write one short explanation of what the employee will practise in this lesson.',
+        ),
+        tip: tk(
+            'Keep it short and practical. Example: Learn how to respond when a guest asks for an extra towel.',
+        ),
         placement: 'top',
     },
     {
         target: '[data-test="add-objective-button"]',
-        title: '4. Lesson objectives',
-        body: 'Click Add Objective, write one learning goal, then press Enter. Repeat for each goal.',
-        tip: 'Good objectives start with an action: Understand, ask, explain, confirm, or respond.',
+        title: tk('4. Lesson objectives'),
+        body: tk(
+            'Click Add Objective, write one learning goal, then press Enter. Repeat for each goal.',
+        ),
+        tip: tk(
+            'Good objectives start with an action: Understand, ask, explain, confirm, or respond.',
+        ),
         placement: 'top',
     },
     {
         target: '[data-tour="lesson-blocks"]',
-        title: '5. Lesson Blocks are employee steps',
-        body: 'Every row is one step employees complete. Use Edit to fill the step, the arrows to reorder it, the eye to hide it, and the trash icon to remove it.',
-        tip: 'The default lesson starts with Situation, Vocabulary, Expressions, Listen & Repeat, Dialogue, Video, Practice, AI Role-play, and Complete.',
+        title: tk('5. Lesson Blocks are employee steps'),
+        body: tk(
+            'Every row is one step employees complete. Use Edit to fill the step, the arrows to reorder it, the eye to hide it, and the trash icon to remove it.',
+        ),
+        tip: tk(
+            'The default lesson starts with Situation, Vocabulary, Expressions, Listen & Repeat, Dialogue, Video, Practice, AI Role-play, and Complete.',
+        ),
         placement: 'top',
     },
     {
         target: '[data-tour="vocabulary-edit"]',
-        title: '6. Open Vocabulary',
-        body: 'This arrow points to the real Edit button for the Vocabulary step. Press the button below to open it for you.',
-        tip: 'If your lesson does not contain Vocabulary, press Next to skip this step.',
+        title: tk('6. Open Vocabulary'),
+        body: tk(
+            'This arrow points to the real Edit button for the Vocabulary step. Press the button below to open it for you.',
+        ),
+        tip: tk(
+            'If your lesson does not contain Vocabulary, press Next to skip this step.',
+        ),
         placement: 'bottom',
         clickSelector: '[data-tour="vocabulary-edit"]',
     },
     {
         target: '[data-tour="add-lexicon-item"]',
-        title: '7. Add a word',
-        body: 'Click Add word. The form opens inside the current lesson, so you do not leave the page.',
-        tip: 'For Useful Expressions, the same button is called Add expression.',
+        title: tk('7. Add a word'),
+        body: tk(
+            'Click Add word. The form opens inside the current lesson, so you do not leave the page.',
+        ),
+        tip: tk(
+            'For Useful Expressions, the same button is called Add expression.',
+        ),
         placement: 'bottom',
         clickSelector: '[data-tour="add-lexicon-item"]',
     },
     {
         target: '[data-tour="lexicon-english-field"]',
-        title: '8. Enter the English word',
-        body: 'Type the English word or expression employees should learn. You can also add pronunciation, an image, and part of speech.',
-        tip: 'Example: towel. Do not put the Arabic translation in the English field.',
+        title: tk('8. Enter the English word'),
+        body: tk(
+            'Type the English word or expression employees should learn. You can also add pronunciation, an image, and part of speech.',
+        ),
+        tip: tk(
+            'Example: towel. Do not put the Arabic translation in the English field.',
+        ),
         placement: 'bottom',
     },
     {
         target: '[data-tour="lexicon-meaning-field"]',
-        title: '9. Add Show Meaning content',
-        body: 'Enter the Arabic meaning, a simple explanation, and a hotel example. The employee sees Arabic only after tapping Show Meaning.',
-        tip: 'Review AI suggestions before applying them. AI drafts are not saved until you apply and save them.',
+        title: tk('9. Add Show Meaning content'),
+        body: tk(
+            'Enter the Arabic meaning, a simple explanation, and a hotel example. The employee sees Arabic only after tapping Show Meaning.',
+        ),
+        tip: tk(
+            'Review AI suggestions before applying them. AI drafts are not saved until you apply and save them.',
+        ),
         placement: 'top',
     },
     {
         target: '[data-tour="save-lexicon-item"]',
-        title: '10. Save the word',
-        body: 'Click Save to attach the word to this Vocabulary step. The word will then appear in the lesson block.',
-        tip: 'You can generate audio after saving the word.',
+        title: tk('10. Save the word'),
+        body: tk(
+            'Click Save to attach the word to this Vocabulary step. The word will then appear in the lesson block.',
+        ),
+        tip: tk('You can generate audio after saving the word.'),
         placement: 'top',
         clickSelector: '[data-tour="save-lexicon-item"]',
     },
     {
         target: '[data-tour="save-block"]',
-        title: '11. Save the Vocabulary block',
-        body: 'The word is saved, but the Vocabulary step is still open. Click Save block so the step itself is saved before moving to Dialogue.',
-        tip: 'This closes the Vocabulary editor and returns you to the Lesson Blocks list.',
+        title: tk('11. Save the Vocabulary block'),
+        body: tk(
+            'The word is saved, but the Vocabulary step is still open. Click Save block so the step itself is saved before moving to Dialogue.',
+        ),
+        tip: tk(
+            'This closes the Vocabulary editor and returns you to the Lesson Blocks list.',
+        ),
         placement: 'top',
         clickSelector: '[data-tour="save-block"]',
     },
     {
         target: '[data-tour="dialogue-edit"]',
-        title: '12. Open Dialogue',
-        body: 'Now open the real Dialogue step. A dialogue is written one line at a time between Staff and Guest.',
-        tip: 'If your lesson has no Dialogue step, press Next to skip it.',
+        title: tk('12. Open Dialogue'),
+        body: tk(
+            'Now open the real Dialogue step. A dialogue is written one line at a time between Staff and Guest.',
+        ),
+        tip: tk('If your lesson has no Dialogue step, press Next to skip it.'),
         placement: 'bottom',
         clickSelector: '[data-tour="dialogue-edit"]',
     },
     {
         target: '[data-tour="add-dialogue-line"]',
-        title: '13. Add a dialogue line',
-        body: 'Click Add line, choose Staff or Guest, and write the English sentence. Add the Arabic meaning for Show Meaning.',
-        tip: 'Example: Guest — Could I have an extra towel, please?',
+        title: tk('13. Add a dialogue line'),
+        body: tk(
+            'Click Add line, choose Staff or Guest, and write the English sentence. Add the Arabic meaning for Show Meaning.',
+        ),
+        tip: tk('Example: Guest — Could I have an extra towel, please?'),
         placement: 'bottom',
         clickSelector: '[data-tour="add-dialogue-line"]',
     },
     {
         target: '[data-tour="dialogue-english-field"]',
-        title: '14. Write the English sentence',
-        body: 'Use one short sentence per line. Add another line for the other speaker so the conversation feels real.',
-        tip: 'Example: Staff — Of course. I will send one right away.',
+        title: tk('14. Write the English sentence'),
+        body: tk(
+            'Use one short sentence per line. Add another line for the other speaker so the conversation feels real.',
+        ),
+        tip: tk('Example: Staff — Of course. I will send one right away.'),
         placement: 'bottom',
     },
     {
         target: '[data-tour="generate-audio"]',
-        title: '15. Generate Normal and Slow audio',
-        body: 'After you have entered English sentences, click Generate audio. The system creates a Normal clip and a Slow clip for each sentence.',
-        tip: 'Audio is stored once and then played by employees; it is not generated during the lesson.',
+        title: tk('15. Generate Normal and Slow audio'),
+        body: tk(
+            'After you have entered English sentences, click Generate audio. The system creates a Normal clip and a Slow clip for each sentence.',
+        ),
+        tip: tk(
+            'Audio is stored once and then played by employees; it is not generated during the lesson.',
+        ),
         placement: 'top',
         clickSelector: '[data-tour="generate-audio"]',
     },
     {
         target: '[data-tour="save-block"]',
-        title: '16. Save the whole block',
-        body: 'Click Save block to save the Dialogue settings and close the editor.',
-        tip: 'If you changed a block but do not click Save block, those block changes will not be kept.',
+        title: tk('16. Save the whole block'),
+        body: tk(
+            'Click Save block to save the Dialogue settings and close the editor.',
+        ),
+        tip: tk(
+            'If you changed a block but do not click Save block, those block changes will not be kept.',
+        ),
         placement: 'top',
         clickSelector: '[data-tour="save-block"]',
     },
     {
         target: '[data-test="lessons-tab-preview"]',
-        title: '17. Preview before publishing',
-        body: 'Open Preview and check the real employee experience on Phone (390px) and Desktop. Then use Save Draft while testing or Publish Lesson when ready.',
-        tip: 'Preview does not record employee progress.',
+        title: tk('17. Preview before publishing'),
+        body: tk(
+            'Open Preview and check the real employee experience on Phone (390px) and Desktop. Then use Save Draft while testing or Publish Lesson when ready.',
+        ),
+        tip: tk('Preview does not record employee progress.'),
         placement: 'bottom',
     },
 ];
 
 const step = computed(() => steps[currentIndex.value]);
-const progress = computed(() => `${currentIndex.value + 1} of ${steps.length}`);
+const progress = computed(() =>
+    t(':current of :total', {
+        current: currentIndex.value + 1,
+        total: steps.length,
+    }),
+);
 const isLast = computed(() => currentIndex.value === steps.length - 1);
 
 function boxFor(element: Element): Box {
@@ -439,19 +503,23 @@ onBeforeUnmount(() => {
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-brand-600 text-[11px] font-semibold">
-                            Guided lesson tour · {{ progress }}
+                            {{
+                                $t('Guided lesson tour · :progress', {
+                                    progress,
+                                })
+                            }}
                         </p>
                         <h2
                             id="lesson-guided-tour-title"
                             class="font-heading text-brand-900 mt-1 text-[17px] font-semibold"
                         >
-                            {{ step.title }}
+                            {{ $t(step.title) }}
                         </h2>
                     </div>
                     <button
                         type="button"
                         class="text-ink-muted hover:bg-brand-50 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
-                        aria-label="Close guided tour"
+                        :aria-label="$t('Close guided tour')"
                         @click="open = false"
                     >
                         <X class="size-4" aria-hidden="true" />
@@ -459,21 +527,23 @@ onBeforeUnmount(() => {
                 </div>
 
                 <p class="text-ink-slate mt-3 text-[13px] leading-5">
-                    {{ step.body }}
+                    {{ $t(step.body) }}
                 </p>
                 <p
                     class="text-brand-700 bg-brand-50/70 mt-3 rounded-md px-3 py-2 text-[11.5px] leading-5"
                 >
-                    {{ step.tip }}
+                    {{ $t(step.tip) }}
                 </p>
 
                 <p
                     v-if="targetBox === null"
                     class="text-warning-text bg-warning-tint mt-3 rounded-md px-3 py-2 text-[11.5px] leading-5"
                 >
-                    This control is not visible right now. It may have been
-                    removed from the lesson, or the previous step still needs to
-                    be opened.
+                    {{
+                        $t(
+                            'This control is not visible right now. It may have been removed from the lesson, or the previous step still needs to be opened.',
+                        )
+                    }}
                 </p>
 
                 <div class="mt-4 flex items-center justify-between gap-2">
@@ -485,7 +555,7 @@ onBeforeUnmount(() => {
                         @click="goTo(currentIndex - 1)"
                     >
                         <ArrowLeft class="size-3.5" aria-hidden="true" />
-                        Back
+                        {{ $t('Back') }}
                     </Button>
                     <Button
                         v-if="targetBox === null"
@@ -495,7 +565,7 @@ onBeforeUnmount(() => {
                         class="border-line text-brand-700 hover:bg-brand-50 h-9 rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="retry"
                     >
-                        Try again
+                        {{ $t('Try again') }}
                     </Button>
                     <Button
                         type="button"
@@ -504,10 +574,10 @@ onBeforeUnmount(() => {
                     >
                         {{
                             isLast
-                                ? 'Finish'
+                                ? $t('Finish')
                                 : step.clickSelector
-                                  ? 'Show me'
-                                  : 'Next'
+                                  ? $t('Show me')
+                                  : $t('Next')
                         }}
                         <ArrowRight class="size-3.5" aria-hidden="true" />
                     </Button>

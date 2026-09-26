@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 /**
  * Plain JSON calls for the two CMS surfaces that are not page visits: the
  * image picker's listing and the media upload inside a slot (MED-02). Every
@@ -47,7 +49,7 @@ async function toError(response: Response): Promise<JsonRequestError> {
             errors._ = body.message;
         }
     } catch {
-        errors._ = 'The request failed. Please try again.';
+        errors._ = t('The request failed. Please try again.');
     }
 
     return new JsonRequestError(response.status, errors);

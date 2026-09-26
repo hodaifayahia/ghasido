@@ -18,6 +18,7 @@ import {
 import { store as storeCourse } from '@/routes/courses';
 import { store as storeLesson } from '@/routes/lessons';
 import { store as storeUnit } from '@/routes/units';
+import { tk } from '@/lib/i18n';
 import type { LessonFilterOption, LessonsFilters } from '@/types';
 
 /**
@@ -67,35 +68,43 @@ watch(
 );
 
 const kinds: LessonFilterOption[] = [
-    { value: 'course', label: 'Course' },
-    { value: 'unit', label: 'Unit' },
-    { value: 'lesson', label: 'Lesson' },
+    { value: 'course', label: tk('Course') },
+    { value: 'unit', label: tk('Unit') },
+    { value: 'lesson', label: tk('Lesson') },
 ];
 
 const tones: LessonFilterOption[] = [
-    { value: 'brand', label: 'Blue' },
-    { value: 'aqua', label: 'Teal' },
-    { value: 'success', label: 'Green' },
-    { value: 'warning', label: 'Amber' },
-    { value: 'gold', label: 'Gold' },
-    { value: 'danger', label: 'Red' },
+    { value: 'brand', label: tk('Blue') },
+    { value: 'aqua', label: tk('Teal') },
+    { value: 'success', label: tk('Green') },
+    { value: 'warning', label: tk('Amber') },
+    { value: 'gold', label: tk('Gold') },
+    { value: 'danger', label: tk('Red') },
 ];
 
 const titles: Record<Props['mode'], { title: string; description: string }> = {
     course: {
-        title: 'Add Course',
-        description:
+        title: tk('Add Course'),
+        description: tk(
             'A course groups units and lessons for one department. It starts as a draft.',
+        ),
     },
     unit: {
-        title: 'Add Unit',
-        description: 'A unit groups lessons inside the course.',
+        title: tk('Add Unit'),
+        description: tk('A unit groups lessons inside the course.'),
     },
     lesson: {
-        title: 'Add Lesson',
-        description:
+        title: tk('Add Lesson'),
+        description: tk(
             'The lesson starts as a draft with the default nine steps you can reorder or trim.',
+        ),
     },
+};
+
+const createLabels: Record<Props['mode'], string> = {
+    course: tk('Create course'),
+    unit: tk('Create unit'),
+    lesson: tk('Create lesson'),
 };
 
 const action = computed(() => {
@@ -125,8 +134,8 @@ const inputClass =
 <template>
     <LessonsModal
         v-model:open="open"
-        :title="titles[kind].title"
-        :description="titles[kind].description"
+        :title="$t(titles[kind].title)"
+        :description="$t(titles[kind].description)"
     >
         <Form
             :key="kind"
@@ -138,7 +147,7 @@ const inputClass =
             @success="open = false"
         >
             <div class="grid gap-1.5">
-                <Label :class="labelClass">What to add</Label>
+                <Label :class="labelClass">{{ $t('What to add') }}</Label>
                 <Select :model-value="kind" @update:model-value="onKind">
                     <SelectTrigger
                         :class="selectTrigger"
@@ -153,7 +162,7 @@ const inputClass =
                             :value="option.value"
                             class="text-[13px]"
                         >
-                            {{ option.label }}
+                            {{ $t(option.label) }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
@@ -170,7 +179,9 @@ const inputClass =
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Department</Label>
+                        <Label :class="labelClass">{{
+                            $t('Department')
+                        }}</Label>
                         <Select
                             :model-value="department"
                             @update:model-value="
@@ -198,7 +209,7 @@ const inputClass =
                     </div>
 
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Hotel</Label>
+                        <Label :class="labelClass">{{ $t('Hotel') }}</Label>
                         <Select
                             :model-value="hotel"
                             @update:model-value="
@@ -225,9 +236,9 @@ const inputClass =
                 </div>
 
                 <div class="grid gap-1.5">
-                    <Label for="course-title" :class="labelClass"
-                        >Course title</Label
-                    >
+                    <Label for="course-title" :class="labelClass">{{
+                        $t('Course title')
+                    }}</Label>
                     <Input
                         id="course-title"
                         name="title"
@@ -241,7 +252,9 @@ const inputClass =
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="grid gap-1.5">
-                        <Label :class="labelClass">Colour in the tree</Label>
+                        <Label :class="labelClass">{{
+                            $t('Colour in the tree')
+                        }}</Label>
                         <Select
                             :model-value="tone"
                             @update:model-value="
@@ -259,7 +272,7 @@ const inputClass =
                                     :value="option.value"
                                     class="text-[13px]"
                                 >
-                                    {{ option.label }}
+                                    {{ $t(option.label) }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -268,7 +281,7 @@ const inputClass =
 
                     <div class="grid gap-1.5">
                         <Label for="course-description" :class="labelClass">
-                            Description
+                            {{ $t('Description') }}
                         </Label>
                         <Input
                             id="course-description"
@@ -283,7 +296,7 @@ const inputClass =
             <template v-else-if="kind === 'unit'">
                 <input type="hidden" name="course_id" :value="course" />
                 <div class="grid gap-1.5">
-                    <Label :class="labelClass">Course</Label>
+                    <Label :class="labelClass">{{ $t('Course') }}</Label>
                     <Select
                         :model-value="course"
                         @update:model-value="
@@ -292,7 +305,7 @@ const inputClass =
                         "
                     >
                         <SelectTrigger :class="selectTrigger">
-                            <SelectValue placeholder="Choose a course" />
+                            <SelectValue :placeholder="$t('Choose a course')" />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -308,9 +321,9 @@ const inputClass =
                     <InputError :message="errors.course_id" />
                 </div>
                 <div class="grid gap-1.5">
-                    <Label for="unit-title" :class="labelClass"
-                        >Unit title</Label
-                    >
+                    <Label for="unit-title" :class="labelClass">{{
+                        $t('Unit title')
+                    }}</Label>
                     <Input
                         id="unit-title"
                         name="title"
@@ -331,7 +344,7 @@ const inputClass =
                     :value="withBlocks ? '0' : '1'"
                 />
                 <div class="grid gap-1.5">
-                    <Label :class="labelClass">Unit</Label>
+                    <Label :class="labelClass">{{ $t('Unit') }}</Label>
                     <Select
                         :model-value="unit"
                         @update:model-value="
@@ -339,7 +352,7 @@ const inputClass =
                         "
                     >
                         <SelectTrigger :class="selectTrigger">
-                            <SelectValue placeholder="Choose a unit" />
+                            <SelectValue :placeholder="$t('Choose a unit')" />
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem
@@ -355,9 +368,9 @@ const inputClass =
                     <InputError :message="errors.unit_id" />
                 </div>
                 <div class="grid gap-1.5">
-                    <Label for="lesson-title" :class="labelClass"
-                        >Lesson title</Label
-                    >
+                    <Label for="lesson-title" :class="labelClass">{{
+                        $t('Lesson title')
+                    }}</Label>
                     <Input
                         id="lesson-title"
                         name="title"
@@ -375,8 +388,11 @@ const inputClass =
                         :model-value="withBlocks"
                         @update:model-value="withBlocks = $event === true"
                     />
-                    Start with the default nine steps (Situation → Lesson
-                    Complete)
+                    {{
+                        $t(
+                            'Start with the default nine steps (Situation → Lesson Complete)',
+                        )
+                    }}
                 </label>
             </template>
 
@@ -390,7 +406,7 @@ const inputClass =
                     data-test="cancel-add-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -398,7 +414,7 @@ const inputClass =
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-add-button"
                 >
-                    Create {{ kind }}
+                    {{ $t(createLabels[kind]) }}
                 </Button>
             </div>
         </Form>

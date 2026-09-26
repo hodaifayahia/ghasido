@@ -3,8 +3,10 @@ import { Link } from '@inertiajs/vue3';
 import { Languages, Sparkles, Users } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import TransText from '@/components/common/TransText.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
+import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { translations } from '@/routes';
 import type { LessonEditor, LessonsFilters } from '@/types';
@@ -41,8 +43,8 @@ const visibleTo = computed((): string | null => {
 
     const hotels =
         props.filters.hotel === 'shared'
-            ? 'All hotels'
-            : (props.editor.hotelLabel ?? 'One hotel');
+            ? t('All hotels')
+            : (props.editor.hotelLabel ?? t('One hotel'));
 
     return `${props.editor.departmentLabel} — ${hotels}`;
 });
@@ -64,10 +66,15 @@ const visibleTo = computed((): string | null => {
         >
             <Users class="size-3.5 shrink-0" aria-hidden="true" />
             <span class="min-w-0">
-                Visible to:
-                <span class="text-ink font-semibold">{{ visibleTo }}</span>
+                <TransText text="Visible to: :who">
+                    <template #who>
+                        <span class="text-ink font-semibold">{{
+                            visibleTo
+                        }}</span>
+                    </template>
+                </TransText>
                 <span v-if="editor.status !== 'published'">
-                    — once published</span
+                    {{ $t('— once published') }}</span
                 >
             </span>
         </p>
@@ -80,7 +87,7 @@ const visibleTo = computed((): string | null => {
             @click="emit('generate')"
         >
             <Sparkles class="size-3.5" aria-hidden="true" />
-            Generate with AI
+            {{ $t('Generate with AI') }}
         </Button>
         <!-- This lesson's Show Meaning translations (user request 2026-09-26). -->
         <Button
@@ -98,7 +105,7 @@ const visibleTo = computed((): string | null => {
                 data-test="lesson-translations-link"
             >
                 <Languages class="size-3.5" aria-hidden="true" />
-                Translations
+                {{ $t('Translations') }}
             </Link>
         </Button>
     </div>
