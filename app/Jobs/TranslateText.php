@@ -69,8 +69,16 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
         try {
             $draft = $ai->translateText($translation->source_text);
         } catch (RequestException $e) {
+            // A 429 is either "too busy" (worth waiting for) or an exhausted
+            // plan (it will not come back by itself; fail with its reason).
             if ($e->response->status() !== 429) {
                 throw $e;
+            }
+
+            if (self::quotaExhausted($e)) {
+                $this->fail($e);
+
+                return;
             }
 
             // Rate limited: try again shortly, without using up an attempt.
@@ -94,6 +102,13 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
             'status' => $arabic !== '' ? GenerationStatus::Done : GenerationStatus::Failed,
             'failed_reason' => $arabic !== '' ? null : 'empty translation',
         ])->save();
+    }
+
+    private static function quotaExhausted(RequestException $e): bool
+    {
+        $body = strtolower($e->response->body());
+
+        return str_contains($body, 'quota') || str_contains($body, 'insufficient') || str_contains($body, 'arrearage');
     }
 
     public function failed(?Throwable $exception): void
