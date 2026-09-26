@@ -9,6 +9,7 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\MeaningController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\WelcomeSeenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,6 +57,9 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::post('meaning', MeaningController::class)
         ->middleware('throttle:120,1')
         ->name('meaning');
+
+    // The one-time welcome animation after the first sign-in.
+    Route::post('welcome/seen', WelcomeSeenController::class)->name('welcome.seen');
 });
 
 require __DIR__.'/admin.php';

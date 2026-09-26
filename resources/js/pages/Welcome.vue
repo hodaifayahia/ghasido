@@ -72,9 +72,9 @@ const featureIcons: Component[] = [
     ChartNoAxesCombined,
 ];
 const featureShots = [
-    '/landing/lesson-builder.png',
-    '/landing/team-management.png',
-    '/landing/reports-and-export.png',
+    '/landing/lesson-builder-ghasido.png',
+    '/landing/team-management-ghasido.png',
+    '/landing/reports-and-export-ghasido.png',
 ] as const;
 
 const formatDzd = (value: number): string =>
@@ -216,7 +216,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 />
                             </div>
                             <img
-                                src="/landing/admin-dashboard-desktop.png"
+                                src="/landing/admin-dashboard-desktop-ghasido.png"
                                 :alt="content.hero.image_alt"
                                 width="1600"
                                 height="900"
@@ -229,7 +229,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             class="border-brand-900 bg-brand-900 shadow-pop absolute -bottom-1 left-5 w-[112px] overflow-hidden rounded-xl border-[5px] sm:-bottom-2 sm:left-8 sm:w-[150px] sm:border-[6px] lg:-left-7 lg:w-[168px]"
                         >
                             <img
-                                src="/landing/employee-pretest-mobile.png"
+                                src="/landing/employee-pretest-mobile-ghasido.png"
                                 alt="GHASIDO employee pre-test on a mobile phone"
                                 width="390"
                                 height="844"
@@ -314,7 +314,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 >
                             </div>
                             <img
-                                src="/landing/ai-roleplay-builder.png"
+                                src="/landing/ai-roleplay-builder-ghasido.png"
                                 alt="GHASIDO AI role-play scenario builder and preview"
                                 width="1280"
                                 height="853"
@@ -383,7 +383,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             class="border-brand-900 bg-brand-900 shadow-hover relative mx-auto w-[210px] overflow-hidden rounded-xl border-[7px] sm:w-[250px]"
                         >
                             <img
-                                src="/landing/employee-pretest-mobile.png"
+                                src="/landing/employee-pretest-mobile-ghasido.png"
                                 :alt="content.about.image_alt"
                                 width="390"
                                 height="844"

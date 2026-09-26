@@ -5,6 +5,7 @@ import StepTracker from '@/components/learning/StepTracker.vue';
 import BottomNav from '@/components/shell/BottomNav.vue';
 import LessonFooter from '@/components/shell/LessonFooter.vue';
 import LessonTopNav from '@/components/shell/LessonTopNav.vue';
+import WelcomeSplash from '@/components/shell/WelcomeSplash.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { LessonStepNav } from '@/types';
 
@@ -43,6 +44,7 @@ const steps = computed(
 
         <LessonFooter :palm="palm" class="hidden md:flex" />
         <BottomNav />
+        <WelcomeSplash />
         <Toaster />
     </div>
 </template>

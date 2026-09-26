@@ -48,6 +48,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $first_login_completed_at
  * @property Carbon|null $research_notice_acknowledged_at
  * @property Carbon|null $last_login_at
+ * @property Carbon|null $welcomed_at
  * @property Carbon|null $last_activity_at
  * @property Carbon|null $training_started_at
  * @property Carbon|null $training_completed_at
@@ -120,6 +121,7 @@ class User extends Authenticatable implements PasskeyUser
             'first_login_completed_at' => 'datetime',
             'research_notice_acknowledged_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'welcomed_at' => 'datetime',
             'last_activity_at' => 'datetime',
             'training_started_at' => 'datetime',
             'training_completed_at' => 'datetime',

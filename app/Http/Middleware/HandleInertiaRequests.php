@@ -131,6 +131,9 @@ class HandleInertiaRequests extends Middleware
                     ]),
                     'department_name' => $user->department_id === null ? null : $user->department()->value('name'),
                     'hotel_name' => $user->hotel_id === null ? null : $user->hotel()->withoutGlobalScopes()->value('name'),
+                    // The one-time welcome animation after the very first
+                    // sign-in (client request 2026-09-26).
+                    'show_welcome' => $user->welcomed_at === null,
                 ],
                 'permissions' => $user?->permissionNames() ?? [],
             ],
