@@ -57,11 +57,11 @@ if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split("."
   tmp=$(mktemp -d)
   base=https://nodejs.org/dist/latest-v22.x
   curl -fsSL "$base/SHASUMS256.txt" -o "$tmp/sums"
-  file=$(grep -o 'node-v22[^ ]*-linux-x64.tar.xz' "$tmp/sums" | head -n 1)
+  file=$(grep -o 'node-v22[^ ]*-linux-x64.tar.gz' "$tmp/sums" | head -n 1)
   curl -fsSL "$base/$file" -o "$tmp/$file"
   (cd "$tmp" && grep " $file\$" sums | sha256sum -c -)
   rm -rf "$HOME/.local/node" && mkdir -p "$HOME/.local/node"
-  tar -xJf "$tmp/$file" -C "$HOME/.local/node" --strip-components=1
+  tar -xzf "$tmp/$file" -C "$HOME/.local/node" --strip-components=1
   rm -rf "$tmp"
 fi
 echo "node $(node -v), npm $(npm -v)"
