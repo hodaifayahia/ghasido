@@ -21,7 +21,9 @@ test -f artisan || { echo "Run this from the git clone of the project."; exit 1;
 if [ -n "${DOMAIN:-}" ]; then
   DOM=$HOME/domains/$DOMAIN
 else
-  mapfile -t found < <(ls -d "$HOME"/domains/*/guesvia/artisan 2>/dev/null)
+  # A glob, not <(...): this host has no /dev/fd for process substitution.
+  found=()
+  for f in "$HOME"/domains/*/guesvia/artisan; do [ -f "$f" ] && found+=("$f"); done
   if [ "${#found[@]}" -ne 1 ]; then
     echo "Found ${#found[@]} apps; run again with DOMAIN=<folder under ~/domains>:"
     printf '  %s\n' "${found[@]}"

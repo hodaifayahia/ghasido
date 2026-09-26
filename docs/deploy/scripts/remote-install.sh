@@ -4,7 +4,8 @@
 # folder under ~/domains that holds guesvia/artisan.
 set -uo pipefail
 if [ -z "${DOM:-}" ]; then
-  mapfile -t found < <(ls -d "$HOME"/domains/*/guesvia/artisan 2>/dev/null)
+  found=()
+  for f in "$HOME"/domains/*/guesvia/artisan; do [ -f "$f" ] && found+=("$f"); done
   if [ "${#found[@]}" -eq 1 ]; then
     DOM=$(dirname "$(dirname "${found[0]}")")
   else
