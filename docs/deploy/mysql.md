@@ -40,7 +40,27 @@ on both; this is the one-time move of the live data.
 It never changes the SQLite file. `sessions`, `cache` and `cache_locks` are
 not copied (the live site keeps sessions and cache in files).
 
-## The switch, step by step
+## The switch from GitHub (no developer PC needed)
+
+`.github/workflows/deploy-hostinger.yml` builds the site on GitHub, uploads
+it, installs it and, when asked, runs the switch below in the same run.
+
+1. On the server (hPanel → SSH, or any SSH window), make a key for GitHub:
+   `ssh-keygen -t ed25519 -f ~/.ssh/github_deploy -N "" -C github-actions-deploy`,
+   add `~/.ssh/github_deploy.pub` in hPanel → Advanced → SSH Access, print
+   `~/.ssh/github_deploy` once to copy it, then delete both files.
+2. GitHub → Settings → Secrets and variables → Actions → New repository
+   secret: `HOSTINGER_SSH_KEY` (the private key), `MYSQL_DATABASE`,
+   `MYSQL_USERNAME`, `MYSQL_PASSWORD` (exactly as hPanel shows them, with the
+   `u673635734_` prefix), and `MYSQL_HOST` only if hPanel shows a host other
+   than `localhost`.
+3. Actions → Deploy to Hostinger → Run workflow, tick "Also move the live
+   data from SQLite to MySQL". Later deploys leave it unticked; the workflow
+   refuses to switch a site that already runs on MySQL.
+
+The old `.env` is kept as `.env.before-mysql-<date>` next to the new one.
+
+## The switch, step by step (from a PC with the deploy scripts)
 
 Plan 10 minutes; the site shows the maintenance page for about a minute.
 
