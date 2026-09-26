@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\DB;
  *     ai_action_points: int,
  *     voice_points_per_10_minutes: int,
  *     price_dzd: int|null,
+ *     price_usd: float|null,
  *     payment_reference: string|null,
  *     notes: string|null,
  * }
@@ -180,6 +181,7 @@ class IndividualSubscriptionService
             'ai_action_points' => $data['ai_action_points'],
             'voice_points_per_10_minutes' => $data['voice_points_per_10_minutes'],
             'price_dzd' => $data['price_dzd'],
+            'price_usd' => $data['price_usd'],
             'payment_reference' => $data['payment_reference'],
             'notes' => $data['notes'],
         ];

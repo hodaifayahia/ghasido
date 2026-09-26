@@ -57,11 +57,13 @@ class IndividualsTest extends TestCase
                 'voice_enabled' => false,
                 'ai_action_points' => 50,
                 'voice_points_per_10_minutes' => 100,
+                'price_usd' => 24.5,
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect();
 
         $user = User::query()->where('username', 'samira.b')->firstOrFail();
+        $this->assertSame(24.5, $user->individualSubscription?->price_usd);
 
         $this->assertNull($user->hotel_id);
         $this->assertSame($main->id, $user->department_id);

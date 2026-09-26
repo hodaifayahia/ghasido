@@ -75,6 +75,7 @@ class SaveIndividualRequest extends FormRequest
             'ai_action_points' => ['required', 'integer', 'min:0', 'max:10000'],
             'voice_points_per_10_minutes' => ['required', 'integer', 'min:0', 'max:100000'],
             'price_dzd' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'price_usd' => ['nullable', 'numeric', 'min:0', 'max:10000000', 'decimal:0,2'],
             'payment_reference' => ['nullable', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
@@ -96,7 +97,7 @@ class SaveIndividualRequest extends FormRequest
     }
 
     /**
-     * @return array{name: string, username: string, email: string|null, password?: string, department_ids: list<int>, status: string, ai_points_allocated: int, starts_on: string|null, ends_on: string|null, ai_enabled: bool, voice_enabled: bool, daily_ai_turns: int|null, ai_action_points: int, voice_points_per_10_minutes: int, price_dzd: int|null, payment_reference: string|null, notes: string|null}
+     * @return array{name: string, username: string, email: string|null, password?: string, department_ids: list<int>, status: string, ai_points_allocated: int, starts_on: string|null, ends_on: string|null, ai_enabled: bool, voice_enabled: bool, daily_ai_turns: int|null, ai_action_points: int, voice_points_per_10_minutes: int, price_dzd: int|null, price_usd: float|null, payment_reference: string|null, notes: string|null}
      */
     public function individualData(): array
     {
@@ -121,6 +122,7 @@ class SaveIndividualRequest extends FormRequest
             'ai_action_points' => (int) $data['ai_action_points'],
             'voice_points_per_10_minutes' => (int) $data['voice_points_per_10_minutes'],
             'price_dzd' => $number('price_dzd'),
+            'price_usd' => isset($data['price_usd']) && is_numeric($data['price_usd']) ? round((float) $data['price_usd'], 2) : null,
             'payment_reference' => $text('payment_reference'),
             'notes' => $text('notes'),
         ];

@@ -27,6 +27,7 @@ export type IndividualRow = {
     aiActionPoints: number;
     voicePointsPer10Minutes: number;
     priceDzd: number | null;
+    priceUsd: number | null;
     paymentReference: string | null;
     notes: string | null;
     lastActivity: string | null;

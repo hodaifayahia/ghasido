@@ -94,6 +94,43 @@ class SubscriptionsTest extends TestCase
         $this->assertSame(8, $audit->changes['after']['employee_limit']);
     }
 
+    public function test_the_super_admin_sets_dzd_and_usd_prices_for_extra_points_and_seats(): void
+    {
+        $plan = $this->plan('gold');
+
+        $this->actingAs($this->owner)
+            ->from(route('subscriptions'))
+            ->patch(route('subscriptions.plans.update', $plan), [
+                ...$this->planInput($plan),
+                'extra_points_price_dzd' => 1500,
+                'extra_points_price_usd' => 9.99,
+                'extra_seat_price_dzd' => 2500,
+                'extra_seat_price_usd' => 18.5,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $plan->refresh();
+        $this->assertSame(1500, $plan->extra_points_price_dzd);
+        $this->assertSame(9.99, $plan->extra_points_price_usd);
+        $this->assertSame(2500, $plan->extra_seat_price_dzd);
+        $this->assertSame(18.5, $plan->extra_seat_price_usd);
+
+        $this->actingAs($this->owner)
+            ->get(route('subscriptions'))
+            ->assertInertia(fn ($page) => $page
+                ->where('plans.1.extraPointsPriceUsd', 9.99)
+                ->where('plans.1.extraSeatPriceDzd', 2500));
+
+        $this->actingAs($this->owner)
+            ->from(route('subscriptions'))
+            ->patch(route('subscriptions.plans.update', $plan), [
+                ...$this->planInput($plan),
+                'extra_points_price_usd' => -1,
+                'extra_seat_price_usd' => 1.234,
+            ])
+            ->assertSessionHasErrors(['extra_points_price_usd', 'extra_seat_price_usd']);
+    }
+
     public function test_invalid_plan_settings_are_rejected_without_changing_the_plan(): void
     {
         $plan = $this->plan('standard');
@@ -253,6 +290,10 @@ class SubscriptionsTest extends TestCase
             'employee_limit' => $plan->employee_limit,
             'price_dzd' => $plan->price_dzd,
             'price_usd' => $plan->price_usd,
+            'extra_points_price_dzd' => $plan->extra_points_price_dzd,
+            'extra_points_price_usd' => $plan->extra_points_price_usd,
+            'extra_seat_price_dzd' => $plan->extra_seat_price_dzd,
+            'extra_seat_price_usd' => $plan->extra_seat_price_usd,
             'points_per_employee' => $plan->points_per_employee,
             'bonus_points_per_employee' => $plan->bonus_points_per_employee,
             'voice_points_per_10_minutes' => $plan->voice_points_per_10_minutes,

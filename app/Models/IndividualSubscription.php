@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Date;
  * @property int $ai_action_points
  * @property int $voice_points_per_10_minutes
  * @property int|null $price_dzd
+ * @property float|null $price_usd
  * @property string|null $payment_reference
  * @property string|null $notes
  * @property int|null $created_by
@@ -45,6 +46,7 @@ use Illuminate\Support\Facades\Date;
     'ai_action_points',
     'voice_points_per_10_minutes',
     'price_dzd',
+    'price_usd',
     'payment_reference',
     'notes',
     'created_by',
@@ -66,6 +68,7 @@ class IndividualSubscription extends Model
             'ai_action_points' => 'integer',
             'voice_points_per_10_minutes' => 'integer',
             'price_dzd' => 'integer',
+            'price_usd' => 'float',
         ];
     }
 

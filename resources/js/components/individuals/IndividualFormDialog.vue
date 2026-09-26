@@ -46,6 +46,7 @@ const form = useForm({
     starts_on: '',
     ends_on: '',
     price_dzd: '' as number | '',
+    price_usd: '' as number | '',
     payment_reference: '',
     ai_enabled: true,
     voice_enabled: true,
@@ -83,6 +84,7 @@ watch(
         form.starts_on = row ? (row.startsOn ?? '') : today();
         form.ends_on = row ? (row.endsOn ?? '') : today(30);
         form.price_dzd = row?.priceDzd ?? '';
+        form.price_usd = row?.priceUsd ?? '';
         form.payment_reference = row?.paymentReference ?? '';
         form.ai_enabled = row?.aiEnabled ?? true;
         form.voice_enabled = row?.voiceEnabled ?? true;
@@ -395,6 +397,24 @@ const headingClass =
                             :class="inputClass"
                         />
                         <InputError :message="form.errors.price_dzd" />
+                    </div>
+                    <div class="grid min-w-0 gap-1.5">
+                        <Label for="individual-price-usd" :class="labelClass"
+                            >Price paid, international (USD)
+                            <span class="text-ink-slate font-normal"
+                                >(optional)</span
+                            ></Label
+                        >
+                        <input
+                            id="individual-price-usd"
+                            v-model.number="form.price_usd"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            :class="inputClass"
+                            data-test="individual-price-usd"
+                        />
+                        <InputError :message="form.errors.price_usd" />
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-reference" :class="labelClass"

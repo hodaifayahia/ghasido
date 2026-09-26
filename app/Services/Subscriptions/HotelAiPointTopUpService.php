@@ -29,15 +29,18 @@ final class HotelAiPointTopUpService
             ->sum('points');
     }
 
+    /**
+     * @param  array{currency: 'DZD'|'USD', amount: int|float}  $payment  DZD for Algerian hotels, USD for international ones
+     */
     public function recordPayment(
         Hotel $hotel,
         int $points,
-        int $amountDzd,
+        array $payment,
         ?int $paymentMethodId,
         ?string $paymentReference,
         User $actor,
     ): HotelAiPointTopUp {
-        return DB::transaction(function () use ($hotel, $points, $amountDzd, $paymentMethodId, $paymentReference, $actor): HotelAiPointTopUp {
+        return DB::transaction(function () use ($hotel, $points, $payment, $paymentMethodId, $paymentReference, $actor): HotelAiPointTopUp {
             /** @var Hotel $lockedHotel */
             $lockedHotel = Hotel::query()->withoutGlobalScopes()->lockForUpdate()->findOrFail($hotel->id);
             $monthStart = Date::now()->startOfMonth();
@@ -46,7 +49,9 @@ final class HotelAiPointTopUpService
                 'hotel_id' => $lockedHotel->id,
                 'month_start' => $monthStart->toDateString(),
                 'points' => $points,
-                'amount_dzd' => $amountDzd,
+                'currency' => $payment['currency'],
+                'amount_dzd' => $payment['currency'] === 'DZD' ? (int) $payment['amount'] : 0,
+                'amount_usd' => $payment['currency'] === 'USD' ? (float) $payment['amount'] : null,
                 'payment_method_id' => $paymentMethodId,
                 'payment_reference' => $paymentReference,
                 'received_by' => $actor->id,
@@ -57,7 +62,8 @@ final class HotelAiPointTopUpService
                 'hotel_id' => $lockedHotel->id,
                 'month_start' => $monthStart->toDateString(),
                 'points' => $points,
-                'amount_dzd' => $amountDzd,
+                'currency' => $payment['currency'],
+                'amount' => $payment['amount'],
                 'payment_method_id' => $paymentMethodId,
                 'payment_reference' => $paymentReference,
                 'received_by' => $actor->id,

@@ -18,6 +18,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $employee_limit
  * @property int $price_dzd
  * @property float $price_usd
+ * @property int $extra_points_price_dzd price of 1,000 extra AI points
+ * @property float $extra_points_price_usd
+ * @property int $extra_seat_price_dzd price of one extra employee seat per month
+ * @property float $extra_seat_price_usd
  * @property int $points_per_employee
  * @property int $bonus_points_per_employee
  * @property int $voice_points_per_10_minutes
@@ -30,6 +34,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'employee_limit',
     'price_dzd',
     'price_usd',
+    'extra_points_price_dzd',
+    'extra_points_price_usd',
+    'extra_seat_price_dzd',
+    'extra_seat_price_usd',
     'points_per_employee',
     'bonus_points_per_employee',
     'voice_points_per_10_minutes',
@@ -45,6 +53,10 @@ class SubscriptionPlan extends Model
             'employee_limit' => 'integer',
             'price_dzd' => 'integer',
             'price_usd' => 'float',
+            'extra_points_price_dzd' => 'integer',
+            'extra_points_price_usd' => 'float',
+            'extra_seat_price_dzd' => 'integer',
+            'extra_seat_price_usd' => 'float',
             'points_per_employee' => 'integer',
             'bonus_points_per_employee' => 'integer',
             'voice_points_per_10_minutes' => 'integer',

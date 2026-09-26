@@ -176,6 +176,7 @@ class IndividualsController extends Controller
             'aiActionPoints' => $subscription->ai_action_points,
             'voicePointsPer10Minutes' => $subscription->voice_points_per_10_minutes,
             'priceDzd' => $subscription->price_dzd,
+            'priceUsd' => $subscription->price_usd,
             'paymentReference' => $subscription->payment_reference,
             'notes' => $subscription->notes,
             'lastActivity' => $user->last_activity_at?->diffForHumans(),

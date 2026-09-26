@@ -23,6 +23,10 @@ class UpdateSubscriptionPlanRequest extends FormRequest
             'employee_limit' => ['required', 'integer', 'min:1', 'max:10000'],
             'price_dzd' => ['required', 'integer', 'min:0', 'max:1000000000'],
             'price_usd' => ['required', 'numeric', 'min:0', 'max:100000000', 'decimal:0,2'],
+            'extra_points_price_dzd' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'extra_points_price_usd' => ['required', 'numeric', 'min:0', 'max:100000000', 'decimal:0,2'],
+            'extra_seat_price_dzd' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'extra_seat_price_usd' => ['required', 'numeric', 'min:0', 'max:100000000', 'decimal:0,2'],
             'points_per_employee' => ['required', 'integer', 'min:0', 'max:100000000'],
             'bonus_points_per_employee' => ['required', 'integer', 'min:0', 'max:100000000'],
             'voice_points_per_10_minutes' => ['required', 'integer', 'min:0', 'max:100000000'],
@@ -31,7 +35,7 @@ class UpdateSubscriptionPlanRequest extends FormRequest
         ];
     }
 
-    /** @return array{name: string, slug: string, employee_limit: int, price_dzd: int, price_usd: float, points_per_employee: int, bonus_points_per_employee: int, voice_points_per_10_minutes: int, ai_action_points: int, is_active: bool} */
+    /** @return array{name: string, slug: string, employee_limit: int, price_dzd: int, price_usd: float, extra_points_price_dzd: int, extra_points_price_usd: float, extra_seat_price_dzd: int, extra_seat_price_usd: float, points_per_employee: int, bonus_points_per_employee: int, voice_points_per_10_minutes: int, ai_action_points: int, is_active: bool} */
     public function planData(): array
     {
         $data = $this->validated();
@@ -39,6 +43,10 @@ class UpdateSubscriptionPlanRequest extends FormRequest
         return [
             ...$data,
             'price_usd' => round((float) $data['price_usd'], 2),
+            'extra_points_price_dzd' => (int) $data['extra_points_price_dzd'],
+            'extra_points_price_usd' => round((float) $data['extra_points_price_usd'], 2),
+            'extra_seat_price_dzd' => (int) $data['extra_seat_price_dzd'],
+            'extra_seat_price_usd' => round((float) $data['extra_seat_price_usd'], 2),
             'is_active' => (bool) $data['is_active'],
         ];
     }

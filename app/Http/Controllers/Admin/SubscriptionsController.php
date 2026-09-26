@@ -44,6 +44,10 @@ final class SubscriptionsController extends Controller
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
                 'priceUsd' => $plan->price_usd,
+                'extraPointsPriceDzd' => $plan->extra_points_price_dzd,
+                'extraPointsPriceUsd' => $plan->extra_points_price_usd,
+                'extraSeatPriceDzd' => $plan->extra_seat_price_dzd,
+                'extraSeatPriceUsd' => $plan->extra_seat_price_usd,
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
@@ -125,7 +129,9 @@ final class SubscriptionsController extends Controller
         $data = $request->validate([
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
             'points' => ['required', 'integer', 'min:1', 'max:100000000'],
-            'amount_dzd' => ['required', 'integer', 'min:1', 'max:1000000000'],
+            'currency' => ['sometimes', Rule::in(['DZD', 'USD'])],
+            'amount_dzd' => ['exclude_if:currency,USD', 'required', 'integer', 'min:1', 'max:1000000000'],
+            'amount_usd' => ['exclude_unless:currency,USD', 'required', 'numeric', 'min:0.01', 'max:100000000', 'decimal:0,2'],
             'payment_method_id' => ['nullable', 'integer', 'exists:subscription_payment_methods,id'],
             'payment_reference' => ['nullable', 'string', 'max:120'],
             'payment_received' => ['accepted'],
@@ -141,7 +147,9 @@ final class SubscriptionsController extends Controller
         $topUps->recordPayment(
             $hotel,
             (int) $data['points'],
-            (int) $data['amount_dzd'],
+            ($data['currency'] ?? 'DZD') === 'USD'
+                ? ['currency' => 'USD', 'amount' => round((float) $data['amount_usd'], 2)]
+                : ['currency' => 'DZD', 'amount' => (int) $data['amount_dzd']],
             isset($data['payment_method_id']) ? (int) $data['payment_method_id'] : null,
             $data['payment_reference'] ?? null,
             $actor,
