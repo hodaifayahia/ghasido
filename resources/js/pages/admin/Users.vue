@@ -9,6 +9,7 @@ import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { dashboard } from '@/routes';
+import { tk } from '@/lib/i18n';
 
 type UserRole = {
     id: number;
@@ -47,8 +48,8 @@ const canManage = can('users.manage');
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Users', href: '/users' },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Users'), href: '/users' },
         ],
     },
 });
@@ -73,12 +74,14 @@ function editUser(account: AppAccount): void {
 </script>
 
 <template>
-    <Head title="Users" />
+    <Head :title="$t('Users')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Users"
-            description="Manage app access for the people helping you run GHASIDO."
+            :title="$t('Users')"
+            :description="
+                $t('Manage app access for the people helping you run GHASIDO.')
+            "
             class="mb-1"
         >
             <template #accent>
@@ -87,14 +90,18 @@ function editUser(account: AppAccount): void {
         </PageHeader>
 
         <PanelCard
-            title="App users"
+            :title="$t('App users')"
             title-id="app-users-title"
             body-class="-mx-4 -mb-4 mt-3"
         >
             <template #actions>
                 <span class="text-ink-slate hidden text-[12px] sm:inline">
-                    {{ activeCount }} active on this page ·
-                    {{ accounts.total }} total
+                    {{
+                        $t(':active active on this page · :total total', {
+                            active: activeCount,
+                            total: accounts.total,
+                        })
+                    }}
                 </span>
                 <Button
                     v-if="canManage"
@@ -104,8 +111,8 @@ function editUser(account: AppAccount): void {
                     @click="addUser"
                 >
                     <Plus class="size-4" aria-hidden="true" />
-                    <span class="hidden sm:inline">Add user</span>
-                    <span class="sm:hidden">Add</span>
+                    <span class="hidden sm:inline">{{ $t('Add user') }}</span>
+                    <span class="sm:hidden">{{ $t('Add') }}</span>
                 </Button>
             </template>
 
@@ -114,7 +121,11 @@ function editUser(account: AppAccount): void {
                     class="w-full table-fixed border-collapse text-start text-[13px]"
                 >
                     <caption class="sr-only">
-                        App users, their access roles, and account status
+                        {{
+                            $t(
+                                'App users, their access roles, and account status',
+                            )
+                        }}
                     </caption>
                     <colgroup>
                         <col class="w-[43%] sm:w-[38%]" />
@@ -127,19 +138,19 @@ function editUser(account: AppAccount): void {
                     >
                         <tr>
                             <th scope="col" class="px-2 py-2.5 sm:px-4">
-                                Account
+                                {{ $t('Account') }}
                             </th>
                             <th scope="col" class="px-2 py-2.5 sm:px-4">
-                                Access
+                                {{ $t('Access') }}
                             </th>
                             <th scope="col" class="px-2 py-2.5 sm:px-4">
-                                Status
+                                {{ $t('Status') }}
                             </th>
                             <th
                                 scope="col"
                                 class="px-2 py-2.5 text-end sm:px-4"
                             >
-                                Edit
+                                {{ $t('Edit') }}
                             </th>
                         </tr>
                     </thead>
@@ -183,18 +194,22 @@ function editUser(account: AppAccount): void {
                                     class="text-brand-800 block truncate font-medium"
                                     :title="
                                         account.role?.label ??
-                                        'No role assigned'
+                                        $t('No role assigned')
                                     "
                                 >
-                                    {{ account.role?.label ?? 'No role' }}
+                                    {{ account.role?.label ?? $t('No role') }}
                                 </span>
                                 <span
                                     class="text-ink-slate hidden text-[10px] sm:block"
                                 >
                                     {{
                                         account.role?.name === 'super_admin'
-                                            ? 'Full platform access'
-                                            : `${account.role?.permissionCount ?? 0} permissions`
+                                            ? $t('Full platform access')
+                                            : $tc(
+                                                  ':count permission|:count permissions',
+                                                  account.role
+                                                      ?.permissionCount ?? 0,
+                                              )
                                     }}
                                 </span>
                             </td>
@@ -207,7 +222,11 @@ function editUser(account: AppAccount): void {
                                     "
                                     class="inline-flex rounded-[5px] px-1.5 py-1 text-[9px] font-semibold capitalize sm:px-2 sm:text-[10px]"
                                 >
-                                    {{ account.status }}
+                                    {{
+                                        account.status === 'active'
+                                            ? $t('Active')
+                                            : $t('Inactive')
+                                    }}
                                 </span>
                             </td>
                             <td class="px-1.5 py-3 text-end sm:px-4">
@@ -217,14 +236,18 @@ function editUser(account: AppAccount): void {
                                     variant="outline"
                                     class="border-line text-ink size-8 rounded-md p-0 sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
                                     :data-test="`edit-app-user-${account.id}-button`"
-                                    :aria-label="`Edit ${account.name}`"
+                                    :aria-label="
+                                        $t('Edit :name', { name: account.name })
+                                    "
                                     @click="editUser(account)"
                                 >
                                     <Pencil
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    <span class="hidden sm:inline">Edit</span>
+                                    <span class="hidden sm:inline">{{
+                                        $t('Edit')
+                                    }}</span>
                                 </Button>
                             </td>
                         </tr>
@@ -233,8 +256,11 @@ function editUser(account: AppAccount): void {
                                 colspan="4"
                                 class="text-ink-slate px-4 py-10 text-center"
                             >
-                                No app users yet. Add an account to choose who
-                                can help manage GHASIDO.
+                                {{
+                                    $t(
+                                        'No app users yet. Add an account to choose who can help manage GHASIDO.',
+                                    )
+                                }}
                             </td>
                         </tr>
                     </tbody>
@@ -243,7 +269,7 @@ function editUser(account: AppAccount): void {
 
             <nav
                 v-if="accounts.last_page > 1"
-                aria-label="User pages"
+                :aria-label="$t('User pages')"
                 class="border-line flex flex-wrap items-center justify-center gap-1 border-t px-3 py-3"
             >
                 <button
@@ -263,8 +289,12 @@ function editUser(account: AppAccount): void {
                         router.get(link.url, {}, { preserveScroll: true })
                     "
                 >
-                    <span v-if="link.label.includes('Previous')">Previous</span>
-                    <span v-else-if="link.label.includes('Next')">Next</span>
+                    <span v-if="link.label.includes('Previous')">{{
+                        $t('Previous')
+                    }}</span>
+                    <span v-else-if="link.label.includes('Next')">{{
+                        $t('Next')
+                    }}</span>
                     <span v-else>{{
                         link.label.replace(/&laquo;|&raquo;/g, '')
                     }}</span>

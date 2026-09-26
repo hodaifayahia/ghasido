@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { store, update } from '@/routes/departments';
+import { tk } from '@/lib/i18n';
 import type {
     DepartmentRecord,
     DepartmentSelectOption,
@@ -45,9 +46,9 @@ const action = computed(() =>
 );
 
 const statusOptions: Array<{ value: DepartmentStatus; label: string }> = [
-    { value: 'active', label: 'Active' },
-    { value: 'review', label: 'In Review' },
-    { value: 'draft', label: 'Draft' },
+    { value: 'active', label: tk('Active') },
+    { value: 'review', label: tk('In Review') },
+    { value: 'draft', label: tk('Draft') },
 ];
 
 // The three selects are controlled so the hotel field can follow the scope;
@@ -104,13 +105,19 @@ const triggerClass =
         v-model:open="open"
         :title="
             editing
-                ? `Edit ${department?.name ?? 'department'}`
-                : 'Add Department'
+                ? $t('Edit :name', {
+                      name: department?.name ?? $t('department'),
+                  })
+                : $t('Add Department')
         "
         :description="
             editing
-                ? 'Update the name, focus line and editorial status. The scope is fixed once a department exists.'
-                : 'A shared department is available to every hotel; a hotel-specific one belongs to that hotel only.'
+                ? $t(
+                      'Update the name, focus line and editorial status. The scope is fixed once a department exists.',
+                  )
+                : $t(
+                      'A shared department is available to every hotel; a hotel-specific one belongs to that hotel only.',
+                  )
         "
     >
         <Form
@@ -124,7 +131,7 @@ const triggerClass =
         >
             <div class="grid gap-1.5">
                 <Label for="department-name" :class="labelClass">
-                    Department name
+                    {{ $t('Department name') }}
                 </Label>
                 <Input
                     id="department-name"
@@ -144,7 +151,7 @@ const triggerClass =
 
             <div class="grid gap-1.5">
                 <Label for="department-focus" :class="labelClass">
-                    Focus (one line)
+                    {{ $t('Focus (one line)') }}
                 </Label>
                 <Input
                     id="department-focus"
@@ -152,7 +159,9 @@ const triggerClass =
                     type="text"
                     :default-value="department?.focus ?? ''"
                     maxlength="255"
-                    placeholder="Guest arrival, greeting and check-in language."
+                    :placeholder="
+                        $t('Guest arrival, greeting and check-in language.')
+                    "
                     :aria-invalid="errors.focus ? true : undefined"
                     data-test="department-focus-input"
                     :class="inputClass"
@@ -163,7 +172,7 @@ const triggerClass =
             <div class="grid gap-4 md:grid-cols-2">
                 <div v-if="!editing" class="grid gap-1.5">
                     <Label for="department-scope" :class="labelClass">
-                        Scope
+                        {{ $t('Scope') }}
                     </Label>
                     <Select
                         name="scope"
@@ -180,14 +189,14 @@ const triggerClass =
                         </SelectTrigger>
                         <SelectContent class="border-line shadow-pop">
                             <SelectItem value="shared" class="text-[13px]">
-                                Shared Across Hotels
+                                {{ $t('Shared Across Hotels') }}
                             </SelectItem>
                             <SelectItem
                                 value="hotel"
                                 class="text-[13px]"
                                 :disabled="hotelOptions.length === 0"
                             >
-                                Hotel Specific
+                                {{ $t('Hotel Specific') }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -195,7 +204,7 @@ const triggerClass =
                 </div>
 
                 <div v-else class="grid gap-1.5">
-                    <Label :class="labelClass">Scope</Label>
+                    <Label :class="labelClass">{{ $t('Scope') }}</Label>
                     <p
                         class="border-line bg-tint-header text-ink-slate flex h-10 items-center rounded-sm border px-3 text-[13px]"
                         data-test="department-scope-locked"
@@ -206,7 +215,7 @@ const triggerClass =
 
                 <div class="grid gap-1.5">
                     <Label for="department-status" :class="labelClass">
-                        Status
+                        {{ $t('Status') }}
                     </Label>
                     <Select
                         name="status"
@@ -228,7 +237,7 @@ const triggerClass =
                                 :value="option.value"
                                 class="text-[13px]"
                             >
-                                {{ option.label }}
+                                {{ $t(option.label) }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -238,7 +247,7 @@ const triggerClass =
 
             <div v-if="!editing && scope === 'hotel'" class="grid gap-1.5">
                 <Label for="department-hotel" :class="labelClass">
-                    Hotel
+                    {{ $t('Hotel') }}
                 </Label>
                 <Select
                     name="hotel_id"
@@ -251,7 +260,7 @@ const triggerClass =
                         data-test="department-hotel-select"
                         :class="triggerClass"
                     >
-                        <SelectValue placeholder="Choose a hotel" />
+                        <SelectValue :placeholder="$t('Choose a hotel')" />
                     </SelectTrigger>
                     <SelectContent class="border-line shadow-pop">
                         <SelectItem
@@ -277,7 +286,7 @@ const triggerClass =
                     data-test="cancel-department-button"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -285,7 +294,7 @@ const triggerClass =
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-department-button"
                 >
-                    {{ editing ? 'Save changes' : 'Create department' }}
+                    {{ editing ? $t('Save changes') : $t('Create department') }}
                 </Button>
             </div>
         </Form>

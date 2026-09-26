@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/composables/useI18n';
 import { store, update } from '@/routes/roles';
 import type { RolePermissionGroup, RoleRecord } from '@/types';
 
@@ -24,22 +25,28 @@ const emit = defineEmits<{
     saved: [];
 }>();
 
+const { t } = useI18n();
+
 const editing = computed(() => props.role !== null);
 const locked = computed(() => props.role?.locked ?? false);
 const isSystem = computed(() => props.role?.isSystem ?? false);
 
 const description = computed(() => {
     if (locked.value) {
-        return 'The Super Admin always holds every permission, so this set is fixed.';
+        return t(
+            'The Super Admin always holds every permission, so this set is fixed.',
+        );
     }
     if (isSystem.value) {
-        return 'Adjust the permissions for this built-in role. Its name is fixed.';
+        return t(
+            'Adjust the permissions for this built-in role. Its name is fixed.',
+        );
     }
     if (editing.value) {
-        return 'Rename the role or change the permissions it grants.';
+        return t('Rename the role or change the permissions it grants.');
     }
 
-    return 'Name the role and choose the permissions it grants.';
+    return t('Name the role and choose the permissions it grants.');
 });
 
 const form = useForm<{ name: string; permissions: string[] }>({
@@ -135,12 +142,18 @@ const inputClass =
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="editing ? `Edit ${role?.label ?? 'role'}` : 'Add role'"
+        :title="
+            editing
+                ? $t('Edit :name', { name: role?.label ?? $t('role') })
+                : $t('Add role')
+        "
         :description="description"
     >
         <form class="mt-2 grid gap-5" @submit.prevent="submit">
             <div class="grid gap-1.5">
-                <Label for="role-name" :class="labelClass">Role name</Label>
+                <Label for="role-name" :class="labelClass">{{
+                    $t('Role name')
+                }}</Label>
                 <Input
                     id="role-name"
                     v-model="form.name"
@@ -154,17 +167,24 @@ const inputClass =
                     :class="inputClass"
                 />
                 <p v-if="isSystem" class="text-ink-slate text-[12px]">
-                    Built-in roles keep their name; you can still change what
-                    they can do.
+                    {{
+                        $t(
+                            'Built-in roles keep their name; you can still change what they can do.',
+                        )
+                    }}
                 </p>
                 <InputError :message="form.errors.name" />
             </div>
 
             <div class="grid gap-3">
                 <div class="flex items-center justify-between">
-                    <span :class="labelClass">Permissions</span>
+                    <span :class="labelClass">{{ $t('Permissions') }}</span>
                     <span class="text-ink-slate text-[12px]">
-                        {{ form.permissions.length }} selected
+                        {{
+                            $t(':count selected', {
+                                count: form.permissions.length,
+                            })
+                        }}
                     </span>
                 </div>
 
@@ -223,7 +243,7 @@ const inputClass =
                     class="h-10 rounded-md"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -231,7 +251,7 @@ const inputClass =
                     :disabled="form.processing"
                     data-test="save-role-button"
                 >
-                    {{ editing ? 'Save changes' : 'Create role' }}
+                    {{ editing ? $t('Save changes') : $t('Create role') }}
                 </Button>
             </div>
         </form>

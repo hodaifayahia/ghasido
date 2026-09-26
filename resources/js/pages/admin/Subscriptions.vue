@@ -17,6 +17,7 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import { dashboard, individuals, subscriptions } from '@/routes';
 import { hotelPlan } from '@/routes/subscriptions';
 import { update as updatePlan } from '@/routes/subscriptions/plans';
+import { tk } from '@/lib/i18n';
 
 type Plan = {
     id: number;
@@ -73,8 +74,8 @@ const props = defineProps<Props>();
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Subscriptions', href: subscriptions() },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Subscriptions'), href: subscriptions() },
         ],
     },
 });
@@ -277,19 +278,23 @@ function savePaymentMethod(): void {
 </script>
 
 <template>
-    <Head title="Subscriptions" />
+    <Head :title="$t('Subscriptions')" />
 
     <div class="flex min-w-0 flex-col gap-3 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Subscriptions"
-            description="Set hotel seat limits, DZD and USD prices, and AI point rates."
+            :title="$t('Subscriptions')"
+            :description="
+                $t(
+                    'Set hotel seat limits, DZD and USD prices, and AI point rates.',
+                )
+            "
         />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div
                 class="bg-surface border-line shadow-card inline-flex rounded-md border p-1"
                 role="tablist"
-                aria-label="Subscription management"
+                :aria-label="$t('Subscription management')"
             >
                 <button
                     type="button"
@@ -303,7 +308,7 @@ function savePaymentMethod(): void {
                     "
                     @click="tab = 'plans'"
                 >
-                    Plans
+                    {{ $t('Plans') }}
                 </button>
                 <button
                     type="button"
@@ -317,7 +322,7 @@ function savePaymentMethod(): void {
                     "
                     @click="tab = 'hotels'"
                 >
-                    Hotel subscriptions
+                    {{ $t('Hotel subscriptions') }}
                     <span class="text-ink-muted ms-1">{{
                         activeHotelCount
                     }}</span>
@@ -334,7 +339,7 @@ function savePaymentMethod(): void {
                     "
                     @click="tab = 'payments'"
                 >
-                    Payment methods
+                    {{ $t('Payment methods') }}
                 </button>
                 <!-- Individual subscribers have their own page (user request 2026-09-25). -->
                 <Link
@@ -342,11 +347,11 @@ function savePaymentMethod(): void {
                     class="text-ink-slate hover:bg-brand-50 focus-visible:ring-brand-600/15 rounded px-3 py-2 text-[12px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none"
                     data-test="subscriptions-individuals-link"
                 >
-                    Individuals
+                    {{ $t('Individuals') }}
                 </Link>
             </div>
             <p class="text-ink-muted text-[11.5px]">
-                Changes are recorded in the audit log.
+                {{ $t('Changes are recorded in the audit log.') }}
             </p>
         </div>
 
@@ -354,7 +359,7 @@ function savePaymentMethod(): void {
             v-if="tab === 'plans'"
             class="grid min-w-0 gap-3 lg:grid-cols-3"
             role="tabpanel"
-            aria-label="Plans"
+            :aria-label="$t('Plans')"
         >
             <PanelCard
                 v-for="plan in plans"
@@ -380,7 +385,7 @@ function savePaymentMethod(): void {
                                 : 'bg-ink-faint/20 text-ink-slate'
                         "
                     >
-                        {{ plan.isActive ? 'Available' : 'Inactive' }}
+                        {{ plan.isActive ? $t('Available') : $t('Inactive') }}
                     </span>
                 </template>
 
@@ -390,19 +395,27 @@ function savePaymentMethod(): void {
                     >
                         {{ formatDzd(plan.priceDzd) }}
                     </p>
-                    <span class="text-ink-muted text-[11px]">/ month</span>
+                    <span class="text-ink-muted text-[11px]">{{
+                        $t('/ month')
+                    }}</span>
                 </div>
                 <p class="text-ink-slate mt-1 text-[12px] font-semibold">
-                    International: {{ formatUsd(plan.priceUsd) }}
-                    <span class="text-ink-muted font-normal">/ month</span>
+                    {{
+                        $t('International: :price', {
+                            price: formatUsd(plan.priceUsd),
+                        })
+                    }}
+                    <span class="text-ink-muted font-normal">{{
+                        $t('/ month')
+                    }}</span>
                 </p>
                 <div class="mt-4 grid grid-cols-2 gap-2">
                     <div class="border-line/80 rounded-md border p-2.5">
                         <div class="text-ink-slate flex items-center gap-1.5">
                             <Users class="size-3.5" aria-hidden="true" />
-                            <span class="text-[10px] font-medium"
-                                >Employee seats</span
-                            >
+                            <span class="text-[10px] font-medium">{{
+                                $t('Employee seats')
+                            }}</span>
                         </div>
                         <p
                             class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
@@ -413,9 +426,9 @@ function savePaymentMethod(): void {
                     <div class="border-line/80 rounded-md border p-2.5">
                         <div class="text-ink-slate flex items-center gap-1.5">
                             <Sparkles class="size-3.5" aria-hidden="true" />
-                            <span class="text-[10px] font-medium"
-                                >Monthly AI pool</span
-                            >
+                            <span class="text-[10px] font-medium">{{
+                                $t('Monthly AI pool')
+                            }}</span>
                         </div>
                         <p
                             class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
@@ -428,14 +441,14 @@ function savePaymentMethod(): void {
                     class="text-ink-slate mt-3 grid gap-1 text-[11px] leading-4"
                 >
                     <div class="flex justify-between gap-2">
-                        <dt>Extra 1,000 AI points</dt>
+                        <dt>{{ $t('Extra 1,000 AI points') }}</dt>
                         <dd class="text-ink-indigo text-end font-semibold">
                             {{ formatDzd(plan.extraPointsPriceDzd) }} ·
                             {{ formatUsd(plan.extraPointsPriceUsd) }}
                         </dd>
                     </div>
                     <div class="flex justify-between gap-2">
-                        <dt>Extra seat / month</dt>
+                        <dt>{{ $t('Extra seat / month') }}</dt>
                         <dd class="text-ink-indigo text-end font-semibold">
                             {{ formatDzd(plan.extraSeatPriceDzd) }} ·
                             {{ formatUsd(plan.extraSeatPriceUsd) }}
@@ -443,10 +456,16 @@ function savePaymentMethod(): void {
                     </div>
                 </dl>
                 <p class="text-ink-muted mt-2 text-[11px] leading-4">
-                    {{ plan.hotelCount }} hotels ·
-                    {{ plan.pointsPerEmployee.toLocaleString() }} base points +
-                    {{ plan.bonusPointsPerEmployee.toLocaleString() }} shared
-                    points per seat
+                    {{
+                        $t(
+                            ':hotels hotels · :base base points + :shared shared points per seat',
+                            {
+                                hotels: plan.hotelCount,
+                                base: plan.pointsPerEmployee.toLocaleString(),
+                                shared: plan.bonusPointsPerEmployee.toLocaleString(),
+                            },
+                        )
+                    }}
                 </p>
                 <div class="mt-auto pt-3">
                     <Button
@@ -456,7 +475,7 @@ function savePaymentMethod(): void {
                         @click="editPlan(plan)"
                     >
                         <Pencil class="size-3.5" aria-hidden="true" />
-                        Customize plan
+                        {{ $t('Customize plan') }}
                     </Button>
                 </div>
             </PanelCard>
@@ -464,7 +483,7 @@ function savePaymentMethod(): void {
 
         <PanelCard
             v-else-if="tab === 'hotels'"
-            title="Hotels and their current plans"
+            :title="$t('Hotels and their current plans')"
             title-id="hotel-subscriptions-heading"
             class="min-w-0"
             body-class="mt-2"
@@ -481,7 +500,7 @@ function savePaymentMethod(): void {
                 class="border-line rounded-md border border-dashed px-4 py-10 text-center"
             >
                 <p class="text-ink-slate text-[13px]">
-                    No hotels are available.
+                    {{ $t('No hotels are available.') }}
                 </p>
             </div>
             <div
@@ -494,16 +513,16 @@ function savePaymentMethod(): void {
                             class="text-ink-slate text-[10.5px] tracking-wide uppercase"
                         >
                             <th class="px-3 py-2.5 text-start font-semibold">
-                                Hotel
+                                {{ $t('Hotel') }}
                             </th>
                             <th class="px-3 py-2.5 text-start font-semibold">
-                                Employees
+                                {{ $t('Employees') }}
                             </th>
                             <th class="px-3 py-2.5 text-start font-semibold">
-                                Subscription plan
+                                {{ $t('Subscription plan') }}
                             </th>
                             <th class="px-3 py-2.5 text-end font-semibold">
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -523,8 +542,12 @@ function savePaymentMethod(): void {
                             </td>
                             <td class="px-3 py-2.5">
                                 <p class="text-ink-slate">
-                                    {{ hotel.usedEmployees }} /
-                                    {{ hotel.employeeLimit }} seats
+                                    {{
+                                        $t(':used / :total seats', {
+                                            used: hotel.usedEmployees,
+                                            total: hotel.employeeLimit,
+                                        })
+                                    }}
                                 </p>
                                 <p
                                     v-if="
@@ -533,18 +556,23 @@ function savePaymentMethod(): void {
                                     "
                                     class="text-danger-text mt-0.5 text-[10px] font-semibold"
                                 >
-                                    Over plan by
                                     {{
-                                        hotel.usedEmployees -
-                                        hotel.employeeLimit
+                                        $t('Over plan by :count seats', {
+                                            count:
+                                                hotel.usedEmployees -
+                                                hotel.employeeLimit,
+                                        })
                                     }}
-                                    seats
                                 </p>
                             </td>
                             <td class="px-3 py-2.5">
                                 <select
                                     v-model.number="selectedPlan[hotel.id]"
-                                    :aria-label="`Plan for ${hotel.name}`"
+                                    :aria-label="
+                                        $t('Plan for :name', {
+                                            name: hotel.name,
+                                        })
+                                    "
                                     class="border-line bg-surface text-ink-indigo focus-visible:ring-brand-600/40 h-9 min-w-40 rounded-md border px-2 text-[12px] outline-none focus-visible:ring-2"
                                 >
                                     <option
@@ -569,7 +597,7 @@ function savePaymentMethod(): void {
                                             class="size-3"
                                             aria-hidden="true"
                                         />
-                                        Record payment + points
+                                        {{ $t('Record payment + points') }}
                                     </Button>
                                     <Button
                                         type="button"
@@ -584,8 +612,8 @@ function savePaymentMethod(): void {
                                     >
                                         {{
                                             savingHotel === hotel.id
-                                                ? 'Saving…'
-                                                : 'Save plan'
+                                                ? $t('Saving…')
+                                                : $t('Save plan')
                                         }}
                                     </Button>
                                 </div>
@@ -598,7 +626,7 @@ function savePaymentMethod(): void {
 
         <PanelCard
             v-else
-            title="Payment methods"
+            :title="$t('Payment methods')"
             title-id="subscription-payment-methods-heading"
             class="min-w-0"
             body-class="mt-2"
@@ -617,13 +645,15 @@ function savePaymentMethod(): void {
                     @click="addPaymentMethod"
                 >
                     <Plus class="size-3.5" aria-hidden="true" />
-                    Add method
+                    {{ $t('Add method') }}
                 </Button>
             </template>
             <p class="text-ink-slate mb-4 text-[12px] leading-5">
-                Add local transfer, wallet, card or other payment instructions.
-                Active methods with account details appear on the public landing
-                page.
+                {{
+                    $t(
+                        'Add local transfer, wallet, card or other payment instructions. Active methods with account details appear on the public landing page.',
+                    )
+                }}
             </p>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <article
@@ -645,7 +675,7 @@ function savePaymentMethod(): void {
                                 {{ method.accountReference }}
                             </p>
                             <p v-else class="text-ink-muted mt-1 text-[11px]">
-                                Account details not set
+                                {{ $t('Account details not set') }}
                             </p>
                         </div>
                         <span
@@ -656,14 +686,18 @@ function savePaymentMethod(): void {
                                     : 'bg-ink-faint/20 text-ink-slate'
                             "
                         >
-                            {{ method.isActive ? 'Visible' : 'Hidden' }}
+                            {{ method.isActive ? $t('Visible') : $t('Hidden') }}
                         </span>
                     </div>
                     <p
                         v-if="method.recipientName"
                         class="text-ink-slate mt-2 text-[10.5px]"
                     >
-                        Recipient: {{ method.recipientName }}
+                        {{
+                            $t('Recipient: :name', {
+                                name: method.recipientName,
+                            })
+                        }}
                     </p>
                     <p
                         v-if="method.instructions"
@@ -678,7 +712,7 @@ function savePaymentMethod(): void {
                         @click="editPaymentMethod(method)"
                     >
                         <Pencil class="size-3" aria-hidden="true" />
-                        Customize method
+                        {{ $t('Customize method') }}
                     </Button>
                 </article>
             </div>
@@ -687,16 +721,24 @@ function savePaymentMethod(): void {
 
     <HotelsModal
         v-model:open="editorOpen"
-        :title="`Customize ${editing?.name ?? 'subscription'} plan`"
-        description="Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are."
+        :title="
+            $t('Customize :name plan', {
+                name: editing?.name ?? $t('subscription'),
+            })
+        "
+        :description="
+            $t(
+                'Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.',
+            )
+        "
         class="sm:max-w-[620px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePlan">
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1.5 sm:col-span-2">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Plan name</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Plan name')
+                    }}</span>
                     <input
                         v-model="form.name"
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
@@ -704,9 +746,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.name" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Maximum employees</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Maximum employees')
+                    }}</span>
                     <input
                         v-model.number="form.employee_limit"
                         type="number"
@@ -716,9 +758,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.employee_limit" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Base AI points per employee</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Base AI points per employee')
+                    }}</span>
                     <input
                         v-model.number="form.points_per_employee"
                         type="number"
@@ -728,9 +770,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.points_per_employee" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Monthly price (DZD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Monthly price (DZD)')
+                    }}</span>
                     <input
                         v-model.number="form.price_dzd"
                         type="number"
@@ -740,9 +782,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.price_dzd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Monthly price, international (USD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Monthly price, international (USD)')
+                    }}</span>
                     <input
                         v-model.number="form.price_usd"
                         type="number"
@@ -753,9 +795,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.price_usd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >1,000 extra AI points (DZD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('1,000 extra AI points (DZD)')
+                    }}</span>
                     <input
                         v-model.number="form.extra_points_price_dzd"
                         type="number"
@@ -765,9 +807,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.extra_points_price_dzd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >1,000 extra AI points (USD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('1,000 extra AI points (USD)')
+                    }}</span>
                     <input
                         v-model.number="form.extra_points_price_usd"
                         type="number"
@@ -778,9 +820,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.extra_points_price_usd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Extra seat per month (DZD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Extra seat per month (DZD)')
+                    }}</span>
                     <input
                         v-model.number="form.extra_seat_price_dzd"
                         type="number"
@@ -790,9 +832,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.extra_seat_price_dzd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Extra seat per month (USD)</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Extra seat per month (USD)')
+                    }}</span>
                     <input
                         v-model.number="form.extra_seat_price_usd"
                         type="number"
@@ -803,9 +845,9 @@ function savePaymentMethod(): void {
                     <InputError :message="form.errors.extra_seat_price_usd" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Additional shared points per seat</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Additional shared points per seat')
+                    }}</span>
                     <input
                         v-model.number="form.bonus_points_per_employee"
                         type="number"
@@ -817,9 +859,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Voice points per 10 minutes</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Voice points per 10 minutes')
+                    }}</span>
                     <input
                         v-model.number="form.voice_points_per_10_minutes"
                         type="number"
@@ -831,9 +873,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Points per other AI action</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Points per other AI action')
+                    }}</span>
                     <input
                         v-model.number="form.ai_action_points"
                         type="number"
@@ -851,7 +893,7 @@ function savePaymentMethod(): void {
                     type="checkbox"
                     class="accent-brand-600 border-line size-4 rounded"
                 />
-                Available for new hotel subscriptions
+                {{ $t('Available for new hotel subscriptions') }}
             </label>
             <InputError :message="form.errors.is_active" />
             <div class="mt-1 flex justify-end gap-2">
@@ -860,14 +902,14 @@ function savePaymentMethod(): void {
                     variant="outline"
                     class="border-line h-10 px-4 text-[12px]"
                     @click="editorOpen = false"
-                    >Cancel</Button
+                    >{{ $t('Cancel') }}</Button
                 >
                 <Button
                     type="submit"
                     class="bg-brand-600 hover:bg-brand-700 h-10 px-4 text-[12px]"
                     :disabled="form.processing"
                 >
-                    {{ form.processing ? 'Saving…' : 'Save plan' }}
+                    {{ form.processing ? $t('Saving…') : $t('Save plan') }}
                 </Button>
             </div>
         </form>
@@ -875,11 +917,14 @@ function savePaymentMethod(): void {
 
     <HotelsModal
         v-model:open="pointTopUpOpen"
-        title="Record payment and add AI points"
+        :title="$t('Record payment and add AI points')"
         :description="
             pointTopUpHotel
-                ? `For ${pointTopUpHotel.name}. Added points are available to this hotel for the current month.`
-                : 'Add paid AI points to a hotel.'
+                ? $t(
+                      'For :name. Added points are available to this hotel for the current month.',
+                      { name: pointTopUpHotel.name },
+                  )
+                : $t('Add paid AI points to a hotel.')
         "
         class="sm:max-w-[560px]"
     >
@@ -889,7 +934,7 @@ function savePaymentMethod(): void {
                     <legend
                         class="text-ink-slate mb-1.5 text-[11px] font-semibold"
                     >
-                        Customer pays in
+                        {{ $t('Customer pays in') }}
                     </legend>
                     <div
                         class="border-line bg-surface inline-flex h-10 rounded-md border p-1"
@@ -913,17 +958,17 @@ function savePaymentMethod(): void {
                         >
                             {{
                                 currency === 'DZD'
-                                    ? 'DZD (Algeria)'
-                                    : 'USD (international)'
+                                    ? $t('DZD (Algeria)')
+                                    : $t('USD (international)')
                             }}
                         </button>
                     </div>
                     <InputError :message="pointTopUpForm.errors.currency" />
                 </fieldset>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Points to add this month</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Points to add this month')
+                    }}</span>
                     <input
                         v-model.number="pointTopUpForm.points"
                         type="number"
@@ -936,9 +981,11 @@ function savePaymentMethod(): void {
                     <InputError :message="pointTopUpForm.errors.points" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Payment received ({{ pointTopUpForm.currency }})</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Payment received (:currency)', {
+                            currency: pointTopUpForm.currency,
+                        })
+                    }}</span>
                     <input
                         v-if="pointTopUpForm.currency === 'DZD'"
                         v-model.number="pointTopUpForm.amount_dzd"
@@ -962,11 +1009,13 @@ function savePaymentMethod(): void {
                         v-if="pointTopUpPlan && suggestedAmount > 0"
                         class="text-ink-muted text-[10.5px]"
                     >
-                        Plan price for these points:
                         {{
-                            pointTopUpForm.currency === 'USD'
-                                ? formatUsd(suggestedAmount)
-                                : formatDzd(suggestedAmount)
+                            $t('Plan price for these points: :price', {
+                                price:
+                                    pointTopUpForm.currency === 'USD'
+                                        ? formatUsd(suggestedAmount)
+                                        : formatDzd(suggestedAmount),
+                            })
                         }}
                     </span>
                     <InputError
@@ -977,14 +1026,16 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Payment method</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Payment method')
+                    }}</span>
                     <select
                         v-model.number="pointTopUpForm.payment_method_id"
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     >
-                        <option :value="null">Manual / other</option>
+                        <option :value="null">
+                            {{ $t('Manual / other') }}
+                        </option>
                         <option
                             v-for="method in activePaymentMethods"
                             :key="method.id"
@@ -998,9 +1049,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Transaction / receipt reference</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Transaction / receipt reference')
+                    }}</span>
                     <input
                         v-model="pointTopUpForm.payment_reference"
                         maxlength="120"
@@ -1020,7 +1071,7 @@ function savePaymentMethod(): void {
                     required
                     class="accent-brand-600 border-line mt-0.5 size-4 shrink-0 rounded"
                 />
-                I confirm the hotel's payment has been received.
+                {{ $t("I confirm the hotel's payment has been received.") }}
             </label>
             <InputError :message="pointTopUpForm.errors.payment_received" />
             <div class="mt-1 flex justify-end gap-2">
@@ -1029,7 +1080,7 @@ function savePaymentMethod(): void {
                     variant="outline"
                     class="border-line h-10 px-4 text-[12px]"
                     @click="pointTopUpOpen = false"
-                    >Cancel</Button
+                    >{{ $t('Cancel') }}</Button
                 >
                 <Button
                     type="submit"
@@ -1038,8 +1089,8 @@ function savePaymentMethod(): void {
                 >
                     {{
                         pointTopUpForm.processing
-                            ? 'Recording…'
-                            : 'Confirm payment and add points'
+                            ? $t('Recording…')
+                            : $t('Confirm payment and add points')
                     }}
                 </Button>
             </div>
@@ -1048,27 +1099,37 @@ function savePaymentMethod(): void {
 
     <HotelsModal
         v-model:open="paymentMethodEditorOpen"
-        :title="`${editingPaymentMethod ? 'Customize' : 'Add'} payment method`"
-        description="Set the payment provider, account details, and the instructions shown to hotel subscribers."
+        :title="
+            editingPaymentMethod
+                ? $t('Customize payment method')
+                : $t('Add payment method')
+        "
+        :description="
+            $t(
+                'Set the payment provider, account details, and the instructions shown to hotel subscribers.',
+            )
+        "
         class="sm:max-w-[620px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePaymentMethod">
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="grid gap-1.5 sm:col-span-2">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Method name</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Method name')
+                    }}</span>
                     <input
                         v-model="paymentMethodForm.name"
-                        placeholder="BaridiMob, RedotPay, or another method"
+                        :placeholder="
+                            $t('BaridiMob, RedotPay, or another method')
+                        "
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     />
                     <InputError :message="paymentMethodForm.errors.name" />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Recipient name</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Recipient name')
+                    }}</span>
                     <input
                         v-model="paymentMethodForm.recipient_name"
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
@@ -1078,9 +1139,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Account / payment reference</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Account / payment reference')
+                    }}</span>
                     <input
                         v-model="paymentMethodForm.account_reference"
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
@@ -1090,9 +1151,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5 sm:col-span-2">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Payment instructions</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Payment instructions')
+                    }}</span>
                     <textarea
                         v-model="paymentMethodForm.instructions"
                         rows="3"
@@ -1103,9 +1164,9 @@ function savePaymentMethod(): void {
                     />
                 </label>
                 <label class="grid gap-1.5">
-                    <span class="text-ink-slate text-[11px] font-semibold"
-                        >Display order</span
-                    >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Display order')
+                    }}</span>
                     <input
                         v-model.number="paymentMethodForm.sort_order"
                         type="number"
@@ -1125,7 +1186,7 @@ function savePaymentMethod(): void {
                     type="checkbox"
                     class="accent-brand-600 border-line size-4 rounded"
                 />
-                Show this method on the public landing page
+                {{ $t('Show this method on the public landing page') }}
             </label>
             <InputError :message="paymentMethodForm.errors.is_active" />
             <div class="mt-1 flex justify-end gap-2">
@@ -1134,7 +1195,7 @@ function savePaymentMethod(): void {
                     variant="outline"
                     class="border-line h-10 px-4 text-[12px]"
                     @click="paymentMethodEditorOpen = false"
-                    >Cancel</Button
+                    >{{ $t('Cancel') }}</Button
                 >
                 <Button
                     type="submit"
@@ -1142,7 +1203,9 @@ function savePaymentMethod(): void {
                     :disabled="paymentMethodForm.processing"
                 >
                     {{
-                        paymentMethodForm.processing ? 'Saving…' : 'Save method'
+                        paymentMethodForm.processing
+                            ? $t('Saving…')
+                            : $t('Save method')
                     }}
                 </Button>
             </div>

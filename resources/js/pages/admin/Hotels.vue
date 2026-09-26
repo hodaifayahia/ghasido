@@ -25,6 +25,7 @@ import type {
     HotelRecord,
     HotelRowAction,
 } from '@/types';
+import { tk } from '@/lib/i18n';
 
 type Props = {
     stats: HotelMetric[];
@@ -40,11 +41,11 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
-                title: 'Dashboard',
+                title: tk('Dashboard'),
                 href: dashboard(),
             },
             {
-                title: 'Hotels',
+                title: tk('Hotels'),
                 href: hotelsRoute(),
             },
         ],
@@ -229,13 +230,17 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
 </script>
 
 <template>
-    <Head title="Hotels" />
+    <Head :title="$t('Hotels')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <div class="relative">
             <PageHeader
-                title="Hotels"
-                description="Manage contract periods, seat quotas and access across your hotel portfolio."
+                :title="$t('Hotels')"
+                :description="
+                    $t(
+                        'Manage contract periods, seat quotas and access across your hotel portfolio.',
+                    )
+                "
                 class="mb-1"
             >
                 <template #accent>
@@ -253,7 +258,7 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
                 @click="openCreate"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                Add Hotel
+                {{ $t('Add Hotel') }}
             </Button>
         </div>
 

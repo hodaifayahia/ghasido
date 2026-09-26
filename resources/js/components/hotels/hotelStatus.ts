@@ -1,3 +1,4 @@
+import { tk } from '@/lib/i18n';
 import type { HotelCapacityState, HotelContractStatus } from '@/types';
 
 /**
@@ -8,12 +9,12 @@ import type { HotelCapacityState, HotelContractStatus } from '@/types';
  * warning tint (it is waiting on somebody), archived the neutral grid tint.
  */
 export const statusText: Record<HotelContractStatus, string> = {
-    pending: 'Pending',
-    active: 'Active',
-    expiring: 'Expiring Soon',
-    paused: 'Paused',
-    ended: 'Ended',
-    archived: 'Archived',
+    pending: tk('Pending'),
+    active: tk('Active'),
+    expiring: tk('Expiring Soon'),
+    paused: tk('Paused'),
+    ended: tk('Ended'),
+    archived: tk('Archived'),
 };
 
 export const statusTone: Record<HotelContractStatus, string> = {
@@ -26,9 +27,9 @@ export const statusTone: Record<HotelContractStatus, string> = {
 };
 
 export const capacityText: Record<HotelCapacityState, string> = {
-    available: 'Seats Available',
-    full: 'At Capacity',
-    over: 'Over Quota',
+    available: tk('Seats Available'),
+    full: tk('At Capacity'),
+    over: tk('Over Quota'),
 };
 
 export const capacityTone: Record<HotelCapacityState, string> = {
@@ -38,9 +39,9 @@ export const capacityTone: Record<HotelCapacityState, string> = {
 };
 
 export const quotaText: Record<HotelCapacityState, string> = {
-    available: 'Available',
-    full: 'Full',
-    over: 'Over quota',
+    available: tk('Available'),
+    full: tk('Full'),
+    over: tk('Over quota'),
 };
 
 export const progressTone: Record<HotelCapacityState, 'brand' | 'warning'> = {

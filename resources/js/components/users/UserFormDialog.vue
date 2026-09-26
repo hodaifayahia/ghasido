@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
+import TransText from '@/components/common/TransText.vue';
 import InputError from '@/components/InputError.vue';
+import { useI18n } from '@/composables/useI18n';
 import HotelsModal from '@/components/hotels/HotelsModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,11 +58,13 @@ watch(
     { immediate: true },
 );
 
+const { t } = useI18n();
+
 const editing = () => props.account !== null;
 const passwordHint = () =>
     editing()
-        ? 'Leave blank to keep the current password.'
-        : 'At least 8 characters. Share it with the account owner securely.';
+        ? t('Leave blank to keep the current password.')
+        : t('At least 8 characters. Share it with the account owner securely.');
 
 function submit(): void {
     const options = {
@@ -85,12 +89,18 @@ const inputClass =
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="editing() ? 'Edit app user' : 'Add app user'"
-        description="Choose a role to control which parts of GHASIDO this account can access."
+        :title="editing() ? $t('Edit app user') : $t('Add app user')"
+        :description="
+            $t(
+                'Choose a role to control which parts of GHASIDO this account can access.',
+            )
+        "
     >
         <form class="mt-2 grid gap-4" @submit.prevent="submit">
             <div class="grid gap-1.5">
-                <Label for="app-user-name" :class="labelClass">Full name</Label>
+                <Label for="app-user-name" :class="labelClass">{{
+                    $t('Full name')
+                }}</Label>
                 <Input
                     id="app-user-name"
                     v-model="form.name"
@@ -105,9 +115,9 @@ const inputClass =
 
             <div class="grid gap-1.5 sm:grid-cols-2 sm:gap-3">
                 <div class="grid min-w-0 gap-1.5">
-                    <Label for="app-user-username" :class="labelClass"
-                        >Username</Label
-                    >
+                    <Label for="app-user-username" :class="labelClass">{{
+                        $t('Username')
+                    }}</Label>
                     <Input
                         id="app-user-username"
                         v-model="form.username"
@@ -123,10 +133,10 @@ const inputClass =
                 </div>
                 <div class="grid min-w-0 gap-1.5">
                     <Label for="app-user-email" :class="labelClass"
-                        >Email
-                        <span class="text-ink-slate font-normal"
-                            >(optional)</span
-                        ></Label
+                        >{{ $t('Email') }}
+                        <span class="text-ink-slate font-normal">{{
+                            $t('(optional)')
+                        }}</span></Label
                     >
                     <Input
                         id="app-user-email"
@@ -143,7 +153,9 @@ const inputClass =
 
             <div class="grid gap-1.5">
                 <Label for="app-user-password" :class="labelClass">
-                    {{ editing() ? 'New password' : 'Initial password' }}
+                    {{
+                        editing() ? $t('New password') : $t('Initial password')
+                    }}
                 </Label>
                 <Input
                     id="app-user-password"
@@ -163,9 +175,9 @@ const inputClass =
             </div>
 
             <div class="grid gap-1.5">
-                <Label for="app-user-role" :class="labelClass"
-                    >Access role</Label
-                >
+                <Label for="app-user-role" :class="labelClass">{{
+                    $t('Access role')
+                }}</Label>
                 <select
                     id="app-user-role"
                     v-model="form.role_id"
@@ -173,7 +185,7 @@ const inputClass =
                     :aria-invalid="form.errors.role_id ? true : undefined"
                     :class="inputClass"
                 >
-                    <option disabled value="">Choose a role</option>
+                    <option disabled value="">{{ $t('Choose a role') }}</option>
                     <option
                         v-for="role in roles"
                         :key="role.id"
@@ -182,40 +194,48 @@ const inputClass =
                         {{ role.label }} —
                         {{
                             role.name === 'super_admin'
-                                ? 'Full platform access'
-                                : `${role.permissionCount} permissions`
+                                ? $t('Full platform access')
+                                : $tc(
+                                      ':count permission|:count permissions',
+                                      role.permissionCount,
+                                  )
                         }}
                     </option>
                 </select>
-                <p class="text-ink-slate text-[11px] leading-4">
-                    Adjust permissions in
-                    <a
-                        href="/roles"
-                        class="text-brand-700 underline underline-offset-2"
-                        >Roles &amp; Permissions</a
-                    >.
-                </p>
+                <TransText
+                    tag="p"
+                    text="Adjust permissions in :link."
+                    class="text-ink-slate text-[11px] leading-4"
+                >
+                    <template #link>
+                        <a
+                            href="/roles"
+                            class="text-brand-700 underline underline-offset-2"
+                            >{{ $t('Roles & Permissions') }}</a
+                        >
+                    </template>
+                </TransText>
                 <InputError :message="form.errors.role_id" />
             </div>
 
             <div v-if="editing()" class="grid gap-1.5">
-                <Label for="app-user-status" :class="labelClass"
-                    >Account status</Label
-                >
+                <Label for="app-user-status" :class="labelClass">{{
+                    $t('Account status')
+                }}</Label>
                 <select
                     id="app-user-status"
                     v-model="form.status"
                     :disabled="props.account?.isCurrentUser"
                     :class="inputClass"
                 >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="active">{{ $t('Active') }}</option>
+                    <option value="inactive">{{ $t('Inactive') }}</option>
                 </select>
                 <p
                     v-if="props.account?.isCurrentUser"
                     class="text-ink-slate text-[11px] leading-4"
                 >
-                    You cannot deactivate your own account.
+                    {{ $t('You cannot deactivate your own account.') }}
                 </p>
                 <InputError :message="form.errors.status" />
             </div>
@@ -229,14 +249,14 @@ const inputClass =
                     class="h-10 rounded-md"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
                     class="bg-brand-600 hover:bg-brand-700 h-10 rounded-md text-white"
                     :disabled="form.processing"
                 >
-                    {{ editing() ? 'Save changes' : 'Add user' }}
+                    {{ editing() ? $t('Save changes') : $t('Add user') }}
                 </Button>
             </div>
         </form>

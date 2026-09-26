@@ -157,9 +157,15 @@ const headingClass =
     <HotelsModal
         v-model:open="open"
         :title="
-            editing ? `Edit ${individual?.name}` : 'Add individual subscriber'
+            editing
+                ? $t('Edit :name', { name: individual?.name ?? '' })
+                : $t('Add individual subscriber')
         "
-        description="A learner who uses GHASIDO on their own, without a hotel. Everything below is their own configuration."
+        :description="
+            $t(
+                'A learner who uses GHASIDO on their own, without a hotel. Everything below is their own configuration.',
+            )
+        "
         class="sm:max-w-[680px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="submit">
@@ -167,13 +173,13 @@ const headingClass =
             <section :class="sectionClass" aria-labelledby="individual-account">
                 <h3 id="individual-account" :class="headingClass">
                     <UserRound class="size-4" aria-hidden="true" />
-                    Account
+                    {{ $t('Account') }}
                 </h3>
 
                 <div class="grid gap-1.5">
-                    <Label for="individual-name" :class="labelClass"
-                        >Full name</Label
-                    >
+                    <Label for="individual-name" :class="labelClass">{{
+                        $t('Full name')
+                    }}</Label>
                     <Input
                         id="individual-name"
                         v-model="form.name"
@@ -187,9 +193,9 @@ const headingClass =
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-username" :class="labelClass"
-                            >Username</Label
-                        >
+                        <Label for="individual-username" :class="labelClass">{{
+                            $t('Username')
+                        }}</Label>
                         <Input
                             id="individual-username"
                             v-model="form.username"
@@ -204,10 +210,10 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-email" :class="labelClass"
-                            >Email
-                            <span class="text-ink-slate font-normal"
-                                >(optional)</span
-                            ></Label
+                            >{{ $t('Email') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(optional)')
+                            }}</span></Label
                         >
                         <Input
                             id="individual-email"
@@ -223,7 +229,11 @@ const headingClass =
 
                 <div class="grid gap-1.5">
                     <Label for="individual-password" :class="labelClass">
-                        {{ editing ? 'New password' : 'Initial password' }}
+                        {{
+                            editing
+                                ? $t('New password')
+                                : $t('Initial password')
+                        }}
                     </Label>
                     <div class="flex gap-2">
                         <Input
@@ -244,14 +254,18 @@ const headingClass =
                             @click="generatePassword"
                         >
                             <KeyRound class="size-4" aria-hidden="true" />
-                            Generate
+                            {{ $t('Generate') }}
                         </Button>
                     </div>
                     <p class="text-ink-slate text-[11px] leading-4">
                         {{
                             editing
-                                ? 'Leave blank to keep the current password.'
-                                : 'At least 8 characters. Share it with the learner securely.'
+                                ? $t(
+                                      'Leave blank to keep the current password.',
+                                  )
+                                : $t(
+                                      'At least 8 characters. Share it with the learner securely.',
+                                  )
                         }}
                     </p>
                     <InputError :message="form.errors.password" />
@@ -259,10 +273,10 @@ const headingClass =
 
                 <fieldset class="grid min-w-0 gap-1.5">
                     <legend :class="labelClass">
-                        Departments to study
-                        <span class="text-ink-slate font-normal"
-                            >(one or more)</span
-                        >
+                        {{ $t('Departments to study') }}
+                        <span class="text-ink-slate font-normal">{{
+                            $t('(one or more)')
+                        }}</span>
                     </legend>
                     <div
                         class="mt-1.5 flex flex-wrap gap-2"
@@ -317,30 +331,34 @@ const headingClass =
                                     form.department_ids.length > 1
                                 "
                                 class="bg-brand-600 text-surface rounded-pill px-1.5 py-px text-[10px]"
-                                >Main</span
+                                >{{ $t('Main') }}</span
                             >
                         </button>
                     </div>
                     <p class="text-ink-slate text-[11px] leading-4">
-                        With more than one, the learner switches between them
-                        with "Training in" at the top of their pages. The first
-                        one ticked is their main department.
+                        {{
+                            $t(
+                                'With more than one, the learner switches between them with "Training in" at the top of their pages. The first one ticked is their main department.',
+                            )
+                        }}
                     </p>
                     <InputError :message="departmentError" />
                 </fieldset>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-status" :class="labelClass"
-                            >Account status</Label
-                        >
+                        <Label for="individual-status" :class="labelClass">{{
+                            $t('Account status')
+                        }}</Label>
                         <select
                             id="individual-status"
                             v-model="form.status"
                             :class="inputClass"
                         >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">{{ $t('Active') }}</option>
+                            <option value="inactive">
+                                {{ $t('Inactive') }}
+                            </option>
                         </select>
                         <InputError :message="form.errors.status" />
                     </div>
@@ -351,13 +369,13 @@ const headingClass =
             <section :class="sectionClass" aria-labelledby="individual-access">
                 <h3 id="individual-access" :class="headingClass">
                     <CalendarDays class="size-4" aria-hidden="true" />
-                    Access period &amp; payment
+                    {{ $t('Access period & payment') }}
                 </h3>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-starts" :class="labelClass"
-                            >Starts on</Label
-                        >
+                        <Label for="individual-starts" :class="labelClass">{{
+                            $t('Starts on')
+                        }}</Label>
                         <input
                             id="individual-starts"
                             v-model="form.starts_on"
@@ -368,10 +386,10 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-ends" :class="labelClass"
-                            >Ends on
-                            <span class="text-ink-slate font-normal"
-                                >(empty = no end)</span
-                            ></Label
+                            >{{ $t('Ends on') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(empty = no end)')
+                            }}</span></Label
                         >
                         <input
                             id="individual-ends"
@@ -383,10 +401,10 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-price" :class="labelClass"
-                            >Price paid (DZD)
-                            <span class="text-ink-slate font-normal"
-                                >(optional)</span
-                            ></Label
+                            >{{ $t('Price paid (DZD)') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(optional)')
+                            }}</span></Label
                         >
                         <input
                             id="individual-price"
@@ -400,10 +418,10 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-price-usd" :class="labelClass"
-                            >Price paid, international (USD)
-                            <span class="text-ink-slate font-normal"
-                                >(optional)</span
-                            ></Label
+                            >{{ $t('Price paid, international (USD)') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(optional)')
+                            }}</span></Label
                         >
                         <input
                             id="individual-price-usd"
@@ -418,10 +436,10 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-reference" :class="labelClass"
-                            >Payment reference
-                            <span class="text-ink-slate font-normal"
-                                >(optional)</span
-                            ></Label
+                            >{{ $t('Payment reference') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(optional)')
+                            }}</span></Label
                         >
                         <Input
                             id="individual-reference"
@@ -438,7 +456,7 @@ const headingClass =
             <section :class="sectionClass" aria-labelledby="individual-ai">
                 <h3 id="individual-ai" :class="headingClass">
                     <Bot class="size-4" aria-hidden="true" />
-                    AI configuration
+                    {{ $t('AI configuration') }}
                 </h3>
 
                 <div class="grid gap-2 sm:grid-cols-2">
@@ -454,11 +472,11 @@ const headingClass =
                         <span class="grid">
                             <span
                                 class="text-brand-900 text-[13px] font-semibold"
-                                >AI practice</span
+                                >{{ $t('AI practice') }}</span
                             >
-                            <span class="text-ink-slate text-[11.5px]"
-                                >Role-play, AI feedback and coaching</span
-                            >
+                            <span class="text-ink-slate text-[11.5px]">{{
+                                $t('Role-play, AI feedback and coaching')
+                            }}</span>
                         </span>
                     </label>
                     <label
@@ -474,20 +492,20 @@ const headingClass =
                             <span
                                 class="text-brand-900 flex items-center gap-1 text-[13px] font-semibold"
                                 ><Mic class="size-3.5" aria-hidden="true" />
-                                Voice calls</span
+                                {{ $t('Voice calls') }}</span
                             >
-                            <span class="text-ink-slate text-[11.5px]"
-                                >Live spoken role-play with the AI guest</span
-                            >
+                            <span class="text-ink-slate text-[11.5px]">{{
+                                $t('Live spoken role-play with the AI guest')
+                            }}</span>
                         </span>
                     </label>
                 </div>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-points" :class="labelClass"
-                            >AI points per month</Label
-                        >
+                        <Label for="individual-points" :class="labelClass">{{
+                            $t('AI points per month')
+                        }}</Label>
                         <input
                             id="individual-points"
                             v-model.number="form.ai_points_allocated"
@@ -503,10 +521,12 @@ const headingClass =
                     </div>
                     <div class="grid min-w-0 gap-1.5">
                         <Label for="individual-turns" :class="labelClass"
-                            >AI turns per day
-                            <span class="text-ink-slate font-normal"
-                                >(empty = {{ defaults.dailyAiTurns }})</span
-                            ></Label
+                            >{{ $t('AI turns per day') }}
+                            <span class="text-ink-slate font-normal">{{
+                                $t('(empty = :default)', {
+                                    default: defaults.dailyAiTurns,
+                                })
+                            }}</span></Label
                         >
                         <input
                             id="individual-turns"
@@ -520,8 +540,10 @@ const headingClass =
                         <InputError :message="form.errors.daily_ai_turns" />
                     </div>
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-action-cost" :class="labelClass"
-                            >Points per AI action</Label
+                        <Label
+                            for="individual-action-cost"
+                            :class="labelClass"
+                            >{{ $t('Points per AI action') }}</Label
                         >
                         <input
                             id="individual-action-cost"
@@ -535,8 +557,10 @@ const headingClass =
                         <InputError :message="form.errors.ai_action_points" />
                     </div>
                     <div class="grid min-w-0 gap-1.5">
-                        <Label for="individual-voice-cost" :class="labelClass"
-                            >Points per 10 min of voice</Label
+                        <Label
+                            for="individual-voice-cost"
+                            :class="labelClass"
+                            >{{ $t('Points per 10 min of voice') }}</Label
                         >
                         <input
                             id="individual-voice-cost"
@@ -556,10 +580,10 @@ const headingClass =
 
             <div class="grid gap-1.5">
                 <Label for="individual-notes" :class="labelClass"
-                    >Notes
-                    <span class="text-ink-slate font-normal"
-                        >(optional)</span
-                    ></Label
+                    >{{ $t('Notes') }}
+                    <span class="text-ink-slate font-normal">{{
+                        $t('(optional)')
+                    }}</span></Label
                 >
                 <textarea
                     id="individual-notes"
@@ -580,7 +604,7 @@ const headingClass =
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"
@@ -588,7 +612,7 @@ const headingClass =
                     :disabled="form.processing"
                     data-test="save-individual-button"
                 >
-                    {{ editing ? 'Save changes' : 'Add subscriber' }}
+                    {{ editing ? $t('Save changes') : $t('Add subscriber') }}
                 </Button>
             </div>
         </form>

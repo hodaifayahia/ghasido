@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { dashboard, roles as rolesRoute } from '@/routes';
 import { destroy } from '@/routes/roles';
 import type { RolePermissionGroup, RoleRecord } from '@/types';
+import { tk } from '@/lib/i18n';
 
 type Props = {
     roles: RoleRecord[];
@@ -24,8 +25,8 @@ const props = defineProps<Props>();
 defineOptions({
     layout: {
         breadcrumbs: [
-            { title: 'Dashboard', href: dashboard() },
-            { title: 'Roles & Permissions', href: rolesRoute() },
+            { title: tk('Dashboard'), href: dashboard() },
+            { title: tk('Roles & Permissions'), href: rolesRoute() },
         ],
     },
 });
@@ -86,12 +87,16 @@ function badgeClass(role: RoleRecord): string {
 </script>
 
 <template>
-    <Head title="Roles & Permissions" />
+    <Head :title="$t('Roles & Permissions')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
         <PageHeader
-            title="Roles & Permissions"
-            description="Define what each role can do. Built-in roles are fixed; add your own for anything in between."
+            :title="$t('Roles & Permissions')"
+            :description="
+                $t(
+                    'Define what each role can do. Built-in roles are fixed; add your own for anything in between.',
+                )
+            "
             class="mb-1"
         >
             <template #accent>
@@ -100,7 +105,7 @@ function badgeClass(role: RoleRecord): string {
         </PageHeader>
 
         <PanelCard
-            title="Roles"
+            :title="$t('Roles')"
             title-id="roles-list-title"
             body-class="-mx-4 -mb-4 mt-3"
         >
@@ -112,7 +117,7 @@ function badgeClass(role: RoleRecord): string {
                     @click="addRole"
                 >
                     <Plus class="size-4" aria-hidden="true" />
-                    Add role
+                    {{ $t('Add role') }}
                 </Button>
             </template>
 
@@ -121,7 +126,11 @@ function badgeClass(role: RoleRecord): string {
                     class="w-full table-fixed border-collapse text-start text-[13px]"
                 >
                     <caption class="sr-only">
-                        Roles, account counts, permission coverage and actions
+                        {{
+                            $t(
+                                'Roles, account counts, permission coverage and actions',
+                            )
+                        }}
                     </caption>
                     <thead
                         class="bg-app text-ink-slate text-[11px] tracking-wide uppercase"
@@ -131,25 +140,25 @@ function badgeClass(role: RoleRecord): string {
                                 scope="col"
                                 class="w-[68%] px-3 py-2.5 sm:w-[48%] sm:px-4"
                             >
-                                Role
+                                {{ $t('Role') }}
                             </th>
                             <th
                                 scope="col"
                                 class="hidden px-3 py-2.5 text-end sm:table-cell sm:w-[14%] sm:px-4"
                             >
-                                Accounts
+                                {{ $t('Accounts') }}
                             </th>
                             <th
                                 scope="col"
                                 class="hidden px-3 py-2.5 text-end sm:table-cell sm:w-[16%] sm:px-4"
                             >
-                                Permissions
+                                {{ $t('Permissions') }}
                             </th>
                             <th
                                 scope="col"
                                 class="w-[32%] px-3 py-2.5 text-end sm:w-[22%] sm:px-4"
                             >
-                                Actions
+                                {{ $t('Actions') }}
                             </th>
                         </tr>
                     </thead>
@@ -191,8 +200,8 @@ function badgeClass(role: RoleRecord): string {
                                             >
                                                 {{
                                                     role.isSystem
-                                                        ? 'System'
-                                                        : 'Custom'
+                                                        ? $t('System')
+                                                        : $t('Custom')
                                                 }}
                                             </span>
                                         </div>
@@ -201,22 +210,33 @@ function badgeClass(role: RoleRecord): string {
                                         >
                                             {{ role.name }}
                                             <span class="sm:hidden">
-                                                · {{ role.userCount }} accounts
                                                 ·
                                                 {{
-                                                    role.locked
-                                                        ? totalPermissions
-                                                        : role.permissions
-                                                              .length
+                                                    $t(
+                                                        ':accounts accounts · :permissions permissions',
+                                                        {
+                                                            accounts:
+                                                                role.userCount,
+                                                            permissions:
+                                                                role.locked
+                                                                    ? totalPermissions
+                                                                    : role
+                                                                          .permissions
+                                                                          .length,
+                                                        },
+                                                    )
                                                 }}
-                                                permissions
                                             </span>
                                         </p>
                                         <p
                                             v-if="role.locked"
                                             class="text-ink-slate mt-0.5 text-[11px]"
                                         >
-                                            Holds every permission by design.
+                                            {{
+                                                $t(
+                                                    'Holds every permission by design.',
+                                                )
+                                            }}
                                         </p>
                                     </div>
                                 </div>
@@ -248,7 +268,15 @@ function badgeClass(role: RoleRecord): string {
                                         variant="outline"
                                         class="border-line text-ink h-8 gap-1.5 rounded-md px-2 sm:h-9 sm:px-2.5"
                                         :data-test="`edit-role-${role.id}-button`"
-                                        :aria-label="`${role.locked ? 'View' : 'Edit'} ${role.label}`"
+                                        :aria-label="
+                                            role.locked
+                                                ? $t('View :name', {
+                                                      name: role.label,
+                                                  })
+                                                : $t('Edit :name', {
+                                                      name: role.label,
+                                                  })
+                                        "
                                         @click="editRole(role)"
                                     >
                                         <component
@@ -257,7 +285,9 @@ function badgeClass(role: RoleRecord): string {
                                             aria-hidden="true"
                                         />
                                         <span class="hidden 2xl:inline">{{
-                                            role.locked ? 'View' : 'Edit'
+                                            role.locked
+                                                ? $t('View')
+                                                : $t('Edit')
                                         }}</span>
                                     </Button>
                                     <Button
@@ -266,23 +296,31 @@ function badgeClass(role: RoleRecord): string {
                                         variant="outline"
                                         class="border-danger/40 text-danger hover:bg-danger-tint size-8 rounded-md p-0 2xl:h-9 2xl:w-auto 2xl:gap-1.5 2xl:px-2.5"
                                         :data-test="`delete-role-${role.id}-button`"
-                                        :aria-label="`Delete ${role.label}`"
+                                        :aria-label="
+                                            $t('Delete :name', {
+                                                name: role.label,
+                                            })
+                                        "
                                         @click="confirmDelete(role)"
                                     >
                                         <Trash2
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        <span class="hidden 2xl:inline"
-                                            >Delete</span
-                                        >
+                                        <span class="hidden 2xl:inline">{{
+                                            $t('Delete')
+                                        }}</span>
                                     </Button>
                                 </div>
                                 <span
                                     v-else
                                     class="text-ink-slate block text-end text-[12px]"
                                 >
-                                    {{ role.isSystem ? 'Built in' : 'Custom' }}
+                                    {{
+                                        role.isSystem
+                                            ? $t('Built in')
+                                            : $t('Custom')
+                                    }}
                                 </span>
                             </td>
                         </tr>
@@ -303,8 +341,12 @@ function badgeClass(role: RoleRecord): string {
     <HotelsModal
         v-if="canManage"
         v-model:open="deleteOpen"
-        title="Delete role"
-        :description="`Delete the ${deleteRole?.label ?? ''} role? This cannot be undone.`"
+        :title="$t('Delete role')"
+        :description="
+            $t('Delete the :name role? This cannot be undone.', {
+                name: deleteRole?.label ?? '',
+            })
+        "
     >
         <div class="mt-2 flex items-center justify-end gap-2">
             <Button
@@ -313,7 +355,7 @@ function badgeClass(role: RoleRecord): string {
                 class="h-10 rounded-md"
                 @click="deleteOpen = false"
             >
-                Cancel
+                {{ $t('Cancel') }}
             </Button>
             <Button
                 type="button"
@@ -321,7 +363,7 @@ function badgeClass(role: RoleRecord): string {
                 data-test="confirm-delete-role-button"
                 @click="performDelete"
             >
-                Delete role
+                {{ $t('Delete role') }}
             </Button>
         </div>
     </HotelsModal>

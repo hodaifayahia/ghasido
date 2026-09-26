@@ -6,6 +6,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { archive, reject } from '@/routes/hotels';
+import { useI18n } from '@/composables/useI18n';
 import type { HotelRecord } from '@/types';
 
 type Props = {
@@ -22,22 +23,30 @@ const emit = defineEmits<{
     saved: [];
 }>();
 
+const { t } = useI18n();
+
 const copy = computed(() =>
     props.mode === 'reject'
         ? {
-              title: `Reject ${props.hotel?.name ?? 'hotel'}`,
-              description:
+              title: t('Reject :name', {
+                  name: props.hotel?.name ?? t('hotel'),
+              }),
+              description: t(
                   'The hotel is archived with your reason. Nothing is deleted, and the reason is kept in the audit log.',
-              label: 'Reason for rejecting',
-              button: 'Reject hotel',
+              ),
+              label: t('Reason for rejecting'),
+              button: t('Reject hotel'),
               required: true,
           }
         : {
-              title: `Archive ${props.hotel?.name ?? 'hotel'}`,
-              description:
+              title: t('Archive :name', {
+                  name: props.hotel?.name ?? t('hotel'),
+              }),
+              description: t(
                   'Access stops for everyone at this hotel. Every account, answer and record is kept.',
-              label: 'Reason (optional)',
-              button: 'Archive hotel',
+              ),
+              label: t('Reason (optional)'),
+              button: t('Archive hotel'),
               required: false,
           },
 );
@@ -85,7 +94,7 @@ function onSuccess(): void {
                     :aria-invalid="errors.reason ? true : undefined"
                     data-test="hotel-reason-input"
                     class="border-line text-ink bg-surface placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 w-full rounded-sm border px-3 py-2 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
-                    placeholder="A short note for the audit log"
+                    :placeholder="$t('A short note for the audit log')"
                 />
                 <InputError :message="errors.reason" />
             </div>
@@ -99,7 +108,7 @@ function onSuccess(): void {
                     class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-10 rounded-md px-4 text-[12.5px] font-semibold shadow-none"
                     @click="open = false"
                 >
-                    Cancel
+                    {{ $t('Cancel') }}
                 </Button>
                 <Button
                     type="submit"

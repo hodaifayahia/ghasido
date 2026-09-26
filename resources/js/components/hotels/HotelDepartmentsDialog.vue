@@ -145,8 +145,16 @@ function remove(departmentId: number): void {
 <template>
     <HotelsModal
         v-model:open="open"
-        :title="`Departments at ${overview?.name ?? 'hotel'}`"
-        description="The departments this hotel trains in. Removing one keeps every employee and training record."
+        :title="
+            $t('Departments at :name', {
+                name: overview?.name ?? $t('hotel'),
+            })
+        "
+        :description="
+            $t(
+                'The departments this hotel trains in. Removing one keeps every employee and training record.',
+            )
+        "
         class="sm:max-w-[620px]"
     >
         <div class="mt-2 grid gap-4">
@@ -162,7 +170,11 @@ function remove(departmentId: number): void {
                 v-if="linked.length === 0"
                 class="text-ink-muted rounded-md border border-dashed px-3 py-6 text-center text-[13px]"
             >
-                This hotel has no department yet. Add the first one below.
+                {{
+                    $t(
+                        'This hotel has no department yet. Add the first one below.',
+                    )
+                }}
             </p>
 
             <ul
@@ -182,7 +194,12 @@ function remove(departmentId: number): void {
                             {{ row.department }}
                         </p>
                         <p class="text-ink-slate text-[11.5px]">
-                            {{ row.usedSeats }}/{{ row.totalSeats }} seats used
+                            {{
+                                $t(':used/:total seats used', {
+                                    used: row.usedSeats,
+                                    total: row.totalSeats,
+                                })
+                            }}
                         </p>
                     </div>
 
@@ -191,7 +208,7 @@ function remove(departmentId: number): void {
                         class="flex items-center gap-2"
                     >
                         <span class="text-ink-slate text-[12px]">
-                            Remove {{ row.department }}?
+                            {{ $t('Remove :name?', { name: row.department }) }}
                         </span>
                         <Button
                             type="button"
@@ -199,7 +216,7 @@ function remove(departmentId: number): void {
                             class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-11 rounded-md px-3 text-[12px] font-semibold shadow-none md:h-9"
                             @click="confirmRemove = null"
                         >
-                            Keep
+                            {{ $t('Keep') }}
                         </Button>
                         <Button
                             type="button"
@@ -209,7 +226,7 @@ function remove(departmentId: number): void {
                             :data-test="`confirm-remove-department-${row.departmentId}`"
                             @click="remove(row.departmentId)"
                         >
-                            Remove
+                            {{ $t('Remove') }}
                         </Button>
                     </div>
                     <Button
@@ -217,12 +234,17 @@ function remove(departmentId: number): void {
                         type="button"
                         variant="outline"
                         class="border-line text-danger-text hover:bg-danger-tint bg-surface h-11 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none md:h-9"
-                        :aria-label="`Remove ${row.department} from ${overview?.name ?? 'the hotel'}`"
+                        :aria-label="
+                            $t('Remove :department from :hotel', {
+                                department: row.department,
+                                hotel: overview?.name ?? $t('the hotel'),
+                            })
+                        "
                         :data-test="`remove-department-${row.departmentId}`"
                         @click="confirmRemove = row.departmentId"
                     >
                         <Trash2 class="size-4" aria-hidden="true" />
-                        Remove
+                        {{ $t('Remove') }}
                     </Button>
                 </li>
             </ul>
@@ -233,7 +255,7 @@ function remove(departmentId: number): void {
                 @submit.prevent="add"
             >
                 <p class="text-brand-900 text-[13px] font-semibold">
-                    Add a department
+                    {{ $t('Add a department') }}
                 </p>
 
                 <div
@@ -244,7 +266,7 @@ function remove(departmentId: number): void {
                             for="hotel-department-choice"
                             class="text-ink-slate text-[12px] font-semibold"
                         >
-                            Department
+                            {{ $t('Department') }}
                         </label>
                         <Select
                             :model-value="choice"
@@ -256,7 +278,7 @@ function remove(departmentId: number): void {
                                 data-test="hotel-department-choice"
                             >
                                 <SelectValue
-                                    placeholder="Choose a department"
+                                    :placeholder="$t('Choose a department')"
                                 />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
@@ -273,7 +295,7 @@ function remove(departmentId: number): void {
                                     :value="NEW"
                                     class="text-brand-700 text-[13px] font-semibold"
                                 >
-                                    + New department for this hotel
+                                    {{ $t('+ New department for this hotel') }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -285,7 +307,7 @@ function remove(departmentId: number): void {
                             for="hotel-department-seats"
                             class="text-ink-slate text-[12px] font-semibold"
                         >
-                            Seats
+                            {{ $t('Seats') }}
                         </label>
                         <input
                             id="hotel-department-seats"
@@ -307,13 +329,13 @@ function remove(departmentId: number): void {
                         for="hotel-department-name"
                         class="text-ink-slate text-[12px] font-semibold"
                     >
-                        New department name
+                        {{ $t('New department name') }}
                     </label>
                     <Input
                         id="hotel-department-name"
                         v-model="newName"
                         maxlength="120"
-                        placeholder="e.g. Spa & Wellness"
+                        :placeholder="$t('e.g. Spa & Wellness')"
                         class="border-line h-11 rounded-md text-[13px] md:h-10"
                         data-test="hotel-department-name"
                     />
@@ -332,7 +354,7 @@ function remove(departmentId: number): void {
                         data-test="add-hotel-department-button"
                     >
                         <Plus class="size-4" aria-hidden="true" />
-                        Add department
+                        {{ $t('Add department') }}
                     </Button>
                 </div>
             </form>

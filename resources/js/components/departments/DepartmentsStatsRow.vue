@@ -57,7 +57,7 @@ const looks: Record<DepartmentMetricKey, MetricLook> = {
 <template>
     <ul
         role="list"
-        aria-label="Department summary"
+        :aria-label="$t('Department summary')"
         tabindex="0"
         :class="
             cn(
