@@ -154,7 +154,7 @@ final class HotelDetails
                     'planName' => $payment->plan_name,
                     'amount' => $payment->amount,
                     'currency' => $payment->currency,
-                    'method' => $payment->payment_method_name,
+                    'method' => $payment->methodLabel(),
                     'reference' => $payment->reference,
                     'receiptUrl' => $payment->proof_path !== null ? route('payments.receipt', $payment) : null,
                     'isImage' => $payment->isImageProof(),

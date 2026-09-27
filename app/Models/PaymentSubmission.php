@@ -129,6 +129,15 @@ class PaymentSubmission extends Model
         return $this->individual_subscription_id !== null;
     }
 
+    /**
+     * The method the customer paid with, or "Not specified" when no method
+     * was set up at checkout time (they still sent a receipt or reference).
+     */
+    public function methodLabel(): string
+    {
+        return trim($this->payment_method_name) === '' ? __('Not specified') : $this->payment_method_name;
+    }
+
     public function isImageProof(): bool
     {
         return $this->proof_mime !== null && str_starts_with($this->proof_mime, 'image/');

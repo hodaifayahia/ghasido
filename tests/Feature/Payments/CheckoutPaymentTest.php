@@ -136,6 +136,42 @@ class CheckoutPaymentTest extends TestCase
         $this->assertFalse(Hotel::query()->withoutGlobalScopes()->where('name', 'Blue Coast Hotel')->exists());
     }
 
+    public function test_a_receipt_is_kept_even_before_any_payment_method_is_set_up(): void
+    {
+        // Regression (client report 2026-09-27): with no method set up the
+        // checkout used to skip the payment step, so no receipt arrived.
+        SubscriptionPaymentMethod::query()->update(['is_active' => false]);
+        $plan = $this->plan('gold');
+
+        $this->get(route('checkout.show', $plan))
+            ->assertInertia(fn (Assert $page) => $page->has('paymentMethods', 0));
+
+        $this->post(route('checkout.store', $plan), $this->hotelFields())
+            ->assertSessionHasErrors(['proof', 'reference']);
+
+        $this->post(route('checkout.store', $plan), [
+            ...$this->hotelFields(),
+            'proof' => UploadedFile::fake()->create('receipt.pdf', 200, 'application/pdf'),
+        ])->assertSessionHasNoErrors();
+
+        $submission = PaymentSubmission::query()->sole();
+        $this->assertNull($submission->payment_method_id);
+        $this->assertSame('Not specified', $submission->methodLabel());
+        $this->assertNotNull($submission->proof_path);
+        Storage::disk('local')->assertExists($submission->proof_path);
+
+        $admin = User::factory()->superAdmin()->create();
+        $this->actingAs($admin)
+            ->get(route('payments.receipt', $submission))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->actingAs($admin)
+            ->get(route('payments'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('payments.0.method', 'Not specified')
+                ->where('payments.0.receiptUrl', route('payments.receipt', $submission)));
+    }
+
     public function test_a_hidden_payment_method_cannot_be_used(): void
     {
         $hidden = SubscriptionPaymentMethod::query()->where('name', 'RedotPay')->firstOrFail();

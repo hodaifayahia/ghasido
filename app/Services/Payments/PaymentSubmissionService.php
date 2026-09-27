@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Manual payments sent from the checkout (client request 2026-09-27). The
@@ -32,7 +33,7 @@ final class PaymentSubmissionService
     public function submit(
         Hotel|IndividualSubscription $account,
         SubscriptionPlan $plan,
-        SubscriptionPaymentMethod $method,
+        ?SubscriptionPaymentMethod $method,
         array $payment,
         ?UploadedFile $proof,
     ): PaymentSubmission {
@@ -44,8 +45,9 @@ final class PaymentSubmissionService
             'plan_name' => $plan->name,
             'currency' => $payment['currency'],
             'amount' => $payment['currency'] === 'USD' ? $plan->price_usd : $plan->price_dzd,
-            'payment_method_id' => $method->id,
-            'payment_method_name' => $method->name,
+            'payment_method_id' => $method?->id,
+            // Empty when no method was set up; shown as "Not specified".
+            'payment_method_name' => $method->name ?? '',
             'reference' => $payment['reference'],
             'payer_name' => $payment['payer_name'],
             'payer_email' => $payment['payer_email'],
@@ -61,8 +63,16 @@ final class PaymentSubmissionService
                 Str::uuid().'.'.$extension,
             );
 
+            // A receipt that cannot be saved stops the checkout, rather
+            // than a payment quietly arriving without it.
+            if ($path === false) {
+                throw ValidationException::withMessages([
+                    'proof' => __('We could not save your receipt. Please try again.'),
+                ]);
+            }
+
             $submission->fill([
-                'proof_path' => $path === false ? null : $path,
+                'proof_path' => $path,
                 // Only a display name; the stored file is always a UUID.
                 'proof_name' => Str::limit($proof->getClientOriginalName(), 180, ''),
                 'proof_mime' => $proof->getMimeType(),
@@ -78,7 +88,7 @@ final class PaymentSubmissionService
             'plan' => $plan->name,
             'amount' => $submission->amount,
             'currency' => $submission->currency,
-            'method' => $method->name,
+            'method' => $method?->name,
             'has_receipt' => $submission->proof_path !== null,
         ]);
 

@@ -50,7 +50,80 @@ function extensionOf(name: string): string {
     return dot === -1 ? '' : name.slice(dot + 1).toLowerCase();
 }
 
-function choose(candidate: File | undefined): void {
+const IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'webp'];
+
+function canvasBlob(
+    canvas: HTMLCanvasElement,
+    quality: number,
+): Promise<Blob | null> {
+    return new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', quality),
+    );
+}
+
+/**
+ * A phone photo of a receipt is often larger than the upload limit. Rather
+ * than refuse it, redraw it as a JPEG, smaller and lighter step by step,
+ * until it fits; the text of a receipt stays readable at these sizes.
+ * Returns null when the browser cannot read the image.
+ */
+async function shrinkImage(
+    source: File,
+    maxBytes: number,
+): Promise<File | null> {
+    let bitmap: ImageBitmap;
+
+    try {
+        bitmap = await createImageBitmap(source);
+    } catch {
+        return null;
+    }
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+        bitmap.close();
+
+        return null;
+    }
+
+    let longest = Math.min(2400, Math.max(bitmap.width, bitmap.height));
+
+    try {
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const scale = longest / Math.max(bitmap.width, bitmap.height);
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            // White behind transparent PNGs, which JPEG cannot keep.
+            context.fillStyle = 'white';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+            const blob = await canvasBlob(canvas, attempt < 2 ? 0.85 : 0.75);
+
+            if (blob && blob.size <= maxBytes) {
+                const base = source.name.replace(/\.[^.]+$/, '') || 'receipt';
+
+                return new File([blob], `${base}.jpg`, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                });
+            }
+
+            longest = Math.round(longest * 0.8);
+        }
+    } finally {
+        bitmap.close();
+    }
+
+    return null;
+}
+
+// Shared with the checkout, which holds the submit button until it is done.
+const preparing = defineModel<boolean>('preparing', { default: false });
+
+async function choose(candidate: File | undefined): Promise<void> {
     if (!candidate) {
         return;
     }
@@ -66,7 +139,29 @@ function choose(candidate: File | undefined): void {
         return;
     }
 
-    if (candidate.size > props.maxKb * 1024) {
+    const maxBytes = props.maxKb * 1024;
+
+    if (
+        candidate.size > maxBytes &&
+        IMAGE_TYPES.includes(extensionOf(candidate.name))
+    ) {
+        preparing.value = true;
+        localError.value = null;
+
+        try {
+            const smaller = await shrinkImage(candidate, maxBytes);
+
+            if (smaller) {
+                file.value = smaller;
+
+                return;
+            }
+        } finally {
+            preparing.value = false;
+        }
+    }
+
+    if (candidate.size > maxBytes) {
         localError.value = t(
             'This file is :size. Receipts can be :max at most — try a screenshot or a smaller photo.',
             { size: formatFileSize(candidate.size), max: maxLabel.value },
@@ -81,13 +176,13 @@ function choose(candidate: File | undefined): void {
 
 function onPick(event: Event): void {
     const target = event.target as HTMLInputElement;
-    choose(target.files?.[0]);
+    void choose(target.files?.[0]);
     target.value = '';
 }
 
 function onDrop(event: DragEvent): void {
     dragging.value = false;
-    choose(event.dataTransfer?.files[0]);
+    void choose(event.dataTransfer?.files[0]);
 }
 
 function onDragLeave(event: DragEvent): void {
@@ -159,7 +254,14 @@ onBeforeUnmount(revoke);
                     }}</span>
                     {{ $t('or drag and drop') }}
                 </span>
-                <span class="text-ink-muted text-[12px]">
+                <span
+                    v-if="preparing"
+                    class="text-brand-700 text-[12px] font-semibold"
+                    role="status"
+                >
+                    {{ $t('Making the photo smaller…') }}
+                </span>
+                <span v-else class="text-ink-muted text-[12px]">
                     {{
                         $t(':types (max :max)', {
                             types: typesLabel,

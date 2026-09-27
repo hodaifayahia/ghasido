@@ -35,7 +35,7 @@ class PaymentSubmittedMail extends Mailable implements ShouldQueue
                 'customer' => $submission->hotel->name ?? $submission->payer_name,
                 'planName' => $submission->plan_name,
                 'amount' => number_format($submission->amount, $submission->currency === 'USD' ? 2 : 0).' '.$submission->currency,
-                'method' => $submission->payment_method_name,
+                'method' => $submission->methodLabel(),
                 'reference' => $submission->reference,
                 'reviewUrl' => route('payments', ['payment' => $submission->id]),
             ],

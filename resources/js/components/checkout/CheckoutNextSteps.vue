@@ -14,44 +14,30 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const steps = computed(() =>
-    props.acceptsPayment
-        ? [
-              {
-                  icon: Send,
-                  text: tk('Send the payment with the method you pick.'),
-              },
-              {
-                  icon: ReceiptText,
-                  text: tk(
-                      'Upload the receipt or type the transaction number.',
-                  ),
-              },
-              {
-                  icon: BadgeCheck,
-                  text: props.isIndividual
-                      ? tk(
-                            'We check the payment and activate your account. You get an email when it is ready.',
-                        )
-                      : tk(
-                            'We check the payment and activate the hotel. The manager gets an email when it is ready.',
-                        ),
-              },
-          ]
-        : [
-              { icon: Send, text: tk('Send us your details with this form.') },
-              {
-                  icon: ReceiptText,
-                  text: tk('We contact you to arrange the payment.'),
-              },
-              {
-                  icon: BadgeCheck,
-                  text: tk(
-                      'Once it is confirmed, we activate the account and email you.',
-                  ),
-              },
-          ],
-);
+// The receipt step is always part of the checkout; only the first line
+// depends on whether a payment method is set up to pick from.
+const steps = computed(() => [
+    {
+        icon: Send,
+        text: props.acceptsPayment
+            ? tk('Send the payment with the method you pick.')
+            : tk('Send the payment, then keep the receipt.'),
+    },
+    {
+        icon: ReceiptText,
+        text: tk('Upload the receipt or type the transaction number.'),
+    },
+    {
+        icon: BadgeCheck,
+        text: props.isIndividual
+            ? tk(
+                  'We check the payment and activate your account. You get an email when it is ready.',
+              )
+            : tk(
+                  'We check the payment and activate the hotel. The manager gets an email when it is ready.',
+              ),
+    },
+]);
 </script>
 
 <template>

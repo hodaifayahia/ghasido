@@ -134,7 +134,7 @@ class HandleInertiaRequests extends Middleware
                 ]),
                 'body' => __(':plan plan · :method. Check the receipt and approve the account.', [
                     'plan' => $payment->plan_name,
-                    'method' => $payment->payment_method_name,
+                    'method' => $payment->methodLabel(),
                 ]),
                 'sentAt' => $payment->created_at?->toIso8601String() ?? '',
                 'expiresAt' => null,

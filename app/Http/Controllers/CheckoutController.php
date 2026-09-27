@@ -52,7 +52,7 @@ final class CheckoutController extends Controller
                     ->all()
                 : [],
             'proofTypes' => CheckoutRequest::PROOF_TYPES,
-            'proofMaxKb' => CheckoutRequest::PROOF_MAX_KB,
+            'proofMaxKb' => CheckoutRequest::proofMaxKb(),
             // DZD for Algeria, USD for international customers (client
             // decision 2026-09-26), as chosen on the pricing switch.
             'region' => $request->query('region') === 'intl' ? 'intl' : 'dz',
@@ -71,7 +71,7 @@ final class CheckoutController extends Controller
 
         $method = $request->paymentMethod();
 
-        $submission = DB::transaction(function () use ($request, $plan, $hotels, $individuals, $payments, $method): ?PaymentSubmission {
+        $submission = DB::transaction(function () use ($request, $plan, $hotels, $individuals, $payments, $method): PaymentSubmission {
             $account = $plan->isIndividual()
                 ? $individuals->requestAccess($request->individualData(), $plan, $request->departmentId(), $request->currency())
                 : $hotels->requestAccess(
@@ -80,16 +80,10 @@ final class CheckoutController extends Controller
                     $request->input('region') === 'intl' ? 'intl' : 'dz',
                 );
 
-            return $method === null
-                ? null
-                : $payments->submit($account, $plan, $method, $request->paymentData(), $request->proof());
+            // Always recorded: the receipt and/or reference, and the method
+            // when one is set up (null before any is).
+            return $payments->submit($account, $plan, $method, $request->paymentData(), $request->proof());
         });
-
-        if ($submission === null) {
-            return to_route('login')->with('status', __('Your :plan plan request has been received. We will contact you to confirm payment and activate your account.', [
-                'plan' => $plan->name,
-            ]));
-        }
 
         DB::afterCommit(fn () => $notifier->submitted($submission));
 
@@ -110,7 +104,7 @@ final class CheckoutController extends Controller
                 'planName' => $payment->plan_name,
                 'amount' => $payment->amount,
                 'currency' => $payment->currency,
-                'method' => $payment->payment_method_name,
+                'method' => $payment->methodLabel(),
                 'reference' => $payment->reference,
                 'hasReceipt' => $payment->proof_path !== null,
                 'submittedAt' => $payment->created_at?->toIso8601String(),

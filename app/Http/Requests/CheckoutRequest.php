@@ -35,6 +35,9 @@ class CheckoutRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        // A plan that is not on sale is not found, before any field is checked.
+        abort_unless($this->plan()->is_active, 404);
+
         $lower = fn (mixed $value): mixed => is_string($value) ? mb_strtolower(trim($value)) : $value;
         $trim = fn (mixed $value): mixed => is_string($value) ? trim($value) : $value;
 
@@ -74,14 +77,15 @@ class CheckoutRequest extends FormRequest
                 'manager_username' => ['required', 'string', 'min:3', 'max:40', 'regex:/^[a-z0-9._-]+$/', Rule::unique(User::class, 'username')],
             ];
 
-        // With no payment method set up yet, the request goes through as
-        // before and the team confirms payment by other means.
+        // The payment is always proved, by a receipt, a reference or both.
+        // The method is asked for only once one is set up for customers.
+        $rules += [
+            'proof' => ['nullable', 'required_without:reference', File::types(self::PROOF_TYPES)->max(self::proofMaxKb())],
+            'reference' => ['nullable', 'required_without:proof', 'string', 'max:120'],
+        ];
+
         if (self::acceptsPayments()) {
-            $rules += [
-                'payment_method_id' => ['required', 'integer', Rule::exists(SubscriptionPaymentMethod::class, 'id')->where('is_active', true)],
-                'proof' => ['nullable', 'required_without:reference', File::types(self::PROOF_TYPES)->max(self::PROOF_MAX_KB)],
-                'reference' => ['nullable', 'required_without:proof', 'string', 'max:120'],
-            ];
+            $rules['payment_method_id'] = ['required', 'integer', Rule::exists(SubscriptionPaymentMethod::class, 'id')->where('is_active', true)];
         }
 
         return $rules;
@@ -103,7 +107,52 @@ class CheckoutRequest extends FormRequest
             'proof.required_without' => __('Upload the payment receipt or type the transaction reference.'),
             'reference.required_without' => __('Upload the payment receipt or type the transaction reference.'),
             'payment_method_id.required' => __('Choose how you paid.'),
+            'proof.uploaded' => __('The receipt could not be uploaded. Try a smaller file (under :size MB) or type the transaction reference.', ['size' => self::proofMaxMb()]),
         ];
+    }
+
+    /**
+     * The receipt size cap in kilobytes: 5 MB, or less when the server's PHP
+     * accepts less (upload_max_filesize / post_max_size), so the customer
+     * is told the real limit instead of the file vanishing on the way.
+     */
+    public static function proofMaxKb(): int
+    {
+        $limits = [self::PROOF_MAX_KB];
+
+        foreach (['upload_max_filesize', 'post_max_size'] as $setting) {
+            $bytes = self::iniBytes((string) ini_get($setting));
+
+            if ($bytes > 0) {
+                // Leave room for the form's other fields in the POST body.
+                $limits[] = intdiv($bytes, 1024) - ($setting === 'post_max_size' ? 64 : 0);
+            }
+        }
+
+        return max(256, min($limits));
+    }
+
+    public static function proofMaxMb(): string
+    {
+        return rtrim(rtrim(number_format(self::proofMaxKb() / 1024, 1, '.', ''), '0'), '.');
+    }
+
+    private static function iniBytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '' || $value === '-1' || $value === '0') {
+            return 0;
+        }
+
+        $number = (int) $value;
+
+        return match (strtolower(substr($value, -1))) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     /** Is at least one payment method ready to show customers? */

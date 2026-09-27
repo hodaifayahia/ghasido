@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { Building2, ChevronDown, CreditCard, UserRound } from '@lucide/vue';
-import { computed, nextTick } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import CheckoutField from '@/components/checkout/CheckoutField.vue';
 import CheckoutNextSteps from '@/components/checkout/CheckoutNextSteps.vue';
 import CheckoutPlanSummary from '@/components/checkout/CheckoutPlanSummary.vue';
@@ -131,43 +131,34 @@ const proofComplete = computed(
     () => form.proof !== null || form.reference.trim() !== '',
 );
 
-const steps = computed((): CheckoutStep[] =>
-    acceptsPayment.value
+// The proof step is always there; choosing a method only once one is set
+// up for customers.
+const steps = computed((): CheckoutStep[] => [
+    {
+        id: 'checkout-details',
+        label: t('Your details'),
+        complete: detailsComplete.value,
+    },
+    ...(acceptsPayment.value
         ? [
-              {
-                  id: 'checkout-details',
-                  label: t('Your details'),
-                  complete: detailsComplete.value,
-              },
               {
                   id: 'checkout-method',
                   label: t('Payment method'),
                   complete: methodComplete.value,
               },
-              {
-                  id: 'checkout-proof',
-                  label: t('Pay & upload proof'),
-                  complete: proofComplete.value,
-              },
-              {
-                  id: 'checkout-review',
-                  label: t('Review & submit'),
-                  complete: false,
-              },
           ]
-        : [
-              {
-                  id: 'checkout-details',
-                  label: t('Your details'),
-                  complete: detailsComplete.value,
-              },
-              {
-                  id: 'checkout-review',
-                  label: t('Review & submit'),
-                  complete: false,
-              },
-          ],
-);
+        : []),
+    {
+        id: 'checkout-proof',
+        label: t('Pay & upload proof'),
+        complete: proofComplete.value,
+    },
+    {
+        id: 'checkout-review',
+        label: t('Review & submit'),
+        complete: false,
+    },
+]);
 
 const reviewRows = computed((): ReviewRow[] => {
     const rows: ReviewRow[] = [
@@ -189,29 +180,29 @@ const reviewRows = computed((): ReviewRow[] => {
     ];
 
     if (acceptsPayment.value) {
-        rows.push(
-            {
-                label: t('Payment method'),
-                value: selectedMethod.value?.name ?? t('Not chosen yet'),
-                missing: selectedMethod.value === null,
-            },
-            {
-                label: t('Proof of payment'),
-                value: form.proof
-                    ? form.proof.name
-                    : form.reference.trim()
-                      ? t('Reference :reference', {
-                            reference: form.reference.trim(),
-                        })
-                      : t('Receipt or reference still needed'),
-                missing: !proofComplete.value,
-            },
-        );
+        rows.push({
+            label: t('Payment method'),
+            value: selectedMethod.value?.name ?? t('Not chosen yet'),
+            missing: selectedMethod.value === null,
+        });
     }
+
+    rows.push({
+        label: t('Proof of payment'),
+        value: form.proof
+            ? form.proof.name
+            : form.reference.trim()
+              ? t('Reference :reference', {
+                    reference: form.reference.trim(),
+                })
+              : t('Receipt or reference still needed'),
+        missing: !proofComplete.value,
+    });
 
     return rows;
 });
 
+const preparingProof = ref(false);
 const progress = computed(() => form.progress?.percentage ?? null);
 
 function describedBy(id: string, error?: string, hint = false): string {
@@ -248,7 +239,7 @@ async function focusFirstError(): Promise<void> {
 }
 
 function submit(): void {
-    if (form.processing) {
+    if (form.processing || preparingProof.value) {
         return;
     }
 
@@ -267,13 +258,13 @@ function submit(): void {
                   manager_email: data.manager_email,
                   manager_username: data.manager_username,
               };
-        const payment = acceptsPayment.value
-            ? {
-                  payment_method_id: data.payment_method_id ?? '',
-                  reference: data.reference,
-                  ...(data.proof ? { proof: data.proof } : {}),
-              }
-            : {};
+        const payment = {
+            ...(acceptsPayment.value
+                ? { payment_method_id: data.payment_method_id ?? '' }
+                : {}),
+            reference: data.reference,
+            ...(data.proof ? { proof: data.proof } : {}),
+        };
 
         return {
             region: data.region,
@@ -852,125 +843,129 @@ function submit(): void {
                                 :error="form.errors.payment_method_id"
                             />
                         </CheckoutSection>
-
-                        <!-- 3. Pay & upload proof -->
-                        <CheckoutSection
-                            id="checkout-proof"
-                            :step="3"
-                            :title="$t('Pay and upload the proof')"
-                            :description="
-                                $t(
-                                    'Send the payment, then upload the receipt or type the transaction number.',
-                                )
-                            "
-                            :complete="proofComplete"
-                        >
-                            <div class="grid gap-6">
-                                <PaymentDetails
-                                    v-if="selectedMethod"
-                                    :method="selectedMethod"
-                                    :method-index="selectedMethodIndex"
-                                    :amount="price"
-                                    :amount-value="String(amountValue)"
-                                    :suggested-reference="suggestedReference"
-                                />
-                                <div
-                                    v-else
-                                    class="border-line-strong bg-app text-ink-slate flex items-center gap-3 rounded-lg border border-dashed px-4 py-5 text-[13px] leading-5"
-                                >
-                                    <CreditCard
-                                        class="text-brand-600 size-5 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    {{
-                                        $t(
-                                            'Choose a payment method above to see where to send the payment.',
-                                        )
-                                    }}
-                                </div>
-
-                                <div class="grid gap-4">
-                                    <div>
-                                        <h3
-                                            class="font-heading text-brand-900 text-[16px] font-semibold"
-                                        >
-                                            {{ $t('Proof of payment') }}
-                                        </h3>
-                                        <p
-                                            id="proof-help"
-                                            class="text-ink-slate mt-1 text-[13px] leading-5"
-                                        >
-                                            {{
-                                                $t(
-                                                    'Upload the receipt, type the transaction reference, or both. At least one is required.',
-                                                )
-                                            }}
-                                        </p>
-                                    </div>
-
-                                    <ProofUpload
-                                        v-model="form.proof"
-                                        :types="proofTypes"
-                                        :max-kb="proofMaxKb"
-                                        :error="form.errors.proof"
-                                    />
-
-                                    <div
-                                        class="text-ink-faint flex items-center gap-3 text-[12px] font-semibold tracking-[0.1em] uppercase"
-                                        aria-hidden="true"
-                                    >
-                                        <span class="bg-line h-px flex-1" />
-                                        {{ $t('and / or') }}
-                                        <span class="bg-line h-px flex-1" />
-                                    </div>
-
-                                    <CheckoutField
-                                        id="payment-reference"
-                                        :label="
-                                            $t(
-                                                'Transaction reference or number',
-                                            )
-                                        "
-                                        :hint="
-                                            $t(
-                                                'Shown on the receipt or in your app’s history.',
-                                            )
-                                        "
-                                        :error="form.errors.reference"
-                                    >
-                                        <Input
-                                            id="payment-reference"
-                                            v-model="form.reference"
-                                            name="reference"
-                                            maxlength="120"
-                                            autocomplete="off"
-                                            spellcheck="false"
-                                            placeholder="TX-2026-000123"
-                                            dir="ltr"
-                                            :aria-invalid="
-                                                form.errors.reference
-                                                    ? 'true'
-                                                    : undefined
-                                            "
-                                            :aria-describedby="
-                                                describedBy(
-                                                    'payment-reference',
-                                                    form.errors.reference,
-                                                    true,
-                                                )
-                                            "
-                                            :class="checkoutInputClass"
-                                        />
-                                    </CheckoutField>
-                                </div>
-                            </div>
-                        </CheckoutSection>
                     </template>
+
+                    <!-- Pay & upload proof: always, so a receipt can be sent
+                         even before any payment method is set up -->
+                    <CheckoutSection
+                        id="checkout-proof"
+                        :step="acceptsPayment ? 3 : 2"
+                        :title="$t('Pay and upload the proof')"
+                        :description="
+                            acceptsPayment
+                                ? $t(
+                                      'Send the payment, then upload the receipt or type the transaction number.',
+                                  )
+                                : $t(
+                                      'Upload the receipt of your payment or type the transaction number.',
+                                  )
+                        "
+                        :complete="proofComplete"
+                    >
+                        <div class="grid gap-6">
+                            <PaymentDetails
+                                v-if="acceptsPayment && selectedMethod"
+                                :method="selectedMethod"
+                                :method-index="selectedMethodIndex"
+                                :amount="price"
+                                :amount-value="String(amountValue)"
+                                :suggested-reference="suggestedReference"
+                            />
+                            <div
+                                v-else-if="acceptsPayment"
+                                class="border-line-strong bg-app text-ink-slate flex items-center gap-3 rounded-lg border border-dashed px-4 py-5 text-[13px] leading-5"
+                            >
+                                <CreditCard
+                                    class="text-brand-600 size-5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                {{
+                                    $t(
+                                        'Choose a payment method above to see where to send the payment.',
+                                    )
+                                }}
+                            </div>
+
+                            <div class="grid gap-4">
+                                <div>
+                                    <h3
+                                        class="font-heading text-brand-900 text-[16px] font-semibold"
+                                    >
+                                        {{ $t('Proof of payment') }}
+                                    </h3>
+                                    <p
+                                        id="proof-help"
+                                        class="text-ink-slate mt-1 text-[13px] leading-5"
+                                    >
+                                        {{
+                                            $t(
+                                                'Upload the receipt, type the transaction reference, or both. At least one is required.',
+                                            )
+                                        }}
+                                    </p>
+                                </div>
+
+                                <ProofUpload
+                                    v-model="form.proof"
+                                    v-model:preparing="preparingProof"
+                                    :types="proofTypes"
+                                    :max-kb="proofMaxKb"
+                                    :error="form.errors.proof"
+                                />
+
+                                <div
+                                    class="text-ink-faint flex items-center gap-3 text-[12px] font-semibold tracking-[0.1em] uppercase"
+                                    aria-hidden="true"
+                                >
+                                    <span class="bg-line h-px flex-1" />
+                                    {{ $t('and / or') }}
+                                    <span class="bg-line h-px flex-1" />
+                                </div>
+
+                                <CheckoutField
+                                    id="payment-reference"
+                                    :label="
+                                        $t('Transaction reference or number')
+                                    "
+                                    :hint="
+                                        $t(
+                                            'Shown on the receipt or in your app’s history.',
+                                        )
+                                    "
+                                    :error="form.errors.reference"
+                                >
+                                    <Input
+                                        id="payment-reference"
+                                        v-model="form.reference"
+                                        name="reference"
+                                        maxlength="120"
+                                        autocomplete="off"
+                                        spellcheck="false"
+                                        placeholder="TX-2026-000123"
+                                        dir="ltr"
+                                        :aria-invalid="
+                                            form.errors.reference
+                                                ? 'true'
+                                                : undefined
+                                        "
+                                        :aria-describedby="
+                                            describedBy(
+                                                'payment-reference',
+                                                form.errors.reference,
+                                                true,
+                                            )
+                                        "
+                                        :class="checkoutInputClass"
+                                    />
+                                </CheckoutField>
+                            </div>
+                        </div>
+                    </CheckoutSection>
 
                     <!-- Review & submit -->
                     <CheckoutSection
                         id="checkout-review"
-                        :step="acceptsPayment ? 4 : 2"
+                        :step="acceptsPayment ? 4 : 3"
                         :title="$t('Review and submit')"
                         :description="
                             $t('Check everything once, then send your request.')
@@ -982,12 +977,8 @@ function submit(): void {
                             :approval-description="
                                 content.checkout.payment_description
                             "
-                            :submit-label="
-                                acceptsPayment
-                                    ? $t('Submit payment')
-                                    : content.checkout.submit_button
-                            "
-                            :processing="form.processing"
+                            :submit-label="$t('Submit payment')"
+                            :processing="form.processing || preparingProof"
                             :progress="form.proof ? progress : null"
                             :has-errors="form.hasErrors"
                         />

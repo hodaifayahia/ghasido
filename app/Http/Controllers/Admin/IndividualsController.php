@@ -255,7 +255,7 @@ class IndividualsController extends Controller
 
         return [
             'id' => $payment->id,
-            'method' => $payment->payment_method_name,
+            'method' => $payment->methodLabel(),
             'amount' => $payment->amount,
             'currency' => $payment->currency,
             'reference' => $payment->reference,

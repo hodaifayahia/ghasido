@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\HotelAccessState;
 use App\Enums\Role;
 use App\Models\Hotel;
+use App\Models\PaymentSubmission;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,8 +59,10 @@ class CheckoutTest extends TestCase
         $plan = SubscriptionPlan::query()->where('slug', 'gold')->firstOrFail();
 
         $this->post(route('checkout.store', $plan), $this->validRequest())
-            ->assertRedirect(route('login'))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('checkout.submitted', [
+                'submission' => PaymentSubmission::query()->sole()->public_id,
+            ]));
 
         $hotel = Hotel::query()->where('name', 'Blue Coast Hotel')->firstOrFail();
         $manager = User::query()->where('username', 'blue.coast.manager')->firstOrFail();
@@ -92,6 +95,7 @@ class CheckoutTest extends TestCase
             'phone' => '+213 555 12 34 56',
             'password' => 'SecretPass123',
             'password_confirmation' => 'SecretPass123',
+            'reference' => 'BM-0001',
         ];
     }
 }
