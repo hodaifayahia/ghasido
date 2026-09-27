@@ -161,3 +161,40 @@ export type HotelRowAction =
     | 'pause'
     | 'resume'
     | 'archive';
+
+/** One payment sent with a hotel's online purchase (client request 2026-09-27). */
+export type HotelApprovalPayment = {
+    id: number;
+    planName: string;
+    amount: number;
+    currency: string;
+    /** The payment method's name, e.g. BaridiMob. */
+    method: string;
+    reference: string | null;
+    /** Streams the private receipt inline; null when only a reference was sent. */
+    receiptUrl: string | null;
+    isImage: boolean;
+    status: 'pending' | 'confirmed' | 'rejected';
+    /** Already translated by the server. */
+    statusLabel: string;
+    submittedAt: string | null;
+    /** The Payments page with this payment open. */
+    reviewUrl: string;
+};
+
+/**
+ * A hotel that bought a plan online waits for the Super Admin to confirm
+ * the payment (client request 2026-09-27).
+ */
+export type HotelApproval = {
+    pending: boolean;
+    /** Pending, and the viewer may approve hotels. */
+    canApprove: boolean;
+    requester: {
+        name: string;
+        email: string | null;
+        phone: string | null;
+    } | null;
+    /** Newest first; empty for viewers who cannot manage subscriptions. */
+    payments: HotelApprovalPayment[];
+};

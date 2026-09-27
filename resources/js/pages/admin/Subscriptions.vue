@@ -6,6 +6,7 @@ import {
     Pencil,
     Plus,
     Sparkles,
+    UserRound,
     Users,
 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -23,6 +24,8 @@ type Plan = {
     id: number;
     name: string;
     slug: string;
+    /** Hotel plans sell seats; individual plans sell one learner's monthly AI points (2026-09-27). */
+    audience: 'hotel' | 'individual';
     employeeLimit: number;
     priceDzd: number;
     priceUsd: number;
@@ -36,6 +39,8 @@ type Plan = {
     aiActionPoints: number;
     isActive: boolean;
     hotelCount: number;
+    /** Individual subscribers on this plan. */
+    subscriberCount: number;
     pointPool: number;
 };
 
@@ -126,6 +131,16 @@ const pointTopUpForm = useForm({
 });
 
 const activeHotelCount = computed(() => props.hotels.length);
+const hotelPlans = computed(() =>
+    props.plans.filter((plan) => plan.audience !== 'individual'),
+);
+const individualPlans = computed(() =>
+    props.plans.filter((plan) => plan.audience === 'individual'),
+);
+/** An individual plan has no seats and no shared pool, only AI points. */
+const editingIndividual = computed(
+    () => editing.value?.audience === 'individual',
+);
 const activePaymentMethods = computed(() =>
     props.paymentMethods.filter((method) => method.isActive),
 );
@@ -357,128 +372,349 @@ function savePaymentMethod(): void {
 
         <section
             v-if="tab === 'plans'"
-            class="grid min-w-0 gap-3 lg:grid-cols-3"
+            class="grid min-w-0 gap-5"
             role="tabpanel"
             :aria-label="$t('Plans')"
         >
-            <PanelCard
-                v-for="plan in plans"
-                :key="plan.id"
-                :title="plan.name"
-                :title-id="`plan-${plan.id}-heading`"
-                class="min-h-[220px]"
-                body-class="flex flex-col"
+            <section
+                class="grid min-w-0 gap-2.5"
+                aria-labelledby="hotel-plans-heading"
             >
-                <template #icon>
+                <header class="flex min-w-0 items-center gap-2.5">
                     <span
-                        class="bg-brand-100 text-brand-700 grid size-8 place-items-center rounded-full"
+                        class="bg-brand-100 text-brand-700 grid size-8 shrink-0 place-items-center rounded-full"
                     >
-                        <CreditCard class="size-4" aria-hidden="true" />
+                        <Building2 class="size-4" aria-hidden="true" />
                     </span>
-                </template>
-                <template #actions>
-                    <span
-                        class="rounded-full px-2 py-1 text-[10px] font-semibold"
-                        :class="
-                            plan.isActive
-                                ? 'bg-success/10 text-success'
-                                : 'bg-ink-faint/20 text-ink-slate'
-                        "
+                    <div class="min-w-0">
+                        <h2
+                            id="hotel-plans-heading"
+                            class="font-heading text-brand-800 text-base font-semibold"
+                        >
+                            {{ $t('Hotel plans') }}
+                            <span class="text-ink-muted ms-1 text-[12px]">{{
+                                hotelPlans.length
+                            }}</span>
+                        </h2>
+                        <p class="text-ink-slate text-[12px]">
+                            {{
+                                $t(
+                                    'Sized by employee seats, with a shared monthly AI point pool.',
+                                )
+                            }}
+                        </p>
+                    </div>
+                </header>
+                <div class="grid min-w-0 gap-3 lg:grid-cols-3">
+                    <PanelCard
+                        v-for="plan in hotelPlans"
+                        :key="plan.id"
+                        :title="plan.name"
+                        :title-id="`plan-${plan.id}-heading`"
+                        class="min-h-[220px]"
+                        body-class="flex flex-col"
                     >
-                        {{ plan.isActive ? $t('Available') : $t('Inactive') }}
-                    </span>
-                </template>
+                        <template #icon>
+                            <span
+                                class="bg-brand-100 text-brand-700 grid size-8 place-items-center rounded-full"
+                            >
+                                <CreditCard class="size-4" aria-hidden="true" />
+                            </span>
+                        </template>
+                        <template #actions>
+                            <span
+                                class="rounded-full px-2 py-1 text-[10px] font-semibold"
+                                :class="
+                                    plan.isActive
+                                        ? 'bg-success/10 text-success'
+                                        : 'bg-ink-faint/20 text-ink-slate'
+                                "
+                            >
+                                {{
+                                    plan.isActive
+                                        ? $t('Available')
+                                        : $t('Inactive')
+                                }}
+                            </span>
+                        </template>
 
-                <div class="flex items-baseline gap-1.5">
-                    <p
-                        class="font-heading text-brand-900 text-[24px] leading-7 font-bold"
+                        <div class="flex items-baseline gap-1.5">
+                            <p
+                                class="font-heading text-brand-900 text-[24px] leading-7 font-bold"
+                            >
+                                {{ formatDzd(plan.priceDzd) }}
+                            </p>
+                            <span class="text-ink-muted text-[11px]">{{
+                                $t('/ month')
+                            }}</span>
+                        </div>
+                        <p
+                            class="text-ink-slate mt-1 text-[12px] font-semibold"
+                        >
+                            {{
+                                $t('International: :price', {
+                                    price: formatUsd(plan.priceUsd),
+                                })
+                            }}
+                            <span class="text-ink-muted font-normal">{{
+                                $t('/ month')
+                            }}</span>
+                        </p>
+                        <div class="mt-4 grid grid-cols-2 gap-2">
+                            <div class="border-line/80 rounded-md border p-2.5">
+                                <div
+                                    class="text-ink-slate flex items-center gap-1.5"
+                                >
+                                    <Users
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="text-[10px] font-medium">{{
+                                        $t('Employee seats')
+                                    }}</span>
+                                </div>
+                                <p
+                                    class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
+                                >
+                                    {{ plan.employeeLimit }}
+                                </p>
+                            </div>
+                            <div class="border-line/80 rounded-md border p-2.5">
+                                <div
+                                    class="text-ink-slate flex items-center gap-1.5"
+                                >
+                                    <Sparkles
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="text-[10px] font-medium">{{
+                                        $t('Monthly AI pool')
+                                    }}</span>
+                                </div>
+                                <p
+                                    class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
+                                >
+                                    {{ plan.pointPool.toLocaleString() }}
+                                </p>
+                            </div>
+                        </div>
+                        <dl
+                            class="text-ink-slate mt-3 grid gap-1 text-[11px] leading-4"
+                        >
+                            <div class="flex justify-between gap-2">
+                                <dt>{{ $t('Extra 1,000 AI points') }}</dt>
+                                <dd
+                                    class="text-ink-indigo text-end font-semibold"
+                                >
+                                    {{ formatDzd(plan.extraPointsPriceDzd) }} ·
+                                    {{ formatUsd(plan.extraPointsPriceUsd) }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt>{{ $t('Extra seat / month') }}</dt>
+                                <dd
+                                    class="text-ink-indigo text-end font-semibold"
+                                >
+                                    {{ formatDzd(plan.extraSeatPriceDzd) }} ·
+                                    {{ formatUsd(plan.extraSeatPriceUsd) }}
+                                </dd>
+                            </div>
+                        </dl>
+                        <p class="text-ink-muted mt-2 text-[11px] leading-4">
+                            {{
+                                $t(
+                                    ':hotels hotels · :base base points + :shared shared points per seat',
+                                    {
+                                        hotels: plan.hotelCount,
+                                        base: plan.pointsPerEmployee.toLocaleString(),
+                                        shared: plan.bonusPointsPerEmployee.toLocaleString(),
+                                    },
+                                )
+                            }}
+                        </p>
+                        <div class="mt-auto pt-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="border-line text-brand-700 h-9 w-full gap-2 text-[12px]"
+                                @click="editPlan(plan)"
+                            >
+                                <Pencil class="size-3.5" aria-hidden="true" />
+                                {{ $t('Customize plan') }}
+                            </Button>
+                        </div>
+                    </PanelCard>
+                </div>
+            </section>
+
+            <section
+                class="grid min-w-0 gap-2.5"
+                aria-labelledby="individual-plans-heading"
+                data-test="individual-plans"
+            >
+                <header class="flex min-w-0 items-center gap-2.5">
+                    <span
+                        class="bg-ai-tint text-ai grid size-8 shrink-0 place-items-center rounded-full"
                     >
-                        {{ formatDzd(plan.priceDzd) }}
-                    </p>
-                    <span class="text-ink-muted text-[11px]">{{
-                        $t('/ month')
-                    }}</span>
-                </div>
-                <p class="text-ink-slate mt-1 text-[12px] font-semibold">
-                    {{
-                        $t('International: :price', {
-                            price: formatUsd(plan.priceUsd),
-                        })
-                    }}
-                    <span class="text-ink-muted font-normal">{{
-                        $t('/ month')
-                    }}</span>
-                </p>
-                <div class="mt-4 grid grid-cols-2 gap-2">
-                    <div class="border-line/80 rounded-md border p-2.5">
-                        <div class="text-ink-slate flex items-center gap-1.5">
-                            <Users class="size-3.5" aria-hidden="true" />
-                            <span class="text-[10px] font-medium">{{
-                                $t('Employee seats')
-                            }}</span>
-                        </div>
-                        <p
-                            class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
+                        <UserRound class="size-4" aria-hidden="true" />
+                    </span>
+                    <div class="min-w-0">
+                        <h2
+                            id="individual-plans-heading"
+                            class="font-heading text-brand-800 text-base font-semibold"
                         >
-                            {{ plan.employeeLimit }}
+                            {{ $t('Individual plans') }}
+                            <span class="text-ink-muted ms-1 text-[12px]">{{
+                                individualPlans.length
+                            }}</span>
+                        </h2>
+                        <p class="text-ink-slate text-[12px]">
+                            {{
+                                $t(
+                                    'One learner without a hotel, with their own AI points every month. No seats.',
+                                )
+                            }}
                         </p>
                     </div>
-                    <div class="border-line/80 rounded-md border p-2.5">
-                        <div class="text-ink-slate flex items-center gap-1.5">
-                            <Sparkles class="size-3.5" aria-hidden="true" />
-                            <span class="text-[10px] font-medium">{{
-                                $t('Monthly AI pool')
-                            }}</span>
-                        </div>
-                        <p
-                            class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
-                        >
-                            {{ plan.pointPool.toLocaleString() }}
-                        </p>
-                    </div>
-                </div>
-                <dl
-                    class="text-ink-slate mt-3 grid gap-1 text-[11px] leading-4"
+                </header>
+                <div
+                    v-if="individualPlans.length === 0"
+                    class="border-line bg-surface text-ink-slate rounded-lg border border-dashed px-4 py-8 text-center text-[13px]"
                 >
-                    <div class="flex justify-between gap-2">
-                        <dt>{{ $t('Extra 1,000 AI points') }}</dt>
-                        <dd class="text-ink-indigo text-end font-semibold">
-                            {{ formatDzd(plan.extraPointsPriceDzd) }} ·
-                            {{ formatUsd(plan.extraPointsPriceUsd) }}
-                        </dd>
-                    </div>
-                    <div class="flex justify-between gap-2">
-                        <dt>{{ $t('Extra seat / month') }}</dt>
-                        <dd class="text-ink-indigo text-end font-semibold">
-                            {{ formatDzd(plan.extraSeatPriceDzd) }} ·
-                            {{ formatUsd(plan.extraSeatPriceUsd) }}
-                        </dd>
-                    </div>
-                </dl>
-                <p class="text-ink-muted mt-2 text-[11px] leading-4">
-                    {{
-                        $t(
-                            ':hotels hotels · :base base points + :shared shared points per seat',
-                            {
-                                hotels: plan.hotelCount,
-                                base: plan.pointsPerEmployee.toLocaleString(),
-                                shared: plan.bonusPointsPerEmployee.toLocaleString(),
-                            },
-                        )
-                    }}
-                </p>
-                <div class="mt-auto pt-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="border-line text-brand-700 h-9 w-full gap-2 text-[12px]"
-                        @click="editPlan(plan)"
-                    >
-                        <Pencil class="size-3.5" aria-hidden="true" />
-                        {{ $t('Customize plan') }}
-                    </Button>
+                    {{ $t('No individual plans yet.') }}
                 </div>
-            </PanelCard>
+                <div v-else class="grid min-w-0 gap-3 lg:grid-cols-3">
+                    <PanelCard
+                        v-for="plan in individualPlans"
+                        :key="plan.id"
+                        :title="plan.name"
+                        :title-id="`plan-${plan.id}-heading`"
+                        class="min-h-[220px]"
+                        body-class="flex flex-col"
+                        :data-test="`individual-plan-${plan.id}`"
+                    >
+                        <template #icon>
+                            <span
+                                class="bg-ai-tint text-ai grid size-8 place-items-center rounded-full"
+                            >
+                                <UserRound class="size-4" aria-hidden="true" />
+                            </span>
+                        </template>
+                        <template #actions>
+                            <span
+                                class="rounded-full px-2 py-1 text-[10px] font-semibold"
+                                :class="
+                                    plan.isActive
+                                        ? 'bg-success/10 text-success'
+                                        : 'bg-ink-faint/20 text-ink-slate'
+                                "
+                            >
+                                {{
+                                    plan.isActive
+                                        ? $t('Available')
+                                        : $t('Inactive')
+                                }}
+                            </span>
+                        </template>
+
+                        <div class="flex items-baseline gap-1.5">
+                            <p
+                                class="font-heading text-brand-900 text-[24px] leading-7 font-bold"
+                            >
+                                {{ formatDzd(plan.priceDzd) }}
+                            </p>
+                            <span class="text-ink-muted text-[11px]">{{
+                                $t('/ month')
+                            }}</span>
+                        </div>
+                        <p
+                            class="text-ink-slate mt-1 text-[12px] font-semibold"
+                        >
+                            {{
+                                $t('International: :price', {
+                                    price: formatUsd(plan.priceUsd),
+                                })
+                            }}
+                            <span class="text-ink-muted font-normal">{{
+                                $t('/ month')
+                            }}</span>
+                        </p>
+                        <div class="mt-4 grid grid-cols-2 gap-2">
+                            <div class="border-line/80 rounded-md border p-2.5">
+                                <div
+                                    class="text-ink-slate flex items-center gap-1.5"
+                                >
+                                    <Sparkles
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="text-[10px] font-medium">{{
+                                        $t('AI points per month')
+                                    }}</span>
+                                </div>
+                                <p
+                                    class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
+                                >
+                                    {{
+                                        plan.pointsPerEmployee.toLocaleString()
+                                    }}
+                                </p>
+                            </div>
+                            <div class="border-line/80 rounded-md border p-2.5">
+                                <div
+                                    class="text-ink-slate flex items-center gap-1.5"
+                                >
+                                    <Users
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="text-[10px] font-medium">{{
+                                        $t('Subscribers')
+                                    }}</span>
+                                </div>
+                                <p
+                                    class="font-heading text-brand-800 mt-1 text-[18px] font-semibold"
+                                >
+                                    {{ plan.subscriberCount.toLocaleString() }}
+                                </p>
+                            </div>
+                        </div>
+                        <dl
+                            class="text-ink-slate mt-3 grid gap-1 text-[11px] leading-4"
+                        >
+                            <div class="flex justify-between gap-2">
+                                <dt>{{ $t('Points per AI action') }}</dt>
+                                <dd
+                                    class="text-ink-indigo text-end font-semibold"
+                                >
+                                    {{ plan.aiActionPoints.toLocaleString() }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-2">
+                                <dt>{{ $t('Voice points per 10 minutes') }}</dt>
+                                <dd
+                                    class="text-ink-indigo text-end font-semibold"
+                                >
+                                    {{
+                                        plan.voicePointsPer10Minutes.toLocaleString()
+                                    }}
+                                </dd>
+                            </div>
+                        </dl>
+                        <div class="mt-auto pt-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="border-line text-brand-700 h-9 w-full gap-2 text-[12px]"
+                                @click="editPlan(plan)"
+                            >
+                                <Pencil class="size-3.5" aria-hidden="true" />
+                                {{ $t('Customize plan') }}
+                            </Button>
+                        </div>
+                    </PanelCard>
+                </div>
+            </section>
         </section>
 
         <PanelCard
@@ -727,9 +963,13 @@ function savePaymentMethod(): void {
             })
         "
         :description="
-            $t(
-                'Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.',
-            )
+            editingIndividual
+                ? $t(
+                      'The monthly price in DZD and USD, the AI points each subscriber gets every month and the AI point costs. Existing subscribers keep their current allowance.',
+                  )
+                : $t(
+                      'Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.',
+                  )
         "
         class="sm:max-w-[620px]"
     >
@@ -745,7 +985,7 @@ function savePaymentMethod(): void {
                     />
                     <InputError :message="form.errors.name" />
                 </label>
-                <label class="grid gap-1.5">
+                <label v-if="!editingIndividual" class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
                         $t('Maximum employees')
                     }}</span>
@@ -757,9 +997,14 @@ function savePaymentMethod(): void {
                     />
                     <InputError :message="form.errors.employee_limit" />
                 </label>
-                <label class="grid gap-1.5">
+                <label
+                    class="grid gap-1.5"
+                    :class="editingIndividual ? 'sm:col-span-2' : ''"
+                >
                     <span class="text-ink-slate text-[11px] font-semibold">{{
-                        $t('Base AI points per employee')
+                        editingIndividual
+                            ? $t('AI points per month')
+                            : $t('Base AI points per employee')
                     }}</span>
                     <input
                         v-model.number="form.points_per_employee"
@@ -819,7 +1064,7 @@ function savePaymentMethod(): void {
                     />
                     <InputError :message="form.errors.extra_points_price_usd" />
                 </label>
-                <label class="grid gap-1.5">
+                <label v-if="!editingIndividual" class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
                         $t('Extra seat per month (DZD)')
                     }}</span>
@@ -831,7 +1076,7 @@ function savePaymentMethod(): void {
                     />
                     <InputError :message="form.errors.extra_seat_price_dzd" />
                 </label>
-                <label class="grid gap-1.5">
+                <label v-if="!editingIndividual" class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
                         $t('Extra seat per month (USD)')
                     }}</span>
@@ -844,7 +1089,7 @@ function savePaymentMethod(): void {
                     />
                     <InputError :message="form.errors.extra_seat_price_usd" />
                 </label>
-                <label class="grid gap-1.5">
+                <label v-if="!editingIndividual" class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
                         $t('Additional shared points per seat')
                     }}</span>
@@ -893,7 +1138,11 @@ function savePaymentMethod(): void {
                     type="checkbox"
                     class="accent-brand-600 border-line size-4 rounded"
                 />
-                {{ $t('Available for new hotel subscriptions') }}
+                {{
+                    editingIndividual
+                        ? $t('Available for new individual subscribers')
+                        : $t('Available for new hotel subscriptions')
+                }}
             </label>
             <InputError :message="form.errors.is_active" />
             <div class="mt-1 flex justify-end gap-2">

@@ -17,6 +17,8 @@ import { computed } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
+import HotelApprovalPanel from '@/components/hotels/HotelApprovalPanel.vue';
+import HotelPaymentsHistory from '@/components/hotels/HotelPaymentsHistory.vue';
 import {
     statusText,
     statusTone,
@@ -26,6 +28,7 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { dashboard, hotels } from '@/routes';
 import type {
+    HotelApproval,
     HotelDetailActivity,
     HotelDetailSummary,
     HotelEmployeeActivity,
@@ -39,6 +42,8 @@ type Props = {
     summary: HotelDetailSummary;
     activity: HotelDetailActivity;
     employees: HotelEmployeeActivity[];
+    /** Bought online and waiting for approval (client request 2026-09-27). */
+    approval: HotelApproval;
 };
 
 const props = defineProps<Props>();
@@ -192,6 +197,13 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 <span class="sm:hidden">{{ $t('Back') }}</span>
             </Link>
         </div>
+
+        <HotelApprovalPanel
+            v-if="approval.pending"
+            :hotel-id="hotel.id"
+            :hotel-name="hotel.name"
+            :approval="approval"
+        />
 
         <div class="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
             <StatCard
@@ -398,6 +410,11 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                 </p>
             </PanelCard>
         </div>
+
+        <HotelPaymentsHistory
+            v-if="!approval.pending && approval.payments.length > 0"
+            :payments="approval.payments"
+        />
 
         <PanelCard
             :title="$t('Departments & Seat Allocation')"

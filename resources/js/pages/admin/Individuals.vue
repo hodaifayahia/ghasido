@@ -4,6 +4,7 @@ import { Bot, CalendarClock, UserCheck, UsersRound } from '@lucide/vue';
 import { ref } from 'vue';
 import StatCard from '@/components/common/StatCard.vue';
 import IndividualFormDialog from '@/components/individuals/IndividualFormDialog.vue';
+import IndividualReviewDialog from '@/components/individuals/IndividualReviewDialog.vue';
 import IndividualsListPanel from '@/components/individuals/IndividualsListPanel.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
@@ -61,7 +62,23 @@ function edit(row: IndividualRow): void {
     dialogOpen.value = true;
 }
 
+// Bought online and waiting for the payment to be checked (client request
+// 2026-09-27): the review shows the contact, payment and receipt.
+const reviewOpen = ref(false);
+const reviewing = ref<IndividualRow | null>(null);
+
+function review(row: IndividualRow): void {
+    reviewing.value = row;
+    reviewOpen.value = true;
+}
+
 function toggleRow(row: IndividualRow): void {
+    // The server refuses the switch until the purchase is approved (409).
+    if (row.approvalState !== 'approved') {
+        review(row);
+        return;
+    }
+
     router.post(toggle.url(row.id), {}, { preserveScroll: true });
 }
 
@@ -158,13 +175,21 @@ function goToPage(page: number): void {
             :filters="filters"
             :pagination="pagination"
             :can-manage="canManage"
+            :pending-count="stats.pending"
             @add="add"
             @edit="edit"
+            @review="review"
             @toggle="toggleRow"
             @filter="filter"
             @page="goToPage"
         />
     </div>
+
+    <IndividualReviewDialog
+        v-model:open="reviewOpen"
+        :individual="reviewing"
+        :can-manage="canManage"
+    />
 
     <IndividualFormDialog
         v-if="canManage"
