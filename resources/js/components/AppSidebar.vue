@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // LOCKED: client-approved chrome matched to desginphotos/ (AGENTS.md §0).
 // Change only when the user explicitly asks; verify against the mockup.
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     Award,
     Coins,
@@ -17,6 +17,7 @@ import {
     ShieldCheck,
     Star,
     User,
+    Wallet,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -47,6 +48,7 @@ import {
     hotels,
     lessonsContent,
     messagesReminders,
+    payments,
     reportsExport,
     roles,
     subscriptions,
@@ -99,6 +101,7 @@ const props = defineProps<Props>();
 const { isMobile, setOpenMobile } = useSidebar();
 // Arabic lays the page out right to left, sidebar on the right (I18N-02).
 const { isRtl } = useI18n();
+const page = usePage();
 
 /*
  * The mockup's glyphs are solid. Lucide's outline icons are filled where their
@@ -125,6 +128,15 @@ const mainNavItems: SidebarNavItem[] = [
         title: tk('Subscriptions'),
         href: subscriptions(),
         icon: CreditCard,
+        permission: 'subscriptions.manage',
+    },
+    {
+        // Checkout payments to review (client request 2026-09-27); the
+        // badge is the shared pendingPayments count.
+        title: tk('Payments'),
+        href: payments(),
+        // Outline like its neighbour Subscriptions (CreditCard).
+        icon: Wallet,
         permission: 'subscriptions.manage',
     },
     {
@@ -274,12 +286,18 @@ const accountNavItems: SidebarNavItem[] = [
     },
 ];
 
-const adminNav: SidebarNav = {
-    main: { items: mainNavItems },
+const adminNav = computed((): SidebarNav => ({
+    main: {
+        items: mainNavItems.map((item) =>
+            item.title === 'Payments'
+                ? { ...item, badge: page.props.pendingPayments ?? 0 }
+                : item,
+        ),
+    },
     account: { items: accountNavItems, class: 'gap-[5px]' },
-};
+}));
 
-const nav = computed((): SidebarNav => props.nav ?? adminNav);
+const nav = computed((): SidebarNav => props.nav ?? adminNav.value);
 const homeHref = computed(() => nav.value.homeHref ?? dashboard());
 
 // Divider: 2px, inset 22px, 15px above / 9px below at 853px, scaling with
