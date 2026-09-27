@@ -21,6 +21,9 @@ Route::middleware(Permission::SubscriptionsManage->middleware())->group(function
     Route::post('individuals', [IndividualsController::class, 'store'])->name('individuals.store');
     Route::patch('individuals/{individual}', [IndividualsController::class, 'update'])->name('individuals.update');
     Route::post('individuals/{individual}/toggle', [IndividualsController::class, 'toggle'])->name('individuals.toggle');
+    // Bought online: confirm or refuse the payment (client request 2026-09-27).
+    Route::post('individuals/{individual}/approve', [IndividualsController::class, 'approve'])->name('individuals.approve');
+    Route::post('individuals/{individual}/reject', [IndividualsController::class, 'reject'])->name('individuals.reject');
 });
 
 Route::middleware(Permission::AiPointsManage->middleware())->group(function () {

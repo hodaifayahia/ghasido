@@ -4,12 +4,15 @@ namespace App\Services\Hotels;
 
 use App\Enums\AccountStatus;
 use App\Enums\HotelAccessState;
+use App\Enums\PaymentStatus;
 use App\Enums\Role;
+use App\Mail\AccountRejectedMail;
 use App\Mail\HotelApprovedMail;
 use App\Models\AuditLog;
 use App\Models\Hotel;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Payments\PaymentSubmissionService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
@@ -31,12 +34,14 @@ use Illuminate\Support\Str;
  */
 class HotelService
 {
+    public function __construct(private readonly PaymentSubmissionService $payments) {}
+
     /**
      * A guest hotel's request: create the pending hotel plus its first manager
      * account, inactive until approval.
      *
      * @param  array{name: string, city: string, manager_name: string, manager_email: string, subscription_plan_id?: int}  $hotelData
-     * @param  array{name: string, username: string, email: string, password: string}  $managerData
+     * @param  array{name: string, username: string, email: string, password: string, phone?: string, locale?: string}  $managerData
      * @param  string|null  $billingRegion  `dz` (pays in DZD) or `intl` (USD), from the pricing switch
      */
     public function requestAccess(array $hotelData, array $managerData, ?string $billingRegion = null): Hotel
@@ -64,9 +69,12 @@ class HotelService
                 'username' => $managerData['username'],
                 'email' => $managerData['email'],
                 'password' => $managerData['password'],
+                'phone' => $managerData['phone'] ?? null,
                 'hotel_id' => $hotel->id,
                 'status' => AccountStatus::Inactive,
             ]);
+            // Their emails come in the language they signed up in (I18N-02).
+            $manager->locale = $managerData['locale'] ?? null;
             $manager->save();
             $manager->setRole(Role::Manager);
 
@@ -138,6 +146,9 @@ class HotelService
             AuditLog::record($hotel, 'hotel.approved');
             $hotel->save();
 
+            // The payment sent from the checkout is confirmed with it.
+            $this->payments->settle($hotel, PaymentStatus::Confirmed, $approver);
+
             $manager = $this->requestedManager($hotel);
 
             if ($manager !== null) {
@@ -161,6 +172,7 @@ class HotelService
                         }
 
                         Mail::to($approvedManager->email, $approvedManager->name)
+                            ->locale($approvedManager->locale ?? 'en')
                             ->queue(new HotelApprovedMail($approvedHotel, $approvedManager));
                     });
                 }
@@ -175,15 +187,40 @@ class HotelService
      * rejected state; the audit action tells a rejection apart later
      * (spec 0002, AC-14).
      */
-    public function reject(Hotel $hotel, string $reason): Hotel
+    public function reject(Hotel $hotel, string $reason, ?User $by = null): Hotel
     {
         $this->expect($hotel, HotelAccessState::Pending, 'reject');
 
-        return $this->change($hotel, 'hotel.rejected', function (Hotel $hotel) use ($reason): void {
-            $hotel->archived_at = Date::now();
-            $hotel->archive_reason = $reason;
-            $hotel->access_state = HotelAccessState::Archived;
-        }, ['reason' => $reason]);
+        return DB::transaction(function () use ($hotel, $reason, $by): Hotel {
+            $rejected = $this->change($hotel, 'hotel.rejected', function (Hotel $hotel) use ($reason): void {
+                $hotel->archived_at = Date::now();
+                $hotel->archive_reason = $reason;
+                $hotel->access_state = HotelAccessState::Archived;
+            }, ['reason' => $reason]);
+
+            if ($by !== null) {
+                $this->payments->settle($rejected, PaymentStatus::Rejected, $by, $reason);
+            }
+
+            // Tell whoever asked, so they can send a valid payment (client
+            // request 2026-09-27). Only hotels that asked themselves (checkout
+            // or sign-up) have a requested manager; an admin-created hotel
+            // has nobody waiting for an answer.
+            $manager = $this->requestedManager($rejected);
+
+            if ($manager !== null && $manager->email !== null && $manager->email !== '') {
+                $email = $manager->email;
+                $name = $manager->name;
+                $hotelName = $rejected->name;
+                $locale = $manager->locale ?? 'en';
+
+                DB::afterCommit(fn () => Mail::to($email, $name)
+                    ->locale($locale)
+                    ->queue(new AccountRejectedMail($name, $hotelName, $reason)));
+            }
+
+            return $rejected;
+        });
     }
 
     /**
@@ -312,8 +349,8 @@ class HotelService
 
     private function defaultPlanId(): int
     {
-        $standard = SubscriptionPlan::query()->active()->where('slug', 'standard')->first();
+        $standard = SubscriptionPlan::query()->active()->forHotels()->where('slug', 'standard')->first();
 
-        return (int) ($standard ?? SubscriptionPlan::query()->active()->orderBy('employee_limit')->orderBy('id')->firstOrFail())->id;
+        return (int) ($standard ?? SubscriptionPlan::query()->active()->forHotels()->orderBy('employee_limit')->orderBy('id')->firstOrFail())->id;
     }
 }

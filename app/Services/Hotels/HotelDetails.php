@@ -3,10 +3,14 @@
 namespace App\Services\Hotels;
 
 use App\Enums\AccountStatus;
+use App\Enums\HotelAccessState;
+use App\Enums\Permission;
+use App\Enums\Role;
 use App\Enums\TrainingStatus;
 use App\Http\Resources\Hotels\HotelOverviewResource;
 use App\Models\Attempt;
 use App\Models\Hotel;
+use App\Models\PaymentSubmission;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Employees\EmployeeDirectory;
@@ -112,6 +116,54 @@ final class HotelDetails
             ],
             'activity' => $activity,
             'employees' => $employeeRows,
+            // A hotel that bought a plan online waits here for approval
+            // (client request 2026-09-27): who asked, what they paid and
+            // the receipt, next to the Approve and Reject buttons.
+            'approval' => $this->approval($hotel, $viewer),
+        ];
+    }
+
+    /**
+     * @return array{pending: bool, canApprove: bool, requester: array{name: string, email: string|null, phone: string|null}|null, payments: list<array<string, mixed>>}
+     */
+    private function approval(Hotel $hotel, User $viewer): array
+    {
+        $pending = $hotel->access_state === HotelAccessState::Pending;
+        $canSeePayments = $viewer->can(Permission::SubscriptionsManage->value);
+
+        $requester = $pending
+            ? User::query()
+                ->where('hotel_id', $hotel->id)
+                ->whereNull('created_by')
+                ->whereHas('roles', fn ($roles) => $roles->where('name', Role::Manager->value))
+                ->orderBy('id')
+                ->first()
+            : null;
+
+        return [
+            'pending' => $pending,
+            'canApprove' => $pending && $viewer->can(Permission::HotelsApprove->value),
+            'requester' => $requester === null ? null : [
+                'name' => $requester->name,
+                'email' => $requester->email,
+                'phone' => $requester->phone,
+            ],
+            'payments' => $canSeePayments
+                ? array_values($hotel->paymentSubmissions()->orderByDesc('id')->get()->map(fn (PaymentSubmission $payment): array => [
+                    'id' => $payment->id,
+                    'planName' => $payment->plan_name,
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
+                    'method' => $payment->payment_method_name,
+                    'reference' => $payment->reference,
+                    'receiptUrl' => $payment->proof_path !== null ? route('payments.receipt', $payment) : null,
+                    'isImage' => $payment->isImageProof(),
+                    'status' => $payment->status->value,
+                    'statusLabel' => $payment->status->label(),
+                    'submittedAt' => $payment->created_at?->toIso8601String(),
+                    'reviewUrl' => route('payments', ['payment' => $payment->id, 'status' => 'all']),
+                ])->all())
+                : [],
         ];
     }
 

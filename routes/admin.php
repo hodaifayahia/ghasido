@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'hotel.access'])->group(function () {
     require __DIR__.'/admin/hotels.php';
     require __DIR__.'/admin/subscriptions.php';
+    require __DIR__.'/admin/payments.php';
     require __DIR__.'/admin/departments.php';
     require __DIR__.'/admin/employees.php';
     require __DIR__.'/admin/lessons.php';

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Permission;
+use App\Enums\PlanAudience;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Subscriptions\UpdateSubscriptionPlanRequest;
@@ -27,7 +28,13 @@ final class SubscriptionsController extends Controller
     {
         Gate::authorize(Permission::SubscriptionsManage->value);
 
-        $plans = SubscriptionPlan::query()->orderBy('employee_limit')->orderBy('id')->get();
+        $plans = SubscriptionPlan::query()
+            ->withCount('individualSubscriptions')
+            ->orderBy('audience')
+            ->orderBy('employee_limit')
+            ->orderBy('price_dzd')
+            ->orderBy('id')
+            ->get();
         $hotels = Hotel::query()
             ->notArchived()
             ->with('subscriptionPlan')
@@ -40,6 +47,9 @@ final class SubscriptionsController extends Controller
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
+                // Hotel plans are sized by seats; individual plans by the
+                // learner's monthly AI points (client request 2026-09-27).
+                'audience' => $plan->audience->value,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
                 'priceUsd' => $plan->price_usd,
@@ -53,6 +63,7 @@ final class SubscriptionsController extends Controller
                 'aiActionPoints' => $plan->ai_action_points,
                 'isActive' => $plan->is_active,
                 'hotelCount' => $plan->hotels()->count(),
+                'subscriberCount' => (int) ($plan->individual_subscriptions_count ?? 0),
                 'pointPool' => $plan->pointsPool(),
             ])->values()->all(),
             'hotels' => $hotels->map(fn (Hotel $hotel): array => [
@@ -64,7 +75,7 @@ final class SubscriptionsController extends Controller
                 'usedEmployees' => $hotel->active_employees_count ?? $hotel->usedSeats(),
                 'employeeLimit' => $hotel->subscriptionPlan->employee_limit ?? 0,
             ])->values()->all(),
-            'activePlans' => $plans->where('is_active', true)->map(fn (SubscriptionPlan $plan): array => [
+            'activePlans' => $plans->where('is_active', true)->filter(fn (SubscriptionPlan $plan): bool => ! $plan->isIndividual())->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'employeeLimit' => $plan->employee_limit,
@@ -105,7 +116,7 @@ final class SubscriptionsController extends Controller
 
         $data = $request->validate([
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
-            'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
+            'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)->where('audience', PlanAudience::Hotel->value)],
         ]);
         $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail((int) $data['hotel_id']);
         $plan = SubscriptionPlan::query()->findOrFail((int) $data['plan_id']);

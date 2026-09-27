@@ -31,6 +31,8 @@ class CheckoutTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Welcome')
                 ->has('plans', 3)
+                // Individual plans are listed apart (client request 2026-09-27).
+                ->has('individualPlans', 3)
                 ->where('plans.1.slug', 'gold')
                 ->where('plans.1.employeeLimit', 7)
                 ->where('plans.1.priceDzd', 20000)
@@ -87,6 +89,7 @@ class CheckoutTest extends TestCase
             'manager_name' => 'Nassim Benali',
             'manager_email' => 'manager@bluecoast.test',
             'manager_username' => 'blue.coast.manager',
+            'phone' => '+213 555 12 34 56',
             'password' => 'SecretPass123',
             'password_confirmation' => 'SecretPass123',
         ];

@@ -40,7 +40,9 @@ final class TranslationKeys
             }
         }
 
-        foreach ([app_path(), base_path('routes')] as $directory) {
+        // The Blade views too: the emails are rendered in the recipient's
+        // language.
+        foreach ([app_path(), base_path('routes'), resource_path('views')] as $directory) {
             foreach (self::files($directory, ['*.php'], []) as $path => $source) {
                 foreach (self::matches(self::PHP_CALL, $source) as [, $text]) {
                     $keys[] = self::unescape($text);
