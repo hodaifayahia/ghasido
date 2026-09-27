@@ -144,12 +144,42 @@ export type LandingPaymentMethod = {
     instructions: string | null;
 };
 
+/** Who a plan is sold to: a hotel team, or one learner on their own. */
+export type PlanAudience = 'hotel' | 'individual';
+
 export type LandingPlan = {
     id: number;
     name: string;
     slug: string;
+    audience?: PlanAudience;
     employeeLimit: number;
     priceDzd: number;
     priceUsd: number;
     pointsPool: number;
+};
+
+/** The plan on the checkout page; its audience decides the form shown. */
+export type CheckoutPlan = LandingPlan & {
+    audience: PlanAudience;
+};
+
+export type CheckoutDepartmentOption = {
+    value: number;
+    label: string;
+};
+
+export type PaymentSubmissionStatus = 'pending' | 'confirmed' | 'rejected';
+
+/** What the "Payment submitted" page shows about one payment. */
+export type CheckoutSubmittedPayment = {
+    planName: string;
+    amount: number;
+    currency: 'DZD' | 'USD';
+    method: string;
+    reference: string | null;
+    hasReceipt: boolean;
+    submittedAt: string | null;
+    status: PaymentSubmissionStatus;
+    statusLabel: string;
+    isIndividual: boolean;
 };

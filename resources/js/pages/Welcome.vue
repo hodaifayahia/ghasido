@@ -19,10 +19,12 @@ import {
     ShieldCheck,
     Smartphone,
     Sparkles,
+    UserRound,
     UsersRound,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
+import { individualInclusions } from '@/components/checkout/individualPlan';
 import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
@@ -31,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import { contact } from '@/routes';
+import { show as checkoutShow } from '@/routes/checkout';
 import type {
     LandingPageContent,
     LandingPaymentMethod,
@@ -40,6 +43,7 @@ import type {
 const props = defineProps<{
     content: LandingPageContent;
     plans: LandingPlan[];
+    individualPlans?: LandingPlan[];
     paymentMethods: LandingPaymentMethod[];
 }>();
 
@@ -63,9 +67,54 @@ const regions = computed((): { key: Region; label: string }[] => [
     { key: 'dz', label: props.content.pricing.region_algeria },
     { key: 'intl', label: props.content.pricing.region_international },
 ]);
-const featuredIndex = computed(() =>
-    props.plans.length >= 4 ? 2 : Math.min(1, props.plans.length - 1),
+// Hotel teams or one learner on their own (user request 2026-09-27).
+// Individual plans carry monthly AI points, never seats.
+type Audience = 'hotel' | 'individual';
+const audience = ref<Audience>('hotel');
+const audiences = computed(
+    (): { key: Audience; label: string; icon: Component }[] => [
+        { key: 'hotel', label: t('Hotels'), icon: Hotel },
+        { key: 'individual', label: t('Individuals'), icon: UserRound },
+    ],
 );
+const individualPlans = computed(() => props.individualPlans ?? []);
+const isIndividual = computed(() => audience.value === 'individual');
+const shownPlans = computed(() =>
+    isIndividual.value ? individualPlans.value : props.plans,
+);
+const featuredIndex = computed(() =>
+    shownPlans.value.length >= 4 ? 2 : Math.min(1, shownPlans.value.length - 1),
+);
+
+/** Arrow keys move between the audience options, as in a radio group. */
+function onAudienceKey(event: KeyboardEvent): void {
+    if (
+        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    ) {
+        return;
+    }
+
+    event.preventDefault();
+    audience.value = isIndividual.value ? 'hotel' : 'individual';
+
+    const group = (event.currentTarget as HTMLElement).closest(
+        '[role="radiogroup"]',
+    );
+    group
+        ?.querySelector<HTMLElement>(`[data-audience="${audience.value}"]`)
+        ?.focus();
+}
+
+function checkoutHref(plan: LandingPlan): string {
+    if (onRequest(plan)) {
+        return contact().url;
+    }
+
+    return checkoutShow.url(
+        plan.slug,
+        region.value === 'intl' ? { query: { region: 'intl' } } : undefined,
+    );
+}
 
 const aiIcons: Component[] = [MessageCircleMore, Mic2, Sparkles, AudioLines];
 const roleIcons: Component[] = [Building2, UsersRound, GraduationCap];
@@ -827,57 +876,102 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         </p>
 
                         <div
-                            role="radiogroup"
-                            :aria-label="$t('Pricing region')"
-                            class="border-line bg-surface shadow-card rounded-pill mx-auto mt-7 inline-grid grid-cols-2 gap-1 border p-1"
+                            class="mt-7 flex flex-wrap items-center justify-center gap-3"
                         >
-                            <button
-                                v-for="option in regions"
-                                :key="option.key"
-                                type="button"
-                                role="radio"
-                                :aria-checked="region === option.key"
-                                :class="
-                                    cn(
-                                        'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2.5 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-6 sm:text-[14px]',
-                                        region === option.key
-                                            ? 'bg-brand-900 text-surface shadow-btn'
-                                            : 'text-ink-indigo hover:bg-brand-50',
-                                    )
-                                "
-                                :data-test="`pricing-region-${option.key}`"
-                                @click="region = option.key"
+                            <div
+                                v-if="individualPlans.length"
+                                role="radiogroup"
+                                :aria-label="$t('Plans for')"
+                                class="border-line bg-surface shadow-card rounded-pill inline-grid grid-cols-2 gap-1 border p-1"
                             >
-                                <AlgeriaFlagIcon
-                                    v-if="option.key === 'dz'"
-                                    class="size-6 shrink-0"
-                                />
-                                <Globe
-                                    v-else
+                                <button
+                                    v-for="option in audiences"
+                                    :key="option.key"
+                                    type="button"
+                                    role="radio"
+                                    :aria-checked="audience === option.key"
+                                    :tabindex="audience === option.key ? 0 : -1"
+                                    :data-audience="option.key"
                                     :class="
-                                        region === option.key
-                                            ? 'text-brand-200'
-                                            : 'text-brand-600'
+                                        cn(
+                                            'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none sm:px-6 sm:text-[14px]',
+                                            audience === option.key
+                                                ? 'bg-brand-600 text-surface shadow-btn'
+                                                : 'text-ink-indigo hover:bg-brand-50',
+                                        )
                                     "
-                                    class="size-5 shrink-0"
-                                    aria-hidden="true"
-                                />
-                                {{ option.label }}
-                            </button>
+                                    :data-test="`pricing-audience-${option.key}`"
+                                    @click="audience = option.key"
+                                    @keydown="onAudienceKey"
+                                >
+                                    <component
+                                        :is="option.icon"
+                                        :class="
+                                            audience === option.key
+                                                ? 'text-brand-100'
+                                                : 'text-brand-600'
+                                        "
+                                        class="size-4.5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    {{ option.label }}
+                                </button>
+                            </div>
+
+                            <div
+                                role="radiogroup"
+                                :aria-label="$t('Pricing region')"
+                                class="border-line bg-surface shadow-card rounded-pill inline-grid grid-cols-2 gap-1 border p-1"
+                            >
+                                <button
+                                    v-for="option in regions"
+                                    :key="option.key"
+                                    type="button"
+                                    role="radio"
+                                    :aria-checked="region === option.key"
+                                    :class="
+                                        cn(
+                                            'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2.5 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-6 sm:text-[14px]',
+                                            region === option.key
+                                                ? 'bg-brand-900 text-surface shadow-btn'
+                                                : 'text-ink-indigo hover:bg-brand-50',
+                                        )
+                                    "
+                                    :data-test="`pricing-region-${option.key}`"
+                                    @click="region = option.key"
+                                >
+                                    <AlgeriaFlagIcon
+                                        v-if="option.key === 'dz'"
+                                        class="size-6 shrink-0"
+                                    />
+                                    <Globe
+                                        v-else
+                                        :class="
+                                            region === option.key
+                                                ? 'text-brand-200'
+                                                : 'text-brand-600'
+                                        "
+                                        class="size-5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    {{ option.label }}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div
-                        v-if="plans.length"
+                        v-if="shownPlans.length"
+                        :key="audience"
                         :class="
-                            plans.length >= 4
+                            shownPlans.length >= 4
                                 ? 'max-w-7xl md:grid-cols-2 xl:grid-cols-4'
                                 : 'max-w-6xl lg:grid-cols-3'
                         "
                         class="mx-auto mt-10 grid items-stretch gap-5 lg:mt-14"
                     >
                         <article
-                            v-for="(plan, index) in plans"
+                            v-for="(plan, index) in shownPlans"
                             :key="plan.id"
                             :class="
                                 index === featuredIndex
@@ -929,7 +1023,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 "
                                 class="mt-6 space-y-3 border-y py-5"
                             >
-                                <div class="flex items-center gap-3">
+                                <div
+                                    v-if="!isIndividual"
+                                    class="flex items-center gap-3"
+                                >
                                     <UsersRound
                                         :class="
                                             index === featuredIndex
@@ -958,14 +1055,23 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                         <strong class="font-semibold">{{
                                             plan.pointsPool.toLocaleString()
                                         }}</strong>
-                                        {{ content.pricing.ai_points_label }}
+                                        {{
+                                            isIndividual
+                                                ? $t('AI points per month')
+                                                : content.pricing
+                                                      .ai_points_label
+                                        }}
                                     </p>
                                 </div>
                             </div>
 
                             <ul class="mt-5 flex-1 space-y-3">
                                 <li
-                                    v-for="item in content.pricing.inclusions"
+                                    v-for="item in isIndividual
+                                        ? individualInclusions.map((line) =>
+                                              $t(line),
+                                          )
+                                        : content.pricing.inclusions"
                                     :key="item"
                                     :class="
                                         index === featuredIndex
@@ -995,13 +1101,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 "
                                 class="mt-7 h-12 w-full rounded-md text-[13px] font-semibold"
                             >
-                                <Link
-                                    :href="
-                                        onRequest(plan)
-                                            ? contact().url
-                                            : `/checkout/${plan.slug}${region === 'intl' ? '?region=intl' : ''}`
-                                    "
-                                >
+                                <Link :href="checkoutHref(plan)">
                                     {{ content.pricing.button_text }}
                                     <ChevronRight class="size-4" />
                                 </Link>
@@ -1012,6 +1112,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                     <!-- Hotel / Enterprise (client pricing mockup 2026-09-26):
                          larger teams are sent to Contact Us for a quote. -->
                     <div
+                        v-if="!isIndividual"
                         class="border-brand-100 bg-brand-50 shadow-card mx-auto mt-10 grid max-w-7xl gap-6 rounded-xl border p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center lg:gap-8"
                         data-test="pricing-enterprise"
                     >
