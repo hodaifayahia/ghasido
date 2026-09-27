@@ -52,20 +52,21 @@ const canManage = can('subscriptions.manage');
 const dialogOpen = ref(false);
 const selected = ref<IndividualRow | null>(null);
 
+// Bought online and waiting for the payment to be checked (client request
+// 2026-09-27): the review shows the contact, payment and receipt.
+const reviewOpen = ref(false);
+const reviewing = ref<IndividualRow | null>(null);
+
 function add(): void {
     selected.value = null;
     dialogOpen.value = true;
 }
 
 function edit(row: IndividualRow): void {
+    reviewOpen.value = false;
     selected.value = row;
     dialogOpen.value = true;
 }
-
-// Bought online and waiting for the payment to be checked (client request
-// 2026-09-27): the review shows the contact, payment and receipt.
-const reviewOpen = ref(false);
-const reviewing = ref<IndividualRow | null>(null);
 
 function review(row: IndividualRow): void {
     reviewing.value = row;
@@ -189,6 +190,7 @@ function goToPage(page: number): void {
         v-model:open="reviewOpen"
         :individual="reviewing"
         :can-manage="canManage"
+        @edit="edit"
     />
 
     <IndividualFormDialog

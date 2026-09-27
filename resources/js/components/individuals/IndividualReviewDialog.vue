@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleX, Receipt } from '@lucide/vue';
+import { CircleX, Pencil, Receipt } from '@lucide/vue';
 import { computed } from 'vue';
 import ApprovalDecision from '@/components/hotels/ApprovalDecision.vue';
 import HotelsModal from '@/components/hotels/HotelsModal.vue';
@@ -24,6 +24,10 @@ type Props = {
 const props = defineProps<Props>();
 
 const open = defineModel<boolean>('open', { required: true });
+
+const emit = defineEmits<{
+    edit: [row: IndividualRow];
+}>();
 
 const { t } = useI18n();
 
@@ -68,14 +72,14 @@ const label =
         v-model:open="open"
         :title="title"
         :description="description"
-        class="sm:max-w-[720px]"
+        class="sm:max-w-[760px]"
     >
         <div
             v-if="row"
-            class="mt-2 grid gap-4"
+            class="mt-2 grid gap-5 md:grid-cols-2"
             :data-test="`individual-review-${row.id}`"
         >
-            <div class="grid gap-4 md:grid-cols-2">
+            <div class="grid min-w-0 content-start gap-4">
                 <section aria-labelledby="individual-review-contact">
                     <h3 id="individual-review-contact" :class="label">
                         {{ $t('Contact') }}
@@ -86,7 +90,45 @@ const label =
                         :phone="row.phone"
                         :role="row.department"
                     />
+                    <button
+                        v-if="canManage"
+                        type="button"
+                        class="text-brand-600 hover:bg-brand-50 focus-visible:ring-brand-600/15 mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
+                        :data-test="`review-edit-individual-${row.id}`"
+                        @click="emit('edit', row)"
+                    >
+                        <Pencil class="size-3.5" aria-hidden="true" />
+                        {{ $t('Edit subscriber details') }}
+                    </button>
                 </section>
+
+                <section
+                    v-if="row.payment"
+                    aria-labelledby="individual-review-payment"
+                >
+                    <h3 id="individual-review-payment" :class="label">
+                        {{ $t('Payment details') }}
+                    </h3>
+                    <PaymentDetailsList
+                        :plan-name="row.planName"
+                        :amount="row.payment.amount"
+                        :currency="row.payment.currency"
+                        :method="row.payment.method"
+                        :reference="row.payment.reference"
+                        :status="row.payment.status"
+                        :submitted-at="row.payment.submittedAt"
+                    />
+                </section>
+                <div
+                    v-else
+                    class="border-line text-ink-slate flex items-center justify-center gap-2 rounded-md border border-dashed px-4 py-5 text-[12.5px]"
+                >
+                    <Receipt class="size-4" aria-hidden="true" />
+                    {{ $t('No payment was sent with this request.') }}
+                </div>
+            </div>
+
+            <div class="grid min-w-0 content-start gap-4">
                 <section
                     v-if="row.payment"
                     aria-labelledby="individual-review-receipt"
@@ -100,84 +142,66 @@ const label =
                         :customer="row.name"
                     />
                 </section>
-            </div>
 
-            <section
-                v-if="row.payment"
-                aria-labelledby="individual-review-payment"
-            >
-                <h3 id="individual-review-payment" :class="label">
-                    {{ $t('Payment details') }}
-                </h3>
-                <PaymentDetailsList
-                    :plan-name="row.planName"
-                    :amount="row.payment.amount"
-                    :currency="row.payment.currency"
-                    :method="row.payment.method"
-                    :reference="row.payment.reference"
-                    :status="row.payment.status"
-                    :submitted-at="row.payment.submittedAt"
-                />
-            </section>
-            <div
-                v-else
-                class="border-line text-ink-slate flex items-center justify-center gap-2 rounded-md border border-dashed px-4 py-5 text-[12.5px]"
-            >
-                <Receipt class="size-4" aria-hidden="true" />
-                {{ $t('No payment was sent with this request.') }}
-            </div>
-
-            <div
-                v-if="row.approvalState === 'rejected'"
-                class="border-danger/25 bg-danger-tint flex items-start gap-3 rounded-md border px-3 py-3"
-            >
-                <CircleX
-                    class="text-danger mt-0.5 size-5 shrink-0"
-                    aria-hidden="true"
-                />
-                <div class="min-w-0">
-                    <p class="text-danger-text text-[13px] font-semibold">
-                        {{ $t('Reason for rejecting') }}
-                    </p>
-                    <p
-                        class="text-danger-text/90 mt-0.5 text-[12.5px] leading-5 break-words whitespace-pre-line"
-                    >
-                        {{
-                            row.rejectionReason ?? $t('No reason was recorded.')
-                        }}
-                    </p>
+                <div
+                    v-if="row.approvalState === 'rejected'"
+                    class="border-danger/25 bg-danger-tint flex items-start gap-3 rounded-md border px-3 py-3"
+                >
+                    <CircleX
+                        class="text-danger mt-0.5 size-5 shrink-0"
+                        aria-hidden="true"
+                    />
+                    <div class="min-w-0">
+                        <p class="text-danger-text text-[13px] font-semibold">
+                            {{ $t('Reason for rejecting') }}
+                        </p>
+                        <p
+                            class="text-danger-text/90 mt-0.5 text-[12.5px] leading-5 break-words whitespace-pre-line"
+                        >
+                            {{
+                                row.rejectionReason ??
+                                $t('No reason was recorded.')
+                            }}
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <ApprovalDecision
-                v-if="row.approvalState === 'pending' && canManage"
-                :approve-action="approveAction"
-                :reject-action="rejectAction"
-                :subject="row.name"
-                :approve-hint="
-                    t(
-                        'The account opens today for one month and the person is emailed right away.',
-                    )
-                "
-                :reject-hint="
-                    t(
-                        'The account stays closed and the person is emailed your reason.',
-                    )
-                "
-                :approve-confirm="
-                    t(
-                        'The account opens today and the person is emailed right away. The payment is marked as confirmed.',
-                    )
-                "
-                :reject-confirm="
-                    t(
-                        'The person is emailed the reason you write here. Their account stays closed and nothing is deleted.',
-                    )
-                "
-                test-id="individual"
-                class="border-line border-t pt-4"
-                @done="open = false"
-            />
+                <section
+                    v-if="row.approvalState === 'pending' && canManage"
+                    aria-labelledby="individual-review-decision"
+                >
+                    <h3 id="individual-review-decision" :class="label">
+                        {{ $t('Your decision') }}
+                    </h3>
+                    <ApprovalDecision
+                        :approve-action="approveAction"
+                        :reject-action="rejectAction"
+                        :subject="row.name"
+                        :approve-hint="
+                            t(
+                                'The account opens today for one month and the person is emailed right away.',
+                            )
+                        "
+                        :reject-hint="
+                            t(
+                                'The account stays closed and the person is emailed your reason.',
+                            )
+                        "
+                        :approve-confirm="
+                            t(
+                                'The account opens today and the person is emailed right away. The payment is marked as confirmed.',
+                            )
+                        "
+                        :reject-confirm="
+                            t(
+                                'The person is emailed the reason you write here. Their account stays closed and nothing is deleted.',
+                            )
+                        "
+                        test-id="individual"
+                        @done="open = false"
+                    />
+                </section>
+            </div>
         </div>
     </HotelsModal>
 </template>

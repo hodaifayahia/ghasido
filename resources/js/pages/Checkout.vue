@@ -309,15 +309,29 @@ function submit(): void {
                 <p
                     class="text-brand-600 text-[12px] font-bold tracking-[0.16em] uppercase"
                 >
-                    {{ content.checkout.eyebrow }}
+                    {{
+                        isIndividual
+                            ? $t('Complete your subscription')
+                            : content.checkout.eyebrow
+                    }}
                 </p>
                 <h1
                     class="font-heading text-ink-royal mt-3 text-[clamp(1.875rem,4vw,3.25rem)] leading-[1.08] font-bold tracking-[-0.04em]"
                 >
-                    {{ content.checkout.title }}
+                    {{
+                        isIndividual
+                            ? $t('Start learning hotel English with GHASIDO.')
+                            : content.checkout.title
+                    }}
                 </h1>
                 <p class="text-ink-slate mt-4 max-w-2xl text-[16px] leading-7">
-                    {{ content.checkout.description }}
+                    {{
+                        isIndividual
+                            ? $t(
+                                  'Create your learner account, send the payment and we activate it once it is confirmed.',
+                              )
+                            : content.checkout.description
+                    }}
                 </p>
             </div>
 

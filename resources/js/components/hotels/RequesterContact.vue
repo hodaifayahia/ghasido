@@ -16,10 +16,12 @@ type Props = {
     phone: string | null;
     /** A second line under the name, e.g. "Hotel manager". */
     role?: string;
+    /** `stack`: links under the name; `inline`: one wrapping row. */
+    layout?: 'stack' | 'inline';
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { layout: 'stack' });
 
 const { getInitials } = useInitials();
 
@@ -32,7 +34,16 @@ const link =
 </script>
 
 <template>
-    <div :class="cn('grid min-w-0 content-start gap-3', props.class)">
+    <div
+        :class="
+            cn(
+                'grid min-w-0 content-start gap-3',
+                layout === 'inline' &&
+                    'md:flex md:flex-wrap md:items-center md:gap-x-5',
+                props.class,
+            )
+        "
+    >
         <div class="flex min-w-0 items-center gap-3">
             <span
                 class="bg-brand-100 text-brand-700 font-heading grid size-10 shrink-0 place-items-center rounded-full text-[13px] font-semibold"
@@ -52,7 +63,14 @@ const link =
             </div>
         </div>
 
-        <ul class="grid gap-1.5">
+        <ul
+            :class="
+                cn(
+                    'grid gap-1.5',
+                    layout === 'inline' && 'md:flex md:flex-wrap md:gap-2',
+                )
+            "
+        >
             <li v-if="email">
                 <a :href="`mailto:${email}`" :class="link">
                     <Mail

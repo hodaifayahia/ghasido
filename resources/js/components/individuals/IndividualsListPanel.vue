@@ -224,7 +224,9 @@ const states = [
         </div>
 
         <div class="flex flex-wrap items-center gap-2 px-4 pb-3">
-            <label class="relative min-w-0 flex-1 sm:max-w-xs">
+            <label
+                class="relative min-w-0 flex-1 basis-full sm:max-w-xs sm:basis-auto"
+            >
                 <span class="sr-only">{{
                     $t('Search individual subscribers')
                 }}</span>
@@ -291,11 +293,11 @@ const states = [
                     }}
                 </caption>
                 <colgroup>
-                    <col class="w-[24%]" />
-                    <col class="w-[15%]" />
                     <col class="w-[23%]" />
+                    <col class="w-[13%]" />
+                    <col class="w-[22%]" />
                     <col class="w-[18%]" />
-                    <col class="w-[20%]" />
+                    <col class="w-[24%]" />
                 </colgroup>
                 <thead
                     class="bg-app text-ink-slate text-[11px] tracking-wide uppercase"
@@ -449,7 +451,7 @@ const states = [
                                 {{ $t('AI not included') }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-end">
+                        <td class="py-3 ps-2 pe-4 text-end">
                             <div
                                 v-if="canManage && awaitsDecision(row)"
                                 class="flex justify-end gap-1.5"
@@ -457,7 +459,7 @@ const states = [
                                 <Button
                                     v-if="row.approvalState === 'pending'"
                                     type="button"
-                                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-9 gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white active:scale-[.97]"
+                                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-9 gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-white active:scale-[.97]"
                                     :data-test="`review-individual-${row.id}`"
                                     @click="emit('review', row)"
                                 >
@@ -479,6 +481,7 @@ const states = [
                                     {{ $t('Details') }}
                                 </Button>
                                 <Button
+                                    v-if="row.approvalState !== 'pending'"
                                     type="button"
                                     variant="outline"
                                     class="border-line text-ink size-9 rounded-md p-0"
@@ -646,7 +649,7 @@ const states = [
                 </p>
                 <div
                     v-if="canManage && awaitsDecision(row)"
-                    class="grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+                    class="grid grid-flow-col grid-cols-[minmax(0,1fr)] gap-2"
                 >
                     <Button
                         v-if="row.approvalState === 'pending'"
@@ -668,6 +671,7 @@ const states = [
                         {{ $t('Details') }}
                     </Button>
                     <Button
+                        v-if="row.approvalState !== 'pending'"
                         type="button"
                         variant="outline"
                         class="border-line text-ink size-11 rounded-md p-0"

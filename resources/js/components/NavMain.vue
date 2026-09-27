@@ -301,13 +301,6 @@ const subButtonClass = cn(
                         </span>
                     </Link>
                 </SidebarMenuButton>
-                <!-- On the collapsed icon rail the count becomes a dot. -->
-                <span
-                    v-if="item.href && hasBadge(item)"
-                    aria-hidden="true"
-                    class="rounded-pill bg-danger ring-surface pointer-events-none absolute end-1.5 top-1 hidden size-2.5 ring-2 group-data-[collapsible=icon]:block"
-                />
-
                 <SidebarMenuButton
                     v-else
                     type="button"
@@ -323,6 +316,12 @@ const subButtonClass = cn(
                     />
                     <span :class="item.labelClass">{{ $t(item.title) }}</span>
                 </SidebarMenuButton>
+                <!-- After the v-if/v-else chain, so it never splits it. On the collapsed icon rail the count becomes a dot. -->
+                <span
+                    v-if="item.href && hasBadge(item)"
+                    aria-hidden="true"
+                    class="rounded-pill bg-danger ring-surface pointer-events-none absolute end-1.5 top-1 hidden size-2.5 ring-2 group-data-[collapsible=icon]:block"
+                />
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

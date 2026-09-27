@@ -9,6 +9,7 @@ import {
     Mail,
     MessageCircle,
     Phone,
+    X,
 } from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
@@ -25,6 +26,7 @@ import PaymentStatusPill from '@/components/payments/PaymentStatusPill.vue';
 import PaymentTypeChip from '@/components/payments/PaymentTypeChip.vue';
 import {
     Sheet,
+    SheetClose,
     SheetContent,
     SheetDescription,
     SheetTitle,
@@ -202,8 +204,17 @@ const contactClass =
                 />
 
                 <header
-                    class="border-line bg-surface sticky top-0 z-10 flex flex-col gap-2 border-b px-5 pt-4 pb-4 ltr:pe-12 rtl:ps-12"
+                    class="border-line bg-surface sticky top-0 z-10 flex flex-col gap-2 border-b px-5 pe-14 pt-4 pb-4"
                 >
+                    <!-- Our own close button: the sticky header sits above
+                         the sheet's built-in one. -->
+                    <SheetClose
+                        class="text-ink-slate hover:bg-app hover:text-ink focus-visible:ring-brand-600/15 absolute end-3 top-3 grid size-10 place-items-center rounded-md transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                        data-test="payment-review-close-button"
+                    >
+                        <X class="size-5" aria-hidden="true" />
+                        <span class="sr-only">{{ $t('Close') }}</span>
+                    </SheetClose>
                     <div class="flex flex-wrap items-center gap-2">
                         <PaymentTypeChip :type="payment.type" />
                         <PaymentStatusPill

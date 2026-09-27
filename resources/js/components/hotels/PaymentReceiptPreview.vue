@@ -38,7 +38,7 @@ const failed = ref(false);
                 :alt="$t('Proof of payment sent by :name', { name: customer })"
                 loading="lazy"
                 decoding="async"
-                class="h-44 w-full object-cover object-top transition-transform duration-300 ease-out group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                class="h-56 w-full object-contain p-1.5 transition-transform duration-300 ease-out group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 @error="failed = true"
             />
             <span

@@ -82,49 +82,44 @@ const label =
             }}
         </p>
 
-        <div
-            class="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.6fr)_minmax(0,1fr)] xl:gap-6"
+        <section
+            class="border-line bg-app-alt/60 mb-5 rounded-md border px-3 py-3"
+            aria-labelledby="hotel-approval-requester"
         >
-            <section class="min-w-0" aria-labelledby="hotel-approval-requester">
-                <h3 id="hotel-approval-requester" :class="cn(label, 'mb-2.5')">
-                    {{ $t('Requested by') }}
-                </h3>
-                <RequesterContact
-                    v-if="approval.requester"
-                    :name="approval.requester.name"
-                    :email="approval.requester.email"
-                    :phone="approval.requester.phone"
-                    :role="$t('Hotel manager')"
-                />
-                <p v-else class="text-ink-muted text-[12.5px]">
-                    {{ $t('The person who asked is not known.') }}
-                </p>
-            </section>
+            <h3 id="hotel-approval-requester" :class="cn(label, 'mb-2.5')">
+                {{ $t('Requested by') }}
+            </h3>
+            <RequesterContact
+                v-if="approval.requester"
+                :name="approval.requester.name"
+                :email="approval.requester.email"
+                :phone="approval.requester.phone"
+                :role="$t('Hotel manager')"
+                layout="inline"
+            />
+            <p v-else class="text-ink-muted text-[12.5px]">
+                {{ $t('The person who asked is not known.') }}
+            </p>
+        </section>
 
+        <div
+            class="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)_minmax(0,1fr)] xl:gap-6"
+        >
             <section class="min-w-0" aria-labelledby="hotel-approval-payment">
                 <h3 id="hotel-approval-payment" :class="cn(label, 'mb-2.5')">
-                    {{ $t('Payment sent') }}
+                    {{ $t('Payment details') }}
                 </h3>
-                <div
+                <PaymentDetailsList
                     v-if="latest"
-                    class="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]"
-                >
-                    <PaymentDetailsList
-                        :plan-name="latest.planName"
-                        :amount="latest.amount"
-                        :currency="latest.currency"
-                        :method="latest.method"
-                        :reference="latest.reference"
-                        :status="latest.status"
-                        :status-label="latest.statusLabel"
-                        :submitted-at="latest.submittedAt"
-                    />
-                    <PaymentReceiptPreview
-                        :url="latest.receiptUrl"
-                        :is-image="latest.isImage"
-                        :customer="hotelName"
-                    />
-                </div>
+                    :plan-name="latest.planName"
+                    :amount="latest.amount"
+                    :currency="latest.currency"
+                    :method="latest.method"
+                    :reference="latest.reference"
+                    :status="latest.status"
+                    :status-label="latest.statusLabel"
+                    :submitted-at="latest.submittedAt"
+                />
                 <div
                     v-else
                     class="border-line text-ink-slate rounded-md border border-dashed px-4 py-6 text-center text-[12.5px]"
@@ -134,7 +129,29 @@ const label =
             </section>
 
             <section
-                class="min-w-0 md:col-span-2 xl:col-span-1"
+                v-if="latest"
+                class="min-w-0"
+                aria-labelledby="hotel-approval-receipt"
+            >
+                <h3 id="hotel-approval-receipt" :class="cn(label, 'mb-2.5')">
+                    {{ $t('Payment receipt') }}
+                </h3>
+                <PaymentReceiptPreview
+                    :url="latest.receiptUrl"
+                    :is-image="latest.isImage"
+                    :customer="hotelName"
+                />
+            </section>
+
+            <section
+                :class="
+                    cn(
+                        'min-w-0',
+                        latest
+                            ? 'md:col-span-2 xl:col-span-1'
+                            : 'xl:col-span-2',
+                    )
+                "
                 aria-labelledby="hotel-approval-decision"
             >
                 <h3 id="hotel-approval-decision" :class="cn(label, 'mb-2.5')">

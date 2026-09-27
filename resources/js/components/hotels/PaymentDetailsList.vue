@@ -30,73 +30,53 @@ const props = defineProps<Props>();
 </script>
 
 <template>
+    <!-- One grid, so the labels share a column sized to the longest one. -->
     <dl
         :class="
             cn(
-                'border-line divide-line bg-surface divide-y overflow-hidden rounded-md border text-[12.5px]',
+                'border-line bg-surface grid grid-cols-[max-content_minmax(0,1fr)] overflow-hidden rounded-md border text-[12.5px] leading-5',
+                '[&>dd]:border-line [&>dt]:border-line [&>dd]:border-t [&>dd]:py-2 [&>dd]:pe-3 [&>dt]:border-t [&>dt]:py-2 [&>dt]:ps-3 [&>dt]:pe-4',
+                '[&>:nth-child(-n+2)]:border-t-0',
                 props.class,
             )
         "
     >
-        <div
-            v-if="planName"
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-3 py-2"
-        >
+        <template v-if="planName">
             <dt class="text-ink-slate">{{ $t('Plan') }}</dt>
             <dd class="text-brand-900 truncate font-semibold">
                 {{ planName }}
             </dd>
-        </div>
-        <div
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-3 py-2"
+        </template>
+        <dt class="text-ink-slate">{{ $t('Amount') }}</dt>
+        <dd
+            class="font-heading text-brand-800 text-[14px] font-bold tabular-nums"
         >
-            <dt class="text-ink-slate">{{ $t('Amount') }}</dt>
-            <dd
-                class="font-heading text-brand-800 text-[14px] font-bold tabular-nums"
+            <bdi>{{ formatMoney(amount, currency) }}</bdi>
+        </dd>
+        <dt class="text-ink-slate">{{ $t('Payment method') }}</dt>
+        <dd class="text-brand-900 truncate font-semibold">{{ method }}</dd>
+        <dt class="text-ink-slate">{{ $t('Transaction reference') }}</dt>
+        <dd
+            v-if="reference"
+            class="text-brand-900 font-mono text-[12px] font-semibold break-all"
+        >
+            <bdi>{{ reference }}</bdi>
+        </dd>
+        <dd v-else class="text-ink-muted">{{ $t('Not given') }}</dd>
+        <dt class="text-ink-slate">{{ $t('Submitted') }}</dt>
+        <dd class="text-brand-900">{{ formatSubmitted(submittedAt) }}</dd>
+        <dt class="text-ink-slate">{{ $t('Status') }}</dt>
+        <dd class="min-w-0">
+            <span
+                :class="
+                    cn(
+                        'rounded-pill text-pill inline-flex h-6 max-w-full items-center truncate px-2.5 whitespace-nowrap',
+                        paymentStatusTone[status],
+                    )
+                "
             >
-                <bdi>{{ formatMoney(amount, currency) }}</bdi>
-            </dd>
-        </div>
-        <div
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-3 py-2"
-        >
-            <dt class="text-ink-slate">{{ $t('Payment method') }}</dt>
-            <dd class="text-brand-900 truncate font-semibold">{{ method }}</dd>
-        </div>
-        <div
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-3 py-2"
-        >
-            <dt class="text-ink-slate">{{ $t('Transaction reference') }}</dt>
-            <dd
-                v-if="reference"
-                class="text-brand-900 font-mono text-[12px] font-semibold break-all"
-            >
-                <bdi>{{ reference }}</bdi>
-            </dd>
-            <dd v-else class="text-ink-muted">{{ $t('Not given') }}</dd>
-        </div>
-        <div
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-3 py-2"
-        >
-            <dt class="text-ink-slate">{{ $t('Submitted') }}</dt>
-            <dd class="text-brand-900">{{ formatSubmitted(submittedAt) }}</dd>
-        </div>
-        <div
-            class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center gap-3 px-3 py-2"
-        >
-            <dt class="text-ink-slate">{{ $t('Status') }}</dt>
-            <dd>
-                <span
-                    :class="
-                        cn(
-                            'rounded-pill text-pill inline-flex h-6 items-center px-2.5 whitespace-nowrap',
-                            paymentStatusTone[status],
-                        )
-                    "
-                >
-                    {{ statusLabel ?? $t(paymentStatusLabel[status]) }}
-                </span>
-            </dd>
-        </div>
+                {{ statusLabel ?? $t(paymentStatusLabel[status]) }}
+            </span>
+        </dd>
     </dl>
 </template>

@@ -258,14 +258,14 @@ function planLine(row: PaymentRow): string {
                         }}
                     </caption>
                     <colgroup>
-                        <col class="w-[23%]" />
-                        <col class="w-[11%]" />
-                        <col class="w-[12%]" />
-                        <col class="w-[16%]" />
-                        <col class="w-[7%]" />
-                        <col class="w-[12%]" />
-                        <col class="w-[11%]" />
+                        <col class="w-[19%]" />
                         <col class="w-[8%]" />
+                        <col class="w-[13%]" />
+                        <col class="w-[13%]" />
+                        <col class="w-[6%]" />
+                        <col class="w-[13%]" />
+                        <col class="w-[15%]" />
+                        <col class="w-[13%]" />
                     </colgroup>
                     <thead
                         class="bg-tint-header text-ink-slate text-[11px] tracking-wide uppercase"
