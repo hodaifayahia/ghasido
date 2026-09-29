@@ -301,4 +301,53 @@ class TestsPageTest extends TestCase
         $this->assertSame(2, $activity->current_version);
         $this->assertDatabaseHas('audit_logs', ['action' => 'test.question.media.updated']);
     }
+
+    public function test_an_uploaded_question_photo_is_shown_instead_of_the_default(): void
+    {
+        // Client report 2026-09-29: the shared editor stores the photo on
+        // the item (`image`), which the builder card did not read.
+        $department = Department::factory()->create();
+        $test = Test::factory()->draft()->create(['department_id' => $department->id]);
+        $admin = User::factory()->superAdmin()->create();
+        $media = MediaAsset::factory()->seed('practice-guest-asking')->create();
+        $activity = Activity::factory()->create(['department_id' => $department->id]);
+        $payload = $activity->payload;
+        $payload['items'][0]['image'] = $media->id;
+        unset($payload['items'][0]['media']);
+        $activity->forceFill(['payload' => $payload])->save();
+        $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
+
+        $this->actingAs($admin)
+            ->get(route('tests', ['test' => $test->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('editor.questions.0.media.image.id', (string) $media->id)
+                ->where('editor.questions.0.media.image.url', $media->url()));
+    }
+
+    public function test_questions_can_be_put_in_a_new_order(): void
+    {
+        $department = Department::factory()->create();
+        $test = Test::factory()->draft()->create(['department_id' => $department->id]);
+        $admin = User::factory()->superAdmin()->create();
+        $first = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 1]);
+        $second = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 2]);
+        $third = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 3]);
+
+        $this->actingAs($admin)
+            ->put(route('tests.questions.reorder', $test), ['order' => [$third->id, $first->id, $second->id]])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame([$third->id, $first->id, $second->id], $test->questions()->pluck('id')->map(fn ($id) => (int) $id)->all());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'test.questions.reordered']);
+
+        // Every question exactly once.
+        $this->actingAs($admin)
+            ->put(route('tests.questions.reorder', $test), ['order' => [$first->id, $second->id]])
+            ->assertSessionHasErrors('order');
+
+        $this->actingAs(User::factory()->employee()->create())
+            ->put(route('tests.questions.reorder', $test), ['order' => [$first->id, $second->id, $third->id]])
+            ->assertForbidden();
+    }
 }

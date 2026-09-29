@@ -2,6 +2,8 @@
 import { router } from '@inertiajs/vue3';
 import type { FormDataConvertible } from '@inertiajs/core';
 import {
+    ArrowDown,
+    ArrowUp,
     Check,
     CircleAlert,
     CirclePlus,
@@ -39,8 +41,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { tk } from '@/lib/i18n';
+import { reorder as reorderQuestionsRoute } from '@/routes/tests/questions';
 import { cn } from '@/lib/utils';
 import type {
     LessonsImageLibrary,
@@ -192,6 +196,76 @@ const removeOpen = computed({
         if (!open) removing.value = null;
     },
 });
+
+// ------------------------------------------------------------ question order
+// Move up / down, or drag a card by its handle (client request 2026-09-29).
+// The server stores the new order; answers already given are untouched.
+
+const canReorder = useCan().can('tests.manage');
+const reordering = ref(false);
+const dragging = ref<number | null>(null);
+const dropTarget = ref<number | null>(null);
+
+function saveOrder(ids: number[]): void {
+    if (props.editor.id === null || reordering.value) {
+        return;
+    }
+
+    router.put(
+        reorderQuestionsRoute.url(props.editor.id),
+        { order: ids },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => {
+                reordering.value = true;
+            },
+            onFinish: () => {
+                reordering.value = false;
+            },
+        },
+    );
+}
+
+function moveQuestion(from: number, to: number): void {
+    const ids = props.editor.questions.map((question) => question.id);
+
+    if (from === to || to < 0 || to >= ids.length) {
+        return;
+    }
+
+    const [id] = ids.splice(from, 1);
+
+    if (id === undefined) {
+        return;
+    }
+
+    ids.splice(to, 0, id);
+    saveOrder(ids);
+}
+
+function onDragStart(event: DragEvent, index: number): void {
+    dragging.value = index;
+    event.dataTransfer?.setData('text/plain', String(index));
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+    }
+}
+
+function onDrop(index: number): void {
+    if (dragging.value !== null) {
+        moveQuestion(dragging.value, index);
+    }
+
+    dragging.value = null;
+    dropTarget.value = null;
+}
+
+function onDragEnd(): void {
+    dragging.value = null;
+    dropTarget.value = null;
+}
 
 function confirmRemove(): void {
     const question = removing.value;
@@ -617,16 +691,36 @@ function save(): void {
         </p>
 
         <article
-            v-for="question in editor.questions"
+            v-for="(question, position) in editor.questions"
             :key="question.id"
-            class="border-line bg-surface mt-3 rounded-md border p-3"
+            :class="
+                cn(
+                    'border-line bg-surface mt-3 rounded-md border p-3 transition-[opacity,box-shadow] duration-150 motion-reduce:transition-none',
+                    dragging === position && 'opacity-50',
+                    dropTarget === position &&
+                        dragging !== position &&
+                        'ring-brand-600/40 ring-2',
+                )
+            "
             :data-test="`test-question-${question.index}`"
+            @dragover.prevent="dropTarget = position"
+            @dragleave="
+                dropTarget = dropTarget === position ? null : dropTarget
+            "
+            @drop.prevent="onDrop(position)"
         >
             <div class="flex items-center gap-2">
-                <GripVertical
-                    class="text-ink-faint size-4 shrink-0"
-                    aria-hidden="true"
-                />
+                <span
+                    v-if="canReorder && editor.questions.length > 1"
+                    draggable="true"
+                    class="text-ink-faint hover:text-brand-700 hidden cursor-grab touch-none active:cursor-grabbing md:inline-flex"
+                    :title="$t('Drag to change the order')"
+                    :data-test="`drag-question-${question.index}`"
+                    @dragstart="onDragStart($event, position)"
+                    @dragend="onDragEnd"
+                >
+                    <GripVertical class="size-4 shrink-0" aria-hidden="true" />
+                </span>
                 <span
                     :class="
                         cn(
@@ -660,6 +754,39 @@ function save(): void {
                 >
                     <Pencil class="size-4" aria-hidden="true" />
                 </button>
+                <template v-if="canReorder && editor.questions.length > 1">
+                    <button
+                        type="button"
+                        class="text-ink-faint hover:bg-brand-50 inline-flex size-9 items-center justify-center rounded-md disabled:opacity-40 md:size-7"
+                        :disabled="position === 0 || reordering"
+                        :aria-label="
+                            $t('Move question :number up', {
+                                number: question.index,
+                            })
+                        "
+                        :data-test="`move-question-${question.index}-up`"
+                        @click="moveQuestion(position, position - 1)"
+                    >
+                        <ArrowUp class="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        class="text-ink-faint hover:bg-brand-50 inline-flex size-9 items-center justify-center rounded-md disabled:opacity-40 md:size-7"
+                        :disabled="
+                            position === editor.questions.length - 1 ||
+                            reordering
+                        "
+                        :aria-label="
+                            $t('Move question :number down', {
+                                number: question.index,
+                            })
+                        "
+                        :data-test="`move-question-${question.index}-down`"
+                        @click="moveQuestion(position, position + 1)"
+                    >
+                        <ArrowDown class="size-4" aria-hidden="true" />
+                    </button>
+                </template>
                 <button
                     type="button"
                     class="text-ink-faint hover:bg-brand-50 inline-flex size-9 items-center justify-center rounded-md md:size-7"

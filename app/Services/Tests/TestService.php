@@ -13,6 +13,7 @@ use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Writes the assessment builder's aggregate (TEST-01..10, TSTM-01..05).
@@ -268,6 +269,30 @@ class TestService
      * creates the immutable next version when the payload changes (DATA-11,
      * TEST-09).
      */
+    /**
+     * A new question order: every placement of the test exactly once
+     * (client request 2026-09-29). Answers keep their placement, so the
+     * order learners see changes without touching any stored answer.
+     *
+     * @param  list<int>  $placementIds
+     */
+    public function reorderQuestions(Test $test, array $placementIds): void
+    {
+        DB::transaction(function () use ($test, $placementIds): void {
+            $ids = $test->questions()->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all();
+
+            if (count($placementIds) !== count($ids) || array_diff($placementIds, $ids) !== []) {
+                throw new InvalidArgumentException(__('The order must list every question of this test exactly once.'));
+            }
+
+            foreach ($placementIds as $index => $id) {
+                ActivityPlacement::query()->whereKey($id)->update(['position' => $index + 1]);
+            }
+
+            AuditLog::record($test, 'test.questions.reordered', ['order' => $placementIds]);
+        });
+    }
+
     public function attachMedia(ActivityPlacement $placement, string $kind, ?int $mediaId, User $actor): ActivityPlacement
     {
         return DB::transaction(function () use ($placement, $kind, $mediaId, $actor): ActivityPlacement {
@@ -285,14 +310,11 @@ class TestService
 
             if ($mediaId === null) {
                 unset($mediaMap[$kind]);
-                if ($kind === 'image' || $kind === 'video') {
-                    unset($item[$kind]);
-                }
+                unset($item[$kind]);
             } else {
                 $mediaMap[$kind] = $mediaId;
-                if ($kind === 'image' || $kind === 'video') {
-                    $item[$kind] = $mediaId;
-                }
+                // Where the shared question editor reads it, audio included.
+                $item[$kind] = $mediaId;
             }
 
             if ($mediaMap === []) {

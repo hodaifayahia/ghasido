@@ -22,6 +22,8 @@ Route::middleware(Permission::TestsManage->middleware())->group(function () {
         ->middleware('english-data')
         ->name('tests.questions.import-template');
     Route::post('tests/{test}/questions/import', [TestsController::class, 'importQuestions'])->name('tests.questions.import');
+    // Before {placement}, so "reorder" is not read as a placement id.
+    Route::put('tests/{test}/questions/reorder', [TestsController::class, 'reorderQuestions'])->name('tests.questions.reorder');
     Route::patch('tests/{test}/questions/{placement}', [TestsController::class, 'updateQuestion'])->name('tests.questions.update');
     Route::patch('tests/{test}/questions/{placement}/media', [TestsController::class, 'updateQuestionMedia'])->name('tests.questions.media');
     Route::delete('tests/{test}/questions/{placement}', [TestsController::class, 'destroyQuestion'])->name('tests.questions.destroy');

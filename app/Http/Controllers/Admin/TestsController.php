@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -346,6 +347,27 @@ class TestsController extends Controller
         return back();
     }
 
+    /**
+     * Put the test's questions in a new order (client request 2026-09-29).
+     */
+    public function reorderQuestions(Request $request, Test $test, TestService $tests): RedirectResponse
+    {
+        Gate::authorize('update', $test);
+
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*' => ['integer', 'distinct'],
+        ]);
+
+        try {
+            $tests->reorderQuestions($test, array_map('intval', $data['order']));
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['order' => $exception->getMessage()]);
+        }
+
+        return back();
+    }
+
     public function destroyQuestion(Request $request, Test $test, ActivityPlacement $placement, TestService $tests): RedirectResponse
     {
         Gate::authorize('update', $test);
@@ -538,7 +560,11 @@ class TestsController extends Controller
         $media = [];
 
         foreach (['image', 'audio', 'video'] as $mediaKind) {
-            $mediaId = $storedMedia[$mediaKind] ?? null;
+            // The shared question editor stores the media on the item
+            // itself (`image`, `audio`, `video`); older questions kept it
+            // in `media` (client report 2026-09-29: an uploaded photo showed
+            // the default one).
+            $mediaId = $item[$mediaKind] ?? $storedMedia[$mediaKind] ?? null;
 
             if (is_int($mediaId) || (is_string($mediaId) && ctype_digit($mediaId))) {
                 $asset = MediaAsset::query()->find((int) $mediaId);
