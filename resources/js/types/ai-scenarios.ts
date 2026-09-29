@@ -31,6 +31,12 @@ export type AiScenarioLibraryItem = {
     level: string;
     status: AiScenarioStatus;
     crop: AiScenarioMockupCrop;
+    /** Stored scenarios only: may the viewer delete it (policy destroy)? */
+    canDelete?: boolean;
+    /** Learner role-play attempts; above 0 a delete keeps them (DATA-10). */
+    learnerAttempts?: number;
+    /** Lesson steps that offer it; a delete takes it out of them. */
+    lessonSteps?: number;
 };
 
 export type AiScenarioDirectoryMetricKey =

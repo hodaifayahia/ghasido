@@ -25,6 +25,8 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
         ->name('ai-scenarios.config.feedback');
     Route::patch('ai-scenarios/{scenario}', [AiScenariosController::class, 'update'])
         ->name('ai-scenarios.update');
+    Route::delete('ai-scenarios/{scenario}', [AiScenariosController::class, 'destroy'])
+        ->name('ai-scenarios.destroy');
     Route::post('ai-scenarios/{scenario}/generate', [AiScenariosController::class, 'generate'])
         ->name('ai-scenarios.generate');
     Route::post('ai-scenarios/{scenario}/apply-draft', [AiScenariosController::class, 'applyDraft'])

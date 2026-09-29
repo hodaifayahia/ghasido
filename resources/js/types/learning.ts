@@ -460,3 +460,18 @@ export type LessonMeaning = {
     arabic: string;
     explanation: string | null;
 };
+
+/** One question of a finished test's answer review (`show_answers`). */
+export type TestReviewStatus =
+    | 'correct'
+    | 'incorrect'
+    | 'unanswered'
+    | 'evaluated';
+
+export type TestReviewRow = {
+    number: number;
+    question: string;
+    yourAnswer: string | null;
+    correctAnswer: string | null;
+    status: TestReviewStatus;
+};

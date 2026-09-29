@@ -54,6 +54,21 @@ class AiScenarioPolicy
         return $this->update($user, $scenario);
     }
 
+    /**
+     * "Delete" from the directory table (CMS-01). Shared content reaches
+     * every hotel, so only a platform level admin (no hotel of their own)
+     * may delete it; a hotel admin deletes their own hotel's rows only
+     * (ROLE-02). Learner answers are never deleted either way (DATA-10).
+     */
+    public function destroy(User $user, AiScenario $scenario): bool
+    {
+        if (! $this->update($user, $scenario)) {
+            return false;
+        }
+
+        return $scenario->hotel_id !== null || $user->hotel_id === null;
+    }
+
     private function isInReach(User $user, AiScenario $scenario): bool
     {
         return $scenario->hotel_id === null || $scenario->hotel_id === $user->hotel_id;

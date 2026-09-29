@@ -42,6 +42,8 @@ class LessonsContentController extends Controller
     public function edit(Request $request, Lesson $lesson, ContentTree $tree, TtsSettings $tts): Response
     {
         Gate::authorize('view', $lesson);
+        // Removed by "Delete": kept only for reports, never edited (DATA-10).
+        abort_if($lesson->isArchived(), 404);
 
         $lesson->loadMissing('course');
 

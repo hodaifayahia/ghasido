@@ -13,6 +13,7 @@ use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Learning\ActivityPresenter;
 use App\Services\Learning\JourneyService;
+use App\Services\Learning\TestReview;
 use App\Services\Learning\TestRunner;
 use App\Services\Learning\TestScorer;
 use Illuminate\Http\RedirectResponse;
@@ -37,12 +38,23 @@ class TestController extends Controller
         private readonly TestScorer $scorer,
         private readonly ActivityPresenter $presenter,
         private readonly JourneyService $journey,
+        private readonly TestReview $review,
     ) {}
 
     public function start(Request $request, Test $test): RedirectResponse
     {
         $user = $this->learner($request);
         $this->assertSittable($user, $test);
+
+        // `single_attempt`: a submitted sitting is final; show it instead of
+        // opening another.
+        $done = $this->runner->singleAttemptUsed($user, $test);
+
+        if ($done !== null) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __('You have already taken this test. It can only be taken once.')]);
+
+            return $this->toResult($test, $done);
+        }
 
         $attempt = $this->runner->startOrResume($user, $test);
 
@@ -58,10 +70,10 @@ class TestController extends Controller
             return $this->toResult($test, $attempt);
         }
 
-        $questions = $this->runner->questions($test);
+        $questions = $this->runner->questions($test, $attempt);
         $total = $questions->count();
         $number = max(1, min($number, max($total, 1)));
-        $placement = $this->runner->questionAt($test, $number);
+        $placement = $this->runner->questionAt($test, $number, $attempt);
         $saved = $this->runner->savedAnswers($attempt, $test);
 
         return Inertia::render('employee/test/Question', [
@@ -81,7 +93,11 @@ class TestController extends Controller
                 'onTimeout' => $test->onTimeout(),
             ],
             'question' => ['number' => $number, 'total' => $total],
-            'activity' => $this->presenter->present($placement, $user, ActivityPresenter::MODE_TEST),
+            'activity' => $this->runner->presentOptions(
+                $this->presenter->present($placement, $user, ActivityPresenter::MODE_TEST),
+                $test,
+                $attempt,
+            ),
             'savedAnswer' => $saved[$number] ?? null,
             'questions' => $questions->values()->map(fn (object $placement, int $index): array => [
                 'number' => $index + 1,
@@ -102,10 +118,10 @@ class TestController extends Controller
             return $this->toResult($test, $attempt);
         }
 
-        $placement = $this->runner->questionAt($test, $number);
+        $placement = $this->runner->questionAt($test, $number, $attempt);
         $this->runner->saveAnswer($attempt, $placement, $request->answer(), $request->timeTakenMs());
 
-        $total = $this->runner->questions($test)->count();
+        $total = $this->runner->questions($test, $attempt)->count();
 
         return $this->toQuestion($test, $attempt, max(1, min($request->target(), max($total, 1))));
     }
@@ -116,7 +132,7 @@ class TestController extends Controller
         $this->assertOwned($user, $test, $attempt);
 
         if ($attempt->status === TestAttemptStatus::InProgress) {
-            $placement = $this->runner->questionAt($test, $request->number());
+            $placement = $this->runner->questionAt($test, $request->number(), $attempt);
             $this->runner->saveAnswer($attempt, $placement, $request->answer(), $request->timeTakenMs());
             $this->scorer->finish($attempt);
         }
@@ -145,6 +161,10 @@ class TestController extends Controller
             ],
             'visibility' => $visibility->value,
             'result' => $this->resultPayload($attempt, $visibility),
+            // Correct answers only after the sitting, and only when the
+            // admin shows them and results at all (TEST-03, TEST-04).
+            'review' => $test->showsAnswers() ? $this->review->rows($test, $attempt) : null,
+            'motivation' => $test->showsMotivationalMessage() ? $this->review->motivationalMessage($test, $attempt) : null,
             'isPost' => $isPost,
             'continueUrl' => route('learn.lessons'),
             'certificateUrl' => route('learn.certificate'),

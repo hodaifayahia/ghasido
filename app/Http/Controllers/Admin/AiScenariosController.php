@@ -94,6 +94,25 @@ class AiScenariosController extends Controller
         return back();
     }
 
+    /**
+     * "Delete" in the scenario table (CMS-01). Learner attempts are never
+     * deleted: a scenario learners practised is removed from the library
+     * and kept for reports (RP-11, DATA-10). Authorized here (SEC-01).
+     */
+    public function destroy(AiScenario $scenario, ScenarioService $scenarios): RedirectResponse
+    {
+        Gate::authorize('destroy', $scenario);
+
+        $title = $scenario->title;
+        $deleted = $scenarios->delete($scenario);
+
+        Inertia::flash('toast', $deleted
+            ? ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]
+            : ['type' => 'success', 'message' => __(':title was removed from the library. Learner role-play attempts were kept for reports.', ['title' => $title])]);
+
+        return to_route('ai-scenarios');
+    }
+
     public function updateCategories(Request $request, ScenarioConfiguration $configuration): RedirectResponse
     {
         Gate::authorize('create', AiScenario::class);
@@ -652,12 +671,27 @@ class AiScenariosController extends Controller
         ];
 
         if ($databaseScenarios->isNotEmpty()) {
+            // The delete dialog says up front whether learners practised the
+            // scenario and which lesson steps offer it (DATA-10, RP-14).
+            $learnerAttempts = app(ScenarioService::class)->learnerAttemptCounts(
+                array_values($databaseScenarios->modelKeys()),
+            );
+            $lessonSteps = Block::query()
+                ->join('block_ai_scenario', 'block_ai_scenario.block_id', '=', 'blocks.id')
+                ->whereIn('block_ai_scenario.ai_scenario_id', $databaseScenarios->modelKeys())
+                ->selectRaw('block_ai_scenario.ai_scenario_id as scenario_key, count(*) as total')
+                ->groupBy('block_ai_scenario.ai_scenario_id')
+                ->pluck('total', 'scenario_key')
+                ->all();
             $payload['library']['scenarios'] = $databaseScenarios->map(fn (AiScenario $scenario): array => [
                 'id' => (string) $scenario->id,
                 'title' => $scenario->title,
                 'department' => $scenario->department->name ?? __('Unknown Department'),
                 'level' => __('Level: :level', ['level' => Str::headline($scenario->difficulty->value)]),
                 'status' => $scenario->status->value,
+                'canDelete' => $viewer->can('destroy', $scenario),
+                'learnerAttempts' => $learnerAttempts[$scenario->id] ?? 0,
+                'lessonSteps' => (int) ($lessonSteps[$scenario->id] ?? 0),
                 'crop' => [
                     'x' => 197,
                     'y' => 238 + (($scenario->id % 7) * 69),
@@ -790,7 +824,7 @@ class AiScenariosController extends Controller
             ->map(function (Block $block): ?array {
                 $lesson = $block->lesson;
 
-                if ($lesson === null) {
+                if ($lesson === null || $lesson->isArchived()) {
                     return null;
                 }
 
@@ -950,7 +984,7 @@ class AiScenariosController extends Controller
     /** @return Builder<AiScenario> */
     private function visibleScenarios(User $viewer): Builder
     {
-        return AiScenario::query()->when(
+        return AiScenario::query()->notArchived()->when(
             ! $viewer->hasRole('super_admin'),
             fn (Builder $query) => $query->where(function (Builder $scope) use ($viewer): void {
                 $scope->whereNull('hotel_id');

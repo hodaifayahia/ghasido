@@ -7,9 +7,11 @@ import {
     Filter,
     RotateCcw,
     Search,
+    Trash2,
 } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
+import AiScenariosDeleteDialog from '@/components/ai-scenarios/AiScenariosDeleteDialog.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { AiScenarioLibrary, AiScenarioLibraryItem } from '@/types';
@@ -35,6 +38,22 @@ const emit = defineEmits<{
 }>();
 
 const { t, tc } = useI18n();
+
+// Delete (CMS-01): only stored scenarios the viewer may delete; the server
+// authorizes again and keeps learner attempts (ROLE-02, DATA-10).
+const { can } = useCan();
+const manage = can('scenarios.manage');
+const deleteOpen = ref(false);
+const deleteTarget = ref<AiScenarioLibraryItem | null>(null);
+
+function canDelete(scenario: AiScenarioLibraryItem): boolean {
+    return manage && scenario.canDelete === true;
+}
+
+function askDelete(scenario: AiScenarioLibraryItem): void {
+    deleteTarget.value = scenario;
+    deleteOpen.value = true;
+}
 
 const search = ref(props.library.search);
 const department = ref(props.library.department);
@@ -285,19 +304,40 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                 {{ statusLabel(scenario) }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-end">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
-                                @click="emit('open', scenario.id)"
-                            >
-                                {{ $t('Open') }}
-                                <ArrowRight
-                                    class="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
+                        <td class="px-5 py-3">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
+                                    @click="emit('open', scenario.id)"
+                                >
+                                    {{ $t('Open') }}
+                                    <ArrowRight
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                                <Button
+                                    v-if="canDelete(scenario)"
+                                    type="button"
+                                    variant="outline"
+                                    class="border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text bg-surface size-8 shrink-0 rounded-md p-0 shadow-none"
+                                    :aria-label="
+                                        $t('Delete :title', {
+                                            title: scenario.title,
+                                        })
+                                    "
+                                    :title="$t('Delete')"
+                                    :data-test="`delete-scenario-${scenario.id}-button`"
+                                    @click="askDelete(scenario)"
+                                >
+                                    <Trash2
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -308,45 +348,59 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
             v-if="filteredScenarios.length"
             class="divide-line divide-y md:hidden"
         >
-            <button
+            <div
                 v-for="scenario in filteredScenarios"
                 :key="scenario.id"
-                type="button"
-                class="hover:bg-brand-50/40 flex w-full items-center gap-3 px-4 py-3 text-start transition-colors"
-                @click="emit('open', scenario.id)"
+                class="hover:bg-brand-50/40 flex items-center gap-2 pe-3 transition-colors"
             >
-                <span
-                    class="bg-brand-50 text-brand-600 border-line grid size-12 shrink-0 place-items-center rounded-md border"
-                    aria-hidden="true"
+                <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-center gap-3 py-3 ps-4 text-start"
+                    @click="emit('open', scenario.id)"
                 >
-                    <Bot class="size-5" />
-                </span>
-                <span class="min-w-0 flex-1">
                     <span
-                        class="text-brand-900 block truncate text-[13px] font-semibold"
+                        class="bg-brand-50 text-brand-600 border-line grid size-12 shrink-0 place-items-center rounded-md border"
+                        aria-hidden="true"
                     >
-                        {{ scenario.title }}
+                        <Bot class="size-5" />
                     </span>
-                    <span class="text-ink-muted mt-0.5 block text-[11px]">
-                        {{ scenario.department }} ·
-                        {{ scenario.level.replace('Level: ', '') }}
+                    <span class="min-w-0 flex-1">
+                        <span
+                            class="text-brand-900 block truncate text-[13px] font-semibold"
+                        >
+                            {{ scenario.title }}
+                        </span>
+                        <span class="text-ink-muted mt-0.5 block text-[11px]">
+                            {{ scenario.department }} ·
+                            {{ scenario.level.replace('Level: ', '') }}
+                        </span>
+                        <span
+                            :class="
+                                cn(
+                                    'mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                                    statusClass(scenario),
+                                )
+                            "
+                        >
+                            {{ statusLabel(scenario) }}
+                        </span>
                     </span>
-                    <span
-                        :class="
-                            cn(
-                                'mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                                statusClass(scenario),
-                            )
-                        "
-                    >
-                        {{ statusLabel(scenario) }}
-                    </span>
-                </span>
-                <ArrowRight
-                    class="text-brand-700 size-4 shrink-0"
-                    aria-hidden="true"
-                />
-            </button>
+                    <ArrowRight
+                        class="text-brand-700 size-4 shrink-0"
+                        aria-hidden="true"
+                    />
+                </button>
+                <button
+                    v-if="canDelete(scenario)"
+                    type="button"
+                    class="border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text bg-surface focus-visible:ring-brand-600/15 grid size-10 shrink-0 place-items-center rounded-md border focus-visible:ring-3 focus-visible:outline-none"
+                    :aria-label="$t('Delete :title', { title: scenario.title })"
+                    :data-test="`delete-scenario-${scenario.id}-button`"
+                    @click="askDelete(scenario)"
+                >
+                    <Trash2 class="size-4" aria-hidden="true" />
+                </button>
+            </div>
         </div>
 
         <div v-else class="px-5 py-12 text-center">
@@ -393,5 +447,9 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                 </Button>
             </div>
         </div>
+        <AiScenariosDeleteDialog
+            v-model:open="deleteOpen"
+            :scenario="deleteTarget"
+        />
     </PanelCard>
 </template>

@@ -3,12 +3,17 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Award, BookOpen, CircleCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import Celebration from '@/components/learning/Celebration.vue';
+import TestAnswerReview from '@/components/learning/test/TestAnswerReview.vue';
+import TestMotivationCard from '@/components/learning/test/TestMotivationCard.vue';
+import type { TestReviewRow } from '@/types';
 
 /*
  * The test result (TEST-04, JOURNEY-01/05; spec 0003 Part E). What the
  * learner sees is the admin's `results_visibility`: nothing, the score, or
  * the score with a per-skill breakdown. Whatever the setting, the answers
- * are already saved.
+ * are already saved. With `show_answers` the server adds the answer review,
+ * with `motivational_message` a closing line; both are null otherwise, so no
+ * correct answer reaches a learner the admin did not show them to.
  */
 type Band = { skill: string; score: number; max: number; percent: number };
 type Result = {
@@ -22,6 +27,8 @@ type Props = {
     test: { id: number; type: string; title: string; label: string };
     visibility: string;
     result: Result | null;
+    review: TestReviewRow[] | null;
+    motivation: string | null;
     isPost: boolean;
     continueUrl: string;
     certificateUrl: string;
@@ -109,6 +116,8 @@ const showScore = computed(() => props.result !== null);
                 </div>
             </div>
 
+            <TestMotivationCard v-if="motivation" :message="motivation" />
+
             <div
                 class="mt-2 flex w-full flex-col gap-3 sm:flex-row sm:justify-center"
             >
@@ -132,6 +141,13 @@ const showScore = computed(() => props.result !== null);
                     {{ $t('View Certificate') }}
                 </Link>
             </div>
+        </div>
+
+        <div
+            v-if="review && review.length > 0"
+            class="border-line bg-surface shadow-card rounded-lg border p-5 md:p-6"
+        >
+            <TestAnswerReview :rows="review" />
         </div>
     </section>
 </template>

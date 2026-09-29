@@ -237,7 +237,9 @@ class ContentTree
     {
         return $this->courseScope($hotelKey, $hotelId)
             ->where('department_id', $departmentId)
-            ->with(['units.lessons'])
+            // A lesson removed by "Delete" keeps its answers but leaves the
+            // builder tree (CMS-01, DATA-10).
+            ->with(['units.lessons' => fn ($lessons) => $lessons->notArchived()])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -458,8 +460,14 @@ class ContentTree
             ->paginate($filters['perPage'], ['*'], 'directoryPage')
             ->withQueryString();
 
+        // The delete dialog says up front whether learners answered the
+        // lesson, so the admin knows it will be kept for reports (DATA-10).
+        $learnerRecords = app(LessonService::class)->learnerRecordCounts(
+            array_values(array_map(static fn (Lesson $lesson): int => $lesson->id, $page->getCollection()->all())),
+        );
+
         return [
-            'rows' => array_values($page->getCollection()->map(function (Lesson $lesson): array {
+            'rows' => array_values($page->getCollection()->map(function (Lesson $lesson) use ($user, $learnerRecords): array {
                 $course = $lesson->course;
                 $unit = $lesson->unit;
                 $departmentName = $course === null ? null : $course->department->name;
@@ -482,6 +490,8 @@ class ContentTree
                     // reorder the actual steps (LESSON-01, LESSON-02, CMS-01).
                     'steps' => (int) $lesson->visible_blocks_count,
                     'url' => route('lessons.edit', $lesson),
+                    'canDelete' => $user->can('destroy', $lesson),
+                    'learnerRecords' => $learnerRecords[$lesson->id] ?? 0,
                 ];
             })->all()),
             'stats' => $this->directoryStats($user),
@@ -549,7 +559,7 @@ class ContentTree
      */
     private function directoryBase(User $user): Builder
     {
-        $query = Lesson::query();
+        $query = Lesson::query()->notArchived();
 
         if ($user->hotel_id === null) {
             if (! $user->hasRole('super_admin')) {
@@ -776,7 +786,7 @@ class ContentTree
      */
     private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId): array
     {
-        $query = AiScenario::query()->where('department_id', $departmentId)->orderBy('title');
+        $query = AiScenario::query()->notArchived()->where('department_id', $departmentId)->orderBy('title');
 
         if ($hotelKey === self::SHARED) {
             $query->whereNull('hotel_id');

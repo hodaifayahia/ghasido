@@ -35,6 +35,10 @@ export type LessonDirectoryRow = {
     /** Number of visible employee steps in this lesson. */
     steps: number;
     url: string;
+    /** May the viewer delete it (LessonPolicy::destroy)? */
+    canDelete: boolean;
+    /** Learner progress/answer rows; above 0 a delete keeps them (DATA-10). */
+    learnerRecords: number;
 };
 
 export type LessonDirectoryMetricKey =

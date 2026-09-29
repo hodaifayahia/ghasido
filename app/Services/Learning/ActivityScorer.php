@@ -75,7 +75,7 @@ class ActivityScorer
      *
      * @param  array<array-key, mixed>  $rawAnswer
      */
-    private function answerFor(array $rawAnswer, string $id, int $itemCount): mixed
+    public function answerFor(array $rawAnswer, string $id, int $itemCount): mixed
     {
         if (array_key_exists($id, $rawAnswer)) {
             return $rawAnswer[$id];

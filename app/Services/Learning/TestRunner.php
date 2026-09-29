@@ -2,6 +2,8 @@
 
 namespace App\Services\Learning;
 
+use App\Enums\ActivityType;
+use App\Enums\AnswerShape;
 use App\Enums\TestAttemptStatus;
 use App\Models\ActivityPlacement;
 use App\Models\Attempt;
@@ -60,22 +62,98 @@ class TestRunner
     }
 
     /**
+     * The learner's last submitted sitting when the test allows only one
+     * and no sitting is open: a new one must not start. Null means the
+     * learner may start (or resume) as usual. Only a submitted sitting
+     * counts; an expired one never unlocked the journey, so it never locks
+     * the learner out of it either.
+     */
+    public function singleAttemptUsed(User $user, Test $test): ?TestAttempt
+    {
+        if (! $test->isSingleAttempt()) {
+            return null;
+        }
+
+        $attempts = $test->attempts()->where('user_id', $user->id);
+
+        if ((clone $attempts)->where('status', TestAttemptStatus::InProgress->value)->exists()) {
+            return null;
+        }
+
+        return $attempts
+            ->where('status', TestAttemptStatus::Submitted->value)
+            ->latest('id')
+            ->first();
+    }
+
+    /**
      * The questions of this test, in order (each an activity placement).
+     * With `shuffle_questions` on, a sitting gets its own order, seeded from
+     * the sitting so it holds across refreshes and moves.
      *
      * @return Collection<int, ActivityPlacement>
      */
-    public function questions(Test $test): Collection
+    public function questions(Test $test, ?TestAttempt $attempt = null): Collection
     {
         // AI drafts stay out of a sitting until the admin releases them (GEN-03).
-        return $test->learnerQuestions();
+        $questions = $test->learnerQuestions();
+
+        if ($attempt === null || ! $test->shufflesQuestions()) {
+            return $questions;
+        }
+
+        $order = self::seededOrder(
+            array_values($questions->map(fn (ActivityPlacement $placement): string => (string) $placement->id)->all()),
+            'sitting:'.$attempt->id,
+        );
+        $byId = $questions->keyBy(fn (ActivityPlacement $placement): string => (string) $placement->id);
+
+        return collect($order)->map(fn (string $id): ActivityPlacement => $byId->get($id) ?? throw new \LogicException('Unknown placement.'))->values();
+    }
+
+    /**
+     * Put the options of every option-based item in this sitting's own
+     * order when the test shuffles options. The order is seeded from the
+     * sitting, the placement and the item, so a refresh or a revisit shows
+     * the same order; option ids are untouched, so the stored raw answer
+     * still names the option the learner chose (TEST-06). Ordering and
+     * matching items keep their stored order.
+     *
+     * @param  array<string, mixed>  $activity  ActivityPresenter::present() output
+     * @return array<string, mixed>
+     */
+    public function presentOptions(array $activity, Test $test, TestAttempt $attempt): array
+    {
+        $type = is_string($activity['type'] ?? null) ? ActivityType::tryFrom($activity['type']) : null;
+
+        if (! $test->shufflesOptions() || $type?->answerShape() !== AnswerShape::Option || ! is_array($activity['items'] ?? null)) {
+            return $activity;
+        }
+
+        $items = [];
+
+        foreach ($activity['items'] as $item) {
+            if (is_array($item) && is_array($item['options'] ?? null) && array_is_list($item['options'])) {
+                $item['options'] = self::shuffleOptions(
+                    $item['options'],
+                    'sitting:'.$attempt->id.'|question:'.(is_scalar($activity['id'] ?? null) ? $activity['id'] : '').'|item:'.(is_scalar($item['id'] ?? null) ? $item['id'] : ''),
+                );
+            }
+
+            $items[] = $item;
+        }
+
+        $activity['items'] = $items;
+
+        return $activity;
     }
 
     /**
      * The 1-based question, or a 404 when the number is out of range.
      */
-    public function questionAt(Test $test, int $number): ActivityPlacement
+    public function questionAt(Test $test, int $number, ?TestAttempt $attempt = null): ActivityPlacement
     {
-        $placement = $this->questions($test)->get($number - 1);
+        $placement = $this->questions($test, $attempt)->get($number - 1);
 
         abort_if($placement === null, 404);
 
@@ -96,7 +174,7 @@ class TestRunner
 
         $saved = [];
 
-        foreach ($this->questions($test)->values() as $index => $placement) {
+        foreach ($this->questions($test, $attempt)->values() as $index => $placement) {
             $row = $byActivity->get($placement->activity_id);
 
             if ($row !== null && $row->raw_answer !== null) {
@@ -147,6 +225,51 @@ class TestRunner
             'activity_id' => $activity->id,
             'started_at' => Date::now(),
         ]);
+    }
+
+    /**
+     * @param  list<mixed>  $options
+     * @return list<mixed>
+     */
+    private static function shuffleOptions(array $options, string $seed): array
+    {
+        $keys = array_map(
+            static fn (mixed $option, int $index): string => is_array($option) && is_scalar($option['id'] ?? null) ? (string) $option['id'] : (string) $index,
+            $options,
+            array_keys($options),
+        );
+
+        if (count(array_unique($keys)) !== count($keys)) {
+            return $options;
+        }
+
+        $byKey = array_combine($keys, $options);
+
+        return array_map(static fn (string $key): mixed => $byKey[$key], self::seededOrder($keys, $seed));
+    }
+
+    /**
+     * A deterministic permutation of the keys for this seed. When the hash
+     * order happens to match the stored order it is rotated by one, so a
+     * shuffled list never looks unshuffled.
+     *
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    private static function seededOrder(array $keys, string $seed): array
+    {
+        if (count(array_unique($keys)) !== count($keys) || count($keys) < 2) {
+            return $keys;
+        }
+
+        $order = $keys;
+        usort($order, static fn (string $a, string $b): int => strcmp(hash('sha256', $seed.'|'.$a), hash('sha256', $seed.'|'.$b)));
+
+        if ($order === $keys) {
+            $order[] = array_shift($order);
+        }
+
+        return $order;
     }
 
     public function isExpired(TestAttempt $attempt): bool

@@ -3,13 +3,20 @@
 namespace App\Services\Content;
 
 use App\Enums\ContentStatus;
+use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Block;
+use App\Models\BlockCompletion;
 use App\Models\Course;
 use App\Models\Lesson;
+use App\Models\LessonCompletion;
+use App\Models\PhrasebookItem;
+use App\Models\PronunciationAttempt;
+use App\Models\RoleplayAttempt;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pronunciation\LessonSpeech;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +28,9 @@ use Illuminate\Support\Str;
  *
  * The controller validates through a form request and hands the clean data
  * here. Each method changes the rows and writes exactly one audit row inside
- * one transaction (SEC-06, ADM-03). Nothing is ever deleted: "archive" is a
- * draft with an archived marker, and a lesson keeps its answers (DATA-10).
+ * one transaction (SEC-06, ADM-03). "Archive" is a draft; "Delete" removes a
+ * lesson only while no learner has touched it, otherwise it hides the lesson
+ * and keeps every answer (DATA-10).
  */
 class LessonService
 {
@@ -252,6 +260,135 @@ class LessonService
 
             return $lesson;
         });
+    }
+
+    /**
+     * How many learner rows point at each lesson: step and lesson
+     * completions, answers, role-play and pronunciation attempts (not admin
+     * previews) and phrasebook items saved from it. Any of them makes a
+     * "Delete" a removal that keeps the rows (DATA-10).
+     *
+     * @param  list<int>  $lessonIds
+     * @return array<int, int> lesson id => learner rows
+     */
+    public function learnerRecordCounts(array $lessonIds): array
+    {
+        $counts = array_fill_keys($lessonIds, 0);
+
+        if ($lessonIds === []) {
+            return $counts;
+        }
+
+        $blockLessons = Block::query()->whereIn('lesson_id', $lessonIds)->pluck('lesson_id', 'id')->all();
+        $blockIds = array_keys($blockLessons);
+
+        $add = function (iterable $rows) use (&$counts): void {
+            foreach ($rows as $row) {
+                $id = (int) $row->getAttribute('lesson_key');
+                if (array_key_exists($id, $counts)) {
+                    $counts[$id] += (int) $row->getAttribute('total');
+                }
+            }
+        };
+
+        $add(BlockCompletion::query()->whereIn('lesson_id', $lessonIds)->selectRaw('lesson_id as lesson_key, count(*) as total')->groupBy('lesson_id')->get());
+        $add(LessonCompletion::query()->whereIn('lesson_id', $lessonIds)->selectRaw('lesson_id as lesson_key, count(*) as total')->groupBy('lesson_id')->get());
+        $add(PhrasebookItem::query()->whereIn('source_lesson_id', $lessonIds)->selectRaw('source_lesson_id as lesson_key, count(*) as total')->groupBy('source_lesson_id')->get());
+
+        // Answers may carry the lesson, the block, or both; count each row once.
+        foreach ([Attempt::class, RoleplayAttempt::class, PronunciationAttempt::class] as $model) {
+            $query = $model::query()
+                ->where(function (Builder $inner) use ($lessonIds, $blockIds): void {
+                    $inner->whereIn('lesson_id', $lessonIds);
+                    if ($blockIds !== []) {
+                        $inner->orWhereIn('block_id', $blockIds);
+                    }
+                });
+
+            if ($model === RoleplayAttempt::class) {
+                $query->where('is_preview', false);
+            }
+
+            foreach ($query->get(['id', 'lesson_id', 'block_id']) as $row) {
+                $lessonId = $row->getAttribute('lesson_id');
+                $lessonId = is_numeric($lessonId) && array_key_exists((int) $lessonId, $counts)
+                    ? (int) $lessonId
+                    : ($blockLessons[(int) $row->getAttribute('block_id')] ?? null);
+
+                if ($lessonId !== null && array_key_exists((int) $lessonId, $counts)) {
+                    $counts[(int) $lessonId]++;
+                }
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * "Delete" from the Lesson Directory (CMS-01).
+     *
+     * With no learner rows the lesson, its blocks and their placements go;
+     * an activity goes with them only when nobody answered it and no other
+     * block or test uses it (ActivityService::remove). With learner rows
+     * nothing that holds or explains an answer is deleted (DATA-10, DATA-11):
+     * the lesson becomes a draft marked archived, leaves the admin library
+     * and every learner list, and keeps its blocks and answers for reports.
+     *
+     * @return bool true when the lesson row was deleted, false when removed
+     */
+    public function deleteLesson(Lesson $lesson): bool
+    {
+        return DB::transaction(function () use ($lesson): bool {
+            $records = $this->learnerRecordCounts([$lesson->id])[$lesson->id] ?? 0;
+            $snapshot = ['id' => $lesson->id, 'title' => $lesson->title, 'unit_id' => $lesson->unit_id, 'course_id' => $lesson->course_id, 'hotel_id' => $lesson->hotel_id];
+
+            if ($records > 0) {
+                $lesson->status = ContentStatus::Draft;
+                $lesson->archived_at = Carbon::now();
+                AuditLog::record($lesson, 'lesson.removed', ['learner_records' => $records, 'kept_for_reports' => true]);
+                $lesson->save();
+
+                $this->renumberLessons($lesson->unit_id);
+
+                return false;
+            }
+
+            AuditLog::record($lesson, 'lesson.deleted', ['deleted' => $snapshot]);
+
+            $activities = app(ActivityService::class);
+            foreach ($lesson->blocks()->get() as $block) {
+                foreach ($block->placements()->get() as $placement) {
+                    $activities->remove($placement);
+                }
+
+                $block->lexiconItems()->detach();
+                $block->scenarios()->detach();
+                $block->delete();
+            }
+
+            $unitId = $lesson->unit_id;
+            $lesson->delete();
+
+            $this->renumberLessons($unitId);
+
+            return true;
+        });
+    }
+
+    /**
+     * Positions 1..n for the lessons still in the library of one unit.
+     */
+    private function renumberLessons(int $unitId): void
+    {
+        $position = 1;
+
+        foreach (Lesson::query()->where('unit_id', $unitId)->notArchived()->orderBy('position')->orderBy('id')->get(['id', 'position']) as $row) {
+            if ($row->position !== $position) {
+                Lesson::query()->whereKey($row->id)->update(['position' => $position]);
+            }
+
+            $position++;
+        }
     }
 
     /**

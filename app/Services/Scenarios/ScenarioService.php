@@ -8,7 +8,9 @@ use App\Enums\ScenarioDifficulty;
 use App\Jobs\GenerateScenarioDraft;
 use App\Models\AiScenario;
 use App\Models\AuditLog;
+use App\Models\RoleplayAttempt;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -131,6 +133,82 @@ final class ScenarioService
             $scenario->save();
 
             return $scenario->refresh();
+        });
+    }
+
+    /**
+     * Role-play attempts learners made on each scenario. Admin previews
+     * (RP-13) are not learner data and do not count.
+     *
+     * @param  list<int>  $scenarioIds
+     * @return array<int, int> scenario id => learner attempts
+     */
+    public function learnerAttemptCounts(array $scenarioIds): array
+    {
+        $counts = array_fill_keys($scenarioIds, 0);
+
+        if ($scenarioIds === []) {
+            return $counts;
+        }
+
+        $rows = RoleplayAttempt::query()
+            ->whereIn('ai_scenario_id', $scenarioIds)
+            ->where('is_preview', false)
+            ->selectRaw('ai_scenario_id, count(*) as total')
+            ->groupBy('ai_scenario_id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $counts[(int) $row->getAttribute('ai_scenario_id')] = (int) $row->getAttribute('total');
+        }
+
+        return $counts;
+    }
+
+    /**
+     * "Delete" from the scenario table (CMS-01, RP-01).
+     *
+     * The scenario always leaves every lesson step that offered it. With no
+     * learner attempts it is deleted, with the admin's own preview runs.
+     * With learner attempts nothing that holds a transcript or a score is
+     * deleted (RP-11, DATA-05, DATA-10): the scenario becomes a draft marked
+     * archived, leaves the library and every learner, and its attempts keep
+     * pointing at it for reports.
+     *
+     * @return bool true when the scenario row was deleted, false when removed
+     */
+    public function delete(AiScenario $scenario): bool
+    {
+        return DB::transaction(function () use ($scenario): bool {
+            $attempts = $this->learnerAttemptCounts([$scenario->id])[$scenario->id] ?? 0;
+            $blockIds = $scenario->blocks()->pluck('blocks.id')->all();
+            $scenario->blocks()->detach();
+
+            if ($attempts > 0) {
+                $scenario->status = ContentStatus::Draft;
+                $scenario->archived_at = Carbon::now();
+                AuditLog::record($scenario, 'scenario.removed', [
+                    'learner_attempts' => $attempts,
+                    'detached_block_ids' => $blockIds,
+                    'kept_for_reports' => true,
+                ]);
+                $scenario->save();
+
+                return false;
+            }
+
+            AuditLog::record($scenario, 'scenario.deleted', [
+                'deleted' => $scenario->only(['id', 'title', 'department_id', 'hotel_id', 'difficulty']),
+                'detached_block_ids' => $blockIds,
+            ]);
+
+            RoleplayAttempt::query()
+                ->where('ai_scenario_id', $scenario->id)
+                ->where('is_preview', true)
+                ->delete();
+            $scenario->delete();
+
+            return true;
         });
     }
 

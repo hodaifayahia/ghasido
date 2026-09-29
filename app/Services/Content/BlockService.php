@@ -134,6 +134,7 @@ class BlockService
         }
 
         $allowed = AiScenario::query()
+            ->notArchived()
             ->whereIn('id', $ids)
             ->where('department_id', $course->department_id)
             ->where(function ($query) use ($lesson): void {

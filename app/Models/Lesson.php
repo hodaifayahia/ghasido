@@ -41,6 +41,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $published_at
  * @property GenerationStatus|null $ai_status
  * @property Accent|null $accent
+ * @property Carbon|null $archived_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read int|null $visible_blocks_count
@@ -76,6 +77,7 @@ class Lesson extends Model
             'estimated_minutes' => 'integer',
             'position' => 'integer',
             'status' => ContentStatus::class,
+            'archived_at' => 'datetime',
             'published_at' => 'datetime',
             'ai_status' => GenerationStatus::class,
             'accent' => Accent::class,
@@ -184,7 +186,24 @@ class Lesson extends Model
      */
     public function scopePublished(Builder $query): void
     {
-        $query->where('status', ContentStatus::Published);
+        // A removed row is never live again, whatever its status (DATA-10).
+        $query->where('status', ContentStatus::Published)->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    /**
+     * Rows still in the admin library: not removed by "Delete" (CMS-01).
+     * A removed row keeps its answers for reports (DATA-10).
+     *
+     * @param  Builder<Lesson>  $query
+     */
+    public function scopeNotArchived(Builder $query): void
+    {
+        $query->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 
     /**
