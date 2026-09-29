@@ -122,6 +122,38 @@ class LessonWritesTest extends TestCase
             ->assertSessionHasErrors('department_id');
     }
 
+    public function test_a_new_course_and_unit_can_be_typed_when_creating_a_lesson()
+    {
+        // Client request 2026-09-29: not only "General" or an existing one.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), [
+                'department_id' => $this->department->id,
+                'new_course_title' => 'Front Office Basics',
+                'new_unit_title' => 'Phone Calls',
+                'title' => 'Taking a booking',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $lesson = Lesson::query()->where('title', 'Taking a booking')->firstOrFail();
+        $course = Course::query()->where('title', 'Front Office Basics')->firstOrFail();
+        $this->assertSame($course->id, $lesson->course_id);
+        $this->assertSame($this->department->id, $course->department_id);
+        $this->assertSame('Phone Calls', Unit::query()->findOrFail($lesson->unit_id)->title);
+
+        // A new unit in an existing course.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), [
+                'course_id' => $this->course->id,
+                'new_unit_title' => 'Complaints',
+                'title' => 'Handling a complaint',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $unit = Unit::query()->findOrFail(Lesson::query()->where('title', 'Handling a complaint')->firstOrFail()->unit_id);
+        $this->assertSame('Complaints', $unit->title);
+        $this->assertSame($this->course->id, $unit->course_id);
+    }
+
     public function test_the_editor_autosaves_one_field_at_a_time()
     {
         $this->actingAs($this->owner)

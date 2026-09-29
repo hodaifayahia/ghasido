@@ -38,7 +38,7 @@ class StoreLessonRequest extends FormRequest
             return $unit !== null && $user->can('update', $unit->course()->firstOrFail());
         }
 
-        if ($this->filled('course_id')) {
+        if ($this->filled('course_id') && ! $this->filled('new_course_title')) {
             $course = Course::query()->find($this->integer('course_id'));
 
             return $course !== null && $user->can('update', $course);
@@ -55,7 +55,11 @@ class StoreLessonRequest extends FormRequest
         return [
             'unit_id' => ['nullable', 'integer', Rule::exists('units', 'id')],
             'course_id' => ['nullable', 'integer', Rule::exists('courses', 'id')],
-            'department_id' => ['nullable', 'required_without_all:unit_id,course_id', 'integer', Rule::exists('departments', 'id')],
+            'department_id' => ['nullable', 'required_without_all:unit_id,course_id', 'required_with:new_course_title', 'integer', Rule::exists('departments', 'id')],
+            // A brand-new course and/or unit typed on the create page
+            // (client request 2026-09-29).
+            'new_course_title' => ['nullable', 'string', 'max:120'],
+            'new_unit_title' => ['nullable', 'string', 'max:120'],
             'title' => ['required', 'string', 'max:120'],
             'blank' => ['sometimes', 'boolean'],
         ];
@@ -64,13 +68,19 @@ class StoreLessonRequest extends FormRequest
     /** The unit the lesson goes into, creating the fallback when needed. */
     public function unit(LessonService $lessons): Unit
     {
-        if ($this->filled('unit_id')) {
+        if ($this->filled('unit_id') && ! $this->filled('new_course_title') && ! $this->filled('new_unit_title')) {
             return Unit::query()->findOrFail($this->integer('unit_id'));
         }
 
-        $course = $this->filled('course_id')
-            ? Course::query()->findOrFail($this->integer('course_id'))
-            : $this->defaultCourse($lessons);
+        $course = match (true) {
+            $this->filled('new_course_title') => $this->newCourse($lessons),
+            $this->filled('course_id') => Course::query()->findOrFail($this->integer('course_id')),
+            default => $this->defaultCourse($lessons),
+        };
+
+        if ($this->filled('new_unit_title')) {
+            return $lessons->createUnit($course, trim((string) $this->input('new_unit_title')));
+        }
 
         $unit = $course->units()->orderBy('position')->orderBy('id')->first();
 
@@ -85,6 +95,23 @@ class StoreLessonRequest extends FormRequest
     public function withDefaultBlocks(): bool
     {
         return ! $this->boolean('blank');
+    }
+
+    /** A new course in the chosen department, in the user's own scope. */
+    private function newCourse(LessonService $lessons): Course
+    {
+        /** @var User $user */
+        $user = $this->user();
+        $department = Department::query()->active()->visibleTo($user)->find($this->integer('department_id'));
+        abort_if($department === null, 403);
+
+        return $lessons->createCourse([
+            'title' => trim((string) $this->input('new_course_title')),
+            'department_id' => $department->id,
+            'hotel_id' => $user->hotel_id,
+            'description' => null,
+            'tone' => 'brand',
+        ], $user);
     }
 
     /**
