@@ -28,9 +28,17 @@ final class VoiceAgentSettingsController extends Controller
 
         $validated = $request->validate($settings->rules());
 
-        if ($validated['thinkMode'] === 'qwen_proxy' && ! $settings->qwenProxyAvailable()) {
+        // Configuration only: a Qwen quota outage moves calls to the voice
+        // agent for a while, but never blocks saving the admin's choice.
+        if ($validated['thinkMode'] === 'qwen_proxy' && ! $settings->qwenProxyAvailable(false)) {
             throw ValidationException::withMessages([
-                'thinkMode' => (string) $settings->qwenProxyReason(),
+                'thinkMode' => (string) $settings->qwenProxyReason(false),
+            ]);
+        }
+
+        if ($validated['engine'] === 'pipeline' && ! $settings->pipelineAvailable(false)) {
+            throw ValidationException::withMessages([
+                'engine' => (string) $settings->pipelineReason(false),
             ]);
         }
 

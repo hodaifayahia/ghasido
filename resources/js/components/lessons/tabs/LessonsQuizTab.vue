@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { ListChecks } from '@lucide/vue';
-import { computed } from 'vue';
-import type { LessonActivityRow, LessonBlockRow } from '@/types';
+import { router } from '@inertiajs/vue3';
+import { CirclePlus, ListChecks } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import ActivityBuilderDialog from '@/components/lessons/blocks/ActivityBuilderDialog.vue';
+import { Button } from '@/components/ui/button';
+import { store as storeBlock } from '@/routes/blocks';
+import type {
+    LessonActivityRow,
+    LessonBlockRow,
+    LessonsImageLibrary,
+} from '@/types';
 
 /**
  * Quiz / Practice tab: every activity placed in the lesson's practice,
@@ -10,11 +18,23 @@ import type { LessonActivityRow, LessonBlockRow } from '@/types';
  */
 type Props = {
     blocks: LessonBlockRow[];
+    lessonId: number | null;
+    library: LessonsImageLibrary;
+    readOnly: boolean;
 };
 
 type Row = LessonActivityRow & { block: string };
 
 const props = defineProps<Props>();
+const activityBuilderOpen = ref(false);
+const practiceBlock = computed(
+    () =>
+        props.blocks.find((block) =>
+            ['practice', 'email_activity', 'phone_activity'].includes(
+                block.type,
+            ),
+        ) ?? null,
+);
 
 const rows = computed((): Row[] =>
     props.blocks.flatMap((block) =>
@@ -24,18 +44,57 @@ const rows = computed((): Row[] =>
         })),
     ),
 );
+
+function addPracticeBlock(): void {
+    if (props.lessonId === null || props.readOnly) return;
+
+    router.post(
+        storeBlock.url(props.lessonId),
+        { type: 'practice' },
+        {
+            preserveScroll: true,
+        },
+    );
+}
 </script>
 
 <template>
     <div class="grid gap-3">
-        <p class="text-ink-slate text-[12px]">
-            {{
-                $tc(
-                    ':count practice activity in this lesson. Every edit to a question writes a new version; answers already given keep the version they answered (DATA-11).|:count practice activities in this lesson. Every edit to a question writes a new version; answers already given keep the version they answered (DATA-11).',
-                    rows.length,
-                )
-            }}
-        </p>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-ink-slate text-[12px]">
+                {{
+                    $tc(
+                        ':count activity in this lesson.|:count activities in this lesson.',
+                        rows.length,
+                    )
+                }}
+                {{
+                    $t(
+                        'Every edit creates a new version; saved answers keep the version they refer to (DATA-11).',
+                    )
+                }}
+            </p>
+            <Button
+                v-if="!readOnly && practiceBlock"
+                type="button"
+                class="bg-brand-600 hover:bg-brand-700 h-9 gap-1.5 px-3 text-[11.5px] font-semibold text-white"
+                data-test="quiz-add-activity"
+                @click="activityBuilderOpen = true"
+            >
+                <CirclePlus class="size-4" aria-hidden="true" />
+                {{ $t('Add Activity') }}
+            </Button>
+            <Button
+                v-else-if="!readOnly && lessonId"
+                type="button"
+                variant="outline"
+                class="border-line text-brand-700 h-9 gap-1.5 px-3 text-[11.5px] font-semibold"
+                @click="addPracticeBlock"
+            >
+                <CirclePlus class="size-4" aria-hidden="true" />
+                {{ $t('Add Practice Block') }}
+            </Button>
+        </div>
 
         <p
             v-if="rows.length === 0"
@@ -82,5 +141,12 @@ const rows = computed((): Row[] =>
                 </div>
             </li>
         </ul>
+
+        <ActivityBuilderDialog
+            v-if="practiceBlock && !readOnly"
+            v-model:open="activityBuilderOpen"
+            :block="practiceBlock"
+            :library="library"
+        />
     </div>
 </template>

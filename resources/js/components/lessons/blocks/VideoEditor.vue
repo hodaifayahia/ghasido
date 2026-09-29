@@ -63,6 +63,7 @@ function onPoster(item: LessonMediaRef | null): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -99,6 +100,7 @@ function onPoster(item: LessonMediaRef | null): void {
         />
         <LessonsField v-model="exampleNote" :label="$t('Example note')" />
         <LessonsField
+            translatable
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"

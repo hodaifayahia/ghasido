@@ -97,6 +97,11 @@ Route::middleware([
             // turn stores one caption, end queues the evaluation.
             Route::post('lessons/{lesson}/steps/{block}/roleplay/{scenario}/voice', [VoiceCallController::class, 'start'])->name('roleplay.voice.start');
             Route::post('roleplay/attempts/{attempt}/voice/turns', [VoiceCallController::class, 'turn'])->name('roleplay.voice.turn');
+            // The fast engine's guest answer (spec 0009): each call spends
+            // AI, so it is throttled; the daily cap lives in the service.
+            Route::post('roleplay/attempts/{attempt}/voice/reply', [VoiceCallController::class, 'reply'])
+                ->middleware('throttle:60,1')
+                ->name('roleplay.voice.reply');
             Route::post('roleplay/attempts/{attempt}/voice/end', [VoiceCallController::class, 'end'])->name('roleplay.voice.end');
 
             Route::post('tests/{test}/attempts', [TestController::class, 'start'])->name('tests.start');

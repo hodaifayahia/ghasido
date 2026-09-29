@@ -20,7 +20,8 @@ export type ActivityKind =
     | 'picture_order'
     | 'multiple_choice'
     | 'speaking'
-    | 'writing';
+    | 'writing'
+    | 'short_answer';
 
 export type ActivityMode = 'practice' | 'test';
 
@@ -28,6 +29,7 @@ export type ImageOption = {
     id: string;
     label: string;
     image: MediaRef | null;
+    audio?: MediaRef | null;
 };
 
 export type AudioOption = {
@@ -46,6 +48,8 @@ export type ListenChooseItem = {
     id: string;
     audio_text: string;
     audio_text_audio?: AudioPair;
+    audio?: MediaRef | null;
+    image?: MediaRef | null;
     options: ImageOption[];
     correct?: string;
 };
@@ -160,6 +164,14 @@ type ItemMap = {
     multiple_choice: MultipleChoiceItem;
     speaking: SpeakingItem;
     writing: WritingItem;
+    short_answer: {
+        id: string;
+        question: string;
+        accepted_answers?: string[];
+        image?: MediaRef | null;
+        audio?: MediaRef | null;
+        video?: MediaRef | null;
+    };
 };
 
 export type ActivityItemOf<T extends ActivityKind> = ItemMap[T];

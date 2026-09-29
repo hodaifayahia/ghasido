@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { EllipsisVertical, KeyRound, UserCheck, UserX } from '@lucide/vue';
+import {
+    EllipsisVertical,
+    KeyRound,
+    Trash2,
+    UserCheck,
+    UserX,
+} from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import type { Component } from 'vue';
 import { computed, onMounted, ref } from 'vue';
@@ -68,6 +74,14 @@ const items = computed<Item[]>(() => [
               destructive: true,
           }
         : { action: 'activate', label: t('Activate'), icon: UserCheck },
+    // Safe delete: the server refuses while the account holds training
+    // records (DATA-10).
+    {
+        action: 'delete',
+        label: t('Delete'),
+        icon: Trash2,
+        destructive: true,
+    },
 ]);
 
 function choose(action: EmployeeRowAction): void {

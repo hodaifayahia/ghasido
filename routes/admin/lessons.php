@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\Lessons\ActivityController;
 use App\Http\Controllers\Admin\Lessons\AudioController;
 use App\Http\Controllers\Admin\Lessons\BlockController;
@@ -43,9 +44,11 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::post('lessons/{lesson}/publish', [LessonController::class, 'publish'])->name('lessons.publish');
     Route::post('lessons/{lesson}/duplicate', [LessonController::class, 'duplicate'])->name('lessons.duplicate');
     Route::post('lessons/{lesson}/archive', [LessonController::class, 'archive'])->name('lessons.archive');
+    Route::delete('lessons/{lesson}', [DeleteController::class, 'lesson'])->name('lessons.destroy');
 
     Route::post('lessons/{lesson}/blocks', [BlockController::class, 'store'])->name('blocks.store');
     Route::put('lessons/{lesson}/blocks/reorder', [BlockController::class, 'reorder'])->name('blocks.reorder');
+    Route::put('lessons/{lesson}/scenarios', [BlockController::class, 'scenarios'])->name('lessons.scenarios');
     Route::patch('blocks/{block}', [BlockController::class, 'update'])->name('blocks.update');
     Route::post('blocks/{block}/duplicate', [BlockController::class, 'duplicate'])->name('blocks.duplicate');
     Route::post('blocks/{block}/toggle', [BlockController::class, 'toggle'])->name('blocks.toggle');

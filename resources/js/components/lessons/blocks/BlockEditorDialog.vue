@@ -103,6 +103,17 @@ const roleplayBindings = computed(() =>
         : {},
 );
 
+/**
+ * Every rejected field except the title (shown under its input): settings,
+ * the scenario picker (`scenario_ids`, `scenario_ids.0`…) and the lists. A
+ * save that fails must never look like nothing happened.
+ */
+const otherError = computed(
+    () =>
+        Object.entries(errors.value).find(([key]) => key !== 'title')?.[1] ??
+        null,
+);
+
 const description = computed(
     () =>
         typeOption.value?.description ??
@@ -154,6 +165,7 @@ function save(): void {
     >
         <div class="mt-2 grid gap-4">
             <LessonsField
+                translatable
                 v-model="title"
                 :label="$t('Step title (optional)')"
                 :placeholder="typeOption?.label ?? block.label"
@@ -176,11 +188,11 @@ function save(): void {
             />
 
             <p
-                v-if="errors.settings"
+                v-if="otherError"
                 class="text-danger-text bg-danger-tint rounded-md px-3 py-2 text-[12.5px]"
                 role="alert"
             >
-                {{ errors.settings }}
+                {{ otherError }}
             </p>
 
             <div

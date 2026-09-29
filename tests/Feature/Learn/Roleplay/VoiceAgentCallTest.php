@@ -42,6 +42,9 @@ class VoiceAgentCallTest extends TestCase
 
     protected int $grantStatus = 200;
 
+    /** An SSE body for Qwen to answer with, instead of one JSON reply. */
+    protected ?string $qwenStream = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -67,11 +70,13 @@ class VoiceAgentCallTest extends TestCase
             'api.deepgram.com/v1/auth/grant' => fn () => $this->grantStatus === 200
                 ? Http::response(['access_token' => 'temporary-grant', 'expires_in' => 60])
                 : Http::response(['err' => 'refused'], $this->grantStatus),
-            'qwen.test/*' => Http::response([
-                'model' => 'qwen-flash-test',
-                'choices' => [['message' => ['role' => 'assistant', 'content' => 'Good evening, I have a booking.']]],
-                'usage' => ['prompt_tokens' => 12, 'completion_tokens' => 8],
-            ]),
+            'qwen.test/*' => fn () => $this->qwenStream !== null
+                ? Http::response($this->qwenStream, 200, ['Content-Type' => 'text/event-stream'])
+                : Http::response([
+                    'model' => 'qwen-flash-test',
+                    'choices' => [['message' => ['role' => 'assistant', 'content' => 'Good evening, I have a booking.']]],
+                    'usage' => ['prompt_tokens' => 12, 'completion_tokens' => 8],
+                ]),
         ]);
     }
 
@@ -99,18 +104,24 @@ class VoiceAgentCallTest extends TestCase
 
     public function test_session_start_returns_a_token_and_settings_without_any_key()
     {
+        VoiceAgentSetting::query()->create(['values' => ['engine' => 'agent']]);
         $learner = $this->learner();
 
         $response = $this->actingAs($learner)->postJson($this->startUrl())->assertOk();
 
-        $response->assertJsonPath('session.token', 'temporary-grant')
+        $response->assertJsonPath('session.engine', 'agent')
+            ->assertJsonPath('session.token', 'temporary-grant')
             ->assertJsonPath('session.settings.type', 'Settings')
             ->assertJsonPath('session.settings.agent.listen.provider.model', 'flux-general-en')
             ->assertJsonPath('session.settings.agent.listen.provider.version', 'v2')
             ->assertJsonPath('session.settings.agent.speak.provider.model', 'aura-2-thalia-en')
             ->assertJsonPath('session.settings.agent.think.provider.model', 'gpt-4o-mini')
-            ->assertJsonPath('session.settings.audio.input.sample_rate', 48000)
-            ->assertJsonPath('session.settings.audio.output.sample_rate', 24000);
+            ->assertJsonPath('session.settings.audio.input.sample_rate', 16000)
+            ->assertJsonPath('session.settings.audio.output.sample_rate', 24000)
+            // Spec 0009: the guest answers after at most two seconds of
+            // silence and starts thinking at the early end-of-turn.
+            ->assertJsonPath('session.settings.agent.listen.provider.eot_timeout_ms', 2000)
+            ->assertJsonPath('session.settings.agent.listen.provider.eager_eot_threshold', 0.5);
 
         $this->assertStringContainsString(RoleplayPrompt::GUARD, (string) $response->json('session.settings.agent.think.prompt'));
         $this->assertStringNotContainsString(self::DEEPGRAM_KEY, (string) $response->getContent());
@@ -129,7 +140,7 @@ class VoiceAgentCallTest extends TestCase
     public function test_qwen_proxy_mode_points_deepgram_at_our_proxy_without_the_qwen_key()
     {
         config()->set('app.url', 'https://guesvia.example');
-        VoiceAgentSetting::query()->create(['values' => ['thinkMode' => 'qwen_proxy', 'greeting' => 'Hi there!']]);
+        VoiceAgentSetting::query()->create(['values' => ['engine' => 'agent', 'thinkMode' => 'qwen_proxy', 'greeting' => 'Hi there!']]);
 
         $response = $this->actingAs($this->learner())->postJson($this->startUrl())->assertOk();
 
@@ -310,5 +321,39 @@ class VoiceAgentCallTest extends TestCase
         $content = $response->streamedContent();
         $this->assertStringContainsString('chat.completion.chunk', $content);
         $this->assertStringContainsString('data: [DONE]', $content);
+    }
+
+    public function test_the_llm_proxy_relays_qwens_stream_token_by_token_and_meters_it()
+    {
+        $this->qwenStream = implode('', [
+            'data: '.json_encode(['choices' => [['delta' => ['role' => 'assistant', 'content' => 'Good ']]]])."\n\n",
+            'data: '.json_encode(['choices' => [['delta' => ['content' => 'evening.']]]])."\n\n",
+            'data: '.json_encode(['choices' => [], 'usage' => ['prompt_tokens' => 40, 'completion_tokens' => 3]])."\n\n",
+            "data: [DONE]\n\n",
+        ]);
+
+        $attempt = $this->voiceAttempt($this->learner()->id);
+        $token = app(VoiceAgentProxyToken::class)->issue($attempt, 600);
+
+        $content = $this->postJson(route('voice-agent.llm', ['token' => $token]), [
+            'stream' => true,
+            'messages' => [['role' => 'user', 'content' => 'Hello']],
+        ])->assertOk()->streamedContent();
+
+        // Two content chunks, relayed as they came, then stop and [DONE].
+        $this->assertSame(2, substr_count($content, '"content"'));
+        $this->assertStringContainsString('evening.', $content);
+        $this->assertStringContainsString('data: [DONE]', $content);
+
+        Http::assertSent(fn (HttpRequest $request): bool => str_contains($request->url(), 'qwen.test')
+            && $request['stream'] === true
+            && ($request['stream_options']['include_usage'] ?? false) === true);
+
+        $this->assertDatabaseHas('ai_usages', [
+            'feature' => 'roleplay_turn',
+            'provider' => 'qwen_voice_proxy',
+            'prompt_tokens' => 40,
+            'completion_tokens' => 3,
+        ]);
     }
 }

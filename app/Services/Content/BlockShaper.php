@@ -41,11 +41,14 @@ class BlockShaper
 
         $mediaIds = [];
         $texts = [];
+        /** @var array<int, list<string>> $blockTexts */
+        $blockTexts = [];
 
         foreach ($blocks as $block) {
             $this->collectMediaIds($block->settings ?? [], $mediaIds);
 
-            $texts = [...$texts, ...$this->playable->forBlock($block)];
+            $blockTexts[$block->id] = $this->playable->forBlock($block);
+            $texts = [...$texts, ...$blockTexts[$block->id]];
 
             foreach ($block->lexiconItems as $item) {
                 if ($item->image_media_id !== null) {
@@ -63,15 +66,16 @@ class BlockShaper
         // builder shows the audio the learners will hear.
         $audio = $this->audioMap(array_values(array_unique($texts)), $lesson->accent);
 
-        return array_values($blocks->map(fn (Block $block): array => $this->row($block, $media, $audio))->all());
+        return array_values($blocks->map(fn (Block $block): array => $this->row($block, $media, $audio, $blockTexts[$block->id]))->all());
     }
 
     /**
      * @param  array<int, array{id: int, url: string, thumbUrl: string, alt: string, label: string, kind: string}>  $media
      * @param  array<string, array{normal: array{status: string, url: string|null}, slow: array{status: string, url: string|null}}>  $audio
+     * @param  list<string>  $texts  this block's playable texts
      * @return array<string, mixed>
      */
-    private function row(Block $block, array $media, array $audio): array
+    private function row(Block $block, array $media, array $audio, array $texts): array
     {
         $type = $block->type;
 
@@ -89,7 +93,9 @@ class BlockShaper
             'layout' => $block->layout,
             'settings' => $block->settings ?? [],
             'media' => array_intersect_key($media, array_flip($this->blockMediaIds($block))),
-            'audio' => $audio,
+            // Only this block's clips: the whole lesson's map on every block
+            // made the builder payload grow with the square of the lesson.
+            'audio' => array_intersect_key($audio, array_flip($texts)),
             'lexiconItems' => $block->lexiconItems->map(fn (LexiconItem $item): array => $this->lexiconRow($item, $audio))->values()->all(),
             'activities' => $block->placements->map(fn (ActivityPlacement $placement): ?array => $placement->activity === null ? null : $this->activityRow($placement->activity, $placement))->filter()->values()->all(),
             'scenarioIds' => $block->scenarioIds(),

@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Bot, CalendarClock, UserCheck, UsersRound } from '@lucide/vue';
 import { ref } from 'vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import IndividualFormDialog from '@/components/individuals/IndividualFormDialog.vue';
 import IndividualsListPanel from '@/components/individuals/IndividualsListPanel.vue';
@@ -9,7 +10,7 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
 import { dashboard, individuals, subscriptions } from '@/routes';
-import { toggle } from '@/routes/individuals';
+import { destroy, toggle } from '@/routes/individuals';
 import type {
     IndividualDefaults,
     IndividualFilters,
@@ -63,6 +64,15 @@ function edit(row: IndividualRow): void {
 
 function toggleRow(row: IndividualRow): void {
     router.post(toggle.url(row.id), {}, { preserveScroll: true });
+}
+
+const deleteOpen = ref(false);
+const deleting = ref<IndividualRow | null>(null);
+
+/** Safe delete: the server refuses while learner data depends on the row. */
+function remove(row: IndividualRow): void {
+    deleting.value = row;
+    deleteOpen.value = true;
 }
 
 function visit(query: Record<string, string | number>): void {
@@ -161,6 +171,7 @@ function goToPage(page: number): void {
             @add="add"
             @edit="edit"
             @toggle="toggleRow"
+            @delete="remove"
             @filter="filter"
             @page="goToPage"
         />
@@ -172,5 +183,13 @@ function goToPage(page: number): void {
         :individual="selected"
         :departments="departments"
         :defaults="defaults"
+    />
+
+    <DeleteRowDialog
+        v-if="canManage"
+        v-model:open="deleteOpen"
+        :url="deleting ? destroy.url(deleting.id) : null"
+        :name="deleting?.name ?? ''"
+        :kind="$t('individual subscriber')"
     />
 </template>

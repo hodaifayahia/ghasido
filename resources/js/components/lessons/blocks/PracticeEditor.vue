@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { ListChecks } from '@lucide/vue';
+import { CirclePlus, ListChecks } from '@lucide/vue';
+import { ref } from 'vue';
+import ActivityBuilderDialog from '@/components/lessons/blocks/ActivityBuilderDialog.vue';
+import { Button } from '@/components/ui/button';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { settingField, valueLabel } from '@/components/lessons/lessonsBlocks';
-import type { BlockSettings, LessonBlockRow } from '@/types';
+import type {
+    BlockSettings,
+    LessonBlockRow,
+    LessonsImageLibrary,
+} from '@/types';
 
 /**
  * Practice hub block (spec 0003 B.10, photo_7), also used for Email and Phone
@@ -13,9 +20,12 @@ import type { BlockSettings, LessonBlockRow } from '@/types';
 type Props = {
     block: LessonBlockRow;
     readOnly: boolean;
+    library: LessonsImageLibrary;
 };
 
 defineProps<Props>();
+
+const activityBuilderOpen = ref(false);
 
 const settings = defineModel<BlockSettings>('settings', { required: true });
 
@@ -27,6 +37,7 @@ const progressLabel = settingField(settings, 'progress_label');
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -40,11 +51,23 @@ const progressLabel = settingField(settings, 'progress_label');
         />
 
         <div class="grid gap-2">
-            <span
-                class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
-            >
-                {{ $t('Activities in this block') }}
-            </span>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <span
+                    class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
+                >
+                    {{ $t('Activities in this block') }}
+                </span>
+                <Button
+                    v-if="!readOnly"
+                    type="button"
+                    class="bg-brand-600 hover:bg-brand-700 h-9 gap-1.5 rounded-md px-3 text-[11.5px] font-semibold text-white"
+                    data-test="add-lesson-activity"
+                    @click="activityBuilderOpen = true"
+                >
+                    <CirclePlus class="size-4" aria-hidden="true" />
+                    {{ $t('Add Activity') }}
+                </Button>
+            </div>
             <p
                 v-if="block.activities.length === 0"
                 class="text-ink-muted text-[12.5px]"
@@ -84,5 +107,11 @@ const progressLabel = settingField(settings, 'progress_label');
                 </li>
             </ul>
         </div>
+        <ActivityBuilderDialog
+            v-if="!readOnly"
+            v-model:open="activityBuilderOpen"
+            :block="block"
+            :library="library"
+        />
     </div>
 </template>

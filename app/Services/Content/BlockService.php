@@ -116,6 +116,36 @@ class BlockService
     }
 
     /**
+     * The lesson's "AI Role-play" tab: choose the lesson's scenarios without
+     * opening a block (RP-01). They go on the lesson's first role-play block;
+     * a lesson without one (AI-generated lessons have none) gets one, placed
+     * before the closing step. Clearing the list keeps the block, empty.
+     *
+     * @param  list<int>  $ids
+     */
+    public function assignScenarios(Lesson $lesson, array $ids): Block
+    {
+        return DB::transaction(function () use ($lesson, $ids): Block {
+            $block = $lesson->blocks()
+                ->where('type', BlockType::AiRoleplay->value)
+                ->orderBy('position')
+                ->first() ?? $this->add($lesson, BlockType::AiRoleplay);
+
+            $ids = array_values(array_unique(array_map('intval', $ids)));
+            $this->syncScenarios($block, $ids);
+
+            $settings = $block->settings ?? [];
+            $settings['scenario_ids'] = $ids;
+            $block->settings = $settings;
+            $block->save();
+
+            AuditLog::record($block, 'block.updated', ['scenario_ids' => $ids]);
+
+            return $block;
+        });
+    }
+
+    /**
      * Attach only scenarios that belong to the lesson's department and hotel
      * scope. The client picker is filtered too, but this server-side check is
      * the security boundary (ROLE-02, SEC-01, TSTM-05).

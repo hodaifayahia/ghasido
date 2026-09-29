@@ -73,6 +73,7 @@ function texts(item: LexiconItemRow): string[] {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -84,6 +85,7 @@ function texts(item: LexiconItemRow): string[] {
             :hint="$t('e.g. “Related Words”.')"
         />
         <LessonsField
+            translatable
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"

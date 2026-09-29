@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Learn;
 
+use App\Http\Controllers\Concerns\AnswersVoiceReplies;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Learn\Concerns\AuthorizesRoleplayStep;
 use App\Http\Requests\VoiceAgent\VoiceCallTurnRequest;
+use App\Http\Requests\VoiceAgent\VoiceReplyRequest;
 use App\Models\AiScenario;
 use App\Models\Block;
 use App\Models\Lesson;
@@ -14,6 +16,7 @@ use App\Services\Ai\AiLimitReached;
 use App\Services\Learning\RoleplayService;
 use App\Services\VoiceAgent\VoiceAgentSessionFactory;
 use App\Services\VoiceAgent\VoiceCallService;
+use App\Services\VoiceAgent\VoiceReplyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +35,7 @@ use RuntimeException;
  */
 class VoiceCallController extends Controller
 {
-    use AuthorizesRoleplayStep;
+    use AnswersVoiceReplies, AuthorizesRoleplayStep;
 
     public function __construct(
         private readonly RoleplayService $roleplay,
@@ -70,6 +73,7 @@ class VoiceCallController extends Controller
         return response()->json([
             'attemptId' => $attempt->id,
             'turnUrl' => route('learn.roleplay.voice.turn', ['attempt' => $attempt->id]),
+            'replyUrl' => route('learn.roleplay.voice.reply', ['attempt' => $attempt->id]),
             'endUrl' => route('learn.roleplay.voice.end', ['attempt' => $attempt->id]),
             'session' => $session,
         ]);
@@ -83,6 +87,18 @@ class VoiceCallController extends Controller
         $result = $this->calls->recordTurn($attempt, $request->seq(), $request->role(), $request->content());
 
         return response()->json($result);
+    }
+
+    /**
+     * The guest's answer to one finished sentence in a fast-engine call
+     * (spec 0009).
+     */
+    public function reply(VoiceReplyRequest $request, RoleplayAttempt $attempt, VoiceReplyService $replies): JsonResponse
+    {
+        $user = $this->learner($request);
+        $this->assertOwnedCall($user, $attempt);
+
+        return $this->answerVoiceReply($attempt, $request, $replies);
     }
 
     public function end(Request $request, RoleplayAttempt $attempt): RedirectResponse

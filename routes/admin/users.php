@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\UsersController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,4 +15,5 @@ Route::get('users', [UsersController::class, 'index'])
 Route::middleware(Permission::UsersManage->middleware())->group(function () {
     Route::post('users', [UsersController::class, 'store'])->name('users.store');
     Route::put('users/{user}', [UsersController::class, 'update'])->name('users.update');
+    Route::delete('users/{user}', [DeleteController::class, 'user'])->name('users.destroy');
 });

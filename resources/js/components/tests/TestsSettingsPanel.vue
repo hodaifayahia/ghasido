@@ -60,7 +60,7 @@ function save(): void {
                     :key="toggle.key"
                     class="text-brand-900 flex items-center gap-2 text-[13px]"
                 >
-                    <Checkbox v-model="toggle.checked" class="size-4" />
+                    <Checkbox v-model:checked="toggle.checked" class="size-4" />
                     <span>{{ toggle.label }}</span>
                 </label>
             </div>

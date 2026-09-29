@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\TestsController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,7 @@ Route::middleware(Permission::TestsManage->middleware())->group(function () {
     Route::patch('tests/{test}/questions/{placement}', [TestsController::class, 'updateQuestion'])->name('tests.questions.update');
     Route::patch('tests/{test}/questions/{placement}/media', [TestsController::class, 'updateQuestionMedia'])->name('tests.questions.media');
     Route::delete('tests/{test}/questions/{placement}', [TestsController::class, 'destroyQuestion'])->name('tests.questions.destroy');
+    Route::delete('tests/{test}', [DeleteController::class, 'test'])->name('tests.destroy');
 
     // AI question drafts, stored listening audio and draft release
     // (GEN-01, GEN-03, GEN-04, TTS-01, TTS-02, PERF-04; spec 0004).

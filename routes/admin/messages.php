@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\Messages\AutomationRuleController;
 use App\Http\Controllers\Admin\Messages\ReminderDraftController;
 use App\Http\Controllers\Admin\Messages\ReminderSendController;
@@ -43,4 +44,8 @@ Route::middleware(Permission::MessagesManage->middleware())->group(function () {
         ->name('messages-reminders.rules.update');
     Route::patch('messages-reminders/automation-rules/{rule}/toggle', [AutomationRuleController::class, 'toggle'])
         ->name('messages-reminders.rules.toggle');
+    Route::delete('messages-reminders/templates/{template}', [DeleteController::class, 'template'])
+        ->name('messages-reminders.templates.destroy');
+    Route::delete('messages-reminders/automation-rules/{rule}', [DeleteController::class, 'rule'])
+        ->name('messages-reminders.rules.destroy');
 });

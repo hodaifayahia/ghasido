@@ -13,8 +13,9 @@ use RuntimeException;
 use stdClass;
 
 /**
- * Builds everything the browser needs to open one Deepgram Voice Agent call
- * (RP-03, RP-04, API-02, SEC-03; spec 0004).
+ * Builds everything the browser needs to open one live voice call (RP-03,
+ * RP-04, API-02, SEC-03): the fast engine's Flux stream and stored greeting
+ * (spec 0009), or a Deepgram Voice Agent session (spec 0004).
  *
  * The Settings message is assembled here, server-side, from the scenario row
  * and the admin's voice-agent controls — never from the client (RP-04). The
@@ -25,22 +26,129 @@ final class VoiceAgentSessionFactory
 {
     public const GRANT_URL = 'https://api.deepgram.com/v1/auth/grant';
 
+    public const STT_URL = 'wss://api.deepgram.com/v2/listen';
+
+    public const TTS_URL = 'wss://api.deepgram.com/v1/speak';
+
+    /** The streamed voice of a line not recorded yet: raw PCM at this rate. */
+    public const PIPELINE_OUTPUT_RATE = 24000;
+
+    /** Flux's native input and the chunk length Deepgram recommends for it. */
+    public const PIPELINE_SAMPLE_RATE = 16000;
+
+    public const PIPELINE_CHUNK_MS = 80;
+
     public function __construct(
         private readonly VoiceAgentSettings $settings,
         private readonly VoiceAgentProxyToken $proxyTokens,
+        private readonly VoiceLineBank $bank,
     ) {}
 
     /**
-     * @return array{url: string, token: string, expiresIn: int, settings: array<string, mixed>, maxCallSeconds: int, inputSampleRate: int, outputSampleRate: int, thinkMode: string}
+     * The session of the engine the Super Admin chose (spec 0009).
      *
-     * @throws RuntimeException when the voice agent is not configured or Deepgram refuses the grant
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException when voice calls are not configured or Deepgram refuses the grant
      */
     public function create(RoleplayAttempt $attempt, AiScenario $scenario): array
     {
         $values = $this->settings->forScenario($scenario);
+
+        return $values['engine'] === 'pipeline'
+            ? $this->pipeline($attempt, $scenario, $values)
+            : $this->agent($attempt, $scenario, $values);
+    }
+
+    /**
+     * The fast engine (spec 0009): the browser streams the employee to
+     * Deepgram Flux with a short-lived grant, posts each finished sentence
+     * to our reply endpoint and plays the stored recording it gets back.
+     * The greeting is a stored recording too, so the guest answers the
+     * moment the call opens.
+     *
+     * @param  array<string, mixed>  $values  VoiceAgentSettings::forScenario()
+     * @return array{engine: string, token: string, expiresIn: int, sttUrl: string, ttsUrl: string, inputSampleRate: int, outputSampleRate: int, chunkMs: int, greeting: array{text: string, audioUrl: string|null}, maxCallSeconds: int}
+     */
+    public function pipeline(RoleplayAttempt $attempt, AiScenario $scenario, array $values): array
+    {
+        $grant = $this->grant();
+        $voice = (string) $values['speakModel'];
+        $greeting = (string) $values['greeting'];
+
+        $greetingUrl = $this->bank->greetingUrl($scenario, $voice, $greeting);
+        $this->bank->warmLater($voice);
+
+        return [
+            'engine' => 'pipeline',
+            'token' => $grant['token'],
+            'expiresIn' => $grant['expiresIn'],
+            'sttUrl' => $this->sttUrl($values),
+            'ttsUrl' => $this->ttsUrl($voice),
+            'inputSampleRate' => self::PIPELINE_SAMPLE_RATE,
+            'outputSampleRate' => self::PIPELINE_OUTPUT_RATE,
+            'chunkMs' => self::PIPELINE_CHUNK_MS,
+            'greeting' => ['text' => $greeting, 'audioUrl' => $greetingUrl],
+            'maxCallSeconds' => (int) $values['maxCallSeconds'],
+        ];
+    }
+
+    /**
+     * The Flux listen URL, built here so turn-taking stays a server setting.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function sttUrl(array $values): string
+    {
+        $base = config('services.voice_agent.stt_url');
+        $base = is_string($base) && $base !== '' ? $base : self::STT_URL;
+
+        $query = http_build_query([
+            'model' => 'flux-general-en',
+            'encoding' => 'linear16',
+            'sample_rate' => self::PIPELINE_SAMPLE_RATE,
+            'eot_threshold' => (float) $values['eotThreshold'],
+            'eager_eot_threshold' => (float) $values['eagerEotThreshold'],
+            'eot_timeout_ms' => (int) $values['eotTimeoutMs'],
+        ]);
+
+        foreach (is_array($values['keyterms']) ? $values['keyterms'] : [] as $term) {
+            if (is_string($term) && $term !== '') {
+                $query .= '&keyterm='.rawurlencode($term);
+            }
+        }
+
+        return $base.'?'.$query;
+    }
+
+    /**
+     * Deepgram's streaming speech socket, which voices a line not recorded
+     * yet in the call's Aura-2 voice while the server records it (spec 0009).
+     */
+    public function ttsUrl(string $voice): string
+    {
+        $base = config('services.voice_agent.tts_url');
+        $base = is_string($base) && $base !== '' ? $base : self::TTS_URL;
+
+        return $base.'?'.http_build_query([
+            'model' => $voice,
+            'encoding' => 'linear16',
+            'sample_rate' => self::PIPELINE_OUTPUT_RATE,
+        ]);
+    }
+
+    /**
+     * The Deepgram Voice Agent (spec 0004).
+     *
+     * @param  array<string, mixed>  $values  VoiceAgentSettings::forScenario()
+     * @return array{engine: string, url: string, token: string, expiresIn: int, settings: array<string, mixed>, maxCallSeconds: int, inputSampleRate: int, outputSampleRate: int, thinkMode: string}
+     */
+    public function agent(RoleplayAttempt $attempt, AiScenario $scenario, array $values): array
+    {
         $grant = $this->grant();
 
         return [
+            'engine' => 'agent',
             'url' => $this->agentUrl(),
             'token' => $grant['token'],
             'expiresIn' => $grant['expiresIn'],
@@ -69,6 +177,11 @@ final class VoiceAgentSessionFactory
 
         if ($listen['version'] === 'v2') {
             $listen['eot_threshold'] = (float) $values['eotThreshold'];
+            // The agent starts thinking at the early end-of-turn, and a
+            // hesitant learner no longer waits Deepgram's default five
+            // seconds of silence for the guest (spec 0009).
+            $listen['eager_eot_threshold'] = min((float) $values['eagerEotThreshold'], (float) $values['eotThreshold']);
+            $listen['eot_timeout_ms'] = (int) $values['eotTimeoutMs'];
         }
 
         if (is_array($values['keyterms']) && $values['keyterms'] !== []) {

@@ -15,6 +15,7 @@ use App\Services\Ai\FakeAiProvider;
 use App\Services\Ai\OpenAiCompatibleAiProvider;
 use App\Services\Images\DashScopeImageProvider;
 use App\Services\Images\FakeImageProvider;
+use App\Services\Mail\BusinessEmail;
 use App\Services\Owner\ApiCredit;
 use App\Services\Owner\ApiKeyring;
 use App\Services\Stt\DeepgramSpeechToTextProvider;
@@ -25,12 +26,15 @@ use App\Services\Tts\FakeTtsProvider;
 use App\Services\Tts\OpenAiCompatibleTtsProvider;
 use App\Services\Tts\TtsSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\View\View as ViewContract;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -189,6 +193,29 @@ class AppServiceProvider extends ServiceProvider
 
         // Show Meaning drafts are made when content is written (2026-09-26).
         MeaningHooks::register();
+
+        $this->configureMailSignature();
+    }
+
+    /**
+     * Email signatures carry the sender name and business email set in
+     * Website Management (user request 2026-09-26). The From and Reply-To
+     * headers are set by App\Listeners\ApplyBusinessSender.
+     */
+    protected function configureMailSignature(): void
+    {
+        View::composer('mail.partials.signature', function (ViewContract $view): void {
+            try {
+                $business = app(BusinessEmail::class);
+                $sender = ['name' => $business->senderName(), 'email' => $business->address()];
+            } catch (Throwable) {
+                // A signature must never stop an email from rendering.
+                $name = config('mail.from.name');
+                $sender = ['name' => is_string($name) && $name !== '' ? $name : 'GHASIDO', 'email' => null];
+            }
+
+            $view->with('businessSender', $sender);
+        });
     }
 
     /**

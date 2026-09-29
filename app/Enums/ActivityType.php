@@ -22,6 +22,7 @@ enum ActivityType: string
     case DialogueOrder = 'dialogue_order';
     case PictureOrder = 'picture_order';
     case MultipleChoice = 'multiple_choice';
+    case ShortAnswer = 'short_answer';
     case Speaking = 'speaking';
     case Writing = 'writing';
 
@@ -37,6 +38,7 @@ enum ActivityType: string
             self::DialogueOrder => __('Put the Dialogue in Order', [], $locale),
             self::PictureOrder => __('Ordering a Conversation', [], $locale),
             self::MultipleChoice => __('Choose the Best Answer', [], $locale),
+            self::ShortAnswer => __('Short Answer', [], $locale),
             self::Speaking => __('Speaking', [], $locale),
             self::Writing => __('Writing', [], $locale),
         };
@@ -57,6 +59,7 @@ enum ActivityType: string
             self::DialogueOrder => __('Listen and put the sentences in the correct order.', [], $locale),
             self::PictureOrder => __('Put the conversation in the correct order.', [], $locale),
             self::MultipleChoice => __('Read or look, then choose the best answer.', [], $locale),
+            self::ShortAnswer => __('Write a short answer using your own words.', [], $locale),
             self::Speaking => __('Record a short spoken answer.', [], $locale),
             self::Writing => __('Write a short reply.', [], $locale),
         };
@@ -77,6 +80,7 @@ enum ActivityType: string
             self::WatchRespond => 'blossom',
             self::WordsSentences => 'gold',
             self::Writing => 'aqua',
+            self::ShortAnswer => 'aqua',
         };
     }
 
@@ -99,6 +103,7 @@ enum ActivityType: string
             self::MultipleChoice => 'ListChecks',
             self::Speaking => 'Mic',
             self::Writing => 'PenLine',
+            self::ShortAnswer => 'TextCursorInput',
         };
     }
 
@@ -130,6 +135,7 @@ enum ActivityType: string
             self::PictureOrder => AnswerShape::OrderedList,
             self::Speaking => AnswerShape::Recording,
             self::Writing => AnswerShape::Text,
+            self::ShortAnswer => AnswerShape::Text,
         };
     }
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useId } from 'vue';
+import { Eye, EyeOff } from '@lucide/vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import PhrasebookButton from '@/components/learning/PhrasebookButton.vue';
-import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import type { LexiconEntry } from '@/types';
@@ -48,6 +48,27 @@ const panelId = `expr-meaning-${useId()}`;
                 >
                     {{ item.text }}
                 </p>
+                <button
+                    v-if="item.showMeaning && item.meaning"
+                    type="button"
+                    :aria-label="
+                        meaning.shown.value
+                            ? $t('Hide Meaning')
+                            : $t('Show the meaning of :text', {
+                                  text: item.text,
+                              })
+                    "
+                    :aria-pressed="meaning.shown.value"
+                    :aria-controls="panelId"
+                    class="focus-visible:ring-brand-600/40 bg-tint-grid text-ink-slate hover:bg-brand-50 grid size-11 shrink-0 place-items-center rounded-full focus-visible:ring-3 focus-visible:outline-none"
+                    @click="meaning.toggle()"
+                >
+                    <component
+                        :is="meaning.shown.value ? EyeOff : Eye"
+                        class="size-5"
+                        aria-hidden="true"
+                    />
+                </button>
             </div>
             <p v-if="item.ipa" class="text-ink-slate text-base">
                 {{ item.ipa }}
@@ -76,12 +97,6 @@ const panelId = `expr-meaning-${useId()}`;
         </div>
 
         <template v-if="item.showMeaning && item.meaning">
-            <ShowMeaningButton
-                :shown="meaning.shown.value"
-                :controls="panelId"
-                class="mx-auto mt-3"
-                @toggle="meaning.toggle()"
-            />
             <ShowMeaningPanel
                 :id="panelId"
                 :shown="meaning.shown.value"

@@ -49,9 +49,12 @@ final class VoiceCallService
      */
     public function start(User $user, AiScenario $scenario, ?Lesson $lesson, ?Block $block, bool $preview = false): RoleplayAttempt
     {
-        // The owner's Deepgram (and Qwen, for the Qwen proxy) credit, for a
-        // preview too: it spends the same accounts (spec 0007, D7a).
-        $this->meter->assertVoiceCredit($user, $this->settings->forScenario($scenario)['thinkMode'] === 'qwen_proxy');
+        $values = $this->settings->forScenario($scenario);
+
+        // The owner's Deepgram (and Qwen, for the Qwen proxy and the fast
+        // engine) credit, for a preview too: it spends the same accounts
+        // (spec 0007, D7a).
+        $this->meter->assertVoiceCredit($user, $values['engine'] === 'pipeline' || $values['thinkMode'] === 'qwen_proxy');
 
         if (! $preview) {
             $this->meter->assertWithinLimits($user, AiFeature::RoleplayTurn);
@@ -69,6 +72,7 @@ final class VoiceCallService
             'pending_reply' => false,
             'is_preview' => $preview,
             'channel' => RoleplayAttempt::CHANNEL_VOICE_CALL,
+            'voice_engine' => $values['engine'],
             'started_at' => Date::now(),
         ]);
 
@@ -132,8 +136,9 @@ final class VoiceCallService
             $values = $scenario !== null ? $this->settings->forScenario($scenario) : $this->settings->current();
 
             // With Deepgram's managed LLM each guest line is one metered turn
-            // (AIL-04). The Qwen proxy meters its own real token usage.
-            if ($values['thinkMode'] === 'managed') {
+            // (AIL-04). The Qwen proxy and the fast engine meter their own
+            // real token usage.
+            if ($values['thinkMode'] === 'managed' && $attempt->voice_engine !== 'pipeline') {
                 $this->meter->record($user, AiFeature::RoleplayTurn, new AiUsageInfo(
                     0,
                     0,

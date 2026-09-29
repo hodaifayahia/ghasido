@@ -3,6 +3,8 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { useIntervalFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import CreateTestDialog from '@/components/tests/CreateTestDialog.vue';
 import TestsDirectoryStats from '@/components/tests/TestsDirectoryStats.vue';
 import TestsDirectoryTable from '@/components/tests/TestsDirectoryTable.vue';
@@ -18,7 +20,7 @@ import TestsResultsPanel from '@/components/tests/TestsResultsPanel.vue';
 import TestsSidebarPanel from '@/components/tests/TestsSidebarPanel.vue';
 import TestsSettingsPanel from '@/components/tests/TestsSettingsPanel.vue';
 import TestsToolbar from '@/components/tests/TestsToolbar.vue';
-import { tk } from '@/lib/i18n';
+import { t, tk } from '@/lib/i18n';
 import { dashboard, tests } from '@/routes';
 import testActions from '@/routes/tests';
 import type {
@@ -34,6 +36,7 @@ import type {
     TestQuestionBankItem,
     TestSettings,
     TestDirectoryMetric,
+    TestListItem,
     TestsList,
     TestsTab,
     TestsTabKey,
@@ -95,6 +98,16 @@ function openTest(id: string): void {
     router.visit(tests.url({ query: { test: id } }), {
         preserveScroll: true,
     });
+}
+
+// Safe delete: the server refuses once a learner has taken the test and
+// redirects back with a fresh list and stats on success (DATA-10).
+const deleteTestOpen = ref(false);
+const deleteTestTarget = ref<TestListItem | null>(null);
+
+function askDeleteTest(item: TestListItem): void {
+    deleteTestTarget.value = item;
+    deleteTestOpen.value = true;
 }
 
 function createTest(payload: CreateTestPayload): void {
@@ -183,11 +196,25 @@ function saveSettings(settings: TestSettings): void {
     );
 }
 
+/**
+ * A rejected question write names the field it failed on (e.g. an empty
+ * "Option C"); say so, rather than leaving the page looking unchanged.
+ */
+function reportQuestionError(errors: Record<string, string>): void {
+    const message = Object.values(errors)[0];
+
+    toast.error(
+        message ??
+            t('The question could not be saved. Check it and try again.'),
+    );
+}
+
 function addQuestion(payload: TestQuestionPayload): void {
     if (!props.editor.questionStoreUrl) return;
 
     router.post(props.editor.questionStoreUrl, payload, {
         preserveScroll: true,
+        onError: reportQuestionError,
     });
 }
 
@@ -197,6 +224,7 @@ function saveQuestion(
 ): void {
     router.patch(question.updateUrl, payload, {
         preserveScroll: true,
+        onError: reportQuestionError,
     });
 }
 
@@ -328,7 +356,9 @@ defineOptions({
                 href: tests(),
             },
         ],
-        topbarTaglineSrc: '/decor/tests-topbar-tagline.png',
+        // The topbar keeps the shared "Real situations. Confident
+        // conversations." tagline, like every other page (user request
+        // 2026-09-26).
     },
 });
 </script>
@@ -375,6 +405,17 @@ defineOptions({
                 :list="list"
                 @open="openTest"
                 @create="createTestOpen = true"
+                @delete="askDeleteTest"
+            />
+            <DeleteRowDialog
+                v-model:open="deleteTestOpen"
+                :url="
+                    deleteTestTarget
+                        ? testActions.destroy.url(Number(deleteTestTarget.id))
+                        : null
+                "
+                :name="deleteTestTarget?.title ?? ''"
+                :kind="$t('test')"
             />
         </template>
 
@@ -413,9 +454,9 @@ defineOptions({
                     @generate-all-audio="generateAllAudio"
                     @generate-audio="generateQuestionAudio"
                     @release-question="releaseQuestion"
-                    @attach-image="
-                        (question, mediaId) =>
-                            attachMedia(question, 'image', mediaId)
+                    @attach-media="
+                        (question, kind, mediaId) =>
+                            attachMedia(question, kind, mediaId)
                     "
                 />
                 <TestsSidebarPanel

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lessons\AssignLessonScenariosRequest;
 use App\Http\Requests\Admin\Lessons\ReorderBlocksRequest;
 use App\Http\Requests\Admin\Lessons\StoreBlockRequest;
 use App\Http\Requests\Admin\Lessons\UpdateBlockRequest;
@@ -34,6 +35,19 @@ class BlockController extends Controller
         $blocks->update($block, $request->blockData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':block was saved.', ['block' => $block->heading()])]);
+
+        return back();
+    }
+
+    /**
+     * The "AI Role-play" tab's picker: set the lesson's scenarios in one go,
+     * adding a role-play step when the lesson has none (RP-01).
+     */
+    public function scenarios(AssignLessonScenariosRequest $request, Lesson $lesson, BlockService $blocks): RedirectResponse
+    {
+        $blocks->assignScenarios($lesson, $request->scenarioIds());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('The lesson\'s role-play scenarios were saved.')]);
 
         return back();
     }

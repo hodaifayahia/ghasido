@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Admin\Tests;
 
+use App\Enums\ActivityType;
 use App\Enums\ContentStatus;
 use App\Enums\TestType;
 use App\Models\Activity;
 use App\Models\ActivityPlacement;
+use App\Models\Attempt;
 use App\Models\Department;
 use App\Models\MediaAsset;
 use App\Models\Test;
+use App\Models\TestAttempt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -163,6 +166,33 @@ class TestsPageTest extends TestCase
                 ->where('activeTab', 'settings')
                 ->where('editor.id', $test->id)
                 ->where('settings.toggles.0.key', 'shuffle_questions'));
+    }
+
+    public function test_each_result_row_shows_only_its_own_ai_judged_answers(): void
+    {
+        $department = Department::factory()->create();
+        $test = Test::factory()->pre()->create(['department_id' => $department->id]);
+        $admin = User::factory()->superAdmin()->create();
+        $writing = Activity::factory()->ofType(ActivityType::Writing)->create(['department_id' => $department->id]);
+        $choice = Activity::factory()->create(['department_id' => $department->id]);
+
+        $earlier = TestAttempt::factory()->submitted()->create(['test_id' => $test->id, 'submitted_at' => now()->subHour()]);
+        $later = TestAttempt::factory()->submitted()->create(['test_id' => $test->id]);
+        Attempt::factory()->inTest($earlier)->create(['activity_id' => $writing->id, 'raw_answer' => ['i1' => ['text' => 'Welcome to our hotel.']]]);
+        Attempt::factory()->inTest($earlier)->create(['activity_id' => $choice->id]);
+        Attempt::factory()->inTest($later)->create(['activity_id' => $writing->id, 'raw_answer' => ['i1' => ['text' => 'Your room is ready.']]]);
+
+        $this->actingAs($admin)
+            ->get(route('tests', ['tab' => 'results']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('results.rows', 2)
+                ->where('results.rows.0.id', $later->id)
+                ->has('results.rows.0.answers', 1)
+                ->where('results.rows.0.answers.0.answerText', 'Your room is ready.')
+                ->where('results.rows.1.id', $earlier->id)
+                // The multiple-choice answer is not AI-judged, so it is left out.
+                ->has('results.rows.1.answers', 1)
+                ->where('results.rows.1.answers.0.answerText', 'Welcome to our hotel.'));
     }
 
     public function test_question_media_is_attached_as_a_new_activity_version(): void

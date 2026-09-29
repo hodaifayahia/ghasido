@@ -11,7 +11,7 @@ set -euo pipefail
 S=/tmp/guesvia-deploy/app
 R=~/clickDz/ghasido
 REMOTE=u673635734@89.117.116.239
-REMOTE_APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
+REMOTE_APP=/home/u673635734/domains/ghasido.com/guesvia
 SSH="ssh -i $HOME/.ssh/clickdz_hostinger_deploy -p 65002 -o BatchMode=yes -o ServerAliveInterval=30"
 
 rm -f "$S/public/fonts-manifest.dev.json"

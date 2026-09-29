@@ -35,6 +35,12 @@ class TestPolicy
         return $user->can(Permission::TestsManage->value) && $this->isInAdminReach($user, $test);
     }
 
+    /** Safe delete: refused while any learner has taken the test. */
+    public function delete(User $user, Test $test): bool
+    {
+        return $this->update($user, $test);
+    }
+
     public function publish(User $user, Test $test): bool
     {
         return $this->update($user, $test);

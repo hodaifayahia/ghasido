@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
 import { useId } from 'vue';
-import MeaningButton from '@/components/learning/meaning/MeaningButton.vue';
 import MeaningPanel from '@/components/learning/meaning/MeaningPanel.vue';
+import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import { useMeaning } from '@/composables/useMeaning';
 import { cn } from '@/lib/utils';
 
 /*
  * Any English text with its Show Meaning button (CTRL-01..03; client
- * decision 2026-09-26): the text is always there, the Arabic opens under
- * it only after a tap and closes again. `as` keeps the text's own element
- * (a heading stays a heading); `class` styles that element.
+ * decisions 2026-09-26): the approved labelled button (إظهار المعنى / Show
+ * Meaning) sits on top of the text, and the Arabic opens under the text only
+ * after a tap and closes again. The button line follows the text's own
+ * alignment (centred under a centred quote). `as` keeps the text's own
+ * element (a heading stays a heading); `class` styles that element.
  */
 type Props = {
     text?: string | null;
@@ -40,16 +42,22 @@ const meaning = useMeaning(() => props.text ?? '');
         :is="as === 'span' ? 'span' : 'div'"
         :class="cn('block min-w-0', wrapperClass)"
     >
-        <component :is="as" v-bind="$attrs" :class="props.class">
-            <slot>{{ text }}</slot>
-            <MeaningButton
-                v-if="meaning.enabled()"
+        <!-- A tap on the button never reaches a card or link around it. -->
+        <span
+            v-if="meaning.enabled()"
+            class="mb-2 block not-italic"
+            @click.stop.prevent
+        >
+            <ShowMeaningButton
+                size="sm"
                 :shown="meaning.shown.value"
-                :state="meaning.state.value"
                 :controls="id"
-                class="ms-2 -mt-0.5"
+                class="inline-flex"
                 @toggle="meaning.toggle()"
             />
+        </span>
+        <component :is="as" v-bind="$attrs" :class="props.class">
+            <slot>{{ text }}</slot>
         </component>
         <MeaningPanel
             :id="id"

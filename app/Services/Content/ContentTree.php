@@ -88,7 +88,17 @@ class ContentTree
         $tab = (string) $request->query('tab', 'content');
         $tab = in_array($tab, ['content', 'preview', 'settings', 'materials', 'roleplay', 'quiz'], true) ? $tab : 'content';
 
-        $directory = $this->lessonDirectory($request, $user);
+        // The directory is the landing surface. The builder opens only after
+        // a lesson is selected or created (CMS-01).
+        $builderOpen = $request->query('lesson') !== null;
+
+        // Every section is a closure: Inertia resolves one only when the
+        // response includes it, so the directory's partial reloads (filter,
+        // page, page size) skip the builder's sections entirely.
+        $directory = null;
+        $directoryData = function () use (&$directory, $request, $user): array {
+            return $directory ??= $this->lessonDirectory($request, $user);
+        };
 
         return [
             'filters' => [
@@ -116,22 +126,23 @@ class ContentTree
                 ['key' => 'quiz', 'label' => __('Quiz / Practice')],
             ],
             'activeTab' => $tab,
-            // The directory is the landing surface. The builder opens only
-            // after a lesson is selected or created (CMS-01).
-            'builderOpen' => $request->query('lesson') !== null,
+            'builderOpen' => $builderOpen,
             // The directory is separate from the expandable builder tree so
             // admins can identify department and hotel scope before opening
             // the editor (CMS-01, CMS-04).
-            'lessonDirectory' => $directory['rows'],
-            'directoryStats' => $directory['stats'],
-            'directoryFilters' => $directory['filters'],
-            'directoryPagination' => $directory['pagination'],
-            'courses' => $this->tree($courses, $course, $unit, $lesson, $open),
-            'editor' => $this->editor($lesson, $hotels, $departments),
+            'lessonDirectory' => fn (): array => $directoryData()['rows'],
+            'directoryStats' => fn (): array => $directoryData()['stats'],
+            'directoryFilters' => fn (): array => $directoryData()['filters'],
+            'directoryPagination' => fn (): array => $directoryData()['pagination'],
+            'courses' => fn (): array => $this->tree($courses, $course, $unit, $lesson, $open),
+            'editor' => fn (): array => $this->editor($lesson, $hotels, $departments),
             'blocks' => $this->palette(),
-            'library' => $this->library($request, $user),
-            'lessonBlocks' => $lesson === null ? [] : $this->blocks->forLesson($lesson),
-            'scenarios' => $this->scenarios($departmentId, $hotelKey, $hotelId),
+            'library' => fn (): array => $this->library($request, $user),
+            // Only the open builder shows the lesson's steps. They are by far
+            // the largest section (every block with its audio and media), so
+            // the directory, which never renders them, does not ship them.
+            'lessonBlocks' => fn (): array => $builderOpen && $lesson !== null ? $this->blocks->forLesson($lesson) : [],
+            'scenarios' => fn (): array => $this->scenarios($departmentId, $hotelKey, $hotelId, $lesson),
             'blockTypes' => array_map(fn (BlockType $type): array => [
                 'value' => $type->value,
                 'label' => $type->heading(),
@@ -774,8 +785,18 @@ class ContentTree
     /**
      * @return list<array{id: int, title: string, description: string|null, difficulty: string, icon: string, status: string}>
      */
-    private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId): array
+    private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId, ?Lesson $lesson = null): array
     {
+        // An open lesson decides the scope, whatever the URL filters say, so
+        // the picker offers exactly what BlockService::syncScenarios accepts.
+        $course = $lesson?->course;
+
+        if ($lesson !== null && $course !== null) {
+            $departmentId = $course->department_id;
+            $hotelId = $lesson->hotel_id;
+            $hotelKey = $hotelId === null ? self::SHARED : (string) $hotelId;
+        }
+
         $query = AiScenario::query()->where('department_id', $departmentId)->orderBy('title');
 
         if ($hotelKey === self::SHARED) {

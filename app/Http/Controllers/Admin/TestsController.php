@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -474,6 +475,9 @@ class TestsController extends Controller
                 ['value' => 'audio', 'label' => __('Audio Question')],
                 ['value' => 'image', 'label' => __('Image Question')],
                 ['value' => 'video', 'label' => __('Video Question')],
+                ['value' => 'speaking', 'label' => __('Speaking')],
+                ['value' => 'ordering', 'label' => __('Ordering')],
+                ['value' => 'writing', 'label' => __('Writing Activity')],
             ],
             'activeKind' => 'multiple_choice',
             // The per-question type menu also names the two kinds only an AI
@@ -489,6 +493,7 @@ class TestsController extends Controller
                 ['value' => 'video', 'label' => __('Video Question')],
                 ['value' => 'speaking', 'label' => __('Speaking')],
                 ['value' => 'ordering', 'label' => __('Ordering')],
+                ['value' => 'writing', 'label' => __('Writing Activity')],
             ],
             'ai' => $this->aiPanel($selected),
             'questions' => $selected === null ? [] : $selected->questions->map(fn (ActivityPlacement $placement, int $index): array => $this->question($placement, $index + 1))->values()->all(),
@@ -517,27 +522,43 @@ class TestsController extends Controller
     {
         $activity = $placement->activity;
         $item = $activity?->items()[0] ?? [];
-        $kind = $activity === null ? 'multiple_choice' : TestService::kindFor($activity->type);
+        $kind = $activity === null ? 'multiple_choice' : TestService::kindFor($activity->type, $activity->skill_label);
         $options = is_array($item['options'] ?? null) ? $item['options'] : [];
         $correct = (string) ($item['correct'] ?? '');
         $storedMedia = is_array($item['media'] ?? null) ? $item['media'] : [];
         $media = [];
 
         foreach (['image', 'audio', 'video'] as $mediaKind) {
-            $mediaId = $storedMedia[$mediaKind] ?? null;
+            $mediaId = $storedMedia[$mediaKind] ?? $item[$mediaKind] ?? null;
 
             if (is_int($mediaId) || (is_string($mediaId) && ctype_digit($mediaId))) {
-                $asset = MediaAsset::query()->find((int) $mediaId);
-                $media[$mediaKind] = $asset === null ? null : [
-                    'id' => (string) $asset->id,
-                    'label' => $asset->label ?? $asset->original_name ?? ucfirst($mediaKind),
-                    'url' => $asset->url(),
-                    'thumbUrl' => $asset->variantUrl('thumb'),
-                    'alt' => $asset->alt_text ?? '',
-                ];
+                $media[$mediaKind] = $this->mediaReference((int) $mediaId, $mediaKind);
             } else {
                 $media[$mediaKind] = null;
             }
+        }
+
+        $targets = collect(is_array($item['targets'] ?? null) ? $item['targets'] : [])->keyBy(static fn (array $target): string => (string) ($target['id'] ?? ''));
+        $prompts = collect(is_array($item['prompts'] ?? null) ? $item['prompts'] : [])->keyBy(static fn (array $prompt): string => (string) ($prompt['id'] ?? ''));
+        $pairs = is_array($item['pairs'] ?? null) ? $item['pairs'] : [];
+        $matchingPairs = [];
+
+        foreach ($pairs as $promptId => $targetId) {
+            $matchingPairs[] = [
+                'left' => (string) ($prompts->get((string) $promptId)['audio_text'] ?? ''),
+                'right' => (string) ($targets->get((string) $targetId)['label'] ?? ''),
+            ];
+        }
+
+        $kindOptions = $options;
+        if ($kind === 'ordering' && is_array($item['sentences'] ?? null)) {
+            $sentences = collect($item['sentences'])->keyBy(static fn (array $sentence): string => (string) ($sentence['id'] ?? ''));
+            $kindOptions = collect($item['order'] ?? array_keys($sentences->all()))
+                ->map(static fn (string $id, int $index): array => [
+                    'id' => chr(65 + $index),
+                    'text' => (string) ($sentences->get($id)['text'] ?? ''),
+                    'correct' => false,
+                ])->values()->all();
         }
 
         return [
@@ -546,11 +567,22 @@ class TestsController extends Controller
             'kind' => $kind,
             'text' => (string) ($item['question'] ?? $activity->prompt),
             'imageCrop' => $this->thumbCrop($index),
-            'options' => array_values(array_map(static fn (array $option): array => [
+            'options' => array_values(array_map(fn (array $option): array => [
                 'id' => (string) ($option['id'] ?? ''),
                 'text' => (string) ($option['text'] ?? $option['label'] ?? ''),
                 'correct' => (string) ($option['id'] ?? '') === $correct,
-            ], $options)),
+                'imageId' => is_numeric($option['image'] ?? null) ? (int) $option['image'] : null,
+                'image' => is_numeric($option['image'] ?? null) ? $this->mediaReference((int) $option['image'], 'image') : null,
+                'audioId' => is_numeric($option['audio'] ?? null) ? (int) $option['audio'] : null,
+                'audio' => is_numeric($option['audio'] ?? null) ? $this->mediaReference((int) $option['audio'], 'audio') : null,
+                'audioText' => is_string($option['audio_text'] ?? null) ? $option['audio_text'] : null,
+            ], $kindOptions)),
+            'pairs' => $matchingPairs,
+            'acceptedAnswers' => array_values(array_filter(is_array($item['accepted_answers'] ?? null) ? $item['accepted_answers'] : [], 'is_string')),
+            'audioText' => (string) ($item['audio_text'] ?? ''),
+            'requestText' => (string) ($item['request_text'] ?? ''),
+            'information' => array_values(array_filter(is_array($item['information'] ?? null) ? $item['information'] : [], 'is_string')),
+            'speakingSeconds' => (int) ($item['max_seconds'] ?? 30),
             'media' => $media,
             'typeLabel' => $activity?->type->label() ?? __('Question'),
             'aiDraft' => Test::isAiDraft($placement),
@@ -647,6 +679,7 @@ class TestsController extends Controller
             })
             ->latest('submitted_at');
         $attempts = $query->limit(25)->get();
+        $judged = $this->judgedAttempts($attempts->modelKeys());
         $completed = $attempts->count();
         $average = $attempts->avg(function (TestAttempt $attempt): float {
             return (float) ($attempt->max_score ?: 0) > 0 ? ((float) $attempt->score / (float) $attempt->max_score) * 100 : 0;
@@ -657,10 +690,10 @@ class TestsController extends Controller
                 ['key' => 'completed', 'value' => $completed, 'label' => __('Employees Completed'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'brand'],
                 ['key' => 'average', 'value' => (int) round((float) $average), 'unit' => '%', 'label' => __('Average Score'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'success'],
             ],
-            'rows' => $attempts->map(function (TestAttempt $attempt) use ($viewer): array {
+            'rows' => $attempts->map(function (TestAttempt $attempt) use ($viewer, $judged): array {
                 $summary = $attempt->scoreSummary();
                 // Transcripts and recordings: Super Admin only (ROLE-04, PRIV-04).
-                $answers = $this->judgedAnswers($attempt, $viewer->hasRole('super_admin'));
+                $answers = $this->judgedAnswers($judged->get($attempt->id, new BaseCollection), $viewer->hasRole('super_admin'));
 
                 return [
                     'id' => $attempt->id,
@@ -848,21 +881,42 @@ class TestsController extends Controller
     }
 
     /**
+     * The AI-judged answers (speaking and writing) of the listed sittings,
+     * grouped by sitting: one query for the whole results table instead of
+     * one per row.
+     *
+     * @param  array<int, int>  $testAttemptIds
+     * @return BaseCollection<int, BaseCollection<int, Attempt>>
+     */
+    private function judgedAttempts(array $testAttemptIds): BaseCollection
+    {
+        if ($testAttemptIds === []) {
+            return new BaseCollection;
+        }
+
+        /** @var BaseCollection<int, BaseCollection<int, Attempt>> $grouped */
+        $grouped = Attempt::query()
+            ->with(['activity:id,type,prompt', 'activityVersion', 'responseMedia'])
+            ->whereIn('test_attempt_id', $testAttemptIds)
+            ->whereHas('activity', fn (Builder $activity): Builder => $activity->whereIn('type', [ActivityType::Speaking->value, ActivityType::Writing->value]))
+            ->orderBy('id')
+            ->get()
+            ->toBase()
+            ->groupBy('test_attempt_id');
+
+        return $grouped;
+    }
+
+    /**
      * The AI-judged answers of one sitting (speaking and writing): the
      * structured verdict for everyone who may see results, the transcript
      * and recording for the Super Admin only (ROLE-04, PRIV-04, AIE-04).
      *
+     * @param  BaseCollection<int, Attempt>  $rows
      * @return list<array<string, mixed>>
      */
-    private function judgedAnswers(TestAttempt $attempt, bool $fullAccess): array
+    private function judgedAnswers(BaseCollection $rows, bool $fullAccess): array
     {
-        $rows = Attempt::query()
-            ->with(['activity:id,type,prompt', 'activityVersion', 'responseMedia'])
-            ->where('test_attempt_id', $attempt->id)
-            ->whereHas('activity', fn (Builder $activity): Builder => $activity->whereIn('type', [ActivityType::Speaking->value, ActivityType::Writing->value]))
-            ->orderBy('id')
-            ->get();
-
         return array_values($rows->map(function (Attempt $row) use ($fullAccess): array {
             $feedback = is_array($row->ai_feedback) ? $row->ai_feedback : [];
             $criteria = is_array($feedback['criteria'] ?? null) ? $feedback['criteria'] : [];
@@ -950,6 +1004,24 @@ class TestsController extends Controller
             'y' => 282 + (int) round(($index % 7) * 66.6),
             'width' => 46,
             'height' => 47,
+        ];
+    }
+
+    /** @return array{id: string, label: string, url: string, thumbUrl: string, alt: string}|null */
+    private function mediaReference(int $id, string $kind): ?array
+    {
+        $asset = MediaAsset::query()->find($id);
+
+        if ($asset === null || $asset->kind->value !== $kind) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $asset->id,
+            'label' => $asset->label ?? $asset->original_name ?? ucfirst($kind),
+            'url' => $asset->url(),
+            'thumbUrl' => $asset->variantUrl('thumb'),
+            'alt' => $asset->alt_text ?? '',
         ];
     }
 }

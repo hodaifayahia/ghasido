@@ -26,7 +26,7 @@ class ActivityPresenter
     public const MODE_TEST = 'test';
 
     /** @var list<string> */
-    private const array ANSWER_KEYS = ['correct', 'order', 'pairs', 'model_answer'];
+    private const array ANSWER_KEYS = ['correct', 'order', 'pairs', 'accepted_answers', 'model_answer'];
 
     /**
      * A listening question's script, stripped from a test page so only the
@@ -74,7 +74,7 @@ class ActivityPresenter
             'versionId' => $version->id,
             'version' => $version->version,
             'type' => $activity->type->value,
-            'label' => $activity->type->label(),
+            'label' => $activity->skill_label ?: $activity->type->label(),
             'title' => $activity->title,
             'skillLabel' => $activity->skill_label,
             'prompt' => $placement->effectivePrompt(),

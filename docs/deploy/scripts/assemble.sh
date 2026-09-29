@@ -3,7 +3,7 @@
 set -euo pipefail
 R=~/clickDz/ghasido
 S=/tmp/guesvia-deploy/app
-REMOTE_APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
+REMOTE_APP=/home/u673635734/domains/ghasido.com/guesvia
 rm -rf "$S"
 mkdir -p "$S"
 cd "$R"
@@ -12,7 +12,7 @@ rsync -a --relative \
   --exclude='bootstrap/cache/*.php' \
   --exclude='public/build' --exclude='public/hot' --exclude='public/storage' \
   --exclude='database/*.sqlite*' \
-  app bootstrap config database public resources routes artisan composer.json composer.lock \
+  app bootstrap config database lang public resources routes artisan composer.json composer.lock \
   "$S/"
 
 cp -r /tmp/guesvia-deploy/build "$S/public/build"
@@ -33,7 +33,7 @@ cat >> "$S/.env" <<EOF
 # ---- production overrides (Hostinger) ----
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://lightgrey-dinosaur-781122.hostingersite.com
+APP_URL=https://ghasido.com
 LOG_STACK=daily
 LOG_LEVEL=warning
 DB_CONNECTION=sqlite

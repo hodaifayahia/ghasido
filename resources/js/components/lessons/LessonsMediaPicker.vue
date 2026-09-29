@@ -33,6 +33,7 @@ type Props = {
     tabs: LessonLibraryTab[];
     categories: LessonFilterOption[];
     initialTab?: string;
+    kind?: 'image' | 'audio' | 'video';
 };
 
 type IndexResponse = {
@@ -44,6 +45,7 @@ type IndexResponse = {
 
 const props = withDefaults(defineProps<Props>(), {
     initialTab: 'guesvia-library',
+    kind: 'image',
 });
 
 const open = defineModel<boolean>('open', { required: true });
@@ -75,6 +77,7 @@ async function load(): Promise<void> {
                     libCategory: category.value,
                     libSearch: search.value,
                     page: page.value,
+                    kind: props.kind,
                 },
             }),
         );
@@ -135,9 +138,24 @@ function onUploaded(image: LessonLibraryImage): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        :title="$t('Browse Images')"
+        :title="
+            $t(
+                kind === 'image'
+                    ? 'Browse Images'
+                    : kind === 'audio'
+                      ? 'Browse Audio'
+                      : 'Browse Videos',
+            )
+        "
         :description="
-            $t('Choose an image from the library, or upload a new one.')
+            $t('Choose :kind from the library, or upload a new file.', {
+                kind:
+                    kind === 'image'
+                        ? $t('image')
+                        : kind === 'audio'
+                          ? $t('audio')
+                          : $t('video'),
+            })
         "
         size="lg"
     >
@@ -172,8 +190,24 @@ function onUploaded(image: LessonLibraryImage): void {
                     <Input
                         v-model="search"
                         type="search"
-                        :placeholder="$t('Search images...')"
-                        :aria-label="$t('Search images')"
+                        :placeholder="
+                            $t(
+                                kind === 'image'
+                                    ? 'Search images...'
+                                    : kind === 'audio'
+                                      ? 'Search audio...'
+                                      : 'Search videos...',
+                            )
+                        "
+                        :aria-label="
+                            $t(
+                                kind === 'image'
+                                    ? 'Search images'
+                                    : kind === 'audio'
+                                      ? 'Search audio'
+                                      : 'Search videos',
+                            )
+                        "
                         class="border-line placeholder:text-ink-faint bg-surface h-9 rounded-md ps-8 pe-3 text-[12px] shadow-none"
                     />
                 </div>
@@ -237,7 +271,16 @@ function onUploaded(image: LessonLibraryImage): void {
                 v-else-if="images.length === 0"
                 class="text-ink-slate rounded-md px-1 py-6 text-center text-[12.5px]"
             >
-                {{ $t('No image matches. Upload one, or clear the search.') }}
+                {{
+                    $t('No :kind matches. Upload one, or clear the search.', {
+                        kind:
+                            kind === 'image'
+                                ? $t('image')
+                                : kind === 'audio'
+                                  ? $t('audio')
+                                  : $t('video'),
+                    })
+                }}
             </p>
 
             <div
@@ -253,6 +296,7 @@ function onUploaded(image: LessonLibraryImage): void {
                     @click="choose(image)"
                 >
                     <img
+                        v-if="kind === 'image'"
                         :src="image.thumbUrl ?? image.url"
                         :alt="image.alt ?? image.label"
                         loading="lazy"
@@ -260,10 +304,19 @@ function onUploaded(image: LessonLibraryImage): void {
                         class="border-line hover:border-brand-400 aspect-[4/3] w-full rounded-md border object-cover"
                     />
                     <span
-                        class="text-ink-muted block w-full truncate text-start text-[10.5px]"
+                        v-else
+                        class="border-line bg-brand-50 text-brand-700 grid aspect-[4/3] w-full place-items-center rounded-md border text-[12px] font-semibold"
                     >
-                        {{ image.label }}
+                        {{
+                            kind === 'audio'
+                                ? $t('Audio file')
+                                : $t('Video file')
+                        }}
                     </span>
+                    <span
+                        class="text-ink-muted block w-full truncate text-start text-[10.5px]"
+                        >{{ image.label }}</span
+                    >
                 </button>
             </div>
 
@@ -303,6 +356,10 @@ function onUploaded(image: LessonLibraryImage): void {
             </div>
         </div>
 
-        <LessonsUploadDialog v-model:open="uploadOpen" @uploaded="onUploaded" />
+        <LessonsUploadDialog
+            v-model:open="uploadOpen"
+            :kind="kind"
+            @uploaded="onUploaded"
+        />
     </LessonsModal>
 </template>

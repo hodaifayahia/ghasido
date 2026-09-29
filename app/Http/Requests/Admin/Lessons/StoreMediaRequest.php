@@ -30,7 +30,7 @@ class StoreMediaRequest extends FormRequest
         $kind = (string) $this->input('kind', 'image');
 
         $file = match ($kind) {
-            'audio' => File::types(['mp3', 'wav', 'm4a', 'webm'])->max(20 * 1024),
+            'audio' => File::types(['mp3', 'wav', 'm4a', 'ogg', 'webm'])->max(20 * 1024),
             'video' => File::types(['mp4', 'webm'])->max(200 * 1024),
             default => File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5 * 1024),
         };

@@ -15,6 +15,7 @@ import AiScenariosSidebarPanel from '@/components/ai-scenarios/AiScenariosSideba
 import AiScenariosToolbar from '@/components/ai-scenarios/AiScenariosToolbar.vue';
 import AiScenarioCreationTutorial from '@/components/ai-scenarios/AiScenarioCreationTutorial.vue';
 import CreateAiScenarioDialog from '@/components/ai-scenarios/CreateAiScenarioDialog.vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import TtsVoiceStudio from '@/components/tts/TtsVoiceStudio.vue';
@@ -31,6 +32,7 @@ import type {
     AiScenarioInstructions,
     AiScenarioInstructionsSavePayload,
     AiScenarioLibrary,
+    AiScenarioLibraryItem,
     AiScenarioPreview,
     AiScenarioPreviewTest,
     AiScenarioSettings,
@@ -89,6 +91,16 @@ function openScenario(id: string): void {
     router.visit(aiScenarios.url({ query: { scenario: id } }), {
         preserveScroll: true,
     });
+}
+
+// Safe delete: the server refuses while learners have used the scenario and
+// redirects back with a fresh library on success (DATA-10).
+const deleteScenarioOpen = ref(false);
+const deleteScenarioTarget = ref<AiScenarioLibraryItem | null>(null);
+
+function askDeleteScenario(scenario: AiScenarioLibraryItem): void {
+    deleteScenarioTarget.value = scenario;
+    deleteScenarioOpen.value = true;
 }
 
 function createScenario(payload: CreateAiScenarioPayload): void {
@@ -259,6 +271,19 @@ defineOptions({
                     @open="openScenario"
                     @create="createScenarioOpen = true"
                     @tutorial="tutorialOpen = true"
+                    @delete="askDeleteScenario"
+                />
+                <DeleteRowDialog
+                    v-model:open="deleteScenarioOpen"
+                    :url="
+                        deleteScenarioTarget
+                            ? aiScenarioActions.destroy.url(
+                                  Number(deleteScenarioTarget.id),
+                              )
+                            : null
+                    "
+                    :name="deleteScenarioTarget?.title ?? ''"
+                    :kind="$t('AI scenario')"
                 />
             </template>
 

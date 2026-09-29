@@ -265,19 +265,18 @@ function submit(): void {
                                 <InputError :message="form.errors.email" />
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="contact-phone">
-                                    {{ $t('Phone') }}
-                                    <span class="text-ink-slate font-normal">{{
-                                        $t('(optional)')
-                                    }}</span>
-                                </Label>
+                                <Label for="contact-phone">{{
+                                    $t('Phone number')
+                                }}</Label>
                                 <Input
                                     id="contact-phone"
                                     v-model="form.phone"
                                     name="phone"
                                     type="tel"
                                     autocomplete="tel"
+                                    inputmode="tel"
                                     dir="ltr"
+                                    required
                                     :class="inputClass"
                                 />
                                 <InputError :message="form.errors.phone" />

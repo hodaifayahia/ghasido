@@ -120,7 +120,9 @@ class BlockFactory extends Factory
             BlockType::Audio,
             BlockType::EmailActivity,
             BlockType::PhoneActivity => [
-                'body' => fake()->sentence(10),
+                // Block creation uses this at runtime (BLD-02). Faker is a
+                // development dependency, so production defaults stay plain.
+                'body' => '',
                 'arabic' => null,
                 'image' => null,
                 'audio_text' => null,

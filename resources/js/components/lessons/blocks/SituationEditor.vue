@@ -4,6 +4,7 @@ import type { AcceptableValue } from 'reka-ui';
 import { computed } from 'vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { settingList, settingString } from '@/components/lessons/lessonsBlocks';
+import FieldMeaningButton from '@/components/translations/FieldMeaningButton.vue';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -78,6 +79,7 @@ function removeObjective(index: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="quote"
             :label="$t('Quote')"
             type="textarea"
@@ -107,7 +109,7 @@ function removeObjective(index: number): void {
             <div
                 v-for="(objective, index) in objectives"
                 :key="index"
-                class="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_auto]"
+                class="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_auto_auto]"
             >
                 <Select
                     :model-value="objective.icon"
@@ -146,6 +148,12 @@ function removeObjective(index: number): void {
                             text: ($event.target as HTMLInputElement).value,
                         })
                     "
+                />
+                <FieldMeaningButton
+                    compact
+                    :text="objective.text"
+                    :read-only="readOnly"
+                    class="self-center justify-self-start"
                 />
                 <button
                     v-if="!readOnly"

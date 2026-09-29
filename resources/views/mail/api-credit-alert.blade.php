@@ -38,7 +38,7 @@
             <a href="{{ $url }}">{{ $url }}</a>
         </p>
 
-        <p style="margin: 0;">{{ config('app.name') }}</p>
+        @include('mail.partials.signature')
     </div>
 </body>
 </html>

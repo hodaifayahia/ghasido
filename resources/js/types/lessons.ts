@@ -249,6 +249,7 @@ export type LessonLibraryImage = {
     width?: number | null;
     height?: number | null;
     category?: string | null;
+    kind?: 'image' | 'audio' | 'video';
 };
 
 export type LessonsImageLibrary = {
@@ -328,6 +329,7 @@ export type ActivityTypeKey =
     | 'dialogue_order'
     | 'picture_order'
     | 'multiple_choice'
+    | 'short_answer'
     | 'speaking'
     | 'writing';
 

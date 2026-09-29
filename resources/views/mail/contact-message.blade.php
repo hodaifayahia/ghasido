@@ -23,7 +23,7 @@
 
         <p style="margin: 16px 0; white-space: pre-line;">{{ $contact->message }}</p>
 
-        <p style="margin: 0;">{{ config('app.name') }}</p>
+        @include('mail.partials.signature')
     </div>
 </body>
 </html>

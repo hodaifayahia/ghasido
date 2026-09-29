@@ -66,10 +66,9 @@ class ContentTreeTest extends TestCase
                 ->has('blocks', 12)
                 ->where('blocks.0.type', 'situation')
                 ->where('blocks.10.type', null)
-                ->has('lessonBlocks', 9)
-                ->where('lessonBlocks.0.type', 'situation')
-                ->where('lessonBlocks.0.position', 1)
-                ->where('lessonBlocks.8.type', 'complete')
+                // The directory never renders the builder, so the lesson's
+                // steps (the largest section) stay off this response.
+                ->has('lessonBlocks', 0)
                 ->has('blockTypes', 15)
             );
     }
@@ -102,6 +101,28 @@ class ContentTreeTest extends TestCase
                 ->where('builderOpen', true)
                 ->where('filters.lesson', (string) $this->lesson->id)
                 ->where('editor.id', $this->lesson->id)
+                ->has('lessonBlocks', 9)
+                ->where('lessonBlocks.0.type', 'situation')
+                ->where('lessonBlocks.0.position', 1)
+                ->where('lessonBlocks.8.type', 'complete')
+            );
+    }
+
+    public function test_directory_partial_reloads_skip_the_builder_sections()
+    {
+        $this->actingAs($this->owner)
+            ->get(route('lessons-content'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->reloadOnly(
+                    ['lessonDirectory', 'directoryStats', 'directoryFilters', 'directoryPagination'],
+                    fn (Assert $reload) => $reload
+                        ->where('lessonDirectory.0.title', 'Greeting Guests')
+                        ->missing('lessonBlocks')
+                        ->missing('courses')
+                        ->missing('library')
+                        ->missing('editor')
+                )
             );
     }
 

@@ -7,12 +7,18 @@ import PanelCard from '@/components/common/PanelCard.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
 import { intlLocale, tk } from '@/lib/i18n';
-import type { LandingContactMessage, LandingPageContent } from '@/types';
+import type {
+    LandingContactMessage,
+    LandingMailSetup,
+    LandingPageContent,
+} from '@/types';
 
 const props = defineProps<{
     content: LandingPageContent;
     /** The Arabic copy of the same page (I18N-02). */
     contentAr: LandingPageContent;
+    /** Outgoing email with the saved business email (BusinessEmail). */
+    mailSetup: LandingMailSetup;
     contactMessages: LandingContactMessage[];
 }>();
 
@@ -57,7 +63,7 @@ const editorSections = [
     { href: '#landing-editor-pricing', label: tk('Plans') },
     { href: '#landing-editor-checkout', label: tk('Checkout') },
     { href: '#landing-editor-cta', label: tk('Closing CTA') },
-    { href: '#landing-editor-support', label: tk('Contact details') },
+    { href: '#landing-editor-support', label: tk('Contact & email') },
     { href: '#landing-editor-contact', label: tk('Contact page') },
     { href: '#landing-editor-messages', label: tk('Messages') },
     { href: '#landing-editor-footer', label: tk('Footer') },
@@ -910,10 +916,32 @@ defineOptions({
                 v-if="editing === 'en'"
                 id="landing-editor-support"
                 class="scroll-mt-20"
-                :title="$t('Contact details')"
+                :title="$t('Contact details & business email')"
                 title-id="landing-support"
             >
                 <div class="grid gap-4 sm:grid-cols-2">
+                    <LessonsField
+                        v-model="form.content.support.email"
+                        :label="$t('Business email')"
+                        placeholder="contact@ghasido.com"
+                        :hint="
+                            $t(
+                                'Shown on the Contact Us page and in the footer. Contact form messages come here, and every email GHASIDO sends uses it.',
+                            )
+                        "
+                        :error="form.errors['content.support.email']"
+                    />
+                    <LessonsField
+                        v-model="form.content.support.sender_name"
+                        :label="$t('Email sender name')"
+                        placeholder="GHASIDO"
+                        :hint="
+                            $t(
+                                'The name people see next to the business email in their inbox.',
+                            )
+                        "
+                        :error="form.errors['content.support.sender_name']"
+                    />
                     <LessonsField
                         v-model="form.content.support.phone"
                         :label="$t('Phone number')"
@@ -926,17 +954,6 @@ defineOptions({
                         :error="form.errors['content.support.phone']"
                     />
                     <LessonsField
-                        v-model="form.content.support.email"
-                        :label="$t('Email address')"
-                        placeholder="contact@ghasido.com"
-                        :hint="
-                            $t(
-                                'Shown on the Contact Us page; contact form messages are also sent here.',
-                            )
-                        "
-                        :error="form.errors['content.support.email']"
-                    />
-                    <LessonsField
                         v-model="form.content.support.whatsapp_number"
                         :label="$t('WhatsApp support number')"
                         placeholder="+213 555 12 34 56"
@@ -947,6 +964,62 @@ defineOptions({
                         "
                         :error="form.errors['content.support.whatsapp_number']"
                     />
+                </div>
+
+                <!-- What recipients see, from the saved settings. -->
+                <div
+                    class="border-line bg-app/60 mt-4 grid gap-1.5 rounded-md border p-3 text-[12px]"
+                    data-test="landing-mail-setup"
+                >
+                    <p
+                        class="text-ink-indigo flex items-center gap-1.5 text-[13px] font-semibold"
+                    >
+                        <Mail
+                            class="text-brand-700 size-4 shrink-0"
+                            aria-hidden="true"
+                        />
+                        {{ $t('Emails to users') }}
+                    </p>
+                    <p class="text-ink-slate min-w-0 break-words">
+                        {{ $t('Sent from') }}:
+                        <span
+                            v-if="mailSetup.from"
+                            class="text-ink font-medium"
+                            dir="ltr"
+                            >{{ mailSetup.fromName }} &lt;{{
+                                mailSetup.from
+                            }}&gt;</span
+                        >
+                        <span v-else class="text-ink font-medium">{{
+                            $t('Not set')
+                        }}</span>
+                    </p>
+                    <template v-if="mailSetup.replyTo">
+                        <p class="text-ink-slate min-w-0 break-words">
+                            {{ $t('Replies go to') }}:
+                            <span class="text-ink font-medium" dir="ltr">{{
+                                mailSetup.replyTo
+                            }}</span>
+                        </p>
+                        <p class="text-warning-text">
+                            {{
+                                $t(
+                                    'The mail server can only send from :domain addresses, so emails go out from its own address and replies come back to your business email.',
+                                    { domain: `@${mailSetup.serverDomain}` },
+                                )
+                            }}
+                        </p>
+                    </template>
+                    <p v-if="!mailSetup.delivering" class="text-warning-text">
+                        {{
+                            $t(
+                                'Email sending is not switched on on the server yet, so emails are only written to its log.',
+                            )
+                        }}
+                    </p>
+                    <p v-if="form.isDirty" class="text-ink-slate">
+                        {{ $t('Save your changes to update this summary.') }}
+                    </p>
                 </div>
             </PanelCard>
 

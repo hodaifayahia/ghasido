@@ -10,9 +10,16 @@ export type VoiceAgentThinkMode = 'managed' | 'qwen_proxy';
 
 export type VoiceAgentThinkProvider = 'open_ai' | 'anthropic' | 'google';
 
+/** `pipeline` = fast engine with stored voices (spec 0009). */
+export type VoiceEngine = 'pipeline' | 'agent';
+
 export type VoiceAgentValues = {
+    engine: VoiceEngine;
+    reuseStoredLines: boolean;
     listenModel: string;
     eotThreshold: number;
+    eagerEotThreshold: number;
+    eotTimeoutMs: number;
     keyterms: string[];
     language: string;
     speakProvider: VoiceAgentSpeakProvider;
@@ -37,7 +44,17 @@ export type VoiceAgentSettingsPayload = {
     qwenProxyAvailable: boolean;
     qwenProxyReason: string | null;
     qwenModel: string | null;
+    pipelineAvailable: boolean;
+    pipelineReason: string | null;
+    /** What the stored-voice bank has saved so far (spec 0009). */
+    bank: {
+        lines: number;
+        reusable: number;
+        reuses: number;
+        charactersSaved: number;
+    };
     options: {
+        engines: VoiceEngine[];
         listenModels: string[];
         speakProviders: VoiceAgentSpeakProvider[];
         voices: { value: string; label: string }[];
@@ -70,7 +87,9 @@ export type VoiceAgentPagePayload = {
     scenario: VoiceAgentScenario | null;
 };
 
-export type VoiceCallSession = {
+/** A Deepgram Voice Agent call (spec 0004). */
+export type VoiceAgentSession = {
+    engine: 'agent';
     url: string;
     token: string;
     expiresIn: number;
@@ -81,11 +100,40 @@ export type VoiceCallSession = {
     thinkMode: VoiceAgentThinkMode;
 };
 
+/** A fast-engine call: Flux in the browser, stored voices (spec 0009). */
+export type VoicePipelineSession = {
+    engine: 'pipeline';
+    token: string;
+    expiresIn: number;
+    sttUrl: string;
+    /** Deepgram's streaming voice for a line not recorded yet. */
+    ttsUrl: string;
+    inputSampleRate: number;
+    outputSampleRate: number;
+    chunkMs: number;
+    greeting: { text: string; audioUrl: string | null };
+    maxCallSeconds: number;
+};
+
+export type VoiceCallSession = VoiceAgentSession | VoicePipelineSession;
+
 export type VoiceCallStartResponse = {
     attemptId: number;
     turnUrl: string;
+    replyUrl: string;
     endUrl: string;
     session: VoiceCallSession;
+};
+
+/** VoiceReplyService::reply() */
+export type VoiceReplyResponse = {
+    turn: number;
+    rev: number;
+    text: string;
+    audioUrl: string | null;
+    source: 'new' | 'reused';
+    limitReached: boolean;
+    stale: boolean;
 };
 
 export type VoiceCallCaption = {

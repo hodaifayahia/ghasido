@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Bell, Clock, Eye, FileText, Mail, Pencil, Plus } from '@lucide/vue';
+import {
+    Bell,
+    Clock,
+    Eye,
+    FileText,
+    Mail,
+    Pencil,
+    Plus,
+    Trash2,
+} from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import MessagesPager from '@/components/messages/MessagesPager.vue';
@@ -33,6 +42,8 @@ const emit = defineEmits<{
     addRule: [];
     editRule: [rule: MessageAutomationRule];
     toggleRule: [rule: MessageAutomationRule];
+    deleteTemplate: [template: MessageTemplate];
+    deleteRule: [rule: MessageAutomationRule];
     logPage: [page: number];
     openLog: [];
 }>();
@@ -55,6 +66,13 @@ const logText: Record<MessageLogStatus, string> = {
 
 const iconButton =
     'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex size-6.5 shrink-0 items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
+
+// Safe delete, set a little apart from Edit. The ::after pad (9px a side,
+// clear of the Edit button) makes the 26px button a 44px tap target (ACC-03).
+const deleteButton = cn(
+    iconButton,
+    'border-danger/40 text-danger-text hover:bg-danger-tint relative ms-1.5 after:absolute after:-inset-2.25',
+);
 </script>
 
 <template>
@@ -120,6 +138,19 @@ const iconButton =
                             @click="emit('editTemplate', templateItem)"
                         >
                             <Pencil class="size-3" aria-hidden="true" />
+                        </button>
+                        <button
+                            v-if="abilities.manageTemplates"
+                            type="button"
+                            :class="deleteButton"
+                            :aria-label="
+                                $t('Delete :name', { name: templateItem.name })
+                            "
+                            :title="$t('Delete')"
+                            :data-test="`delete-template-${templateItem.id}-button`"
+                            @click="emit('deleteTemplate', templateItem)"
+                        >
+                            <Trash2 class="size-3" aria-hidden="true" />
                         </button>
                     </div>
                 </div>
@@ -248,6 +279,19 @@ const iconButton =
                             @click="emit('editRule', rule)"
                         >
                             <Pencil class="size-3" aria-hidden="true" />
+                        </button>
+                        <button
+                            v-if="abilities.manageRules"
+                            type="button"
+                            :class="deleteButton"
+                            :aria-label="
+                                $t('Delete :name', { name: rule.name })
+                            "
+                            :title="$t('Delete')"
+                            :data-test="`delete-rule-${rule.id}-button`"
+                            @click="emit('deleteRule', rule)"
+                        >
+                            <Trash2 class="size-3" aria-hidden="true" />
                         </button>
                     </div>
                 </div>

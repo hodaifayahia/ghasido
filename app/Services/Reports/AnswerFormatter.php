@@ -33,6 +33,7 @@ final class AnswerFormatter
             ActivityType::DialogueOrder => self::prefixed(__('Put in order'), self::labels(self::list($item, 'sentences'), 'text')),
             ActivityType::PictureOrder => self::prefixed(__('Put in order'), self::string($item, 'context')),
             ActivityType::MultipleChoice => self::string($item, 'question'),
+            ActivityType::ShortAnswer => self::string($item, 'question'),
             ActivityType::Speaking => self::join([self::string($item, 'situation'), self::string($item, 'question')]),
             ActivityType::Writing => self::string($item, 'scenario'),
         };
@@ -59,13 +60,16 @@ final class AnswerFormatter
             ActivityType::LookListen,
             ActivityType::BestResponse,
             ActivityType::WatchRespond,
-            ActivityType::WordsSentences,
             ActivityType::MultipleChoice => self::option($item, $rawAnswer),
             ActivityType::ListenMatch => self::pairs($item, $rawAnswer),
             ActivityType::DialogueOrder => self::ordered(self::list($item, 'sentences'), 'text', $rawAnswer),
             ActivityType::PictureOrder => self::ordered(self::list($item, 'cards'), 'caption', $rawAnswer),
             ActivityType::Speaking => self::recording($rawAnswer, $transcript, $withTranscript),
             ActivityType::Writing => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
+            ActivityType::ShortAnswer => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
+            ActivityType::WordsSentences => is_array($rawAnswer) && isset($item['accepted_answers'])
+                ? self::string($rawAnswer, 'text')
+                : self::option($item, $rawAnswer),
         };
     }
 

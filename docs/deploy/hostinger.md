@@ -2,12 +2,12 @@
 
 > **Moving to MySQL (2026-09-26):** the code runs on MySQL and the one-time move of the live data is ready. Follow [`mysql.md`](mysql.md).
 
-First deployed 2026-09-25 to **https://lightgrey-dinosaur-781122.hostingersite.com** (Hostinger Cloud Startup, account `u673635734`, SSH `89.117.116.239:65002`). Scripts are in [`scripts/`](scripts/); they hold no secrets.
+First deployed 2026-09-25 to **https://ghasido.com** (Hostinger Cloud Startup, account `u673635734`, SSH `89.117.116.239:65002`). Scripts are in [`scripts/`](scripts/); they hold no secrets.
 
 ## Layout on the server
 
 ```
-~/domains/lightgrey-dinosaur-781122.hostingersite.com/
+~/domains/ghasido.com/
 ├─ guesvia/                         the Laravel app (outside the web root)
 │  ├─ .env                          production env, chmod 600
 │  ├─ database/database.sqlite      the live database (WAL mode)
@@ -39,9 +39,9 @@ First deployed 2026-09-25 to **https://lightgrey-dinosaur-781122.hostingersite.c
 The app needs a scheduler and two queue workers (same queues as `compose.yaml`). Add these three cron jobs in hPanel, each **every minute** (`* * * * *`):
 
 ```bash
-cd /home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
-cd /home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && flock -n storage/framework/queue-main.lock /usr/bin/php artisan queue:work database --queue=interactive,default --sleep=1 --tries=3 --timeout=900 --max-time=3300 >> storage/logs/queue-main.log 2>&1
-cd /home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && flock -n storage/framework/queue-media.lock /usr/bin/php artisan queue:work database --queue=media --sleep=3 --tries=3 --timeout=900 --max-time=3300 >> storage/logs/queue-media.log 2>&1
+cd /home/u673635734/domains/ghasido.com/guesvia && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
+cd /home/u673635734/domains/ghasido.com/guesvia && flock -n storage/framework/queue-main.lock /usr/bin/php artisan queue:work database --queue=interactive,default --sleep=1 --tries=3 --timeout=900 --max-time=3300 >> storage/logs/queue-main.log 2>&1
+cd /home/u673635734/domains/ghasido.com/guesvia && flock -n storage/framework/queue-media.lock /usr/bin/php artisan queue:work database --queue=media --sleep=3 --tries=3 --timeout=900 --max-time=3300 >> storage/logs/queue-media.log 2>&1
 ```
 
 `flock` keeps one worker per queue. Until the cron exists, `remote-workers.sh` starts detached "bridge" workers over SSH using the same lock files; they stop if the server restarts them or they hit the memory limit.
@@ -65,7 +65,7 @@ bash docs/deploy/scripts/run-remote.sh docs/deploy/scripts/remote-workers.sh
 The migration creates its tables; the owner login does not exist until you make it over SSH (run it again to reset the password):
 
 ```bash
-cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php artisan owner:create you@example.com --name="Your name"
+cd ~/domains/ghasido.com/guesvia && /usr/bin/php artisan owner:create you@example.com --name="Your name"
 ```
 
 Then sign in at `/owner/login`, set a price for every model the console lists as unpriced, and recharge. Until an account has a recharge it has no limit, so the deploy itself never switches AI off. Keys saved on the console override `.env` and are encrypted with `APP_KEY`: keep `APP_KEY` stable, or the stored keys stop decrypting and the app falls back to `.env`.
@@ -74,9 +74,15 @@ Then sign in at `/owner/login`, set a price for every model the console lists as
 
 Run `deploy-export.php` inside the Sail container (`docker exec -u sail -w /var/www/html ghasido-laravel.test-1 php docs/deploy/scripts/deploy-export.php`) to produce `storage/logs/deploy/database.sqlite` and `media-list.txt`, then `INITIAL=1 assemble.sh` and `INITIAL=1 upload.sh`. **Doing this again overwrites the live database with local data.**
 
+## Changing the domain
+
+On 2026-09-25 the site moved from `lightgrey-dinosaur-781122.hostingersite.com` to **ghasido.com**. Hostinger moved the whole folder to `~/domains/ghasido.com/`, but `.env` (`APP_URL`, the absolute `DB_DATABASE` path) and the cached config still named the old folder, so every page returned 500 ("Database file … does not exist"). `scripts/remote-fix-domain.sh` is the fix: it rewrites `.env` (keeping a dated `.env.bak-*`), rebuilds the caches and stops workers still running from the old folder; then run `remote-workers.sh`. For the next domain change, set `OLD`/`NEW` in that script and replace the domain in `scripts/*.sh`.
+
+Hostinger's bot check ("Checking your browser… Just a moment") can answer 403 to scripted clients on the first request; real browsers pass it.
+
 ## Known gaps
 
-- **Email is logged, not sent** (`MAIL_MAILER=log`): the low-credit alerts (spec 0007, D12), hotel approvals and reminders land in `storage/logs/` until SMTP is configured. With a Hostinger mailbox, set in the server `.env`: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.hostinger.com`, `MAIL_PORT=465`, `MAIL_SCHEME=smtps`, `MAIL_USERNAME=<mailbox>`, `MAIL_PASSWORD=<password>`, `MAIL_FROM_ADDRESS=<mailbox>`, then `php artisan optimize` and `remote-workers.sh`.
+- **Email is logged, not sent** (`MAIL_MAILER=log`): the low-credit alerts (spec 0007, D12), hotel approvals and reminders land in `storage/logs/` until SMTP is configured. With a Hostinger mailbox, set in the server `.env`: `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.hostinger.com`, `MAIL_PORT=465`, `MAIL_SCHEME=smtps`, `MAIL_USERNAME=<mailbox>`, `MAIL_PASSWORD=<password>`, `MAIL_FROM_ADDRESS=<mailbox>`, then `php artisan optimize` and `remote-workers.sh`. The sender people see is the **business email** and **sender name** in Website Management → Contact details & business email: it becomes the From address when it is on the same domain as `MAIL_FROM_ADDRESS`, otherwise it becomes the Reply-To address. Use the same Hostinger mailbox for both.
 
 - The three cron jobs above are not created yet (API refused); the bridge workers cover the queues meanwhile, and the daily `RunAutomationRules` job will not run until the scheduler cron exists.
 - No domain connected; the temporary `*.hostingersite.com` URL has Hostinger's SSL.

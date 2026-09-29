@@ -160,4 +160,5 @@ export type HotelRowAction =
     | 'extend'
     | 'pause'
     | 'resume'
-    | 'archive';
+    | 'archive'
+    | 'delete';

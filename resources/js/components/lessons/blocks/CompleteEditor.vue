@@ -41,7 +41,7 @@ function onImage(item: LessonMediaRef | null): void {
 
 <template>
     <div class="grid gap-4">
-        <LessonsField v-model="subtitle" :label="$t('Subtitle')" />
+        <LessonsField translatable v-model="subtitle" :label="$t('Subtitle')" />
         <LessonsMediaSlot
             label="Image"
             :media="media.lookup(settings.image)"
@@ -51,6 +51,7 @@ function onImage(item: LessonMediaRef | null): void {
         />
         <div class="grid gap-4 md:grid-cols-2">
             <LessonsField
+                translatable
                 v-model="quote"
                 :label="$t('Quote')"
                 type="textarea"

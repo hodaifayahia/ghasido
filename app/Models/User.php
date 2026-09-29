@@ -444,7 +444,10 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function learningDepartmentId(): ?int
     {
-        return $this->department_id ?? $this->trainingDepartmentId;
+        // The per-request choice wins: ResolveTrainingDepartment only sets it
+        // for a manager (no department of their own) or an individual
+        // subscriber switching between their departments.
+        return $this->trainingDepartmentId ?? $this->department_id;
     }
 
     /**

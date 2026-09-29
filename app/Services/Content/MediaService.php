@@ -233,6 +233,7 @@ class MediaService
         return [
             'id' => (string) $asset->id,
             'label' => $asset->label ?? $asset->original_name ?? basename($asset->path),
+            'kind' => $asset->kind->value,
             'url' => $asset->url(),
             'thumbUrl' => $asset->variantUrl('thumb'),
             'alt' => $asset->alt_text ?? '',

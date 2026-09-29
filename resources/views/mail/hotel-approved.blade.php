@@ -21,7 +21,7 @@
             <a href="{{ $loginUrl }}">{{ __('Open the sign-in page') }}</a>
         </p>
 
-        <p style="margin: 0;">{{ config('app.name') }}</p>
+        @include('mail.partials.signature', ['withContact' => true])
     </div>
 </body>
 </html>

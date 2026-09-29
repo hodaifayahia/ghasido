@@ -8,8 +8,10 @@ import { cn } from '@/lib/utils';
  * The 🌐 Show Meaning toggle (CTRL-01..04), drawn as desginphotos/employ/
  * photo_2 draws it: a 345×62 grid-tint box with a 24px eye, the Arabic
  * "إظهار المعنى" (15px Cairo) over "Show Meaning" (13px). `sm` is the
- * 224×44 variant under an example sentence. The parent owns the state
- * (useShowMeaning) and never renders this inside a test (CTRL-04).
+ * 224×44 variant, also the one on top of every lesson and test text
+ * (meaning/MeaningText, MeaningRow; client decision 2026-09-26). The parent
+ * owns the state; a test shows it only when its admin switched Show Meaning
+ * on for that test (CTRL-04 relaxed by the client, 2026-09-26).
  */
 type Props = {
     shown: boolean;

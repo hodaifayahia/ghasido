@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\AiScenarioPreviewController;
 use App\Http\Controllers\Admin\AiScenariosController;
 use App\Http\Controllers\Admin\AiScenarioVoiceCallController;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\VoiceAgentSettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,9 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
         ->name('ai-scenarios.config.feedback');
     Route::patch('ai-scenarios/{scenario}', [AiScenariosController::class, 'update'])
         ->name('ai-scenarios.update');
+    Route::delete('ai-scenarios/{scenario}', [DeleteController::class, 'scenario'])
+        ->whereNumber('scenario')
+        ->name('ai-scenarios.destroy');
     Route::post('ai-scenarios/{scenario}/generate', [AiScenariosController::class, 'generate'])
         ->name('ai-scenarios.generate');
     Route::post('ai-scenarios/{scenario}/apply-draft', [AiScenariosController::class, 'applyDraft'])
@@ -51,6 +55,9 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
         ->name('ai-scenarios.voice-preview.start');
     Route::post('ai-scenarios/voice-preview/{attempt}/turns', [AiScenarioVoiceCallController::class, 'turn'])
         ->name('ai-scenarios.voice-preview.turn');
+    Route::post('ai-scenarios/voice-preview/{attempt}/reply', [AiScenarioVoiceCallController::class, 'reply'])
+        ->middleware('throttle:60,1')
+        ->name('ai-scenarios.voice-preview.reply');
     Route::post('ai-scenarios/voice-preview/{attempt}/end', [AiScenarioVoiceCallController::class, 'end'])
         ->name('ai-scenarios.voice-preview.end');
 });

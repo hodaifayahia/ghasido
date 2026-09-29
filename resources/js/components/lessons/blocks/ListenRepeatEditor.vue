@@ -81,6 +81,7 @@ function removeItem(index: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -121,6 +122,7 @@ function removeItem(index: number): void {
             <LessonsField v-model="successText" :label="$t('Success text')" />
         </div>
         <LessonsField
+            translatable
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"

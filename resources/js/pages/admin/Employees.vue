@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/vue3';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import EmployeeCredentialsDialog from '@/components/employees/EmployeeCredentialsDialog.vue';
 import EmployeeFormDialog from '@/components/employees/EmployeeFormDialog.vue';
 import EmployeeResetDialog from '@/components/employees/EmployeeResetDialog.vue';
@@ -14,9 +15,16 @@ import EmployeesStatsRow from '@/components/employees/EmployeesStatsRow.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
+import { useI18n } from '@/composables/useI18n';
 import { tk } from '@/lib/i18n';
 import { dashboard, employees as employeesRoute } from '@/routes';
-import { activate, bulk, deactivate, remind } from '@/routes/employees';
+import {
+    activate,
+    bulk,
+    deactivate,
+    destroy,
+    remind,
+} from '@/routes/employees';
 import type {
     EmployeeBulkAction,
     EmployeeCreateForm,
@@ -57,6 +65,7 @@ defineOptions({
 });
 
 const { can } = useCan();
+const { t } = useI18n();
 const canManage = can('employees.manage');
 // Account creation is separately authorized from employee management (SUB-02).
 const canCreate = can('employees.create');
@@ -183,8 +192,13 @@ const viewOpen = ref(false);
 const formOpen = ref(false);
 const resetOpen = ref(false);
 const credentialsOpen = ref(false);
+const deleteOpen = ref(false);
 const actionEmployee = ref<EmployeeRecord | null>(null);
 const credentials = ref<EmployeeCredentials | null>(null);
+
+const deleteUrl = computed(() =>
+    actionEmployee.value === null ? null : destroy.url(actionEmployee.value.id),
+);
 
 function onAction(action: EmployeeRowAction, employee: EmployeeRecord): void {
     actionEmployee.value = employee;
@@ -207,6 +221,9 @@ function onAction(action: EmployeeRowAction, employee: EmployeeRecord): void {
             return;
         case 'deactivate':
             post(deactivate(employee.id).url);
+            return;
+        case 'delete':
+            deleteOpen.value = true;
     }
 }
 
@@ -297,6 +314,12 @@ onBeforeUnmount(() => {
         <EmployeeCredentialsDialog
             v-model:open="credentialsOpen"
             :credentials="credentials"
+        />
+        <DeleteRowDialog
+            v-model:open="deleteOpen"
+            :url="deleteUrl"
+            :name="actionEmployee?.name ?? ''"
+            :kind="t('employee')"
         />
     </template>
 </template>

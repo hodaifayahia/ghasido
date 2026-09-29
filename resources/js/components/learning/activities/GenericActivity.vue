@@ -114,6 +114,7 @@ type Option = {
     audio_text?: string;
     audio_text_audio?: AudioPair;
     image?: MediaRef | null;
+    audio?: MediaRef | null;
 };
 
 function options(item: ActivityItem): Option[] {
@@ -128,6 +129,7 @@ type Ordered = {
     caption?: string;
     image?: MediaRef | null;
     text_audio?: AudioPair;
+    audio?: MediaRef | null;
 };
 
 function orderable(item: ActivityItem): Ordered[] {
@@ -239,11 +241,18 @@ function isAnswered(item: ActivityItem): boolean {
                 Object.keys(stored).length === prompts(item).length
             );
         case 'writing':
+        case 'short_answer':
             return (
                 typeof stored === 'object' &&
                 'text' in stored &&
                 stored.text.trim() !== ''
             );
+        case 'words_sentences':
+            return options(item).length === 0
+                ? typeof stored === 'object' &&
+                      'text' in stored &&
+                      stored.text.trim() !== ''
+                : stored !== undefined;
         case 'speaking':
             return typeof stored === 'object' && 'recording_media_id' in stored;
         default:
@@ -435,6 +444,7 @@ function letter(index: number): string {
                     'sentence',
                     'subtitle',
                     'scenario',
+                    'request_text',
                     'instruction',
                 ]"
                 :key="key"
@@ -458,6 +468,21 @@ function letter(index: number): string {
                 "
                 decoding="async"
                 class="max-h-72 w-full rounded-md object-cover"
+            />
+            <audio
+                v-if="media(item, 'audio')"
+                controls
+                preload="none"
+                class="w-full"
+                :src="media(item, 'audio')?.url"
+            />
+            <video
+                v-if="media(item, 'video')"
+                controls
+                preload="metadata"
+                class="max-h-72 w-full rounded-md"
+                :poster="media(item, 'poster')?.url"
+                :src="media(item, 'video')?.url"
             />
             <div
                 v-if="
@@ -543,6 +568,16 @@ function letter(index: number): string {
                                 size="sm"
                                 :src="option.audio_text_audio.normal"
                                 :text="option.audio_text"
+                            />
+                            <AudioButton
+                                v-else-if="option.audio"
+                                size="sm"
+                                :src="option.audio.url"
+                                :text="
+                                    option.audio_text ??
+                                    option.label ??
+                                    option.text
+                                "
                             />
                             <span>{{
                                 option.label ?? option.text ?? option.audio_text
@@ -637,6 +672,12 @@ function letter(index: number): string {
                         :src="entry.text_audio.normal"
                         :text="entry.text"
                     />
+                    <AudioButton
+                        v-else-if="entry.audio"
+                        size="sm"
+                        :src="entry.audio.url"
+                        :text="entry.text ?? entry.caption"
+                    />
                     <button
                         type="button"
                         :disabled="locked || position === 0"
@@ -688,13 +729,28 @@ function letter(index: number): string {
             </div>
 
             <!-- Writing -->
-            <div v-if="activity.type === 'writing'" class="flex flex-col gap-2">
+            <div
+                v-if="
+                    activity.type === 'writing' ||
+                    activity.type === 'short_answer' ||
+                    (activity.type === 'words_sentences' &&
+                        options(item).length === 0)
+                "
+                class="flex flex-col gap-2"
+            >
                 <label
                     :for="`writing-${item.id}`"
                     class="text-ink text-sm font-semibold"
                 >
-                    {{ $t('Your reply') }}
-                    <span class="text-ink-slate font-normal">
+                    {{
+                        activity.type === 'writing'
+                            ? $t('Your reply')
+                            : $t('Your answer')
+                    }}
+                    <span
+                        v-if="activity.type === 'writing'"
+                        class="text-ink-slate font-normal"
+                    >
                         {{
                             $t('(at least :count words)', {
                                 count: String(loose(item)['min_words'] ?? 20),

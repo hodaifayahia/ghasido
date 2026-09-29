@@ -9,7 +9,7 @@ if [ -z "${DOM:-}" ]; then
   if [ "${#found[@]}" -eq 1 ]; then
     DOM=$(dirname "$(dirname "${found[0]}")")
   else
-    DOM=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com
+    DOM=/home/u673635734/domains/ghasido.com
   fi
 fi
 APP=$DOM/guesvia

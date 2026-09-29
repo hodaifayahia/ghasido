@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Models\User;
 use App\Services\Landing\LandingPageContentStore;
+use App\Services\Mail\BusinessEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,7 +15,7 @@ use Inertia\Response;
 
 final class LandingPageController extends Controller
 {
-    public function edit(Request $request, LandingPageContentStore $content): Response
+    public function edit(Request $request, LandingPageContentStore $content, BusinessEmail $businessEmail): Response
     {
         abort_unless($request->user()?->can(Permission::LandingManage->value), 403);
 
@@ -22,6 +23,8 @@ final class LandingPageController extends Controller
             'content' => $content->current('en'),
             // The Arabic copy (I18N-02), edited in its own tab.
             'contentAr' => $content->current('ar'),
+            // How outgoing email will look with the saved business email.
+            'mailSetup' => $businessEmail->setup(),
             'contactMessages' => ContactMessage::query()
                 ->latest()
                 ->limit(50)
@@ -159,9 +162,11 @@ final class LandingPageController extends Controller
             'content.call_to_action.button_text' => ['required', 'string', 'max:60'],
             'content.footer' => ['required', 'array:tagline'],
             'content.footer.tagline' => ['required', 'string', 'max:160'],
-            'content.support' => ['required', 'array:whatsapp_number,phone,email'],
+            'content.support' => ['required', 'array:whatsapp_number,phone,email,sender_name'],
             'content.support.phone' => ['nullable', 'string', 'max:40', 'regex:/^\+?[0-9().\s-]{6,}$/'],
             'content.support.email' => ['nullable', 'string', 'email', 'max:180'],
+            // The name next to the business email on every outgoing email.
+            'content.support.sender_name' => ['nullable', 'string', 'max:80', 'not_regex:/[<>"\r\n]/'],
             'content.contact' => ['required', 'array:eyebrow,title,description,form_title,submit_button,success_message,enterprise_title,enterprise_subtitle,enterprise_description,enterprise_points,enterprise_button,enterprise_note'],
             'content.contact.eyebrow' => ['required', 'string', 'max:100'],
             'content.contact.title' => ['required', 'string', 'max:180'],
@@ -197,6 +202,7 @@ final class LandingPageController extends Controller
         $validated['content']['support']['whatsapp_number'] = trim((string) ($validated['content']['support']['whatsapp_number'] ?? ''));
         $validated['content']['support']['phone'] = trim((string) ($validated['content']['support']['phone'] ?? ''));
         $validated['content']['support']['email'] = trim((string) ($validated['content']['support']['email'] ?? ''));
+        $validated['content']['support']['sender_name'] = trim((string) ($validated['content']['support']['sender_name'] ?? ''));
 
         /** @var User $actor */
         $actor = $request->user();

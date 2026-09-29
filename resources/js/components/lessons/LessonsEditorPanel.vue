@@ -14,6 +14,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsBlockList from '@/components/lessons/LessonsBlockList.vue';
+import FieldMeaningButton from '@/components/translations/FieldMeaningButton.vue';
 import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
 import LessonsMaterialsTab from '@/components/lessons/tabs/LessonsMaterialsTab.vue';
 import LessonsPreviewTab from '@/components/lessons/tabs/LessonsPreviewTab.vue';
@@ -228,6 +229,8 @@ const toolbarButton =
 
         <LessonsRoleplayTab
             v-else-if="activeTab === 'roleplay'"
+            :lesson-id="editor.id"
+            :read-only="!manage"
             :blocks="lessonBlocks"
             :lessons="lessonDirectory"
             :scenarios="scenarios"
@@ -237,6 +240,9 @@ const toolbarButton =
         <LessonsQuizTab
             v-else-if="activeTab === 'quiz'"
             :blocks="lessonBlocks"
+            :lesson-id="editor.id"
+            :library="library"
+            :read-only="!manage"
         />
 
         <!-- minmax(0,1fr): wide content (the block list) must not widen
@@ -244,12 +250,18 @@ const toolbarButton =
         <div v-else class="grid grid-cols-[minmax(0,1fr)] gap-4">
             <div class="grid gap-1.5">
                 <div class="flex items-center justify-between gap-3">
-                    <label
-                        for="lesson-title"
-                        class="text-brand-900 text-[12px] font-semibold"
-                    >
-                        {{ $t('Lesson Title *') }}
-                    </label>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label
+                            for="lesson-title"
+                            class="text-brand-900 text-[12px] font-semibold"
+                        >
+                            {{ $t('Lesson Title *') }}
+                        </label>
+                        <FieldMeaningButton
+                            :text="title"
+                            :read-only="!manage"
+                        />
+                    </div>
                     <span class="text-ink-faint text-[11px] font-medium">
                         <span
                             v-if="saveHint !== ''"
@@ -328,12 +340,18 @@ const toolbarButton =
             </div>
 
             <div class="grid gap-1.5">
-                <label
-                    for="lesson-introduction"
-                    class="text-brand-900 text-[12px] font-semibold"
-                >
-                    {{ $t('Lesson Introduction *') }}
-                </label>
+                <div class="flex flex-wrap items-center gap-2">
+                    <label
+                        for="lesson-introduction"
+                        class="text-brand-900 text-[12px] font-semibold"
+                    >
+                        {{ $t('Lesson Introduction *') }}
+                    </label>
+                    <FieldMeaningButton
+                        :text="introduction"
+                        :read-only="!manage"
+                    />
+                </div>
 
                 <div class="border-line overflow-hidden rounded-md border">
                     <div
@@ -429,6 +447,11 @@ const toolbarButton =
                         <span class="text-ink min-w-0 flex-1 text-[13px]">
                             {{ objective }}
                         </span>
+                        <FieldMeaningButton
+                            compact
+                            :text="objective"
+                            :read-only="!manage"
+                        />
                         <button
                             v-if="manage"
                             type="button"

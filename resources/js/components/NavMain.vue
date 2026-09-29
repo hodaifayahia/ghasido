@@ -92,6 +92,13 @@ function handleLogout(): void {
 }
 
 /*
+ * Page links load their page while the pointer rests on them (75ms), so the
+ * click shows it at once; lib/pagePrefetch.ts fetches the page's code too
+ * and drops these copies after any change. Behaviour only: no visual change.
+ */
+const PREFETCH_CACHE = '10s';
+
+/*
  * Measured from the approved Admin Dashboard mockup (1280px): 42px items on a
  * ~44.6px pitch, 10px radius, 26px glyph 14px in, label starting 20px after
  * it (x 73) in 13px indigo. Labels stay on one line like the mockup; the
@@ -179,6 +186,8 @@ const subButtonClass = cn(
                                     >
                                         <Link
                                             :href="child.href"
+                                            prefetch
+                                            :cache-for="PREFETCH_CACHE"
                                             :aria-current="
                                                 isActive(child)
                                                     ? 'page'
@@ -255,6 +264,8 @@ const subButtonClass = cn(
                 >
                     <Link
                         :href="item.href"
+                        prefetch
+                        :cache-for="PREFETCH_CACHE"
                         :aria-current="isActive(item) ? 'page' : undefined"
                         @click="closeMobileSidebar"
                     >

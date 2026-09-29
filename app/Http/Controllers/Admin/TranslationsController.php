@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Meaning\MeaningTexts;
 use App\Services\Meaning\MeaningTranslations;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -91,8 +92,12 @@ class TranslationsController extends Controller
         ]);
     }
 
-    /** Write or correct one meaning by hand; the AI never replaces it. */
-    public function save(Request $request, MeaningTranslations $translations): RedirectResponse
+    /**
+     * Write or correct one meaning by hand; the AI never replaces it. The
+     * builders' Translation button (user request 2026-09-26) calls this as
+     * JSON, so a save never reloads the editor and loses unsaved typing.
+     */
+    public function save(Request $request, MeaningTranslations $translations): RedirectResponse|JsonResponse
     {
         $admin = $this->authorizeEditor($request);
 
@@ -109,9 +114,42 @@ class TranslationsController extends Controller
 
         $translations->write($translation, (string) $data['arabic'], $admin);
 
+        if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
+            return response()->json($this->row($text, $translation->refresh()));
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Meaning saved.')]);
 
         return back();
+    }
+
+    /**
+     * The current meaning of each text a builder shows, for its Translation
+     * buttons (user request 2026-09-26). Read-only: an unknown text is only
+     * reported missing, never queued for the AI or noted as requested.
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $this->authorizeEditor($request);
+
+        $data = $request->validate([
+            'texts' => ['required', 'array', 'max:200'],
+            'texts.*' => ['nullable', 'string', 'max:'.TextTranslation::MAX_LENGTH],
+        ]);
+
+        /** @var list<string|null> $texts */
+        $texts = array_values($data['texts']);
+        $rows = TextTranslation::query()
+            ->whereIn('hash', array_map(fn (?string $text): string => TextTranslation::hashOf((string) $text), $texts))
+            ->get()
+            ->keyBy('hash');
+
+        return response()->json([
+            'items' => array_map(
+                fn (?string $text): array => $this->row((string) $text, $rows->get(TextTranslation::hashOf((string) $text))),
+                $texts,
+            ),
+        ]);
     }
 
     /**

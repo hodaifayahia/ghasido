@@ -55,11 +55,20 @@ class ActivityScorer
             $id = $ids[$index];
             $answer = $this->answerFor($rawAnswer, $id, count($items));
 
+            if ($type === ActivityType::WordsSentences && is_array($item['accepted_answers'] ?? null)) {
+                $perItem[$id] = $this->matchesAcceptedText($item, $answer);
+
+                continue;
+            }
+
             $perItem[$id] = match ($type->answerShape()) {
                 AnswerShape::Option => $this->matchesOption($item, $answer),
                 AnswerShape::PairMap => $this->matchesPairs($item, $answer),
                 AnswerShape::OrderedList => $this->matchesOrder($item, $answer),
-                AnswerShape::Recording, AnswerShape::Text => null,
+                AnswerShape::Text => $type === ActivityType::ShortAnswer
+                    ? $this->matchesAcceptedText($item, $answer)
+                    : null,
+                AnswerShape::Recording => null,
             };
         }
 
@@ -147,5 +156,32 @@ class ActivityScorer
         $givenIds = array_map(static fn (mixed $id): string => is_scalar($id) ? (string) $id : '', array_values($answer));
 
         return $expectedIds === $givenIds;
+    }
+
+    /**
+     * Short-answer questions accept any configured spelling (TEST-05/06).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function matchesAcceptedText(array $item, mixed $answer): bool
+    {
+        if (! is_array($answer) || ! is_string($answer['text'] ?? null)) {
+            return false;
+        }
+
+        $given = mb_strtolower(trim($answer['text']));
+        $accepted = $item['accepted_answers'] ?? [];
+
+        if ($given === '' || ! is_array($accepted) || $accepted === []) {
+            return false;
+        }
+
+        foreach ($accepted as $candidate) {
+            if (is_string($candidate) && mb_strtolower(trim($candidate)) === $given) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

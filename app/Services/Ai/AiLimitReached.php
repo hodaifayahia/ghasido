@@ -86,24 +86,31 @@ final class AiLimitReached extends RuntimeException
         );
     }
 
-    /** An individual subscriber whose own plan has no AI practice (user request 2026-09-25). */
+    /**
+     * An individual subscriber whose plan does not include AI (or voice)
+     * practice. Lessons, tests and the phrasebook stay open.
+     */
     public static function forIndividualPlan(AiFeature $feature): self
     {
         return new self(
-            __('AI practice is not included in your subscription. Your lessons and phrasebook are still open; contact us to add it.'),
+            $feature === AiFeature::VoiceCall
+                ? __('Voice practice is not included in your subscription. Your lessons and phrasebook are still open; contact GHASIDO support to add it.')
+                : __('AI practice is not included in your subscription. Your lessons and phrasebook are still open; contact GHASIDO support to add it.'),
             $feature,
             'employee',
             0,
         );
     }
 
-    public static function forPoints(int $required, int $available): self
+    public static function forPoints(int $required, int $available, bool $individual = false): self
     {
         return new self(
-            __('You have :available AI points remaining, but this feature needs :required points. Ask your hotel manager to adjust your allocation.', [
-                'available' => $available,
-                'required' => $required,
-            ]),
+            __($individual
+                ? 'You have :available AI points remaining, but this feature needs :required points. Contact GHASIDO support to add more points to your subscription.'
+                : 'You have :available AI points remaining, but this feature needs :required points. Ask your hotel manager to adjust your allocation.', [
+                    'available' => $available,
+                    'required' => $required,
+                ]),
             AiFeature::RoleplayTurn,
             'employee',
             $required,

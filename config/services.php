@@ -70,6 +70,11 @@ return [
     'voice_agent' => [
         'key' => env('DEEPGRAM_AGENT_KEY', env('DEEPGRAM_API_KEY')),
         'url' => env('DEEPGRAM_AGENT_URL', 'wss://agent.deepgram.com/v1/agent/converse'),
+        // The fast engine's live transcription (Flux), opened by the browser
+        // with a short-lived grant (spec 0009).
+        'stt_url' => env('DEEPGRAM_STT_URL', 'wss://api.deepgram.com/v2/listen'),
+        // …and its streamed voice for a line not recorded yet.
+        'tts_url' => env('DEEPGRAM_TTS_URL', 'wss://api.deepgram.com/v1/speak'),
         'token_ttl' => (int) env('DEEPGRAM_AGENT_TOKEN_TTL', 60),
     ],
 

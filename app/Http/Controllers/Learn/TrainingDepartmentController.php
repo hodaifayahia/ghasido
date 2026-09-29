@@ -31,11 +31,11 @@ class TrainingDepartmentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (! $user->hasRole(Role::Manager->value) || $user->department_id !== null) {
+        if (! $this->departments->switches($user)) {
             return to_route('learn.home');
         }
 
-        $current = (int) $request->session()->get('training_department_id');
+        $current = (int) $request->session()->get('training_department_id', $user->department_id ?? 0);
 
         return Inertia::render('employee/TrainingDepartment', [
             'departments' => $this->departments->options($user),
@@ -48,7 +48,7 @@ class TrainingDepartmentController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless($user->hasRole(Role::Manager->value) && $user->department_id === null, 403);
+        abort_unless($this->departments->switches($user), 403);
 
         $available = $this->departments->availableFor($user)->pluck('id')->all();
 

@@ -75,6 +75,14 @@ class StoreActivityRequest extends FormRequest
         $data = $this->validated();
         unset($data['block_id']);
 
+        if (($block = $this->block()) !== null) {
+            $lesson = $block->lesson()->with('course')->firstOrFail();
+            // A lesson activity inherits its tenant scope from the lesson;
+            // the browser cannot assign it to a different hotel/department.
+            $data['department_id'] = $lesson->course?->department_id;
+            $data['hotel_id'] = $lesson->hotel_id;
+        }
+
         // The payload is authored content whose per-type item shape must round
         // trip verbatim (DATA-11); validated() would narrow items to their
         // `id` alone, so store the whole validated payload as submitted.

@@ -35,13 +35,17 @@ const speed = ref<'normal' | 'slow'>('normal');
 
 const item = computed(() => props.activity.items[runner.current.value] ?? null);
 const clip = computed(() => {
-    const pair = item.value?.audio_text_audio;
-
-    if (!pair) {
-        return null;
+    if (item.value?.audio?.url) {
+        return item.value.audio.url;
     }
 
-    return speed.value === 'slow' ? pair.slow : pair.normal;
+    const pair = item.value?.audio_text_audio;
+
+    return pair
+        ? speed.value === 'slow'
+            ? pair.slow
+            : pair.normal
+        : (item.value?.audio?.url ?? null);
 });
 
 function letter(index: number): string {
@@ -110,6 +114,15 @@ function onCheck(): void {
                 :rate="speed === 'slow' ? 0.75 : 1"
             />
 
+            <img
+                v-if="item.image"
+                :src="item.image.url"
+                :alt="item.image.alt ?? ''"
+                loading="lazy"
+                decoding="async"
+                class="max-h-64 w-full rounded-xl object-contain"
+            />
+
             <SpeedRow v-model:speed="speed" :meaning-enabled="false" />
 
             <div class="grid gap-4 sm:grid-cols-3">
@@ -139,6 +152,13 @@ function onCheck(): void {
                         loading="lazy"
                         decoding="async"
                         class="h-40 w-full rounded-lg object-cover"
+                    />
+                    <AudioButton
+                        v-if="option.audio"
+                        size="sm"
+                        :src="option.audio.url"
+                        :text="option.label"
+                        class="mx-auto mt-2"
                     />
                     <span class="text-ink mt-3 text-lg font-semibold">
                         {{ option.label }}

@@ -10,6 +10,7 @@ import {
     RotateCcw,
     Search,
     Sparkles,
+    Trash2,
 } from '@lucide/vue';
 import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
@@ -57,6 +58,7 @@ const emit = defineEmits<{
     filter: [values: LessonDirectoryFilterValues];
     page: [page: number];
     pageSize: [size: number];
+    delete: [lesson: LessonDirectoryRow];
 }>();
 
 const { can } = useCan();
@@ -167,6 +169,11 @@ function statusClass(statusValue: LessonDirectoryRow['status']): string {
 
 const iconButton =
     'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45';
+
+// Safe delete: outline only, danger colours. The ::after pad widens the
+// 32px phone button to a 44px tap target (ACC-03).
+const deleteButton =
+    'border-danger/40 text-danger-text hover:bg-danger-tint bg-surface relative inline-flex size-8 shrink-0 items-center justify-center rounded-md border after:absolute after:-inset-1.5 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
 </script>
 
 <template>
@@ -396,14 +403,15 @@ const iconButton =
                 <table
                     class="w-full min-w-[820px] table-fixed border-collapse text-start"
                 >
+                    <!-- The Action column holds Edit + Delete for admins. -->
                     <colgroup>
-                        <col class="w-[25%]" />
-                        <col class="w-[19%]" />
-                        <col class="w-[14%]" />
+                        <col class="w-[24%]" />
+                        <col class="w-[18%]" />
                         <col class="w-[13%]" />
+                        <col class="w-[12%]" />
+                        <col class="w-[8%]" />
                         <col class="w-[10%]" />
-                        <col class="w-[10%]" />
-                        <col class="w-[9%]" />
+                        <col class="w-[15%]" />
                     </colgroup>
                     <thead class="bg-tint-header">
                         <tr
@@ -499,21 +507,43 @@ const iconButton =
                                 </span>
                             </td>
                             <td class="px-2 py-2.5 align-middle">
-                                <Button
-                                    as-child
-                                    type="button"
-                                    variant="outline"
-                                    class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-2.5 text-[11px] font-semibold shadow-none"
-                                >
-                                    <Link :href="lesson.url">
-                                        <component
-                                            :is="manage ? Pencil : Eye"
+                                <div class="flex items-center gap-2">
+                                    <Button
+                                        as-child
+                                        type="button"
+                                        variant="outline"
+                                        class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-2.5 text-[11px] font-semibold shadow-none"
+                                    >
+                                        <Link :href="lesson.url">
+                                            <component
+                                                :is="manage ? Pencil : Eye"
+                                                class="size-3.5"
+                                                aria-hidden="true"
+                                            />
+                                            {{
+                                                manage ? $t('Edit') : $t('View')
+                                            }}
+                                        </Link>
+                                    </Button>
+                                    <button
+                                        v-if="manage"
+                                        type="button"
+                                        :class="deleteButton"
+                                        :aria-label="
+                                            $t('Delete :name', {
+                                                name: lesson.title,
+                                            })
+                                        "
+                                        :title="$t('Delete')"
+                                        :data-test="`delete-lesson-${lesson.id}-button`"
+                                        @click="emit('delete', lesson)"
+                                    >
+                                        <Trash2
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        {{ manage ? $t('Edit') : $t('View') }}
-                                    </Link>
-                                </Button>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="lessons.length === 0">
@@ -592,7 +622,7 @@ const iconButton =
                         </p>
                     </div>
 
-                    <div class="mt-3 flex justify-end">
+                    <div class="mt-3 flex items-center justify-end gap-2">
                         <Link
                             :href="lesson.url"
                             :class="
@@ -609,6 +639,19 @@ const iconButton =
                             />
                             {{ manage ? $t('Edit lesson') : $t('View lesson') }}
                         </Link>
+                        <button
+                            v-if="manage"
+                            type="button"
+                            :class="deleteButton"
+                            :aria-label="
+                                $t('Delete :name', { name: lesson.title })
+                            "
+                            :title="$t('Delete')"
+                            :data-test="`delete-lesson-${lesson.id}-card-button`"
+                            @click="emit('delete', lesson)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                        </button>
                     </div>
                 </li>
                 <li

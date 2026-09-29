@@ -105,7 +105,10 @@ export type LandingPageContent = {
     support: {
         whatsapp_number: string;
         phone: string;
+        /** The business email: public contact and sender of every email. */
         email: string;
+        /** The name next to the business email on outgoing email. */
+        sender_name: string;
     };
     contact: {
         eyebrow: string;
@@ -121,6 +124,18 @@ export type LandingPageContent = {
         enterprise_button: string;
         enterprise_note: string;
     };
+};
+
+/** How outgoing email looks with the saved business email (BusinessEmail). */
+export type LandingMailSetup = {
+    from: string;
+    fromName: string;
+    /** Set when replies go to the business email, not the From address. */
+    replyTo: string | null;
+    sendsAsBusiness: boolean;
+    serverDomain: string;
+    /** False while the server only writes email to its log. */
+    delivering: boolean;
 };
 
 export type LandingContactMessage = {
@@ -152,4 +167,9 @@ export type LandingPlan = {
     priceDzd: number;
     priceUsd: number;
     pointsPool: number;
+};
+
+export type LandingIndividualPricing = {
+    priceDzd: number;
+    priceUsd: number;
 };

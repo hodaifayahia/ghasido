@@ -160,10 +160,16 @@ class HandleInertiaRequests extends Middleware
             // spec 0003 Part E). Null for every non-learner: the learner shell
             // reads it. A manager training as an employee gets it too, once
             // they have chosen a department (client decision 2026-09-23).
-            'journey' => $this->journeyFor($user),
-            // The manager's training department switcher (client decision
-            // 2026-09-23): null unless a manager is on a learner route.
-            'trainingContext' => $this->trainingContextFor($request, $user),
+            //
+            // Both are closures, resolved when the page renders: share() runs
+            // before the route middleware, and ResolveTrainingDepartment only
+            // then sets the department a manager or an individual subscriber
+            // is training in. Computed here, they missed that choice.
+            'journey' => fn (): ?array => $this->journeyFor($user),
+            // The training department switcher (client decision 2026-09-23):
+            // null unless a manager, or an individual subscriber with several
+            // departments, is on a learner route.
+            'trainingContext' => fn (): ?array => $this->trainingContextFor($request, $user),
         ];
     }
 
@@ -200,7 +206,8 @@ class HandleInertiaRequests extends Middleware
      */
     private function trainingContextFor(Request $request, ?User $user): ?array
     {
-        if ($user === null || ! $user->hasRole(Role::Manager->value) || ! $request->routeIs('learn.*')) {
+        // A manager, or an individual subscriber with several departments.
+        if ($user === null || ! $request->routeIs('learn.*') || ! $this->training->switches($user)) {
             return null;
         }
 

@@ -49,6 +49,7 @@ use Illuminate\Support\Facades\Date;
  * @property int $ai_points_charged
  * @property bool $is_preview
  * @property string $channel
+ * @property string|null $voice_engine
  * @property Carbon $started_at
  * @property Carbon|null $ended_at
  * @property Carbon|null $created_at
@@ -77,6 +78,7 @@ use Illuminate\Support\Facades\Date;
     'ai_points_charged',
     'is_preview',
     'channel',
+    'voice_engine',
     'started_at',
     'ended_at',
 ])]
@@ -93,7 +95,7 @@ class RoleplayAttempt extends Model
     /** A chat conversation (typed turns, optional voice notes). */
     public const CHANNEL_TEXT = 'text';
 
-    /** A live Deepgram Voice Agent call (spec 0004). */
+    /** A live spoken call (spec 0004; engines in spec 0009). */
     public const CHANNEL_VOICE_CALL = 'voice_call';
 
     /**

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ArrowRight, Check, Filter, RotateCcw, Search } from '@lucide/vue';
+import {
+    ArrowRight,
+    Check,
+    Filter,
+    RotateCcw,
+    Search,
+    Trash2,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
@@ -11,6 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { TestListItem, TestsList, TestsSelectOption } from '@/types';
@@ -24,7 +32,21 @@ const { t } = useI18n();
 const emit = defineEmits<{
     open: [id: string];
     create: [];
+    delete: [item: TestListItem];
 }>();
+
+const { can } = useCan();
+const manage = can('tests.manage');
+
+/** Only stored tests (numeric ids) can be deleted. */
+function canDelete(item: TestListItem): boolean {
+    return manage && /^\d+$/.test(item.id);
+}
+
+// Safe delete: outline only, danger colours. The ::after pad widens the
+// 36px phone button to a 44px tap target (ACC-03).
+const deleteButton =
+    'border-danger/40 text-danger-text hover:bg-danger-tint bg-surface relative inline-flex shrink-0 items-center justify-center rounded-md border after:absolute after:-inset-1 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
 
 const search = ref(props.list.search);
 const hotel = ref(props.list.hotel);
@@ -292,18 +314,38 @@ function statusClass(item: TestListItem): string {
                             </span>
                         </td>
                         <td class="px-5 py-3 text-end">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
-                                @click="emit('open', item.id)"
-                            >
-                                {{ $t('Open') }}
-                                <ArrowRight
-                                    class="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
+                            <div class="flex items-center justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    class="text-brand-700 hover:bg-brand-100/60 h-8 gap-1 px-2 text-xs"
+                                    @click="emit('open', item.id)"
+                                >
+                                    {{ $t('Open') }}
+                                    <ArrowRight
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                                <button
+                                    v-if="canDelete(item)"
+                                    type="button"
+                                    :class="cn(deleteButton, 'size-8')"
+                                    :aria-label="
+                                        $t('Delete :name', {
+                                            name: item.title,
+                                        })
+                                    "
+                                    :title="$t('Delete')"
+                                    :data-test="`delete-test-${item.id}-button`"
+                                    @click="emit('delete', item)"
+                                >
+                                    <Trash2
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -311,67 +353,83 @@ function statusClass(item: TestListItem): string {
         </div>
 
         <div v-if="filteredItems.length" class="divide-line divide-y md:hidden">
-            <button
+            <!-- Delete sits beside the row button, never inside it. -->
+            <div
                 v-for="item in filteredItems"
                 :key="item.id"
-                type="button"
-                class="hover:bg-brand-50/40 flex w-full items-center gap-3 px-4 py-3 text-start transition-colors"
-                @click="emit('open', item.id)"
+                class="hover:bg-brand-50/40 flex items-center transition-colors"
             >
-                <span
-                    class="border-line bg-brand-50 block size-11 shrink-0 overflow-hidden rounded-md border"
-                    :style="{
-                        backgroundImage: `url('/decor/tests-mockup.jpg')`,
-                        backgroundPosition: `-${item.crop.x}px -${item.crop.y}px`,
-                        backgroundSize: '1280px 853px',
-                    }"
-                    aria-hidden="true"
-                />
-                <span class="min-w-0 flex-1">
+                <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-start"
+                    @click="emit('open', item.id)"
+                >
                     <span
-                        class="text-brand-900 block truncate text-[13px] font-semibold"
-                    >
-                        {{ item.title }}
-                    </span>
-                    <span class="text-ink-muted mt-0.5 block text-[11px]">
-                        {{ item.department }} ·
-                        {{
-                            $tc(
-                                ':count question|:count questions',
-                                item.questionCount,
-                            )
-                        }}
-                    </span>
-                    <span class="mt-1 flex items-center gap-1.5">
+                        class="border-line bg-brand-50 block size-11 shrink-0 overflow-hidden rounded-md border"
+                        :style="{
+                            backgroundImage: `url('/decor/tests-mockup.jpg')`,
+                            backgroundPosition: `-${item.crop.x}px -${item.crop.y}px`,
+                            backgroundSize: '1280px 853px',
+                        }"
+                        aria-hidden="true"
+                    />
+                    <span class="min-w-0 flex-1">
                         <span
-                            :class="
-                                cn(
-                                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-                                    item.type === 'pre'
-                                        ? 'bg-azure/25 text-brand-700'
-                                        : 'bg-aqua-tint text-aqua',
-                                )
-                            "
+                            class="text-brand-900 block truncate text-[13px] font-semibold"
                         >
-                            {{ typeLabel(item) }}
+                            {{ item.title }}
                         </span>
-                        <span
-                            :class="
-                                cn(
-                                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize',
-                                    statusClass(item),
+                        <span class="text-ink-muted mt-0.5 block text-[11px]">
+                            {{ item.department }} ·
+                            {{
+                                $tc(
+                                    ':count question|:count questions',
+                                    item.questionCount,
                                 )
-                            "
-                        >
-                            {{ statusLabel(item) }}
+                            }}
+                        </span>
+                        <span class="mt-1 flex items-center gap-1.5">
+                            <span
+                                :class="
+                                    cn(
+                                        'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                                        item.type === 'pre'
+                                            ? 'bg-azure/25 text-brand-700'
+                                            : 'bg-aqua-tint text-aqua',
+                                    )
+                                "
+                            >
+                                {{ typeLabel(item) }}
+                            </span>
+                            <span
+                                :class="
+                                    cn(
+                                        'rounded-full px-1.5 py-0.5 text-[10px] font-semibold capitalize',
+                                        statusClass(item),
+                                    )
+                                "
+                            >
+                                {{ statusLabel(item) }}
+                            </span>
                         </span>
                     </span>
-                </span>
-                <ArrowRight
-                    class="text-brand-700 size-4 shrink-0"
-                    aria-hidden="true"
-                />
-            </button>
+                    <ArrowRight
+                        class="text-brand-700 size-4 shrink-0"
+                        aria-hidden="true"
+                    />
+                </button>
+                <button
+                    v-if="canDelete(item)"
+                    type="button"
+                    :class="cn(deleteButton, 'me-4 size-9')"
+                    :aria-label="$t('Delete :name', { name: item.title })"
+                    :title="$t('Delete')"
+                    :data-test="`delete-test-${item.id}-card-button`"
+                    @click="emit('delete', item)"
+                >
+                    <Trash2 class="size-4" aria-hidden="true" />
+                </button>
+            </div>
         </div>
 
         <div v-else class="px-5 py-12 text-center">

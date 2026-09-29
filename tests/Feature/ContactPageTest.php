@@ -66,7 +66,17 @@ class ContactPageTest extends TestCase
     {
         $this->from(route('contact'))
             ->post(route('contact.store'), ['name' => '', 'email' => 'nope', 'message' => 'short'])
-            ->assertSessionHasErrors(['name', 'email', 'message']);
+            ->assertSessionHasErrors(['name', 'email', 'phone', 'message']);
+
+        // The phone number is required, and must look like one.
+        $this->from(route('contact'))
+            ->post(route('contact.store'), [
+                'name' => 'Amina',
+                'email' => 'amina@example.com',
+                'phone' => 'call me',
+                'message' => 'We would like a quote for our team.',
+            ])
+            ->assertSessionHasErrors(['phone']);
 
         $this->from(route('contact'))
             ->post(route('contact.store'), [

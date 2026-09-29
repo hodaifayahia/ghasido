@@ -43,6 +43,7 @@ function onImage(item: LessonMediaRef | null): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            translatable
             v-model="body"
             :label="block.type === 'note' ? $t('Note') : $t('Text')"
             type="textarea"

@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\AnswersVoiceReplies;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VoiceAgent\VoiceCallTurnRequest;
+use App\Http\Requests\VoiceAgent\VoiceReplyRequest;
 use App\Models\AiScenario;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\VoiceAgent\VoiceAgentSessionFactory;
 use App\Services\VoiceAgent\VoiceCallService;
+use App\Services\VoiceAgent\VoiceReplyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +28,8 @@ use RuntimeException;
  */
 class AiScenarioVoiceCallController extends Controller
 {
+    use AnswersVoiceReplies;
+
     public function __construct(
         private readonly VoiceCallService $calls,
         private readonly VoiceAgentSessionFactory $sessions,
@@ -47,9 +52,17 @@ class AiScenarioVoiceCallController extends Controller
         return response()->json([
             'attemptId' => $attempt->id,
             'turnUrl' => route('ai-scenarios.voice-preview.turn', ['attempt' => $attempt->id]),
+            'replyUrl' => route('ai-scenarios.voice-preview.reply', ['attempt' => $attempt->id]),
             'endUrl' => route('ai-scenarios.voice-preview.end', ['attempt' => $attempt->id]),
             'session' => $session,
         ]);
+    }
+
+    public function reply(VoiceReplyRequest $request, RoleplayAttempt $attempt, VoiceReplyService $replies): JsonResponse
+    {
+        $this->assertOwnedPreview($request, $attempt);
+
+        return $this->answerVoiceReply($attempt, $request, $replies);
     }
 
     public function turn(VoiceCallTurnRequest $request, RoleplayAttempt $attempt): JsonResponse

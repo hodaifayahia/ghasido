@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import DepartmentFormDialog from '@/components/departments/DepartmentFormDialog.vue';
 import DepartmentsDirectoryPanel from '@/components/departments/DepartmentsDirectoryPanel.vue';
 import type { DepartmentFilterValues } from '@/components/departments/DepartmentsDirectoryPanel.vue';
@@ -10,13 +11,14 @@ import DepartmentsStatsRow from '@/components/departments/DepartmentsStatsRow.vu
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
+import { useI18n } from '@/composables/useI18n';
 import {
     dashboard,
     departments as departmentsRoute,
     hotels as hotelsRoute,
     lessonsContent,
 } from '@/routes';
-import { toggle } from '@/routes/departments';
+import { destroy, toggle } from '@/routes/departments';
 import type {
     DepartmentFilters,
     DepartmentMetric,
@@ -55,6 +57,7 @@ defineOptions({
 });
 
 const { can } = useCan();
+const { t } = useI18n();
 const canManage = can('departments.manage');
 
 // ------------------------------------------------------------ navigation
@@ -156,6 +159,14 @@ function openContent(department: DepartmentRecord): void {
 
 const formOpen = ref(false);
 const formDepartment = ref<DepartmentRecord | null>(null);
+const deleteOpen = ref(false);
+const deleteDepartment = ref<DepartmentRecord | null>(null);
+
+const deleteUrl = computed(() =>
+    deleteDepartment.value === null
+        ? null
+        : destroy.url(deleteDepartment.value.id),
+);
 
 function openCreate(): void {
     formDepartment.value = null;
@@ -201,6 +212,10 @@ function onAction(
         case 'archive':
         case 'restore':
             postToggle(department);
+            return;
+        case 'delete':
+            deleteDepartment.value = department;
+            deleteOpen.value = true;
     }
 }
 
@@ -267,5 +282,12 @@ function onQuick(action: DepartmentQuickAction): void {
         v-model:open="formOpen"
         :department="formDepartment"
         :hotel-options="hotelOptions"
+    />
+    <DeleteRowDialog
+        v-if="canManage"
+        v-model:open="deleteOpen"
+        :url="deleteUrl"
+        :name="deleteDepartment?.name ?? ''"
+        :kind="t('department')"
     />
 </template>

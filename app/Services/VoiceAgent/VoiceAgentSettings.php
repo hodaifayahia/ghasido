@@ -5,7 +5,9 @@ namespace App\Services\VoiceAgent;
 use App\Models\AiScenario;
 use App\Models\User;
 use App\Models\VoiceAgentSetting;
+use App\Services\Ai\AiModelSettings;
 use App\Services\Owner\ApiKeyring;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 /**
@@ -17,8 +19,12 @@ use Illuminate\Validation\Rule;
  * SEC-03).
  *
  * @phpstan-type VoiceAgentValues array{
+ *     engine: string,
+ *     reuseStoredLines: bool,
  *     listenModel: string,
  *     eotThreshold: float,
+ *     eagerEotThreshold: float,
+ *     eotTimeoutMs: int,
  *     keyterms: list<string>,
  *     language: string,
  *     speakProvider: string,
@@ -39,6 +45,24 @@ use Illuminate\Validation\Rule;
  */
 final class VoiceAgentSettings
 {
+    /**
+     * `pipeline` = the fast engine (spec 0009): the browser streams the
+     * employee to Deepgram Flux, our server writes the guest's line with
+     * Qwen and plays it from the stored-voice bank or voices it once.
+     * `agent` = the Deepgram Voice Agent, which listens, thinks and speaks
+     * on Deepgram's side (spec 0004).
+     */
+    public const ENGINES = ['pipeline', 'agent'];
+
+    /**
+     * Set for a while when Qwen answers "quota exhausted": new calls then
+     * run on the voice agent with Deepgram's own model instead of failing
+     * on every turn (spec 0009).
+     */
+    public const QWEN_QUOTA_FLAG = 'voice:qwen-quota-exhausted';
+
+    public const QWEN_QUOTA_MINUTES = 15;
+
     /** Deepgram Aura-2 English voices offered in the picker. */
     public const AURA_VOICES = ['thalia', 'andromeda', 'helena', 'apollo', 'arcas', 'aries', 'asteria', 'luna', 'orion', 'zeus'];
 
@@ -57,15 +81,27 @@ final class VoiceAgentSettings
 
     /** @var VoiceAgentValues */
     public const DEFAULTS = [
+        'engine' => 'pipeline',
+        'reuseStoredLines' => true,
         'listenModel' => 'flux-general-en',
         // Patient turn-taking: learners with low English pause mid-sentence; at 0.7
         // the live probe cut the employee off after "Good evening." (2026-09-23).
-        'eotThreshold' => 0.85,
+        'eotThreshold' => 0.8,
+        // The reply is prepared while the employee is finishing: Flux raises
+        // an early end-of-turn at this confidence and the guest's line is
+        // ready when the turn is confirmed (spec 0009).
+        'eagerEotThreshold' => 0.5,
+        // The longest silence before the guest answers. Deepgram's default
+        // is 5000 ms, so a hesitant learner who never sounded "finished"
+        // waited five seconds for every reply (spec 0009).
+        'eotTimeoutMs' => 2000,
         'keyterms' => [],
         'language' => 'en',
         'speakProvider' => 'deepgram',
         'speakModel' => 'aura-2-thalia-en',
-        'elevenModelId' => 'eleven_multilingual_v2',
+        // Flash is ElevenLabs' real-time model; multilingual v2 adds about a
+        // second to every reply (spec 0009).
+        'elevenModelId' => 'eleven_flash_v2_5',
         'elevenVoiceId' => 'cgSgspJ2msm6clMCkdW9',
         'thinkMode' => 'managed',
         'thinkProvider' => 'open_ai',
@@ -74,7 +110,9 @@ final class VoiceAgentSettings
         'greeting' => 'Hello! How may I help you?',
         'prompt' => '',
         'maxCallSeconds' => 300,
-        'inputSampleRate' => 48000,
+        // Flux's native rate: a third of the upload of 48 kHz, which on a
+        // phone connection is audio that arrives late (spec 0009).
+        'inputSampleRate' => 16000,
         'outputSampleRate' => 24000,
     ];
 
@@ -122,7 +160,61 @@ final class VoiceAgentSettings
             $values['thinkMode'] = 'managed';
         }
 
+        // The fast engine writes the guest's lines with our own text model;
+        // without one the call still works on the voice agent.
+        if ($values['engine'] === 'pipeline' && ! $this->pipelineAvailable()) {
+            $values['engine'] = 'agent';
+        }
+
         return $values;
+    }
+
+    /**
+     * `$now` also counts a Qwen quota outage, which moves calls to the voice
+     * agent for a while; the admin may still choose the engine meanwhile.
+     */
+    public function pipelineAvailable(bool $now = true): bool
+    {
+        return $this->pipelineReason($now) === null;
+    }
+
+    /**
+     * Why the fast engine cannot run, or null when it can (spec 0009).
+     */
+    public function pipelineReason(bool $now = true): ?string
+    {
+        $env = config('services.ai.provider');
+        $provider = app(AiModelSettings::class)->provider('ai', is_string($env) && trim($env) !== '' ? trim($env) : 'fake');
+
+        if ($provider === 'fake') {
+            return null;
+        }
+
+        if (! in_array($provider, ['qwen', 'openai'], true)) {
+            return __('The fast engine needs an OpenAI-compatible text model such as Qwen; the AI provider is :provider.', ['provider' => $provider]);
+        }
+
+        if (trim(app(ApiKeyring::class)->key('services.ai.key')) === '') {
+            return __('Qwen is not configured on the server (AI_KEY is empty).');
+        }
+
+        return $now ? $this->qwenQuotaReason() : null;
+    }
+
+    /**
+     * Remember that Qwen said its quota is spent (VoiceReplyService, the
+     * Qwen proxy), so the next calls use the voice agent.
+     */
+    public static function markQwenQuotaExhausted(): void
+    {
+        Cache::put(self::QWEN_QUOTA_FLAG, true, now()->addMinutes(self::QWEN_QUOTA_MINUTES));
+    }
+
+    private function qwenQuotaReason(): ?string
+    {
+        return Cache::get(self::QWEN_QUOTA_FLAG) === true
+            ? (string) __('Qwen has run out of quota, so calls use the Deepgram voice agent until it is topped up.')
+            : null;
     }
 
     /**
@@ -175,8 +267,12 @@ final class VoiceAgentSettings
     public function rules(): array
     {
         return [
+            'engine' => ['required', 'string', Rule::in(self::ENGINES)],
+            'reuseStoredLines' => ['required', 'boolean'],
             'listenModel' => ['required', 'string', Rule::in(array_keys(self::LISTEN_MODELS))],
             'eotThreshold' => ['required', 'numeric', 'min:0.5', 'max:0.9'],
+            'eagerEotThreshold' => ['required', 'numeric', 'min:0.3', 'max:0.9', 'lte:eotThreshold'],
+            'eotTimeoutMs' => ['required', 'integer', 'min:500', 'max:5000'],
             'keyterms' => ['present', 'array', 'max:50'],
             'keyterms.*' => ['string', 'max:60'],
             'language' => ['required', 'string', Rule::in(['en'])],
@@ -200,12 +296,12 @@ final class VoiceAgentSettings
      * Qwen as the agent's brain goes through our own OpenAI-compatible proxy,
      * which Deepgram must reach over public HTTPS (spec 0004 NOTES).
      */
-    public function qwenProxyAvailable(): bool
+    public function qwenProxyAvailable(bool $now = true): bool
     {
-        return $this->qwenProxyReason() === null;
+        return $this->qwenProxyReason($now) === null;
     }
 
-    public function qwenProxyReason(): ?string
+    public function qwenProxyReason(bool $now = true): ?string
     {
         $appUrl = (string) config('app.url', '');
 
@@ -219,7 +315,7 @@ final class VoiceAgentSettings
             return __('Qwen is not configured on the server (AI_KEY is empty).');
         }
 
-        return null;
+        return $now ? $this->qwenQuotaReason() : null;
     }
 
     public function apiConfigured(): bool
@@ -240,10 +336,16 @@ final class VoiceAgentSettings
             'values' => $this->current(),
             'defaults' => self::DEFAULTS,
             'apiConfigured' => $this->apiConfigured(),
-            'qwenProxyAvailable' => $this->qwenProxyAvailable(),
+            // Available = configured: the admin may choose an engine during
+            // a quota outage; the reason still explains the fallback.
+            'qwenProxyAvailable' => $this->qwenProxyAvailable(false),
             'qwenProxyReason' => $this->qwenProxyReason(),
             'qwenModel' => is_string($qwenModel) ? $qwenModel : null,
+            'pipelineAvailable' => $this->pipelineAvailable(false),
+            'pipelineReason' => $this->pipelineReason(),
+            'bank' => app(VoiceLineBank::class)->stats(),
             'options' => [
+                'engines' => self::ENGINES,
                 'listenModels' => array_keys(self::LISTEN_MODELS),
                 'speakProviders' => self::SPEAK_PROVIDERS,
                 'voices' => array_map(static fn (string $voice): array => [
@@ -293,9 +395,20 @@ final class VoiceAgentSettings
             ? max(60, min(1800, (int) $raw['maxCallSeconds']))
             : $d['maxCallSeconds'];
 
+        $eot = $number('eotThreshold', $d['eotThreshold'], 0.5, 0.9);
+        $timeout = is_numeric($raw['eotTimeoutMs'] ?? null)
+            ? max(500, min(5000, (int) $raw['eotTimeoutMs']))
+            : $d['eotTimeoutMs'];
+        $reuse = $raw['reuseStoredLines'] ?? $d['reuseStoredLines'];
+
         return [
+            'engine' => $string('engine', $d['engine'], self::ENGINES),
+            'reuseStoredLines' => is_bool($reuse) ? $reuse : filter_var($reuse, FILTER_VALIDATE_BOOLEAN),
             'listenModel' => $string('listenModel', $d['listenModel'], array_keys(self::LISTEN_MODELS)),
-            'eotThreshold' => $number('eotThreshold', $d['eotThreshold'], 0.5, 0.9),
+            'eotThreshold' => $eot,
+            // Deepgram refuses an eager threshold above the final one.
+            'eagerEotThreshold' => min($eot, $number('eagerEotThreshold', $d['eagerEotThreshold'], 0.3, 0.9)),
+            'eotTimeoutMs' => $timeout,
             'keyterms' => array_slice($keyterms, 0, 50),
             'language' => 'en',
             'speakProvider' => $string('speakProvider', $d['speakProvider'], self::SPEAK_PROVIDERS),

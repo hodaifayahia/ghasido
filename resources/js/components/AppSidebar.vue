@@ -12,11 +12,14 @@ import {
     ClipboardCheck,
     GraduationCap,
     Globe,
+    Inbox,
     LogOut,
     Settings,
     ShieldCheck,
     Star,
     User,
+    UserRoundCheck,
+    X,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -41,10 +44,12 @@ import { cn } from '@/lib/utils';
 import {
     aiScenarios,
     aiPoints as aiPointsRoute,
+    contactMessages,
     dashboard,
     departments,
     employees,
     hotels,
+    individuals,
     lessonsContent,
     messagesReminders,
     reportsExport,
@@ -125,6 +130,15 @@ const mainNavItems: SidebarNavItem[] = [
         title: tk('Subscriptions'),
         href: subscriptions(),
         icon: CreditCard,
+        permission: 'subscriptions.manage',
+    },
+    {
+        // Learners with no hotel, each on their own configuration (user
+        // request 2026-09-25). Same capability as Subscriptions.
+        title: tk('Individuals'),
+        href: individuals(),
+        icon: UserRoundCheck,
+        iconClass: outline,
         permission: 'subscriptions.manage',
     },
     {
@@ -250,6 +264,16 @@ const mainNavItems: SidebarNavItem[] = [
         // ROLE-01, SEC-01); the route also enforces this permission server-side.
         roles: ['super_admin'],
     },
+    {
+        // Everyone who wrote from the Contact Us page (user request
+        // 2026-09-26). Same capability as Website Management, checked again
+        // on the server.
+        title: tk('Contact Requests'),
+        href: contactMessages(),
+        icon: Inbox,
+        iconClass: outline,
+        permission: 'landing.manage',
+    },
 ];
 
 const accountNavItems: SidebarNavItem[] = [
@@ -304,7 +328,12 @@ function closeMobileSidebar(): void {
         class="group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0"
     >
         <SidebarHeader
-            class="h-topbar bg-sidebar shrink-0 flex-row items-start p-0 ps-8 pt-[11px] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:ps-0 group-data-[collapsible=icon]:pt-0"
+            :class="
+                cn(
+                    'h-topbar bg-sidebar shrink-0 flex-row items-start p-0 ps-8 pt-[11px] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:ps-0 group-data-[collapsible=icon]:pt-0',
+                    isMobile && 'ps-4',
+                )
+            "
         >
             <Link
                 :href="homeHref"
@@ -317,6 +346,16 @@ function closeMobileSidebar(): void {
                     class="hidden size-10 group-data-[collapsible=icon]:block"
                 />
             </Link>
+            <button
+                v-if="isMobile"
+                type="button"
+                class="text-brand-800 hover:bg-brand-50 focus-visible:ring-brand-600/40 ms-auto me-2 mt-[3px] grid size-11 shrink-0 place-items-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                :aria-label="$t('Close menu')"
+                data-test="sidebar-close"
+                @click="setOpenMobile(false)"
+            >
+                <X class="size-5" aria-hidden="true" />
+            </button>
         </SidebarHeader>
 
         <!-- Vertical rhythm is the mockup's at its 853px height (25px top gap,

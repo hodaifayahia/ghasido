@@ -36,8 +36,14 @@
         <link rel="icon" href="/favicon-32x32.png?v=ghasido-20260925" type="image/png" sizes="32x32">
         <link rel="icon" href="/favicon-192x192.png?v=ghasido-20260925" type="image/png" sizes="192x192">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=ghasido-20260925">
+
+        {{-- Installable app (PWA): public/manifest.webmanifest + public/sw.js --}}
         <link rel="manifest" href="/manifest.webmanifest">
-        <meta name="theme-color" content="#0b5cff">
+        <meta name="theme-color" content="#ffffff">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="GHASIDO">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
         @fonts
 

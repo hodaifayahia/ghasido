@@ -8,8 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Subscriptions\UpdateSubscriptionPlanRequest;
 use App\Models\AuditLog;
 use App\Models\Hotel;
+use App\Models\SubscriptionCatalogSetting;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Services\Subscriptions\HotelAiPointTopUpService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +30,7 @@ final class SubscriptionsController extends Controller
         Gate::authorize(Permission::SubscriptionsManage->value);
 
         $plans = SubscriptionPlan::query()->orderBy('employee_limit')->orderBy('id')->get();
+        $individualPricing = SubscriptionCatalogSetting::query()->findOrFail(1);
         $hotels = Hotel::query()
             ->notArchived()
             ->with('subscriptionPlan')
@@ -36,6 +39,12 @@ final class SubscriptionsController extends Controller
             ->get();
 
         return Inertia::render('admin/Subscriptions', [
+            // Learners with no hotel, managed on their own page (Individuals).
+            'individualCount' => User::query()->whereNull('hotel_id')->whereHas('individualSubscription')->count(),
+            'individualPricing' => [
+                'priceDzd' => $individualPricing->individual_price_dzd,
+                'priceUsd' => $individualPricing->individual_price_usd,
+            ],
             'plans' => $plans->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
                 'name' => $plan->name,
@@ -94,6 +103,36 @@ final class SubscriptionsController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => __(':plan plan settings were saved.', ['plan' => $plan->name]),
+        ]);
+
+        return back();
+    }
+
+    /** Save the public, per-person individual subscription prices. */
+    public function updateIndividualPricing(Request $request): RedirectResponse
+    {
+        Gate::authorize(Permission::SubscriptionsManage->value);
+
+        $data = $request->validate([
+            'individual_price_dzd' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'individual_price_usd' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
+        ]);
+
+        $settings = SubscriptionCatalogSetting::query()->findOrFail(1);
+        $settings->fill([
+            'individual_price_dzd' => (int) $data['individual_price_dzd'],
+            'individual_price_usd' => round((float) $data['individual_price_usd'], 2),
+            'updated_by' => $request->user('web')?->id,
+        ]);
+
+        DB::transaction(function () use ($settings): void {
+            AuditLog::record($settings, 'subscription.individual_pricing_updated');
+            $settings->save();
+        });
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Individual subscription prices were saved.'),
         ]);
 
         return back();

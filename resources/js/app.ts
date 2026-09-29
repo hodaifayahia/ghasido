@@ -9,6 +9,7 @@ import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { initializeI18n, installI18n } from '@/lib/i18n';
+import { initializePagePrefetch } from '@/lib/pagePrefetch';
 
 const appName = import.meta.env.VITE_APP_NAME || 'GHASIDO';
 
@@ -58,5 +59,8 @@ initializeTheme();
 // This will listen for flash toast data from the server...
 initializeFlashToast();
 
-// Install as an app from the landing page (public/manifest.webmanifest).
+// Hovered sidebar pages load their code early; writes drop stale prefetches.
+initializePagePrefetch();
+
+// Installable app: service worker + the "Download the app" install prompt.
 initializePwa();

@@ -94,8 +94,12 @@ class VoiceAgentAdminTest extends TestCase
         config()->set('app.url', 'http://localhost');
 
         $values = [
+            'engine' => 'agent',
+            'reuseStoredLines' => true,
             'listenModel' => 'flux-general-en',
             'eotThreshold' => 0.8,
+            'eagerEotThreshold' => 0.5,
+            'eotTimeoutMs' => 1500,
             'keyterms' => ['check-in', 'passport'],
             'language' => 'en',
             'speakProvider' => 'eleven_labs',
@@ -122,6 +126,14 @@ class VoiceAgentAdminTest extends TestCase
         $this->assertSame('eleven_labs', $stored['speakProvider']);
         $this->assertSame(['check-in', 'passport'], $stored['keyterms']);
         $this->assertSame(240, $stored['maxCallSeconds']);
+        $this->assertSame('agent', $stored['engine']);
+        $this->assertSame(1500, $stored['eotTimeoutMs']);
+
+        // An early threshold above the final one is refused (Deepgram
+        // rejects it too).
+        $this->actingAs($this->owner)
+            ->patch(route('ai-scenarios.voice-agent.update'), ['eagerEotThreshold' => 0.9] + $values)
+            ->assertSessionHasErrors('eagerEotThreshold');
 
         // Qwen through the proxy needs a public HTTPS APP_URL.
         $this->actingAs($this->owner)

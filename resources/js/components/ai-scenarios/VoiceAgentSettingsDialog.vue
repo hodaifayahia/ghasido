@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { AudioLines, Brain, Ear, Info, Settings2 } from '@lucide/vue';
+import {
+    Archive,
+    AudioLines,
+    Brain,
+    Ear,
+    Info,
+    Settings2,
+    Zap,
+} from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
@@ -22,8 +30,9 @@ import type {
 
 /*
  * Every live voice-call control the Super Admin can change (RP-03, RP-04,
- * API-04, ADM-02; spec 0004): how the agent listens, which voice speaks,
- * which model thinks, the greeting and extra prompt, and the call limits.
+ * API-04, ADM-02; specs 0004, 0009): the engine and its stored-voice bank,
+ * how the guest listens and when it answers, which voice speaks, which
+ * model thinks, the greeting and extra prompt, and the call limits.
  * With a scenario open, its own voice and greeting can override the global
  * ones. No key is ever shown or accepted here (API-02, SEC-03).
  */
@@ -58,6 +67,14 @@ function reset(): void {
 watch(open, (value) => {
     if (value) reset();
 });
+
+// Deepgram refuses an early threshold above the final one.
+watch(
+    () => form.eotThreshold,
+    (value) => {
+        if (form.eagerEotThreshold > value) form.eagerEotThreshold = value;
+    },
+);
 
 const thinkLabels: Record<string, string> = {
     open_ai: tk('OpenAI (billed by Deepgram)'),
@@ -146,6 +163,105 @@ function saveScenario(): void {
                 }}
             </p>
 
+            <!-- Engine -->
+            <fieldset class="border-line grid gap-3 rounded-lg border p-4">
+                <legend
+                    class="text-brand-900 flex items-center gap-2 px-1 text-sm font-semibold"
+                >
+                    <Zap class="text-brand-600 size-4" aria-hidden="true" />
+                    {{ $t('Engine') }}
+                </legend>
+                <div class="grid gap-1.5">
+                    <Label :class="labelClass">{{
+                        $t('How the call runs')
+                    }}</Label>
+                    <Select v-model="form.engine">
+                        <SelectTrigger
+                            :class="fieldClass"
+                            data-test="voice-engine-select"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem
+                                value="pipeline"
+                                :disabled="!settings.pipelineAvailable"
+                            >
+                                {{ $t('Fast engine with stored voices') }}
+                            </SelectItem>
+                            <SelectItem value="agent">
+                                {{ $t('Deepgram voice agent') }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <p class="text-ink-slate text-[11.5px]">
+                        {{
+                            form.engine === 'pipeline'
+                                ? $t(
+                                      'The guest answers with Qwen on the GHASIDO server. Every line it says is recorded once and kept, and the AI replays a recorded line when it fits: instant, and no new speech is paid for.',
+                                  )
+                                : $t(
+                                      'Deepgram listens, thinks and speaks on its side. Billed per connected minute; nothing is stored for reuse.',
+                                  )
+                        }}
+                    </p>
+                    <p
+                        v-if="settings.pipelineReason"
+                        class="text-ink-slate text-[11.5px]"
+                    >
+                        {{
+                            $t('The fast engine is unavailable: :reason', {
+                                reason: settings.pipelineReason ?? '',
+                            })
+                        }}
+                    </p>
+                </div>
+                <label
+                    v-if="form.engine === 'pipeline'"
+                    class="text-ink flex min-h-11 items-start gap-2.5 text-sm"
+                >
+                    <input
+                        v-model="form.reuseStoredLines"
+                        type="checkbox"
+                        class="accent-brand-600 mt-0.5 size-4 shrink-0"
+                        data-test="voice-reuse-lines-checkbox"
+                    />
+                    <span>
+                        {{ $t('Let the AI reuse recorded guest lines') }}
+                        <span class="text-ink-slate block text-[11.5px]">
+                            {{
+                                $t(
+                                    'Off: every line is written and voiced new, and still recorded for later.',
+                                )
+                            }}
+                        </span>
+                    </span>
+                </label>
+                <p
+                    v-if="settings.bank.lines > 0"
+                    class="bg-brand-50 text-brand-900 flex gap-2 rounded-md p-3 text-xs leading-5"
+                    data-test="voice-bank-stats"
+                >
+                    <Archive
+                        class="text-brand-600 mt-0.5 size-4 shrink-0"
+                        aria-hidden="true"
+                    />
+                    {{
+                        $t(
+                            ':lines guest lines recorded (:reusable reusable). Reused :reuses times, about :characters speech characters not paid for again.',
+                            {
+                                lines: settings.bank.lines.toLocaleString(),
+                                reusable:
+                                    settings.bank.reusable.toLocaleString(),
+                                reuses: settings.bank.reuses.toLocaleString(),
+                                characters:
+                                    settings.bank.charactersSaved.toLocaleString(),
+                            },
+                        )
+                    }}
+                </p>
+            </fieldset>
+
             <!-- Listening -->
             <fieldset class="border-line grid gap-3 rounded-lg border p-4">
                 <legend
@@ -195,6 +311,56 @@ function saveScenario(): void {
                         />
                     </div>
                 </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="grid gap-1.5">
+                        <Label for="va-eager" :class="labelClass">
+                            {{
+                                $t('Early reply confidence (:value)', {
+                                    value: form.eagerEotThreshold,
+                                })
+                            }}
+                        </Label>
+                        <input
+                            id="va-eager"
+                            v-model.number="form.eagerEotThreshold"
+                            type="range"
+                            min="0.3"
+                            :max="form.eotThreshold"
+                            step="0.05"
+                            class="accent-brand-600 h-11 w-full"
+                        />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="va-timeout" :class="labelClass">
+                            {{
+                                $t(
+                                    'Longest pause before the guest answers (:value s)',
+                                    {
+                                        value: (
+                                            form.eotTimeoutMs / 1000
+                                        ).toFixed(2),
+                                    },
+                                )
+                            }}
+                        </Label>
+                        <input
+                            id="va-timeout"
+                            v-model.number="form.eotTimeoutMs"
+                            type="range"
+                            min="500"
+                            max="5000"
+                            step="250"
+                            class="accent-brand-600 h-11 w-full"
+                        />
+                    </div>
+                </div>
+                <p class="text-ink-slate -mt-1 text-[11.5px]">
+                    {{
+                        $t(
+                            'The guest prepares its answer at the early confidence and speaks once you have finished. A shorter pause answers faster but may cut in on a slow speaker.',
+                        )
+                    }}
+                </p>
                 <div class="grid gap-1.5">
                     <Label for="va-keyterms" :class="labelClass">
                         {{ $t('Key terms (comma separated)') }}
@@ -246,7 +412,10 @@ function saveScenario(): void {
                         </Select>
                     </div>
                     <div
-                        v-if="form.speakProvider === 'deepgram'"
+                        v-if="
+                            form.speakProvider === 'deepgram' ||
+                            form.engine === 'pipeline'
+                        "
                         class="grid gap-1.5"
                     >
                         <Label :class="labelClass">{{ $t('Voice') }}</Label>
@@ -294,6 +463,19 @@ function saveScenario(): void {
                         />
                     </div>
                 </div>
+                <p
+                    v-if="
+                        form.engine === 'pipeline' &&
+                        form.speakProvider === 'eleven_labs'
+                    "
+                    class="text-ink-slate text-[11.5px]"
+                >
+                    {{
+                        $t(
+                            'The fast engine records every line in the Aura-2 voice; ElevenLabs is used by the voice agent only.',
+                        )
+                    }}
+                </p>
             </fieldset>
 
             <!-- Brain -->
@@ -304,7 +486,20 @@ function saveScenario(): void {
                     <Brain class="text-brand-600 size-4" aria-hidden="true" />
                     {{ $t('Guest brain') }}
                 </legend>
-                <div class="grid gap-1.5">
+                <p
+                    v-if="form.engine === 'pipeline'"
+                    class="text-ink-slate text-[11.5px]"
+                >
+                    {{
+                        $t(
+                            "The fast engine writes the guest's lines with :model on the GHASIDO server (Settings → AI models).",
+                            {
+                                model: settings.qwenModel ?? $t('server model'),
+                            },
+                        )
+                    }}
+                </p>
+                <div v-if="form.engine === 'agent'" class="grid gap-1.5">
                     <Label :class="labelClass">{{
                         $t('Language model')
                     }}</Label>
@@ -331,7 +526,7 @@ function saveScenario(): void {
                         </SelectContent>
                     </Select>
                     <p
-                        v-if="!settings.qwenProxyAvailable"
+                        v-if="settings.qwenProxyReason"
                         class="text-ink-slate text-[11.5px]"
                     >
                         {{
@@ -348,7 +543,9 @@ function saveScenario(): void {
                     </p>
                 </div>
                 <div
-                    v-if="form.thinkMode === 'managed'"
+                    v-if="
+                        form.engine === 'agent' && form.thinkMode === 'managed'
+                    "
                     class="grid gap-3 sm:grid-cols-2"
                 >
                     <div class="grid gap-1.5">

@@ -46,7 +46,9 @@ final class VoiceAgentProbeSession extends Command
 
         try {
             $started = microtime(true);
-            $session = $factory->create($attempt, $scenario);
+            // Always the voice agent: the fast engine has its own probe
+            // (spec 0009).
+            $session = $factory->agent($attempt, $scenario, $settings->forScenario($scenario));
             $grantMs = (int) round((microtime(true) - $started) * 1000);
         } catch (Throwable $e) {
             if (! $this->option('skip-grant')) {

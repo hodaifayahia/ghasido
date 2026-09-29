@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Permission;
+use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\Employees\EmployeeBulkController;
 use App\Http\Controllers\Admin\Employees\EmployeeExportController;
 use App\Http\Controllers\Admin\Employees\EmployeePasswordController;
@@ -33,4 +34,5 @@ Route::middleware(Permission::EmployeesManage->middleware())->group(function () 
     Route::post('employees/{employee}/activate', [EmployeeStatusController::class, 'activate'])->name('employees.activate');
     Route::post('employees/{employee}/deactivate', [EmployeeStatusController::class, 'deactivate'])->name('employees.deactivate');
     Route::post('employees/{employee}/reset-password', [EmployeePasswordController::class, 'reset'])->name('employees.reset-password');
+    Route::delete('employees/{employee}', [DeleteController::class, 'employee'])->name('employees.destroy');
 });

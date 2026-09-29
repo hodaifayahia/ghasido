@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SubscriptionCatalogSetting;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
 use App\Services\Landing\LandingPageContentStore;
@@ -14,6 +15,7 @@ final class LandingPageController extends Controller
     {
         return Inertia::render('Welcome', [
             'content' => $content->current(),
+            'individualPricing' => $this->individualPricing(),
             'plans' => SubscriptionPlan::query()
                 ->active()
                 ->orderBy('employee_limit')
@@ -43,5 +45,16 @@ final class LandingPageController extends Controller
                     'instructions' => $method->instructions,
                 ])->values()->all(),
         ]);
+    }
+
+    /** @return array{priceDzd: int, priceUsd: float} */
+    private function individualPricing(): array
+    {
+        $pricing = SubscriptionCatalogSetting::query()->findOrFail(1);
+
+        return [
+            'priceDzd' => $pricing->individual_price_dzd,
+            'priceUsd' => $pricing->individual_price_usd,
+        ];
     }
 }

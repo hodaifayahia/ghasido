@@ -6,9 +6,11 @@ import {
     Pencil,
     Plus,
     Sparkles,
+    Trash2,
     Users,
 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import HotelsModal from '@/components/hotels/HotelsModal.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -16,7 +18,12 @@ import PanelCard from '@/components/common/PanelCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { dashboard, individuals, subscriptions } from '@/routes';
 import { hotelPlan } from '@/routes/subscriptions';
-import { update as updatePlan } from '@/routes/subscriptions/plans';
+import { destroy as destroyPaymentMethod } from '@/routes/subscriptions/payment-methods';
+import { update as updateIndividualPricing } from '@/routes/subscriptions/individual-pricing';
+import {
+    destroy as destroyPlan,
+    update as updatePlan,
+} from '@/routes/subscriptions/plans';
 import { tk } from '@/lib/i18n';
 
 type Plan = {
@@ -67,6 +74,8 @@ type Props = {
     >[];
     hotels: HotelRow[];
     paymentMethods: PaymentMethod[];
+    individualCount: number;
+    individualPricing: { priceDzd: number; priceUsd: number };
 };
 
 const props = defineProps<Props>();
@@ -80,7 +89,7 @@ defineOptions({
     },
 });
 
-const tab = ref<'plans' | 'hotels' | 'payments'>('plans');
+const tab = ref<'plans' | 'hotels' | 'individual' | 'payments'>('plans');
 const editing = ref<Plan | null>(null);
 const editorOpen = ref(false);
 const form = useForm({
@@ -97,6 +106,10 @@ const form = useForm({
     voice_points_per_10_minutes: 100,
     ai_action_points: 50,
     is_active: true,
+});
+const individualPricingForm = useForm({
+    individual_price_dzd: props.individualPricing.priceDzd,
+    individual_price_usd: props.individualPricing.priceUsd,
 });
 const selectedPlan = reactive<Record<number, number>>(
     Object.fromEntries(props.hotels.map((hotel) => [hotel.id, hotel.planId])),
@@ -169,6 +182,12 @@ function savePlan(): void {
         onSuccess: () => {
             editorOpen.value = false;
         },
+    });
+}
+
+function saveIndividualPricing(): void {
+    individualPricingForm.patch(updateIndividualPricing().url, {
+        preserveScroll: true,
     });
 }
 
@@ -275,6 +294,33 @@ function savePaymentMethod(): void {
 
     paymentMethodForm.post('/subscriptions/payment-methods', options);
 }
+
+/**
+ * Safe delete for plans and payment methods: the server refuses while a
+ * hotel or a recorded payment still depends on the row.
+ */
+const deleteOpen = ref(false);
+const deleteTarget = ref<{ url: string; name: string; kind: string } | null>(
+    null,
+);
+
+function deletePlan(plan: Plan): void {
+    deleteTarget.value = {
+        url: destroyPlan.url(plan.id),
+        name: plan.name,
+        kind: tk('plan'),
+    };
+    deleteOpen.value = true;
+}
+
+function deletePaymentMethod(method: PaymentMethod): void {
+    deleteTarget.value = {
+        url: destroyPaymentMethod.url(method.id),
+        name: method.name,
+        kind: tk('payment method'),
+    };
+    deleteOpen.value = true;
+}
 </script>
 
 <template>
@@ -285,14 +331,14 @@ function savePaymentMethod(): void {
             :title="$t('Subscriptions')"
             :description="
                 $t(
-                    'Set hotel seat limits, DZD and USD prices, and AI point rates.',
+                    'Set hotel seat limits and prices, individual prices in DZD and USD, and AI point rates.',
                 )
             "
         />
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div
-                class="bg-surface border-line shadow-card inline-flex rounded-md border p-1"
+                class="bg-surface border-line shadow-card flex max-w-full flex-wrap rounded-md border p-1"
                 role="tablist"
                 :aria-label="$t('Subscription management')"
             >
@@ -309,6 +355,20 @@ function savePaymentMethod(): void {
                     @click="tab = 'plans'"
                 >
                     {{ $t('Plans') }}
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    :aria-selected="tab === 'individual'"
+                    class="rounded px-3 py-2 text-[12px] font-semibold transition-colors"
+                    :class="
+                        tab === 'individual'
+                            ? 'bg-brand-100/70 text-brand-700'
+                            : 'text-ink-slate hover:bg-brand-50'
+                    "
+                    @click="tab = 'individual'"
+                >
+                    {{ $t('Individual subscription') }}
                 </button>
                 <button
                     type="button"
@@ -341,13 +401,16 @@ function savePaymentMethod(): void {
                 >
                     {{ $t('Payment methods') }}
                 </button>
-                <!-- Individual subscribers have their own page (user request 2026-09-25). -->
+                <!-- Individual subscribers have their own page. -->
                 <Link
                     :href="individuals()"
                     class="text-ink-slate hover:bg-brand-50 focus-visible:ring-brand-600/15 rounded px-3 py-2 text-[12px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none"
                     data-test="subscriptions-individuals-link"
                 >
-                    {{ $t('Individuals') }}
+                    {{ $t('Individual subscribers') }}
+                    <span class="text-ink-muted ms-1">{{
+                        individualCount
+                    }}</span>
                 </Link>
             </div>
             <p class="text-ink-muted text-[11.5px]">
@@ -467,19 +530,111 @@ function savePaymentMethod(): void {
                         )
                     }}
                 </p>
-                <div class="mt-auto pt-3">
+                <div class="mt-auto flex flex-wrap gap-2 pt-3">
                     <Button
                         type="button"
                         variant="outline"
-                        class="border-line text-brand-700 h-9 w-full gap-2 text-[12px]"
+                        class="border-line text-brand-700 h-9 grow gap-2 text-[12px]"
                         @click="editPlan(plan)"
                     >
                         <Pencil class="size-3.5" aria-hidden="true" />
                         {{ $t('Customize plan') }}
                     </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-danger text-danger-text hover:bg-danger-tint bg-surface relative h-9 gap-1.5 px-3 text-[12px] before:absolute before:inset-x-0 before:-inset-y-1 md:before:hidden"
+                        :aria-label="$t('Delete :name', { name: plan.name })"
+                        :data-test="`delete-plan-${plan.id}-button`"
+                        @click="deletePlan(plan)"
+                    >
+                        <Trash2 class="size-3.5" aria-hidden="true" />
+                        {{ $t('Delete') }}
+                    </Button>
                 </div>
             </PanelCard>
         </section>
+
+        <PanelCard
+            v-else-if="tab === 'individual'"
+            :title="$t('Individual subscription pricing')"
+            title-id="individual-subscription-pricing-heading"
+            class="min-w-0"
+            body-class="mt-2"
+        >
+            <template #icon>
+                <span
+                    class="bg-brand-100 text-brand-700 grid size-8 place-items-center rounded-full"
+                >
+                    <Users class="size-4" aria-hidden="true" />
+                </span>
+            </template>
+            <p class="text-ink-slate mb-4 max-w-2xl text-[12px] leading-5">
+                {{
+                    $t(
+                        'Set the monthly subscription price for one individual learner. The public offers page shows the matching DZD or USD price for Algeria and international visitors.',
+                    )
+                }}
+            </p>
+            <form
+                class="grid max-w-2xl gap-3 sm:grid-cols-2"
+                data-test="individual-subscription-pricing-form"
+                @submit.prevent="saveIndividualPricing"
+            >
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Monthly price per individual (DZD)')
+                    }}</span>
+                    <input
+                        v-model.number="
+                            individualPricingForm.individual_price_dzd
+                        "
+                        type="number"
+                        min="0"
+                        step="1"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError
+                        :message="
+                            individualPricingForm.errors.individual_price_dzd
+                        "
+                    />
+                </label>
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Monthly price per individual (USD)')
+                    }}</span>
+                    <input
+                        v-model.number="
+                            individualPricingForm.individual_price_usd
+                        "
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError
+                        :message="
+                            individualPricingForm.errors.individual_price_usd
+                        "
+                    />
+                </label>
+                <div class="sm:col-span-2">
+                    <Button
+                        type="submit"
+                        class="bg-brand-600 hover:bg-brand-700 h-9 gap-1.5 px-4 text-[11px]"
+                        :disabled="individualPricingForm.processing"
+                        data-test="save-individual-subscription-pricing"
+                    >
+                        {{
+                            individualPricingForm.processing
+                                ? $t('Saving…')
+                                : $t('Save individual prices')
+                        }}
+                    </Button>
+                </div>
+            </form>
+        </PanelCard>
 
         <PanelCard
             v-else-if="tab === 'hotels'"
@@ -705,15 +860,30 @@ function savePaymentMethod(): void {
                     >
                         {{ method.instructions }}
                     </p>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="border-line text-brand-700 mt-3 h-8 w-full gap-1.5 text-[11px]"
-                        @click="editPaymentMethod(method)"
-                    >
-                        <Pencil class="size-3" aria-hidden="true" />
-                        {{ $t('Customize method') }}
-                    </Button>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="border-line text-brand-700 h-8 grow gap-1.5 text-[11px]"
+                            @click="editPaymentMethod(method)"
+                        >
+                            <Pencil class="size-3" aria-hidden="true" />
+                            {{ $t('Customize method') }}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="border-danger text-danger-text hover:bg-danger-tint bg-surface relative h-8 gap-1.5 text-[11px] before:absolute before:inset-x-0 before:-inset-y-1.5 md:before:hidden"
+                            :aria-label="
+                                $t('Delete :name', { name: method.name })
+                            "
+                            :data-test="`delete-payment-method-${method.id}-button`"
+                            @click="deletePaymentMethod(method)"
+                        >
+                            <Trash2 class="size-3" aria-hidden="true" />
+                            {{ $t('Delete') }}
+                        </Button>
+                    </div>
                 </article>
             </div>
         </PanelCard>
@@ -1211,4 +1381,11 @@ function savePaymentMethod(): void {
             </div>
         </form>
     </HotelsModal>
+
+    <DeleteRowDialog
+        v-model:open="deleteOpen"
+        :url="deleteTarget?.url ?? null"
+        :name="deleteTarget?.name ?? ''"
+        :kind="deleteTarget ? $t(deleteTarget.kind) : ''"
+    />
 </template>

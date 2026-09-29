@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import MessagesLogDialog from '@/components/messages/MessagesLogDialog.vue';
 import MessagesRecipientsPanel from '@/components/messages/MessagesRecipientsPanel.vue';
 import MessagesRuleDialog from '@/components/messages/MessagesRuleDialog.vue';
@@ -16,7 +17,11 @@ import {
     messagesReminders as messagesRemindersRoute,
 } from '@/routes';
 import { tk } from '@/lib/i18n';
-import { toggle } from '@/routes/messages-reminders/rules';
+import {
+    destroy as destroyRule,
+    toggle,
+} from '@/routes/messages-reminders/rules';
+import { destroy as destroyTemplate } from '@/routes/messages-reminders/templates';
 import type {
     MessageAbilities,
     MessageAutomationRule,
@@ -250,6 +255,33 @@ function toggleRule(rule: MessageAutomationRule): void {
     );
 }
 
+// Safe delete for a template or a rule: the server refuses while sent
+// reminders (or rules) point at it (REM-06, DATA-10). The log is never
+// deletable.
+type DeleteTarget =
+    | { kind: 'template'; item: MessageTemplate }
+    | { kind: 'rule'; item: MessageAutomationRule };
+
+const deleteOpen = ref(false);
+const deleteTarget = ref<DeleteTarget | null>(null);
+
+const deleteUrl = computed(() => {
+    const target = deleteTarget.value;
+
+    if (target === null) {
+        return null;
+    }
+
+    return target.kind === 'template'
+        ? destroyTemplate.url(target.item.id)
+        : destroyRule.url(target.item.id);
+});
+
+function askDelete(target: DeleteTarget): void {
+    deleteTarget.value = target;
+    deleteOpen.value = true;
+}
+
 const logOpen = ref(false);
 
 // The "all" entries are filters, not audiences a rule can be limited to.
@@ -308,6 +340,8 @@ const ruleDepartments = computed(() =>
                 @add-rule="openRule(null)"
                 @edit-rule="openRule($event)"
                 @toggle-rule="toggleRule"
+                @delete-template="askDelete({ kind: 'template', item: $event })"
+                @delete-rule="askDelete({ kind: 'rule', item: $event })"
                 @log-page="goToLogPage"
                 @open-log="logOpen = true"
             />
@@ -354,6 +388,16 @@ const ruleDepartments = computed(() =>
         :hotels="ruleHotels"
         :departments="ruleDepartments"
         :inactive-days="options.inactiveDays"
+    />
+
+    <DeleteRowDialog
+        v-if="abilities.manageTemplates || abilities.manageRules"
+        v-model:open="deleteOpen"
+        :url="deleteUrl"
+        :name="deleteTarget?.item.name ?? ''"
+        :kind="
+            deleteTarget?.kind === 'rule' ? $t('reminder rule') : $t('template')
+        "
     />
 
     <MessagesLogDialog

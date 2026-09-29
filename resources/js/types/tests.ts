@@ -94,7 +94,13 @@ export type TestQuestionKind =
     | 'image'
     | 'video'
     | 'speaking'
-    | 'ordering';
+    | 'ordering'
+    | 'writing';
+
+export type TestQuestionPair = {
+    left: string;
+    right: string;
+};
 
 export type TestQuestionKindOption = {
     value: TestQuestionKind;
@@ -105,6 +111,11 @@ export type TestQuestionOption = {
     id: string;
     text: string;
     correct: boolean;
+    imageId?: number | null;
+    image?: TestQuestionMediaRef | null;
+    audioId?: number | null;
+    audio?: TestQuestionMediaRef | null;
+    audioText?: string | null;
 };
 
 export type TestEditorQuestion = {
@@ -118,6 +129,12 @@ export type TestEditorQuestion = {
     imageCrop?: TestsMockupCrop;
     media: TestQuestionMedia;
     options: TestQuestionOption[];
+    pairs: TestQuestionPair[];
+    acceptedAnswers: string[];
+    audioText: string;
+    requestText: string;
+    information: string[];
+    speakingSeconds: number;
     typeLabel?: string;
     /** An AI draft learners cannot see until it is approved (GEN-03). */
     aiDraft?: boolean;
@@ -143,7 +160,42 @@ export type TestQuestionMedia = {
 export type TestQuestionPayload = {
     kind: TestQuestionKind;
     text: string;
+    options: Array<{
+        id: string;
+        text: string;
+        correct: boolean;
+        image_id?: number | null;
+        audio_id?: number | null;
+        audio_text?: string | null;
+    }>;
+    pairs?: TestQuestionPair[];
+    accepted_answers?: string[];
+    audio_text?: string;
+    request_text?: string;
+    information?: string[];
+    speaking_seconds?: number;
+    media?: {
+        image?: number | null;
+        audio?: number | null;
+        video?: number | null;
+    };
+};
+
+export type TestQuestionDraft = {
+    kind: TestQuestionKind;
+    text: string;
     options: TestQuestionOption[];
+    pairs: TestQuestionPair[];
+    acceptedAnswers: string[];
+    audioText: string;
+    requestText: string;
+    information: string[];
+    speakingSeconds: number;
+    media: {
+        image?: number | null;
+        audio?: number | null;
+        video?: number | null;
+    };
 };
 
 export type TestEditorSavePayload = {

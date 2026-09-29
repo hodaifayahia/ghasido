@@ -25,7 +25,7 @@ use App\Services\Audio\AudioLibrary;
 class PayloadResolver
 {
     /** @var list<string> */
-    public const array MEDIA_KEYS = ['image', 'video', 'poster', 'cover', 'thumbnail', 'side_image'];
+    public const array MEDIA_KEYS = ['image', 'audio', 'video', 'poster', 'cover', 'thumbnail', 'side_image'];
 
     /** The lesson accent whose voice the audio URLs are read for (spec 0006 §3). */
     private ?Accent $accent = null;

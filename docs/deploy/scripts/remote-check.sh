@@ -1,7 +1,7 @@
 #!/bin/bash
 # Post-deploy check: today's migrations, key pages, and errors logged since the deploy.
-APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
-URL=https://lightgrey-dinosaur-781122.hostingersite.com
+APP=/home/u673635734/domains/ghasido.com/guesvia
+URL=https://ghasido.com
 cd "$APP" || exit 1
 echo "== migrations (today)"
 php artisan migrate:status --no-interaction 2>&1 | grep '2026_09_25' | sed 's/\.\.\.*/ /'

@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { lessonsContent } from '@/routes';
 
 /**
@@ -25,13 +25,40 @@ type VisitOptions = {
     replace?: boolean;
 };
 
-/** The current query string as a plain record. */
+type LessonsFilterProps = Partial<
+    Record<'hotel' | 'department' | 'course' | 'unit' | 'lesson', string>
+>;
+
+/**
+ * The current query string as a plain record. The dedicated builder URL
+ * (`/lessons/{id}/edit`) carries no query, so there the open lesson's scope
+ * comes from the page's filters: otherwise the first tab click or save would
+ * land on a URL without the lesson and close the builder.
+ */
 export function currentLessonsQuery(): Record<string, string> {
     if (typeof window === 'undefined') {
         return {};
     }
 
     const query: Record<string, string> = {};
+
+    if (/^\/lessons\/\d+\/edit\/?$/.test(window.location.pathname)) {
+        const filters = (usePage().props.filters ?? {}) as LessonsFilterProps;
+
+        for (const key of [
+            'hotel',
+            'department',
+            'course',
+            'unit',
+            'lesson',
+        ] as const) {
+            const value = filters[key];
+
+            if (typeof value === 'string' && value !== '') {
+                query[key] = value;
+            }
+        }
+    }
 
     new URLSearchParams(window.location.search).forEach((value, key) => {
         query[key] = value;

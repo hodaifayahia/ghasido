@@ -2,11 +2,15 @@
 import { useId } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import InputError from '@/components/InputError.vue';
+import FieldMeaningButton from '@/components/translations/FieldMeaningButton.vue';
 import { cn } from '@/lib/utils';
 
 /**
  * One labelled form control in the CMS style: 12px semibold brand label,
  * 6px-radius line border, brand focus ring (AGENTS.md §3, §7).
+ *
+ * `translatable` puts the Translation button beside the label, for text the
+ * learner can open with Show Meaning (user request 2026-09-26).
  */
 type Props = {
     label: string;
@@ -21,6 +25,8 @@ type Props = {
     name?: string;
     min?: number;
     max?: number;
+    translatable?: boolean;
+    readOnly?: boolean;
     class?: HTMLAttributes['class'];
 };
 
@@ -30,6 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
     placeholder: '',
     required: false,
     dir: 'ltr',
+    translatable: false,
+    readOnly: false,
 });
 
 const emit = defineEmits<{
@@ -60,15 +68,22 @@ function onInput(event: Event): void {
 
 <template>
     <div :class="cn('grid gap-1.5', props.class)">
-        <label
-            :for="id"
-            class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
-        >
-            {{ label }}
-            <span v-if="required" class="text-danger" aria-hidden="true">
-                *
-            </span>
-        </label>
+        <div class="flex flex-wrap items-center gap-2">
+            <label
+                :for="id"
+                class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
+            >
+                {{ label }}
+                <span v-if="required" class="text-danger" aria-hidden="true">
+                    *
+                </span>
+            </label>
+            <FieldMeaningButton
+                v-if="translatable && type !== 'number'"
+                :text="modelValue === null ? '' : String(modelValue)"
+                :read-only="readOnly"
+            />
+        </div>
         <textarea
             v-if="type === 'textarea'"
             :id="id"

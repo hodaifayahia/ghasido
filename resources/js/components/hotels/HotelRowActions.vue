@@ -5,10 +5,11 @@ import {
     Check,
     EllipsisVertical,
     Eye,
-    Network,
+    Layers,
     Pause,
     Pencil,
     Play,
+    Trash2,
     Users,
     X,
 } from '@lucide/vue';
@@ -81,15 +82,15 @@ const items = computed<Item[]>(() => {
         list.push(
             { action: 'edit', label: tk('Edit'), icon: Pencil, group: 'read' },
             {
-                action: 'seats',
-                label: tk('Manage seats'),
-                icon: Users,
+                action: 'departments',
+                label: tk('Departments'),
+                icon: Layers,
                 group: 'read',
             },
             {
-                action: 'departments',
-                label: tk('Departments'),
-                icon: Network,
+                action: 'seats',
+                label: tk('Manage seats'),
+                icon: Users,
                 group: 'read',
             },
         );
@@ -142,6 +143,18 @@ const items = computed<Item[]>(() => {
             action: 'archive',
             label: tk('Archive'),
             icon: Archive,
+            destructive: true,
+            group: 'end',
+        });
+    }
+
+    // Safe delete: the server refuses while learner data depends on the
+    // hotel, so it is offered in every state, archived included (DATA-10).
+    if (manage) {
+        list.push({
+            action: 'delete',
+            label: tk('Delete'),
+            icon: Trash2,
             destructive: true,
             group: 'end',
         });

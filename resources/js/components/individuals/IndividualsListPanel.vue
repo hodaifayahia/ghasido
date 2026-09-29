@@ -6,6 +6,7 @@ import {
     Plus,
     Power,
     Search,
+    Trash2,
     UserRound,
 } from '@lucide/vue';
 import { ref, watch } from 'vue';
@@ -41,6 +42,7 @@ const emit = defineEmits<{
     add: [];
     edit: [row: IndividualRow];
     toggle: [row: IndividualRow];
+    delete: [row: IndividualRow];
     filter: [filters: IndividualFilters];
     page: [page: number];
 }>();
@@ -207,11 +209,11 @@ const states = [
                     }}
                 </caption>
                 <colgroup>
-                    <col class="w-[26%]" />
-                    <col class="w-[16%]" />
-                    <col class="w-[22%]" />
+                    <col class="w-[25%]" />
+                    <col class="w-[15%]" />
+                    <col class="w-[21%]" />
+                    <col class="w-[19%]" />
                     <col class="w-[20%]" />
-                    <col class="w-[16%]" />
                 </colgroup>
                 <thead
                     class="bg-app text-ink-slate text-[11px] tracking-wide uppercase"
@@ -340,7 +342,7 @@ const states = [
                         <td class="px-4 py-3 text-end">
                             <div
                                 v-if="canManage"
-                                class="flex justify-end gap-1.5"
+                                class="flex flex-wrap justify-end gap-1.5"
                             >
                                 <Button
                                     type="button"
@@ -386,6 +388,19 @@ const states = [
                                     @click="emit('toggle', row)"
                                 >
                                     <Power class="size-4" aria-hidden="true" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    class="border-danger text-danger-text hover:bg-danger-tint bg-surface size-9 rounded-md p-0"
+                                    :aria-label="
+                                        $t('Delete :name', { name: row.name })
+                                    "
+                                    :title="$t('Delete')"
+                                    :data-test="`delete-individual-${row.id}`"
+                                    @click="emit('delete', row)"
+                                >
+                                    <Trash2 class="size-4" aria-hidden="true" />
                                 </Button>
                             </div>
                         </td>
@@ -467,11 +482,13 @@ const states = [
                     </template>
                     <template v-else>{{ $t('AI not included') }}</template>
                 </p>
-                <div v-if="canManage" class="grid grid-cols-2 gap-2">
+                <!-- Three actions share one row down to 360px: icon over a
+                     short label, each at least 44px tall (ACC-03). -->
+                <div v-if="canManage" class="grid grid-cols-3 gap-2">
                     <Button
                         type="button"
                         variant="outline"
-                        class="border-line text-ink h-11 gap-1.5 rounded-md"
+                        class="border-line text-ink h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1"
                         @click="emit('edit', row)"
                     >
                         <Pencil class="size-3.5" aria-hidden="true" />
@@ -482,7 +499,7 @@ const states = [
                         variant="outline"
                         :class="
                             cn(
-                                'border-line h-11 gap-1.5 rounded-md',
+                                'border-line h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1',
                                 row.status === 'active'
                                     ? 'text-danger-text hover:bg-danger-tint'
                                     : 'text-success-text hover:bg-success-tint',
@@ -496,6 +513,17 @@ const states = [
                                 ? $t('Deactivate')
                                 : $t('Activate')
                         }}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-danger text-danger-text hover:bg-danger-tint bg-surface h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1"
+                        :aria-label="$t('Delete :name', { name: row.name })"
+                        :data-test="`delete-individual-${row.id}-card`"
+                        @click="emit('delete', row)"
+                    >
+                        <Trash2 class="size-4" aria-hidden="true" />
+                        {{ $t('Delete') }}
                     </Button>
                 </div>
             </li>

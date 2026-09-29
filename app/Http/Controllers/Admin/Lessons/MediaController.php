@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Enums\MediaLibrary;
+use App\Enums\MediaKind;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Lessons\StoreMediaRequest;
 use App\Models\Lesson;
@@ -40,8 +41,9 @@ class MediaController extends Controller
         };
         $category = (string) $request->query('libCategory', ContentTree::ALL_CATEGORIES);
         $search = trim((string) $request->query('libSearch', ''));
+        $kind = MediaKind::tryFrom((string) $request->query('kind', 'image')) ?? MediaKind::Image;
 
-        $page = $media->library($user, $libraries, $category, $search)
+        $page = $media->library($user, $libraries, $category, $search, $kind)
             ->paginate(24)
             ->withQueryString();
 
