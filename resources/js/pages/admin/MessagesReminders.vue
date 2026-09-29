@@ -4,10 +4,11 @@ import { computed, ref } from 'vue';
 import MessagesLogDialog from '@/components/messages/MessagesLogDialog.vue';
 import MessagesRecipientsPanel from '@/components/messages/MessagesRecipientsPanel.vue';
 import MessagesRuleDialog from '@/components/messages/MessagesRuleDialog.vue';
+import MessagesRulesModal from '@/components/messages/MessagesRulesModal.vue';
 import MessagesSendDialog from '@/components/messages/MessagesSendDialog.vue';
-import MessagesSidebarPanel from '@/components/messages/MessagesSidebarPanel.vue';
 import MessagesStatsRow from '@/components/messages/MessagesStatsRow.vue';
 import MessagesTemplateDialog from '@/components/messages/MessagesTemplateDialog.vue';
+import MessagesTemplatesModal from '@/components/messages/MessagesTemplatesModal.vue';
 import MessagesToolbar from '@/components/messages/MessagesToolbar.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
@@ -221,6 +222,11 @@ function onSent(): void {
     visit(currentQuery(), ['stats', 'logs', 'logsPagination']);
 }
 
+// The three management modals opened from the buttons beside Send. The
+// editors (template, rule) open on top of them, so the list stays behind.
+const templatesOpen = ref(false);
+const rulesOpen = ref(false);
+
 const templateOpen = ref(false);
 const templateItem = ref<MessageTemplate | null>(null);
 const templateReadonly = ref(false);
@@ -289,43 +295,48 @@ const ruleDepartments = computed(() =>
             :filters="filters"
             :can-send="abilities.send"
             :selected-count="selectedCount"
+            :templates-count="templates.length"
+            :rules-count="automations.length"
+            :log-total="logsPagination.total"
             @filter="applyFilters"
             @send="openSend()"
+            @open-templates="templatesOpen = true"
+            @open-rules="rulesOpen = true"
+            @open-log="logOpen = true"
         />
 
-        <div class="flex w-full min-w-0 flex-col gap-3">
-            <!-- Templates, rules and delivery history stay ahead of the full-width recipient list (REM-04, REM-06). -->
-            <MessagesSidebarPanel
-                class="lg:!grid lg:grid-cols-3 lg:items-start"
-                :templates="templates"
-                :automations="automations"
-                :logs="logs"
-                :logs-pagination="logsPagination"
-                :abilities="abilities"
-                @add-template="openTemplate(null)"
-                @edit-template="openTemplate($event)"
-                @preview-template="openTemplate($event, true)"
-                @add-rule="openRule(null)"
-                @edit-rule="openRule($event)"
-                @toggle-rule="toggleRule"
-                @log-page="goToLogPage"
-                @open-log="logOpen = true"
-            />
-
-            <MessagesRecipientsPanel
-                v-model:selected="selected"
-                v-model:all-matching="allMatching"
-                :recipients="recipients"
-                :pagination="recipientsPagination"
-                :search="filters.search"
-                :can-send="abilities.send"
-                :loading="loading"
-                @search="applySearch"
-                @page="goToPage"
-                @send="openSend"
-            />
-        </div>
+        <MessagesRecipientsPanel
+            v-model:selected="selected"
+            v-model:all-matching="allMatching"
+            :recipients="recipients"
+            :pagination="recipientsPagination"
+            :search="filters.search"
+            :can-send="abilities.send"
+            :loading="loading"
+            @search="applySearch"
+            @page="goToPage"
+            @send="openSend"
+        />
     </div>
+
+    <MessagesTemplatesModal
+        v-model:open="templatesOpen"
+        :templates="templates"
+        :automations="automations"
+        :can-manage="abilities.manageTemplates"
+        @add="openTemplate(null)"
+        @edit="openTemplate($event)"
+        @preview="openTemplate($event, true)"
+    />
+
+    <MessagesRulesModal
+        v-model:open="rulesOpen"
+        :automations="automations"
+        :can-manage="abilities.manageRules"
+        @add="openRule(null)"
+        @edit="openRule($event)"
+        @toggle="toggleRule"
+    />
 
     <MessagesSendDialog
         v-if="abilities.send"
@@ -361,6 +372,7 @@ const ruleDepartments = computed(() =>
         :logs="logs"
         :pagination="logsPagination"
         :loading="logLoading"
+        :can-delete="abilities.deleteLogs"
         @page="goToLogPage"
     />
 </template>

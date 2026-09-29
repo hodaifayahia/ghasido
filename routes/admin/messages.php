@@ -3,6 +3,7 @@
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\Messages\AutomationRuleController;
 use App\Http\Controllers\Admin\Messages\ReminderDraftController;
+use App\Http\Controllers\Admin\Messages\ReminderLogController;
 use App\Http\Controllers\Admin\Messages\ReminderSendController;
 use App\Http\Controllers\Admin\Messages\ReminderTemplateController;
 use App\Http\Controllers\Admin\MessagesRemindersController;
@@ -28,6 +29,8 @@ Route::middleware(Permission::MessagesManage->middleware())->group(function () {
         ->name('messages-reminders.templates.store');
     Route::patch('messages-reminders/templates/{template}', [ReminderTemplateController::class, 'update'])
         ->name('messages-reminders.templates.update');
+    Route::delete('messages-reminders/templates/{template}', [ReminderTemplateController::class, 'destroy'])
+        ->name('messages-reminders.templates.destroy');
 
     // "Draft with AI" (spec 0005 §4.2): queued, then polled. Throttled so a
     // stuck button cannot spend the AI budget.
@@ -43,4 +46,11 @@ Route::middleware(Permission::MessagesManage->middleware())->group(function () {
         ->name('messages-reminders.rules.update');
     Route::patch('messages-reminders/automation-rules/{rule}/toggle', [AutomationRuleController::class, 'toggle'])
         ->name('messages-reminders.rules.toggle');
+    Route::delete('messages-reminders/automation-rules/{rule}', [AutomationRuleController::class, 'destroy'])
+        ->name('messages-reminders.rules.destroy');
+
+    // One row of the reminder log; the policy keeps a manager to their own
+    // hotel's rows (REM-06, REM-07).
+    Route::delete('messages-reminders/log/{reminder}', [ReminderLogController::class, 'destroy'])
+        ->name('messages-reminders.log.destroy');
 });

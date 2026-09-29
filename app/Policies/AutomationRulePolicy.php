@@ -43,6 +43,11 @@ class AutomationRulePolicy
         return $this->owns($user);
     }
 
+    public function delete(User $user, AutomationRule $rule): bool
+    {
+        return $this->owns($user);
+    }
+
     private function owns(User $user): bool
     {
         return $user->hasRole(Role::SuperAdmin->value)

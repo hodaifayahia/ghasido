@@ -70,6 +70,22 @@ class AutomationRuleService
     }
 
     /**
+     * Delete a rule, with its audit row. The runner stops using it at once;
+     * the reminders it already sent stay in the log with their text
+     * (`reminders.automation_rule_id` is set to null, REM-06, DATA-10).
+     */
+    public function delete(AutomationRule $rule): void
+    {
+        DB::transaction(function () use ($rule): void {
+            AuditLog::record($rule, 'automation_rule.deleted', [
+                'deleted' => $rule->only(['name', 'trigger', 'days', 'template_id', 'audience', 'is_active']),
+            ]);
+
+            $rule->delete();
+        });
+    }
+
+    /**
      * "All hotels", "La Gazelle d'Or", "Reception + Spa", or both parts
      * joined with a middle dot, in the words the screen already uses.
      *

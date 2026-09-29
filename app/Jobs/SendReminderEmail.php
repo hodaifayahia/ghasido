@@ -28,6 +28,12 @@ class SendReminderEmail implements ShouldQueue
 
     public int $tries = 3;
 
+    /**
+     * A reminder deleted from the log while its mail waited in the queue is
+     * cancelled, not a failure: the job is dropped quietly (REM-06).
+     */
+    public bool $deleteWhenMissingModels = true;
+
     /** @var list<int> */
     public array $backoff = [10, 30, 60];
 
