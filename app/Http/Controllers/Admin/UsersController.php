@@ -36,6 +36,9 @@ class UsersController extends Controller
             // roles. Hotel managers and learners are managed from the hotel.
             ->whereNull('hotel_id')
             ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value]))
+            // …and holding a back-office role: an account with no role at
+            // all has no access to run anything.
+            ->whereHas('roles', fn ($query) => $query->whereNotIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value]))
             ->orderBy('name')
             ->paginate(15)
             ->through(fn (User $user): array => [

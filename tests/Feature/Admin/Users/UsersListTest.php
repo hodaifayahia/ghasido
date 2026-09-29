@@ -31,6 +31,7 @@ class UsersListTest extends TestCase
         User::factory()->admin()->create(['name' => 'Bbb Admin']);
         User::factory()->manager()->create(['name' => 'Ccc Manager', 'hotel_id' => Hotel::factory()->create()->id]);
         User::factory()->employee()->create(['name' => 'Ddd Learner']);
+        User::factory()->create(['name' => 'Eee No Role']);
 
         $this->actingAs($owner)
             ->get(route('users'))
