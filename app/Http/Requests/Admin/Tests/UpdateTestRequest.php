@@ -21,6 +21,14 @@ class UpdateTestRequest extends FormRequest
         return $test instanceof Test && ($this->user()?->can(Permission::TestsManage->value) ?? false);
     }
 
+    protected function prepareForValidation(): void
+    {
+        // The builder's "All departments" option.
+        if (in_array($this->input('department_id'), ['all', ''], true)) {
+            $this->merge(['department_id' => null]);
+        }
+    }
+
     /**
      * @return array<string, list<mixed>>
      */
@@ -29,7 +37,8 @@ class UpdateTestRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:120'],
             'type' => ['required', Rule::enum(TestType::class)],
-            'department_id' => ['required', 'integer', Rule::exists('departments', 'id')],
+            // Empty = all departments (client request 2026-09-29).
+            'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')],
             'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
             'description' => ['nullable', 'string', 'max:300'],
             'time_limit_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
@@ -55,7 +64,7 @@ class UpdateTestRequest extends FormRequest
         $minutes = $validated['time_limit_minutes'] ?? null;
 
         $validated['type'] = TestType::from((string) $validated['type']);
-        $validated['department_id'] = (int) $validated['department_id'];
+        $validated['department_id'] = isset($validated['department_id']) ? (int) $validated['department_id'] : null;
         $validated['hotel_id'] = $this->filled('hotel_id') ? (int) $validated['hotel_id'] : null;
         $validated['title'] = trim((string) $validated['title']);
         $validated['time_limit_seconds'] = $minutes === null || (int) $minutes === 0 ? null : (int) $minutes * 60;
@@ -74,8 +83,9 @@ class UpdateTestRequest extends FormRequest
             // Show Meaning on questions (client decision 2026-09-26): on
             // unless the admin switches it off for this test.
             'show_meaning' => (bool) ($validated['show_meaning'] ?? true),
-            'pass_score' => $validated['pass_mark'] === null ? null : (float) $validated['pass_mark'],
-            'on_timeout' => 'submit',
+            'pass_score' => ($validated['pass_mark'] ?? null) === null ? null : (float) $validated['pass_mark'],
+            // Other stored rules (e.g. `on_timeout`) are kept: TestService
+            // merges these over the test's existing settings.
         ];
 
         unset(

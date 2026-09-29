@@ -10,7 +10,6 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import TestsEditorPanel from '@/components/tests/TestsEditorPanel.vue';
 import TestsHeaderAccent from '@/components/tests/TestsHeaderAccent.vue';
-import TestPreviewDialog from '@/components/tests/TestPreviewDialog.vue';
 import TestsDeleteDialog from '@/components/tests/TestsDeleteDialog.vue';
 import TestsImportDialog from '@/components/tests/TestsImportDialog.vue';
 import TestsSidebarPanel from '@/components/tests/TestsSidebarPanel.vue';
@@ -34,9 +33,10 @@ import type {
 
 /*
  * The test library, and the builder for one test. The Tests / Question Bank
- * / Results & Analytics / Settings tabs, the builder's "Test List" panel and
- * its "Test Settings" card were removed at the client's request
- * (2026-09-29); results are read in Reports & Export.
+ * / Results & Analytics / Settings page tabs and the builder's "Test List"
+ * panel were removed at the client's request (2026-09-29); results are read
+ * in Reports & Export. The builder itself has Questions / Settings / Preview
+ * tabs again (client request 2026-09-29).
  */
 type Props = {
     builderOpen: boolean;
@@ -55,7 +55,6 @@ const canManage = computed(() => can('tests.manage'));
 
 const builderOpen = ref(props.builderOpen);
 const createTestOpen = ref(false);
-const previewOpen = ref(false);
 const importOpen = ref(false);
 
 watch(
@@ -79,7 +78,12 @@ function createTest(payload: CreateTestPayload): void {
         {
             title: payload.title,
             type: payload.type,
-            department_id: Number(payload.department),
+            // "All departments": every department sits it unless it has
+            // its own (client request 2026-09-29).
+            department_id:
+                payload.department === 'all-departments'
+                    ? 'all'
+                    : Number(payload.department),
             time_limit_minutes:
                 payload.timeLimit === '' ? null : Number(payload.timeLimit),
         },
@@ -326,9 +330,9 @@ defineOptions({
             <div class="tests-layout grid min-w-0 gap-3">
                 <TestsEditorPanel
                     :editor="editor"
+                    :activities="preview.activities"
                     :can-delete="canManage"
                     @save="saveTest"
-                    @preview="previewOpen = true"
                     @delete="askDeleteOpenTest"
                     @publish="publishTest"
                     @generate-ai="generateAi"
@@ -357,13 +361,6 @@ defineOptions({
             :tests="list.items"
             :current-test-id="editor.id"
             @imported="openTest"
-        />
-
-        <TestPreviewDialog
-            v-if="builderOpen && editor.id"
-            v-model:open="previewOpen"
-            :preview="preview"
-            :title="editor.title"
         />
 
         <TestsDeleteDialog

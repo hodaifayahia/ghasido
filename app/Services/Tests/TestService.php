@@ -50,6 +50,18 @@ class TestService
     public function update(Test $test, array $data, User $actor): Test
     {
         return DB::transaction(function () use ($test, $data): Test {
+            // The builder's Settings tab sends the rules it edits; anything
+            // else already stored on the test (a timeout rule, say) is kept.
+            if (is_array($data['settings'] ?? null)) {
+                $data['settings'] = array_merge($test->settings ?? [], $data['settings']);
+            }
+
+            // Likewise the builder edits only the intro's description; the
+            // learner's intro page copy (heading, facts…) stays.
+            if (is_array($data['intro'] ?? null)) {
+                $data['intro'] = array_merge(is_array($test->intro) ? $test->intro : [], $data['intro']);
+            }
+
             $test->fill($data);
             AuditLog::record($test, 'test.updated');
             $test->save();

@@ -7,6 +7,7 @@
  * learner runner (TEST-01..10, TSTM-01..05).
  */
 
+import type { ActivityView } from './assessment';
 import type {
     TestAiPanel,
     TestQuestionAudio,
@@ -157,7 +158,8 @@ export type TestQuestionPayload = {
 export type TestEditorSavePayload = {
     title: string;
     type: TestVariant;
-    department_id: number;
+    /** A department id, or 'all' for a test every department sits. */
+    department_id: number | 'all';
     hotel_id: number | null;
     description: string;
     time_limit_minutes: number | null;
@@ -224,7 +226,12 @@ export type TestPreview = {
     options: TestPreviewOption[];
     media: TestQuestionMedia;
     questions: TestEditorQuestion[];
+    /** Each question as the learner's test runner shows it (test mode). */
+    activities: ActivityView[];
 };
+
+/** The Create / Edit Test builder's tabs (client request 2026-09-29). */
+export type TestEditorTab = 'questions' | 'settings' | 'preview';
 
 export type TestMediaTabKey = 'image' | 'audio' | 'video';
 

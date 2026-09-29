@@ -133,9 +133,7 @@ function create(): void {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem
-                                v-for="option in departments.filter(
-                                    (item) => item.value !== 'all-departments',
-                                )"
+                                v-for="option in departments"
                                 :key="option.value"
                                 :value="option.value"
                             >

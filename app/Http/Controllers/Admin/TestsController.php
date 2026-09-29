@@ -26,6 +26,7 @@ use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Content\BlockShaper;
 use App\Services\Content\MediaService;
+use App\Services\Learning\ActivityPresenter;
 use App\Services\Tests\QuestionImport;
 use App\Services\Tests\TestAudio;
 use App\Services\Tests\TestQuestionGenerator;
@@ -83,7 +84,7 @@ class TestsController extends Controller
             'stats' => $this->stats($viewer),
             'list' => $this->listPayload($request, $tests, $viewer),
             'editor' => $this->editor($selected, $request, $viewer),
-            'preview' => $this->preview($selected),
+            'preview' => $this->preview($selected, $viewer),
             'media' => $this->media($viewer, $media),
             'results' => $this->results($selected, $viewer),
         ]);
@@ -459,7 +460,7 @@ class TestsController extends Controller
         return [
             'id' => (string) $test->id,
             'title' => $test->title,
-            'department' => $test->department->name,
+            'department' => $test->department->name ?? __('All departments'),
             'hotel' => $hotel === null ? __('All Hotels') : $hotel->name,
             'meta' => __(':questions questions · :minutes', ['questions' => (int) $test->questions_count, 'minutes' => $minutes === null ? __('No time limit') : $minutes.' min']),
             'type' => $test->type->value,
@@ -513,8 +514,12 @@ class TestsController extends Controller
                 ['value' => TestType::Pre->value, 'label' => TestType::Pre->label()],
                 ['value' => TestType::Post->value, 'label' => TestType::Post->label()],
             ],
-            'department' => $selected === null ? $newDepartment : (string) $selected->department_id,
-            'departments' => $departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+            'department' => $selected === null ? $newDepartment : (string) ($selected->department_id ?? 'all'),
+            'departments' => [
+                // A test every department sits unless it has its own.
+                ['value' => 'all', 'label' => __('All departments')],
+                ...$departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+            ],
             'hotel' => (string) ($selected === null ? '' : $selected->hotel_id),
             'timeLimit' => (string) (($settings['time_limit_seconds'] ?? null) ? (int) round(((int) $settings['time_limit_seconds']) / 60) : ''),
             'questionCount' => (string) ($selected?->questions->count() ?? 0),
@@ -611,7 +616,7 @@ class TestsController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function preview(?Test $selected): array
+    private function preview(?Test $selected, User $viewer): array
     {
         $questions = $selected === null
             ? []
@@ -625,6 +630,12 @@ class TestsController extends Controller
             'options' => array_map(static fn (array $option): array => ['id' => $option['id'], 'text' => $option['text']], $question['options'] ?? []),
             'media' => $question['media'] ?? ['image' => null, 'audio' => null, 'video' => null],
             'questions' => $questions,
+            // The builder's Preview tab renders each question exactly as the
+            // learner's test runner does: test mode, so no correct answers,
+            // no listening scripts and no correctness colours (TEST-03).
+            'activities' => $selected === null
+                ? []
+                : $selected->questions->values()->map(fn (ActivityPlacement $placement): array => app(ActivityPresenter::class)->present($placement, $viewer, ActivityPresenter::MODE_TEST))->all(),
         ];
     }
 
