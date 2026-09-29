@@ -1,4 +1,5 @@
 import type { AudioPair, MediaRef } from './learning';
+import type { PronunciationResult } from './pronunciation';
 
 /*
  * Activities, attempts and tests as the learner pages receive them
@@ -20,7 +21,14 @@ export type ActivityKind =
     | 'picture_order'
     | 'multiple_choice'
     | 'speaking'
-    | 'writing';
+    | 'writing'
+    | 'short_answer'
+    | 'fill_blank'
+    | 'matching'
+    | 'ordering'
+    | 'audio_question'
+    | 'image_question'
+    | 'video_question';
 
 export type ActivityMode = 'practice' | 'test';
 
@@ -148,6 +156,68 @@ export type WritingItem = {
     min_words: number;
 };
 
+/*
+ * The client's ten types (client report 2026-09-29) share one flexible
+ * prompt: a question, a picture, an uploaded clip (`audio`), a sentence
+ * played from stored audio (`audio_text_audio`) and, for a video question,
+ * a video. Answers are text or pictures, each with an optional
+ * pronunciation.
+ */
+export type FlexiblePrompt = {
+    id: string;
+    question?: string | null;
+    image?: MediaRef | null;
+    audio?: MediaRef | null;
+    audio_text?: string | null;
+    audio_text_audio?: AudioPair;
+};
+
+export type FlexibleOption = {
+    id: string;
+    text: string;
+    image?: MediaRef | null;
+    audio_text?: string;
+    audio_text_audio?: AudioPair;
+};
+
+export type FlexibleChoiceItem = FlexiblePrompt & {
+    video?: MediaRef | null;
+    poster?: MediaRef | null;
+    option_style?: 'text' | 'image';
+    options: FlexibleOption[];
+    correct?: string;
+};
+
+export type ShortAnswerItem = FlexiblePrompt & { accepted?: string[] };
+
+export type FillBlankItem = FlexiblePrompt & {
+    /** `[[b1]]` marks each blank. */
+    sentence: string;
+    blanks: { id: string; accepted?: string[] }[];
+};
+
+export type MatchingItem = FlexiblePrompt & {
+    prompts: {
+        id: string;
+        text: string;
+        image?: MediaRef | null;
+        audio?: MediaRef | null;
+        text_audio?: AudioPair;
+    }[];
+    targets: { id: string; text: string; image?: MediaRef | null }[];
+    pairs?: Record<string, string>;
+};
+
+export type OrderingItem = FlexiblePrompt & {
+    sentences: {
+        id: string;
+        text: string;
+        image?: MediaRef | null;
+        text_audio?: AudioPair;
+    }[];
+    order?: string[];
+};
+
 type ItemMap = {
     listen_choose: ListenChooseItem;
     look_listen: LookListenItem;
@@ -160,6 +230,13 @@ type ItemMap = {
     multiple_choice: MultipleChoiceItem;
     speaking: SpeakingItem;
     writing: WritingItem;
+    short_answer: ShortAnswerItem;
+    fill_blank: FillBlankItem;
+    matching: MatchingItem;
+    ordering: OrderingItem;
+    audio_question: FlexibleChoiceItem;
+    image_question: FlexibleChoiceItem;
+    video_question: FlexibleChoiceItem;
 };
 
 export type ActivityItemOf<T extends ActivityKind> = ItemMap[T];
@@ -209,6 +286,8 @@ export type ActivityViewOf<T extends ActivityKind> = Extract<
 export type RecordingAnswer = {
     recording_media_id: number | null;
     duration_ms: number;
+    /** Typed instead, when the microphone could not be used (RESP-05). */
+    text?: string;
 };
 
 export type RawAnswer =
@@ -232,7 +311,28 @@ export type ActivityResult = {
     correct: Record<string, unknown>;
     timeTakenMs: number;
     aiStatus: string | null;
+    /** The judged spoken or written answer, once evaluated. */
+    feedback?: ActivityFeedback | null;
 };
+
+/** A pronunciation check, or the AI verdict on a spoken / written answer. */
+export type ActivityFeedback =
+    | { kind: 'pronunciation'; check: PronunciationResult }
+    | {
+          kind: 'writing' | 'speaking';
+          score: number | null;
+          maxScore: number | null;
+          summary: string;
+          criteria: {
+              key: string;
+              label: string;
+              score: number | null;
+              comment: string;
+          }[];
+          corrections: { original: string; corrected: string; note: string }[];
+          betterAnswer: string;
+          transcript: string | null;
+      };
 
 // ------------------------------------------------------------------ tests
 

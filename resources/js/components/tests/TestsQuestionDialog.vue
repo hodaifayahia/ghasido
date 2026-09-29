@@ -2,33 +2,30 @@
 import { router } from '@inertiajs/vue3';
 import type { FormDataConvertible } from '@inertiajs/core';
 import { ref, watch } from 'vue';
-import type { BlockActivityMode } from '@/components/activities/activityCatalog';
 import ActivityEditorDialog from '@/components/activities/ActivityEditorDialog.vue';
 import type { ActivitySaveData } from '@/components/activities/ActivityEditorDialog.vue';
-import { store, update } from '@/routes/activities';
 import type {
-    LessonActivityRow,
-    LessonBlockRow,
+    ActivityTypeKey,
     LessonsImageLibrary,
+    TestEditorQuestion,
 } from '@/types';
 
 /**
- * Add or edit one activity of a Practice block, or one question of a Quiz
- * block (PRAC-01..07, TEST-05), in the shared activity editor — the same
- * ten types the Pre/Post-test builder offers (client report 2026-09-29).
- * It saves through activities.store (placed in the block in the same
- * request) or activities.update, which writes a new version when the
- * content changes (DATA-11).
+ * Add or edit one Pre/Post-test question in the shared activity editor
+ * (TEST-05, TEST-06; client report 2026-09-29): the same ten types and
+ * fields as a lesson activity, one item per question. It posts to
+ * tests.questions.store / tests.questions.update, which validate the item
+ * for its type and write a new version on every change (DATA-11). A test
+ * question is never shown with Show Meaning or answers to the learner
+ * (CTRL-04, TEST-03): the runner strips them server-side.
  */
 type Props = {
-    block: LessonBlockRow;
-    /** Null to add a new one. */
-    activity: LessonActivityRow | null;
-    mode: Exclude<BlockActivityMode, 'test'>;
-    /** The position a new one takes (for its default title). */
+    /** Null to add a new question. */
+    question: TestEditorQuestion | null;
+    initialType: ActivityTypeKey | null;
+    storeUrl: string | null;
     number: number;
     library: LessonsImageLibrary;
-    readOnly: boolean;
 };
 
 const props = defineProps<Props>();
@@ -45,18 +42,14 @@ watch(open, (isOpen) => {
 });
 
 function save(data: ActivitySaveData): void {
-    saving.value = true;
-    errors.value = {};
-
-    const body = {
+    const body: Record<string, FormDataConvertible> = {
         title: data.title,
         prompt: data.prompt,
-        attempts_allowed: data.attempts_allowed,
         payload: data.payload as unknown as FormDataConvertible,
     };
     const options = {
-        preserveState: true,
         preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
             open.value = false;
         },
@@ -68,30 +61,33 @@ function save(data: ActivitySaveData): void {
         },
     };
 
-    if (props.activity === null) {
-        router.post(
-            store.url(),
-            { ...body, type: data.type, block_id: props.block.id },
-            options,
-        );
+    saving.value = true;
+    errors.value = {};
+
+    if (props.question !== null) {
+        router.patch(props.question.updateUrl, body, options);
 
         return;
     }
 
-    router.patch(update.url(props.activity.id), body, options);
+    if (props.storeUrl !== null) {
+        router.post(props.storeUrl, { ...body, type: data.type }, options);
+    }
 }
 </script>
 
 <template>
     <ActivityEditorDialog
         v-model:open="open"
-        :mode="mode"
-        :activity="activity"
+        mode="test"
+        :activity="question?.activity ?? null"
+        :initial-type="initialType"
         :number="number"
         :library="library"
-        :media="block.media"
-        :audio="block.audio"
-        :read-only="readOnly"
+        :media="question?.mediaMap ?? {}"
+        :audio="question?.audioMap ?? {}"
+        :chips="{ lessonId: null, reloadOnly: ['editor'] }"
+        :read-only="false"
         :saving="saving"
         :errors="errors"
         @save="save"

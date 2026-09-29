@@ -157,7 +157,7 @@ class FakeProvidersTest extends TestCase
 
         $this->assertSame(77.5, $evaluation->overallScore());
         $this->assertStringContainsString('12,000 DZD', $evaluation->betterAnswer);
-        $this->assertSame(['criteria', 'better_answer', 'summary'], array_keys($evaluation->toArray()));
+        $this->assertSame(['criteria', 'better_answer', 'summary', 'corrections'], array_keys($evaluation->toArray()));
     }
 
     // ------------------------------------------------------------------ tts

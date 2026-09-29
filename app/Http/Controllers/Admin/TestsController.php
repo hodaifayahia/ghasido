@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ActivityType;
 use App\Enums\ContentStatus;
 use App\Enums\MediaLibrary;
 use App\Enums\ResultsVisibility;
@@ -23,6 +24,7 @@ use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
+use App\Services\Content\BlockShaper;
 use App\Services\Content\MediaService;
 use App\Services\Tests\QuestionImport;
 use App\Services\Tests\TestAudio;
@@ -171,7 +173,11 @@ class TestsController extends Controller
 
         /** @var User $actor */
         $actor = $request->user();
-        $tests->addQuestion($test, $request->questionData(), $actor);
+        if ($request->isActivity()) {
+            $tests->addActivity($test, $request->activityData(), $actor);
+        } else {
+            $tests->addQuestion($test, $request->questionData(), $actor);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question added.')]);
 
@@ -225,7 +231,11 @@ class TestsController extends Controller
         Gate::authorize('update', $test);
         abort_unless($placement->placeable_type === $test->getMorphClass() && (int) $placement->placeable_id === (int) $test->id, 404);
 
-        $tests->updateQuestion($placement, $request->questionData());
+        if ($request->isActivity()) {
+            $tests->updateActivity($placement, $request->activityData());
+        } else {
+            $tests->updateQuestion($placement, $request->questionData());
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question saved as a new version.')]);
 
@@ -489,31 +499,11 @@ class TestsController extends Controller
             'attemptCount' => $selected === null ? 0 : $selected->attempts()->count(),
             'description' => $description,
             'descriptionCount' => strlen($description).'/300',
-            'kinds' => [
-                ['value' => 'multiple_choice', 'label' => __('Multiple Choice')],
-                ['value' => 'true_false', 'label' => __('True / False')],
-                ['value' => 'fill_blank', 'label' => __('Fill in the Blank')],
-                ['value' => 'matching', 'label' => __('Matching')],
-                ['value' => 'short_answer', 'label' => __('Short Answer')],
-                ['value' => 'audio', 'label' => __('Audio Question')],
-                ['value' => 'image', 'label' => __('Image Question')],
-                ['value' => 'video', 'label' => __('Video Question')],
-            ],
-            'activeKind' => 'multiple_choice',
-            // The per-question type menu also names the two kinds only an AI
-            // draft creates, so such a question shows its real type.
-            'questionKinds' => [
-                ['value' => 'multiple_choice', 'label' => __('Multiple Choice')],
-                ['value' => 'true_false', 'label' => __('True / False')],
-                ['value' => 'fill_blank', 'label' => __('Fill in the Blank')],
-                ['value' => 'matching', 'label' => __('Matching')],
-                ['value' => 'short_answer', 'label' => __('Short Answer')],
-                ['value' => 'audio', 'label' => __('Audio Question')],
-                ['value' => 'image', 'label' => __('Image Question')],
-                ['value' => 'video', 'label' => __('Video Question')],
-                ['value' => 'speaking', 'label' => __('Speaking')],
-                ['value' => 'ordering', 'label' => __('Ordering')],
-            ],
+            // Exactly the client's ten question types, the same ten the
+            // lesson activity chooser offers (client report 2026-09-29).
+            'kinds' => $this->kinds(),
+            'activeKind' => ActivityType::MultipleChoice->value,
+            'questionKinds' => $this->kinds(),
             'ai' => $this->aiPanel($selected),
             'questions' => $selected === null ? [] : $selected->questions->map(fn (ActivityPlacement $placement, int $index): array => $this->question($placement, $index + 1))->values()->all(),
             'settings' => [
@@ -576,7 +566,12 @@ class TestsController extends Controller
                 'correct' => (string) ($option['id'] ?? '') === $correct,
             ], $options)),
             'media' => $media,
-            'typeLabel' => $activity?->type->label() ?? __('Question'),
+            'typeLabel' => $activity?->type->builderLabel() ?? __('Question'),
+            // What the shared activity editor opens with: the activity, and
+            // the media and stored audio its item names (MED-02, TTS-02).
+            'activity' => $activity === null ? null : app(BlockShaper::class)->activityRow($activity, $placement),
+            'mediaMap' => $activity === null ? (object) [] : (object) app(BlockShaper::class)->mediaMap(app(BlockShaper::class)->mediaIdsIn($activity->payload ?? [])),
+            'audioMap' => $activity === null ? (object) [] : (object) app(BlockShaper::class)->audioMap(app(TestAudio::class)->scriptsOf($activity)),
             'aiDraft' => Test::isAiDraft($placement),
             'releaseUrl' => route('tests.questions.release', ['test' => $placement->placeable_id, 'placement' => $placement->id]),
             'details' => $this->questionDetails($item),
@@ -735,6 +730,19 @@ class TestsController extends Controller
             'failedReason' => $state['failedReason'],
             'generateUrl' => route('tests.questions.audio', ['test' => $placement->placeable_id, 'placement' => $placement->id]),
         ];
+    }
+
+    /**
+     * The client's ten question types, as the builder lists them.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private function kinds(): array
+    {
+        return array_map(
+            static fn (ActivityType $type): array => ['value' => $type->value, 'label' => $type->builderLabel()],
+            ActivityType::builderTypes(),
+        );
     }
 
     private function assertOnTest(Test $test, ActivityPlacement $placement): void

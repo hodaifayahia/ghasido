@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { index } from '@/routes/media';
 import type {
@@ -33,6 +34,8 @@ type Props = {
     tabs: LessonLibraryTab[];
     categories: LessonFilterOption[];
     initialTab?: string;
+    /** Audio and video slots browse clips of their own kind. */
+    kind?: 'image' | 'audio' | 'video';
 };
 
 type IndexResponse = {
@@ -44,7 +47,14 @@ type IndexResponse = {
 
 const props = withDefaults(defineProps<Props>(), {
     initialTab: 'guesvia-library',
+    kind: 'image',
 });
+
+const titles: Record<NonNullable<Props['kind']>, string> = {
+    image: tk('Browse Images'),
+    audio: tk('Browse Audio'),
+    video: tk('Browse Videos'),
+};
 
 const open = defineModel<boolean>('open', { required: true });
 
@@ -75,6 +85,7 @@ async function load(): Promise<void> {
                     libCategory: category.value,
                     libSearch: search.value,
                     page: page.value,
+                    kind: props.kind,
                 },
             }),
         );
@@ -135,9 +146,11 @@ function onUploaded(image: LessonLibraryImage): void {
 <template>
     <LessonsModal
         v-model:open="open"
-        :title="$t('Browse Images')"
+        :title="$t(titles[kind])"
         :description="
-            $t('Choose an image from the library, or upload a new one.')
+            kind === 'image'
+                ? $t('Choose an image from the library, or upload a new one.')
+                : $t('Choose a file from the library, or upload a new one.')
         "
         size="lg"
     >
@@ -237,8 +250,53 @@ function onUploaded(image: LessonLibraryImage): void {
                 v-else-if="images.length === 0"
                 class="text-ink-slate rounded-md px-1 py-6 text-center text-[12.5px]"
             >
-                {{ $t('No image matches. Upload one, or clear the search.') }}
+                {{
+                    kind === 'image'
+                        ? $t(
+                              'No image matches. Upload one, or clear the search.',
+                          )
+                        : $t(
+                              'No file matches. Upload one, or clear the search.',
+                          )
+                }}
             </p>
+
+            <ul v-else-if="kind !== 'image'" class="grid gap-2">
+                <li
+                    v-for="clip in images"
+                    :key="clip.id"
+                    class="border-line flex flex-wrap items-center gap-3 rounded-md border p-2"
+                >
+                    <audio
+                        v-if="kind === 'audio'"
+                        :src="clip.url ?? undefined"
+                        controls
+                        preload="none"
+                        class="h-9 w-full max-w-60"
+                    />
+                    <video
+                        v-else
+                        :src="clip.url ?? undefined"
+                        controls
+                        preload="none"
+                        class="h-20 w-32 rounded-sm bg-black"
+                    />
+                    <span
+                        class="text-ink min-w-0 flex-1 truncate text-[12.5px]"
+                    >
+                        {{ clip.label }}
+                    </span>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 h-9 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                        :data-test="`picker-clip-${clip.id}`"
+                        @click="choose(clip)"
+                    >
+                        {{ $t('Use') }}
+                    </Button>
+                </li>
+            </ul>
 
             <div
                 v-else
@@ -303,6 +361,10 @@ function onUploaded(image: LessonLibraryImage): void {
             </div>
         </div>
 
-        <LessonsUploadDialog v-model:open="uploadOpen" @uploaded="onUploaded" />
+        <LessonsUploadDialog
+            v-model:open="uploadOpen"
+            :kind="kind"
+            @uploaded="onUploaded"
+        />
     </LessonsModal>
 </template>

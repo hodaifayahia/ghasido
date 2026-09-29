@@ -9,12 +9,12 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import type { BlockActivityMode } from '@/components/lessons/activities/activityCatalog';
+import type { BlockActivityMode } from '@/components/activities/activityCatalog';
 import {
     activitySummary,
     activityTypeSpec,
     correctAnswer,
-} from '@/components/lessons/activities/activityCatalog';
+} from '@/components/activities/activityCatalog';
 import LessonsActivityDeleteDialog from '@/components/lessons/activities/LessonsActivityDeleteDialog.vue';
 import LessonsActivityDialog from '@/components/lessons/activities/LessonsActivityDialog.vue';
 import { toneClass } from '@/components/lessons/lessonsBlocks';
@@ -38,7 +38,7 @@ import type {
  */
 type Props = {
     block: LessonBlockRow;
-    mode: BlockActivityMode;
+    mode: Exclude<BlockActivityMode, 'test'>;
     library: LessonsImageLibrary;
     readOnly: boolean;
 };

@@ -15,7 +15,8 @@ use App\Models\User;
  *
  * The items come from the CURRENT version's payload with media ids resolved
  * and every playable sentence paired with its clips. In test mode the
- * answers (`correct`, `order`, `pairs`) and every Arabic field are stripped
+ * answers (`correct`, `order`, `pairs`, the `accepted` answers of a short
+ * answer or of every blank) and every Arabic field are stripped
  * before the payload leaves the server: on a test page, "disabled" is
  * otherwise only a UI state (CTRL-04, TEST-03).
  */
@@ -26,7 +27,7 @@ class ActivityPresenter
     public const MODE_TEST = 'test';
 
     /** @var list<string> */
-    private const array ANSWER_KEYS = ['correct', 'order', 'pairs', 'model_answer'];
+    private const array ANSWER_KEYS = ['correct', 'order', 'pairs', 'accepted', 'model_answer'];
 
     /**
      * A listening question's script, stripped from a test page so only the
@@ -129,12 +130,38 @@ class ActivityPresenter
         foreach ($version->items() as $item) {
             $id = (string) ($item['id'] ?? '');
 
+            // Fill in the blank: the first accepted word of every blank.
+            if (is_array($item['blanks'] ?? null)) {
+                $answers[$id] = self::blankAnswers($item['blanks']);
+
+                continue;
+            }
+
             foreach (self::ANSWER_KEYS as $key) {
                 if (array_key_exists($key, $item)) {
                     $answers[$id] = $item[$key];
 
                     break;
                 }
+            }
+        }
+
+        return $answers;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $blanks
+     * @return array<string, string>
+     */
+    private static function blankAnswers(array $blanks): array
+    {
+        $answers = [];
+
+        foreach ($blanks as $blank) {
+            if (is_array($blank) && is_scalar($blank['id'] ?? null)) {
+                $accepted = is_array($blank['accepted'] ?? null) ? $blank['accepted'] : [];
+                $first = $accepted[0] ?? '';
+                $answers[(string) $blank['id']] = is_scalar($first) ? (string) $first : '';
             }
         }
 

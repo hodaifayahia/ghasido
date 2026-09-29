@@ -2,6 +2,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { ArrowDown, ArrowUp, Check, X } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
+import ActivityFeedbackPanel from '@/components/learning/activities/ActivityFeedbackPanel.vue';
 import ActivityDots from '@/components/learning/ActivityDots.vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import CheckButton from '@/components/learning/CheckButton.vue';
@@ -33,9 +34,15 @@ import MeaningText from '@/components/learning/meaning/MeaningText.vue';
  * item becomes one select per prompt, an ordering item a list with move
  * up/down buttons (the keyboard/tap alternative every drag needs, ACC-03),
  * speaking the recorder (uploaded first, DATA-02), writing a textarea.
- * "Check" posts every answer verbatim as one attempt; the page comes back
- * with `result` and the rows show correct / not quite with icon and text.
- * In test mode there is no Show Meaning and no correctness (TEST-03).
+ * The client's ten types (client report 2026-09-29) add a flexible prompt
+ * (picture, uploaded clip, generated audio, video), picture answers with an
+ * optional pronunciation, matching pairs, a typed short answer and typed
+ * blanks inside the sentence; a speaking item with a sentence to say is
+ * checked for pronunciation. "Check" posts every answer verbatim as one
+ * attempt; the page comes back with `result` and the rows show correct /
+ * not quite with icon and text, and a spoken or written answer shows its
+ * evaluation once the queued job has run (PERF-04). In test mode there is
+ * no Show Meaning and no correctness (TEST-03).
  */
 type Props = {
     activity: ActivityView;
@@ -113,8 +120,20 @@ type Option = {
     text?: string;
     audio_text?: string;
     audio_text_audio?: AudioPair;
+    text_audio?: AudioPair;
     image?: MediaRef | null;
+    audio?: MediaRef | null;
 };
+
+/** The words shown for an option, a matching side or a target. */
+function wording(option: Option): string {
+    return option.label ?? option.text ?? option.audio_text ?? '';
+}
+
+/** Answers drawn as pictures (an image-style flexible question). */
+function pictureOptions(item: ActivityItem): boolean {
+    return loose(item)['option_style'] === 'image';
+}
 
 function options(item: ActivityItem): Option[] {
     const value = loose(item)['options'];
@@ -216,13 +235,142 @@ function written(item: ActivityItem): string {
     const stored = answers[item.id];
 
     return stored && typeof stored === 'object' && 'text' in stored
-        ? stored.text
+        ? (stored.text ?? '')
         : '';
 }
 
 function setWritten(item: ActivityItem, value: string): void {
     answers[item.id] = { text: value };
 }
+
+// ------------------------------------------------------ typed answers
+
+function typed(item: ActivityItem): string {
+    const stored = answers[item.id];
+
+    return typeof stored === 'string' ? stored : '';
+}
+
+function setTyped(item: ActivityItem, value: string): void {
+    answers[item.id] = value;
+}
+
+type Segment = { kind: 'text'; text: string } | { kind: 'blank'; id: string };
+
+/** The fill-in sentence cut at its `[[id]]` blanks. */
+function segments(item: ActivityItem): Segment[] {
+    const sentence = text(item, 'sentence') ?? '';
+    const parts: Segment[] = [];
+    let last = 0;
+
+    for (const match of sentence.matchAll(/\[\[([A-Za-z0-9_-]+)\]\]/gu)) {
+        const index = match.index ?? 0;
+
+        if (index > last) {
+            parts.push({ kind: 'text', text: sentence.slice(last, index) });
+        }
+
+        parts.push({ kind: 'blank', id: match[1] ?? '' });
+        last = index + match[0].length;
+    }
+
+    if (last < sentence.length) {
+        parts.push({ kind: 'text', text: sentence.slice(last) });
+    }
+
+    return parts;
+}
+
+function blankIds(item: ActivityItem): string[] {
+    return segments(item)
+        .filter(
+            (part): part is { kind: 'blank'; id: string } =>
+                part.kind === 'blank',
+        )
+        .map((part) => part.id);
+}
+
+function blankValue(item: ActivityItem, id: string): string {
+    const stored = answers[item.id];
+
+    return stored &&
+        typeof stored === 'object' &&
+        !Array.isArray(stored) &&
+        !('recording_media_id' in stored) &&
+        !('text' in stored)
+        ? ((stored as Record<string, string>)[id] ?? '')
+        : '';
+}
+
+function setBlank(item: ActivityItem, id: string, value: string): void {
+    const stored = answers[item.id];
+    const current =
+        stored &&
+        typeof stored === 'object' &&
+        !Array.isArray(stored) &&
+        !('recording_media_id' in stored) &&
+        !('text' in stored)
+            ? (stored as Record<string, string>)
+            : {};
+
+    answers[item.id] = { ...current, [id]: value };
+}
+
+/** The accepted answer revealed after a wrong practice answer. */
+function revealed(item: ActivityItem): string | null {
+    if (isTest.value || props.result === null) {
+        return null;
+    }
+
+    const correct = props.result.correct[item.id];
+
+    if (Array.isArray(correct)) {
+        return correct.filter((entry) => typeof entry === 'string').join(' / ');
+    }
+
+    if (
+        props.activity.type === 'fill_blank' &&
+        correct !== null &&
+        typeof correct === 'object'
+    ) {
+        return Object.values(correct as Record<string, unknown>)
+            .filter((entry) => typeof entry === 'string')
+            .join(', ');
+    }
+
+    return null;
+}
+
+// ------------------------------------------------ speaking without a mic
+
+/** Items whose microphone is refused: the learner types instead (RESP-05). */
+const typing = reactive<Record<string, boolean>>({});
+
+function spokenText(item: ActivityItem): string {
+    const stored = answers[item.id];
+
+    return stored &&
+        typeof stored === 'object' &&
+        'recording_media_id' in stored
+        ? (stored.text ?? '')
+        : '';
+}
+
+function setSpokenText(item: ActivityItem, value: string): void {
+    answers[item.id] = {
+        recording_media_id: null,
+        duration_ms: 0,
+        text: value,
+    };
+}
+
+const evaluated = computed(
+    () =>
+        !isTest.value &&
+        props.result !== null &&
+        (props.activity.type === 'speaking' ||
+            props.activity.type === 'writing'),
+);
 
 function isAnswered(item: ActivityItem): boolean {
     const stored: RawAnswer | undefined = answers[item.id];
@@ -233,19 +381,31 @@ function isAnswered(item: ActivityItem): boolean {
 
     switch (props.activity.type) {
         case 'listen_match':
+        case 'matching':
             return (
                 typeof stored === 'object' &&
                 !Array.isArray(stored) &&
                 Object.keys(stored).length === prompts(item).length
             );
+        case 'short_answer':
+            return typeof stored === 'string' && stored.trim() !== '';
+        case 'fill_blank':
+            return blankIds(item).every(
+                (id) => blankValue(item, id).trim() !== '',
+            );
         case 'writing':
             return (
                 typeof stored === 'object' &&
                 'text' in stored &&
-                stored.text.trim() !== ''
+                (stored.text ?? '').trim() !== ''
             );
         case 'speaking':
-            return typeof stored === 'object' && 'recording_media_id' in stored;
+            return (
+                typeof stored === 'object' &&
+                'recording_media_id' in stored &&
+                (stored.recording_media_id !== null ||
+                    (stored.text ?? '').trim() !== '')
+            );
         default:
             return true;
     }
@@ -440,7 +600,10 @@ function letter(index: number): string {
                 :key="key"
             >
                 <MeaningText
-                    v-if="text(item, key)"
+                    v-if="
+                        text(item, key) &&
+                        !(key === 'sentence' && activity.type === 'fill_blank')
+                    "
                     :text="text(item, key) ?? ''"
                     :class="
                         cn(
@@ -450,8 +613,18 @@ function letter(index: number): string {
                     "
                 />
             </template>
+            <video
+                v-if="media(item, 'video')"
+                :src="media(item, 'video')?.url"
+                :poster="media(item, 'poster')?.url"
+                controls
+                playsinline
+                preload="metadata"
+                class="max-h-80 w-full rounded-md bg-black"
+                data-test="activity-video"
+            />
             <img
-                v-if="media(item, 'image') || media(item, 'poster')"
+                v-else-if="media(item, 'image') || media(item, 'poster')"
                 :src="(media(item, 'image') ?? media(item, 'poster'))?.url"
                 :alt="
                     (media(item, 'image') ?? media(item, 'poster'))?.alt ?? ''
@@ -459,6 +632,43 @@ function letter(index: number): string {
                 decoding="async"
                 class="max-h-72 w-full rounded-md object-cover"
             />
+            <img
+                v-if="media(item, 'video') && media(item, 'image')"
+                :src="media(item, 'image')?.url"
+                :alt="media(item, 'image')?.alt ?? ''"
+                decoding="async"
+                class="max-h-72 w-full rounded-md object-cover"
+            />
+            <div
+                v-if="media(item, 'audio')"
+                class="flex items-center gap-3"
+                data-test="activity-prompt-clip"
+            >
+                <AudioButton :src="media(item, 'audio')?.url ?? null" />
+            </div>
+            <!-- Speaking: the sentence to say, with its audio. -->
+            <div
+                v-if="text(item, 'expected_text')"
+                class="bg-brand-50 flex flex-wrap items-center gap-3 rounded-lg p-4"
+            >
+                <p class="text-ink min-w-0 flex-1 text-lg leading-7">
+                    <span class="text-brand-700 block text-sm font-semibold">
+                        {{ $t('Say this sentence:') }}
+                    </span>
+                    {{ text(item, 'expected_text') }}
+                </p>
+                <AudioButton
+                    v-if="audio(item, 'expected_text_audio')"
+                    :src="audio(item, 'expected_text_audio')?.normal"
+                    :text="text(item, 'expected_text') ?? undefined"
+                />
+                <AudioButton
+                    v-if="audio(item, 'expected_text_audio')"
+                    variant="slow"
+                    :src="audio(item, 'expected_text_audio')?.slow"
+                    :text="text(item, 'expected_text') ?? undefined"
+                />
+            </div>
             <div
                 v-if="
                     audio(item, 'audio_text_audio') ||
@@ -516,9 +726,7 @@ function letter(index: number): string {
                 <MeaningRow
                     v-for="(option, optionIndex) in options(item)"
                     :key="option.id"
-                    :text="
-                        option.label ?? option.text ?? option.audio_text ?? ''
-                    "
+                    :text="wording(option)"
                 >
                     <OptionRow
                         :id="option.id"
@@ -533,10 +741,17 @@ function letter(index: number): string {
                             <img
                                 v-if="option.image"
                                 :src="option.image.url"
-                                :alt="option.image.alt ?? ''"
+                                :alt="option.image.alt ?? wording(option)"
                                 loading="lazy"
                                 decoding="async"
-                                class="size-16 shrink-0 rounded-sm object-cover"
+                                :class="
+                                    cn(
+                                        'shrink-0 rounded-sm object-cover',
+                                        pictureOptions(item)
+                                            ? 'size-24 md:size-28'
+                                            : 'size-16',
+                                    )
+                                "
                             />
                             <AudioButton
                                 v-if="option.audio_text_audio"
@@ -544,15 +759,44 @@ function letter(index: number): string {
                                 :src="option.audio_text_audio.normal"
                                 :text="option.audio_text"
                             />
-                            <span>{{
-                                option.label ?? option.text ?? option.audio_text
-                            }}</span>
+                            <span>{{ wording(option) }}</span>
                         </span>
                     </OptionRow>
                 </MeaningRow>
             </div>
 
-            <!-- Listen & match -->
+            <!-- Matching: the right-hand sides, lettered -->
+            <ul
+                v-if="
+                    prompts(item).length > 0 &&
+                    targets(item).some((target) => target.image)
+                "
+                class="grid grid-cols-2 gap-3 sm:grid-cols-3"
+                :aria-label="$t('Answers to match')"
+            >
+                <li
+                    v-for="(target, targetIndex) in targets(item)"
+                    :key="target.id"
+                    class="border-line flex flex-col items-center gap-2 rounded-lg border p-2 text-center"
+                >
+                    <img
+                        v-if="target.image"
+                        :src="target.image.url"
+                        :alt="target.image.alt ?? wording(target)"
+                        loading="lazy"
+                        decoding="async"
+                        class="aspect-[4/3] w-full rounded-sm object-cover"
+                    />
+                    <span class="text-ink text-sm font-semibold">
+                        {{ letter(targetIndex) }}
+                        <template v-if="wording(target)">
+                            — {{ wording(target) }}
+                        </template>
+                    </span>
+                </li>
+            </ul>
+
+            <!-- Listen & match / Matching -->
             <ol
                 v-if="prompts(item).length > 0"
                 class="flex list-none flex-col gap-3"
@@ -562,14 +806,35 @@ function letter(index: number): string {
                     :key="prompt.id"
                     class="border-line flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3"
                 >
+                    <img
+                        v-if="prompt.image"
+                        :src="prompt.image.url"
+                        :alt="prompt.image.alt ?? wording(prompt)"
+                        loading="lazy"
+                        decoding="async"
+                        class="size-16 shrink-0 rounded-sm object-cover"
+                    />
                     <AudioButton
+                        v-if="prompt.audio"
                         size="sm"
-                        :src="prompt.audio_text_audio?.normal"
+                        :src="prompt.audio.url"
+                    />
+                    <AudioButton
+                        v-else-if="
+                            prompt.audio_text_audio?.normal ||
+                            prompt.text_audio?.normal ||
+                            prompt.audio_text
+                        "
+                        size="sm"
+                        :src="
+                            prompt.audio_text_audio?.normal ??
+                            prompt.text_audio?.normal
+                        "
                         :text="prompt.audio_text"
                     />
                     <MeaningText
                         as="span"
-                        :text="prompt.audio_text ?? ''"
+                        :text="wording(prompt)"
                         class="text-ink text-base"
                         wrapper-class="flex-1"
                     />
@@ -579,7 +844,7 @@ function letter(index: number): string {
                         class="border-line-strong text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 bg-surface min-h-11 rounded-sm border px-3 text-base focus-visible:ring-3 focus-visible:outline-none"
                         :aria-label="
                             $t('Match :word', {
-                                word: prompt.audio_text ?? '',
+                                word: wording(prompt),
                             })
                         "
                         @change="
@@ -592,11 +857,15 @@ function letter(index: number): string {
                     >
                         <option value="" disabled>{{ $t('Choose…') }}</option>
                         <option
-                            v-for="target in targets(item)"
+                            v-for="(target, targetIndex) in targets(item)"
                             :key="target.id"
                             :value="target.id"
                         >
-                            {{ target.label }}
+                            {{
+                                targets(item).some((entry) => entry.image)
+                                    ? `${letter(targetIndex)}${wording(target) ? ` — ${wording(target)}` : ''}`
+                                    : wording(target)
+                            }}
                         </option>
                     </select>
                 </li>
@@ -661,17 +930,110 @@ function letter(index: number): string {
                 </li>
             </ol>
 
+            <!-- Short answer -->
+            <div
+                v-if="activity.type === 'short_answer'"
+                class="flex flex-col gap-2"
+            >
+                <label
+                    :for="`typed-${item.id}`"
+                    class="text-ink text-sm font-semibold"
+                >
+                    {{ $t('Your answer') }}
+                </label>
+                <input
+                    :id="`typed-${item.id}`"
+                    :value="typed(item)"
+                    type="text"
+                    :disabled="locked"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    data-test="short-answer-input"
+                    class="border-line-strong text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 bg-surface min-h-12 rounded-sm border px-3 text-base focus-visible:ring-3 focus-visible:outline-none"
+                    @input="
+                        setTyped(
+                            item,
+                            ($event.target as HTMLInputElement).value,
+                        )
+                    "
+                />
+            </div>
+
+            <!-- Fill in the blank: an input in every blank -->
+            <p
+                v-if="activity.type === 'fill_blank'"
+                class="text-ink text-lg leading-[2.6]"
+                data-test="fill-blank-sentence"
+            >
+                <template
+                    v-for="(part, partIndex) in segments(item)"
+                    :key="partIndex"
+                >
+                    <span v-if="part.kind === 'text'">{{ part.text }}</span>
+                    <input
+                        v-else
+                        :value="blankValue(item, part.id)"
+                        type="text"
+                        :disabled="locked"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        :aria-label="
+                            $t('Blank :number', {
+                                number: blankIds(item).indexOf(part.id) + 1,
+                            })
+                        "
+                        :data-test="`fill-blank-${part.id}`"
+                        class="border-line-strong text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 bg-surface mx-1 inline-block min-h-11 w-32 max-w-full rounded-sm border px-2 align-middle text-base focus-visible:ring-3 focus-visible:outline-none"
+                        @input="
+                            setBlank(
+                                item,
+                                part.id,
+                                ($event.target as HTMLInputElement).value,
+                            )
+                        "
+                    />
+                </template>
+            </p>
+
             <!-- Speaking -->
             <div
                 v-if="activity.type === 'speaking'"
                 class="flex flex-col items-center gap-4"
             >
                 <RecorderButton
+                    v-if="!locked"
                     :max-seconds="Number(loose(item)['max_seconds'] ?? 20)"
                     size="md"
                     @recorded="onRecorded(item, $event)"
                     @reset="onRecordingReset(item)"
+                    @unavailable="typing[item.id] = true"
                 />
+                <div
+                    v-if="typing[item.id]"
+                    class="flex w-full max-w-md flex-col gap-2"
+                >
+                    <label
+                        :for="`spoken-${item.id}`"
+                        class="text-ink text-sm font-semibold"
+                    >
+                        {{ $t('Type what you would say') }}
+                    </label>
+                    <textarea
+                        :id="`spoken-${item.id}`"
+                        :value="spokenText(item)"
+                        :disabled="locked"
+                        rows="3"
+                        class="border-line-strong text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 bg-surface rounded-sm border px-3 py-2 text-base leading-6 focus-visible:ring-3 focus-visible:outline-none"
+                        @input="
+                            setSpokenText(
+                                item,
+                                ($event.target as HTMLTextAreaElement).value,
+                            )
+                        "
+                    />
+                </div>
                 <RecordingPlayer
                     v-if="recordings[item.id]"
                     :src="recordings[item.id]?.url ?? null"
@@ -751,7 +1113,26 @@ function letter(index: number): string {
                           : $t('Answer saved')
                 }}
             </p>
+            <p
+                v-if="
+                    result &&
+                    result.perItem[item.id] === false &&
+                    revealed(item)
+                "
+                class="text-ink-slate text-base"
+            >
+                {{ $t('Correct answer') }}:
+                <span class="text-success-text font-semibold">
+                    {{ revealed(item) }}
+                </span>
+            </p>
         </div>
+
+        <ActivityFeedbackPanel
+            v-if="evaluated && result"
+            :status="result.aiStatus"
+            :feedback="result.feedback"
+        />
 
         <footer class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Lessons;
 
+use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Lessons\StoreMediaRequest;
@@ -40,8 +41,12 @@ class MediaController extends Controller
         };
         $category = (string) $request->query('libCategory', ContentTree::ALL_CATEGORIES);
         $search = trim((string) $request->query('libSearch', ''));
+        // Audio and video slots browse their own kind (client report
+        // 2026-09-29: "choose from the Library").
+        $kind = MediaKind::tryFrom((string) $request->query('kind', 'image'));
+        $kind = in_array($kind, [MediaKind::Audio, MediaKind::Video], true) ? $kind : MediaKind::Image;
 
-        $page = $media->library($user, $libraries, $category, $search)
+        $page = $media->library($user, $libraries, $category, $search, $kind)
             ->paginate(24)
             ->withQueryString();
 

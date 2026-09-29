@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Models\MediaAsset;
 use Illuminate\Foundation\Http\FormRequest;
@@ -30,7 +31,9 @@ class StoreMediaRequest extends FormRequest
         $kind = (string) $this->input('kind', 'image');
 
         $file = match ($kind) {
-            'audio' => File::types(['mp3', 'wav', 'm4a', 'webm'])->max(20 * 1024),
+            // webm / mp4 / ogg: a clip recorded in the browser (Chrome,
+            // Safari, Firefox).
+            'audio' => File::types(['mp3', 'wav', 'm4a', 'webm', 'mp4', 'ogg', 'oga'])->max(20 * 1024),
             'video' => File::types(['mp4', 'webm'])->max(200 * 1024),
             default => File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5 * 1024),
         };
@@ -69,13 +72,15 @@ class StoreMediaRequest extends FormRequest
     }
 
     /**
-     * @return array{alt_text: string|null, library: MediaLibrary, category: string|null, label: string|null}
+     * @return array{alt_text: string|null, library: MediaLibrary, category: string|null, label: string|null, kind: MediaKind|null}
      */
     public function mediaData(): array
     {
         $library = $this->validated('library');
+        $kind = $this->validated('kind');
 
         return [
+            'kind' => is_string($kind) ? MediaKind::tryFrom($kind) : null,
             'alt_text' => is_string($this->validated('alt_text')) ? $this->validated('alt_text') : null,
             'library' => is_string($library) ? MediaLibrary::from($library) : MediaLibrary::MyImages,
             'category' => is_string($this->validated('category')) ? $this->validated('category') : null,

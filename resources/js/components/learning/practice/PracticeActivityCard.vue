@@ -13,6 +13,7 @@ import {
     MessageCircle,
     Mic,
     PenLine,
+    TextCursorInput,
     Video,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -46,6 +47,7 @@ const icons: Record<string, Component> = {
     ListChecks,
     Mic,
     PenLine,
+    TextCursorInput,
 };
 
 const icon = computed(() => icons[props.card.icon] ?? ListChecks);

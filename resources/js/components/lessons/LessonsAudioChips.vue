@@ -25,10 +25,22 @@ type Props = {
     texts: string[];
     audio: Record<string, LessonAudioPair>;
     readOnly?: boolean;
+    /**
+     * The lesson whose accent voice renders the clips. Left out, it is read
+     * from the lesson builder's page; null forces the platform voice (a
+     * Pre/Post-test question).
+     */
+    lessonId?: number | null;
+    /** The page props to reload while clips are generating. */
+    reloadOnly?: string[];
     class?: HTMLAttributes['class'];
 };
 
-const props = withDefaults(defineProps<Props>(), { readOnly: false });
+const props = withDefaults(defineProps<Props>(), {
+    readOnly: false,
+    lessonId: undefined,
+    reloadOnly: () => ['lessonBlocks'],
+});
 
 /*
  * The lesson the builder is editing, when there is one: its clips are
@@ -38,6 +50,10 @@ const props = withDefaults(defineProps<Props>(), { readOnly: false });
  */
 const page = usePage();
 const lessonId = computed<number | null>(() => {
+    if (props.lessonId !== undefined) {
+        return props.lessonId;
+    }
+
     const editor = (page.props as Record<string, unknown>).editor as
         | { id?: unknown }
         | undefined;
@@ -134,7 +150,7 @@ function startPolling(): void {
         }
 
         router.reload({
-            only: ['lessonBlocks'],
+            only: props.reloadOnly,
         });
     }, 2000);
 }

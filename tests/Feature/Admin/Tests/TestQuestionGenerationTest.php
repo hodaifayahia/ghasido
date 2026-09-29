@@ -200,7 +200,7 @@ class TestQuestionGenerationTest extends TestCase
             ->get(route('tests', ['test' => $test->id]))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('editor.questions.0.audio.status', 'done')
-                ->where('editor.questions.0.kind', 'audio')
+                ->where('editor.questions.0.kind', 'audio_question')
             );
 
         $this->actingAs($this->admin)

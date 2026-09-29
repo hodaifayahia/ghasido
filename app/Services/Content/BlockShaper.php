@@ -238,6 +238,20 @@ class BlockShaper
     }
 
     /**
+     * Every media id an activity payload or block settings name.
+     *
+     * @param  array<mixed>  $payload
+     * @return list<int>
+     */
+    public function mediaIdsIn(array $payload): array
+    {
+        $ids = [];
+        $this->collectMediaIds($payload, $ids);
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
      * @return list<int>
      */
     private function blockMediaIds(Block $block): array
@@ -276,7 +290,7 @@ class BlockShaper
 
     /**
      * Media references in a settings or payload contract are integers under
-     * the keys image / video / poster, at any depth (spec 0003 B.9, B.10).
+     * the keys image / video / poster / audio, at any depth (spec 0003 B.9, B.10).
      *
      * @param  array<mixed>  $node
      * @param  list<int>  $ids
@@ -290,7 +304,7 @@ class BlockShaper
                 continue;
             }
 
-            if (in_array($key, ['image', 'video', 'poster'], true) && is_numeric($value) && (int) $value > 0) {
+            if (in_array($key, ['image', 'video', 'poster', 'audio'], true) && is_numeric($value) && (int) $value > 0) {
                 $ids[] = (int) $value;
             }
         }

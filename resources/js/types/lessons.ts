@@ -330,7 +330,14 @@ export type ActivityTypeKey =
     | 'picture_order'
     | 'multiple_choice'
     | 'speaking'
-    | 'writing';
+    | 'writing'
+    | 'short_answer'
+    | 'fill_blank'
+    | 'matching'
+    | 'ordering'
+    | 'audio_question'
+    | 'image_question'
+    | 'video_question';
 
 export type LessonActivityItem = Record<string, unknown> & { id: string };
 

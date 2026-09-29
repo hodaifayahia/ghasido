@@ -55,7 +55,7 @@ class TestQuestionImportTest extends TestCase
 
         $this->assertSame(ActivityType::Writing, $placements[3]->activity?->type);
         $this->assertSame(ActivityType::Speaking, $placements[4]->activity?->type);
-        $this->assertSame(ActivityType::DialogueOrder, $placements[5]->activity?->type);
+        $this->assertSame(ActivityType::Ordering, $placements[5]->activity?->type);
         $this->assertDatabaseHas('audit_logs', ['action' => 'test.questions.imported']);
     }
 

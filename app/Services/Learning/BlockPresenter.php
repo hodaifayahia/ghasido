@@ -203,7 +203,8 @@ class BlockPresenter
 
         return [
             'images' => array_slice($this->previewImages($resolved), 0, 4),
-            'sentence' => is_string($sentence) ? $sentence : null,
+            // A typed fill-in marks its blanks `[[b1]]`: shown as a gap.
+            'sentence' => is_string($sentence) ? (string) preg_replace('/\[\[[A-Za-z0-9_-]+\]\]/', '____', $sentence) : null,
         ];
     }
 

@@ -7,7 +7,8 @@ use App\Models\ActivityPlacement;
 use App\Models\Test;
 
 /**
- * Update a question through a new Activity version (DATA-11, TEST-09).
+ * Update a question through a new Activity version (DATA-11, TEST-09). An
+ * activity from the shared editor keeps its stored type.
  */
 class UpdateTestQuestionRequest extends StoreTestQuestionRequest
 {
@@ -21,5 +22,10 @@ class UpdateTestQuestionRequest extends StoreTestQuestionRequest
             && $placement->placeable_type === $test->getMorphClass()
             && (int) $placement->placeable_id === (int) $test->id
             && ($this->user()?->can(Permission::TestsManage->value) ?? false);
+    }
+
+    protected function typeIsFixed(): bool
+    {
+        return true;
     }
 }

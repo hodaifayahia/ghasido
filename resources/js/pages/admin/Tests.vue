@@ -27,7 +27,6 @@ import type {
     TestEditorSavePayload,
     TestMedia,
     TestPreview,
-    TestQuestionPayload,
     TestResults,
     TestDirectoryMetric,
     TestsList,
@@ -94,29 +93,6 @@ function saveTest(payload: TestEditorSavePayload): void {
     if (!props.editor.updateUrl) return;
 
     router.patch(props.editor.updateUrl, payload, {
-        preserveScroll: true,
-    });
-}
-
-function addQuestion(payload: TestQuestionPayload): void {
-    if (!props.editor.questionStoreUrl) return;
-
-    router.post(props.editor.questionStoreUrl, payload, {
-        preserveScroll: true,
-    });
-}
-
-function saveQuestion(
-    question: TestEditorQuestion,
-    payload: TestQuestionPayload,
-): void {
-    router.patch(question.updateUrl, payload, {
-        preserveScroll: true,
-    });
-}
-
-function removeQuestion(question: TestEditorQuestion): void {
-    router.delete(question.deleteUrl, {
         preserveScroll: true,
     });
 }
@@ -354,19 +330,12 @@ defineOptions({
                     @save="saveTest"
                     @preview="previewOpen = true"
                     @delete="askDeleteOpenTest"
-                    @add-question="addQuestion"
-                    @save-question="saveQuestion"
-                    @delete-question="removeQuestion"
                     @publish="publishTest"
                     @generate-ai="generateAi"
                     @regenerate-ai="regenerateAi"
                     @generate-all-audio="generateAllAudio"
                     @generate-audio="generateQuestionAudio"
                     @release-question="releaseQuestion"
-                    @attach-image="
-                        (question, mediaId) =>
-                            attachMedia(question, 'image', mediaId)
-                    "
                 />
                 <TestsSidebarPanel
                     :preview="preview"

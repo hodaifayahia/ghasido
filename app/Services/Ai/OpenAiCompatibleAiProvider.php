@@ -274,12 +274,12 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
     public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation
     {
         $result = $this->complete(
-            $this->writingSystemPrompt($level),
+            $this->writingSystemPrompt($level, WritingEvaluation::rubricFor($item)),
             $this->writingMessages($item, $answer),
             temperature: self::EVALUATION_TEMPERATURE,
         );
 
-        return $this->parseWritingEvaluation($this->decodeJson($result['text']), $result['usage']);
+        return $this->parseWritingEvaluation($this->decodeJson($result['text']), $result['usage'], WritingEvaluation::rubricFor($item));
     }
 
     public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation

@@ -12,6 +12,11 @@ import type {
     TestQuestionAudio,
     TestQuestionDetail,
 } from './assessment-ai';
+import type {
+    LessonActivityRow,
+    LessonAudioPair,
+    LessonMediaRef,
+} from './lessons';
 
 // Pre-test vs Post-test. Named TestVariant (not TestType) so it never clashes
 // with the learner-facing TestType union in assessment.ts.
@@ -78,17 +83,21 @@ export type TestsList = {
     items: TestListItem[];
 };
 
+/**
+ * The client's ten question types (client report 2026-09-29), the same
+ * ten the lesson activity editor offers.
+ */
 export type TestQuestionKind =
     | 'multiple_choice'
-    | 'true_false'
-    | 'fill_blank'
+    | 'ordering'
     | 'matching'
     | 'short_answer'
-    | 'audio'
-    | 'image'
-    | 'video'
+    | 'audio_question'
+    | 'image_question'
+    | 'video_question'
     | 'speaking'
-    | 'ordering';
+    | 'fill_blank'
+    | 'writing';
 
 export type TestQuestionKindOption = {
     value: TestQuestionKind;
@@ -118,6 +127,10 @@ export type TestEditorQuestion = {
     releaseUrl?: string;
     details?: TestQuestionDetail[];
     audio?: TestQuestionAudio | null;
+    /** What the shared activity editor opens with. */
+    activity: LessonActivityRow | null;
+    mediaMap: Record<string, LessonMediaRef>;
+    audioMap: Record<string, LessonAudioPair>;
 };
 
 export type TestQuestionMediaRef = {
@@ -134,6 +147,7 @@ export type TestQuestionMedia = {
     video: TestQuestionMediaRef | null;
 };
 
+/** The short form (kind, text, options) the CSV import still reads. */
 export type TestQuestionPayload = {
     kind: TestQuestionKind;
     text: string;

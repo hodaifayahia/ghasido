@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * The five shapes a raw answer for one item can take (spec 0003 B.9).
+ * The shapes a raw answer for one item can take (spec 0003 B.9).
  *
  * Not a stored column: ActivityType::answerShape() derives it, and the scorer
  * switches on it so every option-style type shares one comparison.
@@ -24,4 +24,10 @@ enum AnswerShape: string
 
     /** `{"text": "…"}`. */
     case Text = 'text';
+
+    /** A typed short answer, e.g. `"Double room"` (or `{"text": "…"}`). */
+    case Typed = 'typed';
+
+    /** Blank id to typed word, e.g. `{"b1": "passport", "b2": "key"}`. */
+    case Blanks = 'blanks';
 }

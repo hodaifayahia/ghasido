@@ -71,8 +71,17 @@ const canSubmit = computed(
 const kinds = [
     ['multiple_choice', tk('options A–F, correct = the right letter')],
     ['true_false', tk('no options needed, correct = A (true) or B (false)')],
-    ['fill_blank', tk('use ___ in the question, options, correct letter')],
-    ['short_answer', tk('a written answer, no options')],
+    [
+        'fill_blank',
+        tk('use ___ in the question; the correct option is the word to type'),
+    ],
+    [
+        'short_answer',
+        tk(
+            'options = the accepted answers; with none, an AI-judged writing task',
+        ),
+    ],
+    ['writing', tk('a written reply judged by the AI, no options')],
     ['speaking', tk('a spoken answer, no options')],
     ['ordering', tk('options in the right order, no correct column')],
 ] as const;

@@ -6,6 +6,7 @@ use App\Enums\ActivityType;
 use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\TestAttemptStatus;
+use App\Jobs\AssessSpokenPronunciation;
 use App\Jobs\EvaluateWrittenAnswer;
 use App\Jobs\TranscribeAndEvaluateSpokenAnswer;
 use App\Models\Activity;
@@ -34,7 +35,7 @@ class TestScorer
 
     public function finish(TestAttempt $attempt, TestAttemptStatus $status = TestAttemptStatus::Submitted): void
     {
-        /** @var list<array{id: int, type: ActivityType}> $toEvaluate */
+        /** @var list<array{id: int, type: ActivityType, pronunciation: bool}> $toEvaluate */
         $toEvaluate = [];
 
         DB::transaction(function () use ($attempt, $status, &$toEvaluate): void {
@@ -65,7 +66,11 @@ class TestScorer
                     // the sitting closes (TEST-07, TEST-08, AIE-01).
                     if ($row !== null && $this->needsEvaluation($activity->type, $row)) {
                         $row->forceFill(['ai_status' => GenerationStatus::Pending])->save();
-                        $toEvaluate[] = ['id' => $row->id, 'type' => $activity->type];
+                        $toEvaluate[] = [
+                            'id' => $row->id,
+                            'type' => $activity->type,
+                            'pronunciation' => $activity->type === ActivityType::Speaking && AttemptRecorder::asksPronunciation($version->items(), $raw),
+                        ];
                     }
 
                     continue;
@@ -107,7 +112,9 @@ class TestScorer
             // Void closures: a PendingDispatch sends on destruct, which must
             // happen inside rescue() for the error to be caught.
             rescue(function () use ($pending): void {
-                if ($pending['type'] === ActivityType::Speaking) {
+                if ($pending['pronunciation']) {
+                    AssessSpokenPronunciation::dispatch($pending['id']);
+                } elseif ($pending['type'] === ActivityType::Speaking) {
                     TranscribeAndEvaluateSpokenAnswer::dispatch($pending['id']);
                 } else {
                     EvaluateWrittenAnswer::dispatch($pending['id']);

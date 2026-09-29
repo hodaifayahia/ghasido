@@ -14,7 +14,8 @@ use App\Services\Audio\AudioLibrary;
  * One recursive walk, two passes and two queries:
  *
  * - a key named image, video, poster, cover or thumbnail holding a media id
- *   becomes `{id, url, alt}` (or null when the row is gone);
+ *   becomes `{id, url, alt}` (or null when the row is gone), and so does
+ *   an `audio` key holding a media id (an uploaded clip);
  * - a string under a key named `text`, or ending in `_text`, gets a sibling
  *   `<key>_audio` = `{normal, slow}` from the stored clips, both null while
  *   the clip has not been generated. Nothing is synthesised here, ever.
@@ -26,6 +27,13 @@ class PayloadResolver
 {
     /** @var list<string> */
     public const array MEDIA_KEYS = ['image', 'video', 'poster', 'cover', 'thumbnail', 'side_image'];
+
+    /**
+     * An uploaded, recorded or library clip on an activity prompt or answer
+     * (client report 2026-09-29). Resolved only when it holds a media id, so
+     * any other value stored under `audio` passes through untouched.
+     */
+    public const string AUDIO_MEDIA_KEY = 'audio';
 
     /** The lesson accent whose voice the audio URLs are read for (spec 0006 §3). */
     private ?Accent $accent = null;
@@ -126,7 +134,7 @@ class PayloadResolver
                 continue;
             }
 
-            if (is_string($key) && self::isMediaKey($key) && self::isId($value)) {
+            if (is_string($key) && (self::isMediaKey($key) || $key === self::AUDIO_MEDIA_KEY) && self::isId($value)) {
                 $mediaIds[] = (int) $value;
 
                 continue;
@@ -157,6 +165,12 @@ class PayloadResolver
 
             if (is_string($key) && self::isMediaKey($key)) {
                 $out[$key] = self::isId($value) ? $this->media($media[(int) $value] ?? null) : null;
+
+                continue;
+            }
+
+            if ($key === self::AUDIO_MEDIA_KEY && self::isId($value)) {
+                $out[$key] = $this->media($media[(int) $value] ?? null);
 
                 continue;
             }

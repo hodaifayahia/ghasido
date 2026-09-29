@@ -300,12 +300,25 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
             ? implode(' ', array_map(static fn (mixed $line): string => is_string($line) ? $line.'.' : '', $information))
             : '';
 
+        $comments = [
+            'task_completion' => ['score' => 85, 'comment' => 'You answered the guest\'s question and included the key information.'],
+            'accuracy' => ['score' => 75, 'comment' => 'A few small grammar slips. Check verb forms and articles.'],
+            'politeness' => ['score' => 80, 'comment' => 'Warm and professional. A closing line would make it even better.'],
+            'clarity' => ['score' => 70, 'comment' => 'Keep sentences short so the guest can read them quickly.'],
+        ];
+        $criteria = [];
+
+        // The item's own rubric when it has one (client report 2026-09-29).
+        foreach (WritingEvaluation::rubricFor($item) as $key => $label) {
+            $criteria[$key] = [...($comments[$key] ?? ['score' => 78, 'comment' => sprintf('Good work on %s. Keep it short and clear.', strtolower($label))]), 'label' => $label];
+        }
+
+        $firstWords = implode(' ', array_slice(preg_split('/\s+/', trim($answer)) ?: [], 0, 4));
+
         return new WritingEvaluation(
-            criteria: [
-                'task_completion' => ['score' => 85, 'comment' => 'You answered the guest\'s question and included the key information.'],
-                'accuracy' => ['score' => 75, 'comment' => 'A few small grammar slips. Check verb forms and articles.'],
-                'politeness' => ['score' => 80, 'comment' => 'Warm and professional. A closing line would make it even better.'],
-                'clarity' => ['score' => 70, 'comment' => 'Keep sentences short so the guest can read them quickly.'],
+            criteria: $criteria,
+            corrections: $firstWords === '' ? [] : [
+                ['original' => $firstWords, 'corrected' => 'Dear Guest, thank you for your message.', 'note' => 'Start an email with a polite greeting.'],
             ],
             betterAnswer: trim(sprintf(
                 "Dear Guest,\n\nThank you for your message. %s\n\nPlease let us know if you would like to confirm the booking.\n\nKind regards,\nThe Reception Team",

@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { useIntervalFn } from '@vueuse/core';
+import { computed, watch } from 'vue';
 import BestResponseActivity from '@/components/learning/activities/BestResponseActivity.vue';
 import GenericActivity from '@/components/learning/activities/GenericActivity.vue';
 import ListenChooseActivity from '@/components/learning/activities/ListenChooseActivity.vue';
@@ -29,6 +31,45 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+/*
+ * A spoken or written answer is judged by a queued job (pronunciation
+ * check or AI evaluation): poll the result until it settles, so the
+ * feedback appears without a manual refresh (PERF-04).
+ */
+const evaluating = computed(
+    () =>
+        props.result !== null &&
+        (props.result.aiStatus === 'pending' ||
+            props.result.aiStatus === 'running'),
+);
+
+const poll = useIntervalFn(
+    () => {
+        if (props.result === null) {
+            return;
+        }
+
+        router.reload({
+            only: ['result'],
+            data: { attempt: props.result.attemptId },
+        });
+    },
+    3000,
+    { immediate: false },
+);
+
+watch(
+    evaluating,
+    (busy) => {
+        if (busy) {
+            poll.resume();
+        } else {
+            poll.pause();
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>

@@ -248,9 +248,9 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
 
     public function evaluateWriting(array $item, string $answer, ?EnglishLevel $level = null): WritingEvaluation
     {
-        $result = $this->complete($this->writingSystemPrompt($level), $this->writingMessages($item, $answer));
+        $result = $this->complete($this->writingSystemPrompt($level, WritingEvaluation::rubricFor($item)), $this->writingMessages($item, $answer));
 
-        return $this->parseWritingEvaluation($this->decodeJson($result['text']), $result['usage']);
+        return $this->parseWritingEvaluation($this->decodeJson($result['text']), $result['usage'], WritingEvaluation::rubricFor($item));
     }
 
     public function evaluateSpeaking(array $item, string $transcript, ?EnglishLevel $level = null): SpeakingEvaluation

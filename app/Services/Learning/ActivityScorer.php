@@ -59,6 +59,8 @@ class ActivityScorer
                 AnswerShape::Option => $this->matchesOption($item, $answer),
                 AnswerShape::PairMap => $this->matchesPairs($item, $answer),
                 AnswerShape::OrderedList => $this->matchesOrder($item, $answer),
+                AnswerShape::Typed => $this->matchesAccepted($item['accepted'] ?? null, $answer),
+                AnswerShape::Blanks => $this->matchesBlanks($item, $answer),
                 AnswerShape::Recording, AnswerShape::Text => null,
             };
         }
@@ -128,6 +130,77 @@ class ActivityScorer
         }
 
         return true;
+    }
+
+    /**
+     * A typed answer is right when it equals one of the accepted answers,
+     * ignoring case, spacing and punctuation (client report 2026-09-29).
+     * `{text: "…"}` is accepted as well as a bare string.
+     */
+    private function matchesAccepted(mixed $accepted, mixed $answer): bool
+    {
+        if (is_array($answer) && array_key_exists('text', $answer)) {
+            $answer = $answer['text'];
+        }
+
+        if (! is_array($accepted) || ! is_scalar($answer)) {
+            return false;
+        }
+
+        $given = self::normaliseTyped((string) $answer);
+
+        if ($given === '') {
+            return false;
+        }
+
+        foreach ($accepted as $option) {
+            if (is_scalar($option) && self::normaliseTyped((string) $option) === $given) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fill in the blank: every blank of the sentence must hold one of its
+     * accepted words. The answer maps blank id → typed word.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function matchesBlanks(array $item, mixed $answer): bool
+    {
+        $blanks = $item['blanks'] ?? null;
+
+        if (! is_array($blanks) || $blanks === [] || ! is_array($answer)) {
+            return false;
+        }
+
+        foreach ($blanks as $blank) {
+            if (! is_array($blank) || ! is_scalar($blank['id'] ?? null)) {
+                return false;
+            }
+
+            $id = (string) $blank['id'];
+
+            if (! $this->matchesAccepted($blank['accepted'] ?? null, $answer[$id] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * How a typed answer is compared: lower case, curly quotes made
+     * straight, punctuation and symbols dropped, spaces collapsed.
+     */
+    public static function normaliseTyped(string $text): string
+    {
+        $text = mb_strtolower(str_replace(['’', '‘', '`'], "'", $text));
+        $text = (string) preg_replace('/[\p{P}\p{S}]+/u', ' ', $text);
+
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
     /**
