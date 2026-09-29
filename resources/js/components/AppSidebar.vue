@@ -17,6 +17,7 @@ import {
     ShieldCheck,
     Star,
     User,
+    UserRound,
     Wallet,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -46,6 +47,7 @@ import {
     departments,
     employees,
     hotels,
+    individuals,
     lessonsContent,
     messagesReminders,
     payments,
@@ -137,6 +139,14 @@ const mainNavItems: SidebarNavItem[] = [
         href: payments(),
         // Outline like its neighbour Subscriptions (CreditCard).
         icon: Wallet,
+        permission: 'subscriptions.manage',
+    },
+    {
+        // Individual subscribers moved here from the Subscriptions tabs
+        // (client request 2026-09-29). Outline like its two neighbours.
+        title: tk('Individuals'),
+        href: individuals(),
+        icon: UserRound,
         permission: 'subscriptions.manage',
     },
     {

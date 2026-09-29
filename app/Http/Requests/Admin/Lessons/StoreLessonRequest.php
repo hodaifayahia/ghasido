@@ -2,22 +2,49 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Models\Course;
+use App\Models\Department;
 use App\Models\Unit;
+use App\Models\User;
+use App\Services\Content\LessonService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Add a lesson under a unit the user may edit (CMS-01). It lands as a draft
- * with the default block set (LESSON-02, BLD-07) unless `blank` is set.
+ * Add a lesson (CMS-01). It lands as a draft with the default block set
+ * (LESSON-02, BLD-07) unless `blank` is set.
+ *
+ * The course and unit are optional (client request 2026-09-29): with only a
+ * department, the lesson goes into that department's "General" course and
+ * unit, created once and reused; with a course but no unit, into the
+ * course's first unit (or a new "General" one).
  */
 class StoreLessonRequest extends FormRequest
 {
+    /** The title of the course and unit a lesson falls back to. */
+    public const string DEFAULT_TITLE = 'General';
+
     public function authorize(): bool
     {
-        $unit = Unit::query()->find((int) $this->input('unit_id'));
+        $user = $this->user();
 
-        return $unit !== null
-            && ($this->user()?->can('update', $unit->course()->firstOrFail()) ?? false);
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($this->filled('unit_id')) {
+            $unit = Unit::query()->find($this->integer('unit_id'));
+
+            return $unit !== null && $user->can('update', $unit->course()->firstOrFail());
+        }
+
+        if ($this->filled('course_id')) {
+            $course = Course::query()->find($this->integer('course_id'));
+
+            return $course !== null && $user->can('update', $course);
+        }
+
+        return $user->can('create', Course::class);
     }
 
     /**
@@ -26,15 +53,28 @@ class StoreLessonRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'unit_id' => ['required', 'integer', Rule::exists('units', 'id')],
+            'unit_id' => ['nullable', 'integer', Rule::exists('units', 'id')],
+            'course_id' => ['nullable', 'integer', Rule::exists('courses', 'id')],
+            'department_id' => ['nullable', 'required_without_all:unit_id,course_id', 'integer', Rule::exists('departments', 'id')],
             'title' => ['required', 'string', 'max:120'],
             'blank' => ['sometimes', 'boolean'],
         ];
     }
 
-    public function unit(): Unit
+    /** The unit the lesson goes into, creating the fallback when needed. */
+    public function unit(LessonService $lessons): Unit
     {
-        return Unit::query()->findOrFail((int) $this->validated('unit_id'));
+        if ($this->filled('unit_id')) {
+            return Unit::query()->findOrFail($this->integer('unit_id'));
+        }
+
+        $course = $this->filled('course_id')
+            ? Course::query()->findOrFail($this->integer('course_id'))
+            : $this->defaultCourse($lessons);
+
+        $unit = $course->units()->orderBy('position')->orderBy('id')->first();
+
+        return $unit instanceof Unit ? $unit : $lessons->createUnit($course, self::DEFAULT_TITLE);
     }
 
     public function title(): string
@@ -45,5 +85,36 @@ class StoreLessonRequest extends FormRequest
     public function withDefaultBlocks(): bool
     {
         return ! $this->boolean('blank');
+    }
+
+    /**
+     * The department's "General" course in the user's own scope (shared for
+     * the platform team, their hotel otherwise), created on first use.
+     */
+    private function defaultCourse(LessonService $lessons): Course
+    {
+        /** @var User $user */
+        $user = $this->user();
+        $department = Department::query()->active()->visibleTo($user)->find($this->integer('department_id'));
+        abort_if($department === null, 403);
+
+        $existing = Course::query()
+            ->where('department_id', $department->id)
+            ->when(
+                $user->hotel_id === null,
+                fn ($query) => $query->whereNull('hotel_id'),
+                fn ($query) => $query->where('hotel_id', $user->hotel_id),
+            )
+            ->where('title', self::DEFAULT_TITLE)
+            ->orderBy('id')
+            ->first();
+
+        return $existing ?? $lessons->createCourse([
+            'title' => self::DEFAULT_TITLE,
+            'department_id' => $department->id,
+            'hotel_id' => $user->hotel_id,
+            'description' => null,
+            'tone' => 'brand',
+        ], $user);
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Lessons\UpdateLessonRequest;
 use App\Models\Lesson;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -19,8 +20,12 @@ class LessonController extends Controller
 {
     public function store(StoreLessonRequest $request, LessonService $lessons): RedirectResponse
     {
-        $unit = $request->unit();
-        $lesson = $lessons->createLesson($unit, $request->title(), $request->withDefaultBlocks());
+        $lesson = DB::transaction(function () use ($request, $lessons) {
+            $unit = $request->unit($lessons);
+
+            return $lessons->createLesson($unit, $request->title(), $request->withDefaultBlocks());
+        });
+        $unit = $lesson->unit()->firstOrFail();
         $course = $unit->course()->firstOrFail();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was created as a draft.', ['title' => $lesson->title])]);

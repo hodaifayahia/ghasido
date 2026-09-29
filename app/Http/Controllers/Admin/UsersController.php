@@ -20,7 +20,7 @@ use Inertia\Response;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-/** App users who can enter the back office, excluding hotel learners. */
+/** The platform's own back-office users; hotel managers and learners are managed per hotel. */
 class UsersController extends Controller
 {
     public function index(): Response
@@ -31,7 +31,11 @@ class UsersController extends Controller
 
         $accounts = User::query()
             ->with('roles.permissions')
-            ->whereDoesntHave('roles', fn ($query) => $query->where('name', RoleEnum::Employee->value))
+            // Only the people who run the platform (client request
+            // 2026-09-29): super admins, admins and custom back-office
+            // roles. Hotel managers and learners are managed from the hotel.
+            ->whereNull('hotel_id')
+            ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value]))
             ->orderBy('name')
             ->paginate(15)
             ->through(fn (User $user): array => [
@@ -49,7 +53,7 @@ class UsersController extends Controller
             'roles' => Role::query()
                 ->with('permissions')
                 ->withCount('permissions')
-                ->where('name', '!=', RoleEnum::Employee->value)
+                ->whereNotIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value])
                 ->orderBy('id')
                 ->get()
                 ->filter(fn (Role $role): bool => $actor->can(Permission::UsersManage->value)
@@ -107,7 +111,8 @@ class UsersController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         Gate::authorize(Permission::UsersManage->value);
-        abort_if($user->hasRole(RoleEnum::Employee->value), 404);
+        // Hotel managers and learners belong to their hotel, not this page.
+        abort_if($user->hotel_id !== null || $user->hasAnyRole([RoleEnum::Employee->value, RoleEnum::Manager->value]), 404);
         abort_if(
             $user->hasRole(RoleEnum::SuperAdmin->value)
                 && ! $request->user('web')?->hasRole(RoleEnum::SuperAdmin->value),
@@ -172,6 +177,7 @@ class UsersController extends Controller
     private function assertAssignableRole(?User $actor, Role $role): void
     {
         abort_if($role->name === RoleEnum::Employee->value, 422, __('Hotel employees are managed on the Employees page.'));
+        abort_if($role->name === RoleEnum::Manager->value, 422, __('Hotel managers are managed on their hotel’s page.'));
 
         abort_unless($actor !== null && $this->canAssignRole($actor, $role), 403, __('You cannot grant access beyond your own permissions.'));
     }

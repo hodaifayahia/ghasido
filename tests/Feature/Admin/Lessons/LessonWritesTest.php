@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin\Lessons;
 use App\Enums\ContentStatus;
 use App\Models\AuditLog;
 use App\Models\Course;
+use App\Models\Department;
 use App\Models\Lesson;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,6 +89,37 @@ class LessonWritesTest extends TestCase
             ->post(route('lessons.store'), ['unit_id' => $this->unit->id, 'title' => 'Blank', 'blank' => true]);
 
         $this->assertSame(0, Lesson::query()->where('title', 'Blank')->firstOrFail()->blocks()->count());
+    }
+
+    public function test_a_lesson_needs_no_course_or_unit_and_lands_in_a_general_one()
+    {
+        // Client request 2026-09-29: the course and unit are optional.
+        $empty = Department::factory()->create(['hotel_id' => null, 'is_active' => true]);
+
+        foreach (['First lesson', 'Second lesson'] as $title) {
+            $this->actingAs($this->owner)
+                ->post(route('lessons.store'), ['department_id' => $empty->id, 'title' => $title])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+        }
+
+        $courses = Course::query()->where('department_id', $empty->id)->get();
+        $this->assertCount(1, $courses, 'The General course is created once and reused.');
+        $this->assertSame('General', $courses->first()?->title);
+        $this->assertNull($courses->first()?->hotel_id);
+        $this->assertSame(1, Unit::query()->where('course_id', $courses->first()?->id)->count());
+        $this->assertSame(2, Lesson::query()->where('course_id', $courses->first()?->id)->count());
+
+        // A course without a unit choice uses the course's first unit.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), ['course_id' => $this->course->id, 'title' => 'In the course'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame($this->unit->id, Lesson::query()->where('title', 'In the course')->firstOrFail()->unit_id);
+
+        // Nothing at all is still refused.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), ['title' => 'Nowhere'])
+            ->assertSessionHasErrors('department_id');
     }
 
     public function test_the_editor_autosaves_one_field_at_a_time()

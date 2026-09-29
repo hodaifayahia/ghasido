@@ -106,6 +106,15 @@ function onDepartment(value: string): void {
                     class="grid gap-5"
                     v-slot="{ errors, processing }"
                 >
+                    <!-- Course and unit are optional (client request
+                         2026-09-29): without them the lesson goes into the
+                         department's "General" course. -->
+                    <input
+                        type="hidden"
+                        name="department_id"
+                        :value="department"
+                    />
+                    <input type="hidden" name="course_id" :value="courseId" />
                     <input type="hidden" name="unit_id" :value="unitId" />
                     <input
                         type="hidden"
@@ -155,7 +164,9 @@ function onDepartment(value: string): void {
                             class="text-brand-900 text-[12px] font-semibold"
                         >
                             {{ $t('Course') }}
-                            <span class="text-danger-text">*</span>
+                            <span class="text-ink-muted font-normal">{{
+                                $t('(optional)')
+                            }}</span>
                         </label>
                         <Select v-model="courseId">
                             <SelectTrigger
@@ -180,12 +191,15 @@ function onDepartment(value: string): void {
                         </Select>
                         <p
                             v-if="courses.length === 0"
-                            class="text-warning text-[12px]"
+                            class="text-ink-muted text-[12px]"
                         >
                             {{
-                                $t('No course exists for this department yet.')
+                                $t(
+                                    'No course yet: the lesson goes into a “General” course for this department. You can move it later.',
+                                )
                             }}
                         </p>
+                        <InputError :message="errors.course_id" />
                     </div>
 
                     <div class="grid gap-1.5">
@@ -194,7 +208,9 @@ function onDepartment(value: string): void {
                             class="text-brand-900 text-[12px] font-semibold"
                         >
                             {{ $t('Unit') }}
-                            <span class="text-danger-text">*</span>
+                            <span class="text-ink-muted font-normal">{{
+                                $t('(optional)')
+                            }}</span>
                         </label>
                         <Select v-model="unitId" :disabled="units.length === 0">
                             <SelectTrigger
@@ -218,6 +234,7 @@ function onDepartment(value: string): void {
                             </SelectContent>
                         </Select>
                         <InputError :message="errors.unit_id" />
+                        <InputError :message="errors.department_id" />
                     </div>
 
                     <div class="grid gap-1.5">
@@ -267,7 +284,7 @@ function onDepartment(value: string): void {
                         </Button>
                         <Button
                             type="submit"
-                            :disabled="processing || unitId === ''"
+                            :disabled="processing || department === ''"
                             class="bg-brand-600 hover:bg-brand-700 shadow-btn h-10 gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white"
                             data-test="submit-create-lesson"
                         >

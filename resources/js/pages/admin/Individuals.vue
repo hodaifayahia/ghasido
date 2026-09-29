@@ -40,7 +40,6 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: tk('Dashboard'), href: dashboard() },
-            { title: tk('Subscriptions'), href: subscriptions() },
             { title: tk('Individuals'), href: individuals() },
         ],
     },
