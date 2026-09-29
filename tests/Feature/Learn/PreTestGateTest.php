@@ -8,6 +8,7 @@ use App\Models\Hotel;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
+use App\Services\Learning\JourneyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -66,11 +67,11 @@ class PreTestGateTest extends TestCase
             ->get(route('learn.lessons.step', ['lesson' => $lesson, 'block' => $block]))
             ->assertForbidden();
 
-        $this->assertSame($shared->id, app(\App\Services\Learning\JourneyService::class)->preTest($learner)?->id);
+        $this->assertSame($shared->id, app(JourneyService::class)->preTest($learner)?->id);
 
         // The department's own Pre-test wins over the all-departments one.
         $own = $this->publishedPreTest();
-        $this->assertSame($own->id, app(\App\Services\Learning\JourneyService::class)->preTest($learner)?->id);
+        $this->assertSame($own->id, app(JourneyService::class)->preTest($learner)?->id);
     }
 
     public function test_a_lesson_step_opens_once_the_pre_test_is_submitted()
