@@ -265,6 +265,33 @@ class TestService
         });
     }
 
+    /**
+     * Delete a test nobody has sat (the caller checks for sittings first,
+     * DATA-10). Its placements go with it; the question activities and their
+     * versions stay, because a lesson may place the same activity and
+     * versions are never destroyed (PRAC-05, DATA-11). A Post-test paired to
+     * it is unpaired, not deleted.
+     */
+    public function delete(Test $test): void
+    {
+        DB::transaction(function () use ($test): void {
+            AuditLog::record($test, 'test.deleted', ['deleted' => [
+                'title' => $test->title,
+                'type' => $test->type->value,
+                'department_id' => $test->department_id,
+                'hotel_id' => $test->hotel_id,
+                'questions' => $test->questions()->count(),
+            ]]);
+
+            ActivityPlacement::query()
+                ->where('placeable_type', $test->getMorphClass())
+                ->where('placeable_id', $test->id)
+                ->delete();
+            Test::query()->where('paired_test_id', $test->id)->update(['paired_test_id' => null]);
+            $test->delete();
+        });
+    }
+
     public function removeQuestion(ActivityPlacement $placement, Test $test): void
     {
         DB::transaction(function () use ($placement, $test): void {

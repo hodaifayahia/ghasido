@@ -5,6 +5,7 @@ import {
     CirclePlay,
     CirclePlus,
     Copy,
+    Eye,
     Grid2x2,
     GripVertical,
     Image,
@@ -14,6 +15,7 @@ import {
     Mic,
     PenLine,
     RefreshCw,
+    Save,
     Sparkles,
     TextCursorInput,
     ToggleLeft,
@@ -47,21 +49,24 @@ import type {
     TestQuestionKind,
     TestQuestionOption,
     TestQuestionPayload,
-    TestSettings,
 } from '@/types';
 
 type Props = {
     editor: TestEditor;
+    /** Shows the Delete test action (tests.manage). */
+    canDelete?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { canDelete: false });
 
 const { t } = useI18n();
 
 const emit = defineEmits<{
     save: [payload: TestEditorSavePayload];
     publish: [];
+    preview: [];
+    delete: [];
     'add-question': [payload: TestQuestionPayload];
     'save-question': [
         question: TestEditorQuestion,
@@ -277,15 +282,14 @@ function duplicateQuestion(question: TestEditorQuestion): void {
     emit('add-question', questionPayload(question));
 }
 
-function save(settings?: TestSettings): void {
-    const toggle = (key: string, fallback: boolean): boolean =>
-        settings?.toggles.find((item) => item.key === key)?.checked ?? fallback;
-    const existingSettings = props.editor.settings;
-    const resultsVisible = toggle(
-        'show_results',
-        existingSettings.results_visibility !== 'hidden',
-    );
-    const passMark = settings?.passMark ?? existingSettings.passMark;
+/*
+ * Saves the header fields. The per-test rules (shuffling, attempts, result
+ * visibility, Show Meaning, pass mark) lost their card when the client
+ * removed "Test Settings" (2026-09-29); their stored values are sent back
+ * unchanged so a save never resets them.
+ */
+function save(): void {
+    const existing = props.editor.settings;
 
     emit('save', {
         title: title.value.trim(),
@@ -296,34 +300,16 @@ function save(settings?: TestSettings): void {
         time_limit_minutes:
             timeLimit.value === '' ? null : Number(timeLimit.value),
         question_count: Number(questionCount.value) || questions.value.length,
-        shuffle_questions: toggle(
-            'shuffle_questions',
-            existingSettings.shuffle_questions,
-        ),
-        shuffle_options: toggle(
-            'shuffle_options',
-            existingSettings.shuffle_options,
-        ),
-        single_attempt: toggle(
-            'single_attempt',
-            existingSettings.single_attempt,
-        ),
-        results_visibility: resultsVisible
-            ? existingSettings.results_visibility === 'hidden'
-                ? 'score'
-                : existingSettings.results_visibility
-            : 'hidden',
-        show_answers: toggle('show_answers', existingSettings.show_answers),
-        motivational_message: toggle(
-            'motivational_message',
-            existingSettings.motivational_message,
-        ),
-        show_meaning: toggle('show_meaning', existingSettings.show_meaning),
-        pass_mark: passMark === '' ? null : Number(passMark),
+        shuffle_questions: existing.shuffle_questions,
+        shuffle_options: existing.shuffle_options,
+        single_attempt: existing.single_attempt,
+        results_visibility: existing.results_visibility,
+        show_answers: existing.show_answers,
+        motivational_message: existing.motivational_message,
+        show_meaning: existing.show_meaning,
+        pass_mark: existing.passMark === '' ? null : Number(existing.passMark),
     });
 }
-
-defineExpose({ save });
 </script>
 
 <template>
@@ -335,9 +321,49 @@ defineExpose({ save });
             )
         "
     >
-        <h2 class="font-heading text-brand-800 text-base font-semibold">
-            {{ $t('Create / Edit Test') }}
-        </h2>
+        <!-- Save and Preview moved here from the removed "Test Settings"
+             card (client request 2026-09-29): they were the only way to
+             save the fields below and to preview the test. -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="font-heading text-brand-800 text-base font-semibold">
+                {{ $t('Create / Edit Test') }}
+            </h2>
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                    v-if="canDelete && editor.id !== null"
+                    type="button"
+                    variant="outline"
+                    class="border-danger/60 text-danger-text hover:bg-danger-tint hover:text-danger-text h-11 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none md:h-9"
+                    data-test="delete-test-button"
+                    @click="emit('delete')"
+                >
+                    <Trash2 class="size-4" aria-hidden="true" />
+                    {{ $t('Delete') }}
+                </Button>
+                <Button
+                    v-if="editor.id !== null"
+                    type="button"
+                    variant="outline"
+                    class="border-line text-brand-700 hover:bg-brand-50 h-11 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none md:h-9"
+                    data-test="preview-test-button"
+                    @click="emit('preview')"
+                >
+                    <Eye class="size-4" aria-hidden="true" />
+                    {{ $t('Preview Test') }}
+                </Button>
+                <Button
+                    v-if="editor.updateUrl"
+                    type="button"
+                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-11 gap-1.5 rounded-md px-3 text-[12px] font-semibold text-white md:h-9"
+                    :disabled="title.trim() === ''"
+                    data-test="save-test-button"
+                    @click="save"
+                >
+                    <Save class="size-4" aria-hidden="true" />
+                    {{ $t('Save Test') }}
+                </Button>
+            </div>
+        </div>
 
         <div class="mt-3 grid gap-3 md:grid-cols-2">
             <div class="grid gap-1.5">

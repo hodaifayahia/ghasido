@@ -1,15 +1,14 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import {
     ChartColumn,
     ChevronLeft,
     ChevronRight,
     ClipboardCheck,
     Clock,
-    Eye,
     FolderOpen,
     Image,
     Leaf,
-    Save,
     Upload,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -18,11 +17,11 @@ import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
 import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { reportsExport } from '@/routes';
 import type {
     TestMedia,
     TestMediaTabKey,
@@ -31,13 +30,11 @@ import type {
     TestQuestionMediaRef,
     TestResults,
     TestResultTone,
-    TestSettings,
 } from '@/types';
 
 type Props = {
     preview: TestPreview;
     media: TestMedia;
-    settings: TestSettings;
     results: TestResults;
     class?: HTMLAttributes['class'];
 };
@@ -45,11 +42,9 @@ type Props = {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
+const { can } = useCan();
 
 const emit = defineEmits<{
-    save: [settings: TestSettings];
-    preview: [];
-    'view-results': [];
     'attach-media': [
         question: TestEditorQuestion,
         kind: TestMediaTabKey,
@@ -58,8 +53,6 @@ const emit = defineEmits<{
 }>();
 
 const activeMediaTab = ref<TestMediaTabKey>(props.media.activeTab);
-const toggles = ref(props.settings.toggles.map((toggle) => ({ ...toggle })));
-const passMark = ref(props.settings.passMark);
 const previewIndex = ref(0);
 const pickerOpen = ref(false);
 const uploadOpen = ref(false);
@@ -84,15 +77,6 @@ const removeLabels: Record<TestMediaTabKey, string> = {
     audio: tk('Remove audio'),
     video: tk('Remove video'),
 };
-
-watch(
-    () => props.settings,
-    (settings) => {
-        toggles.value = settings.toggles.map((toggle) => ({ ...toggle }));
-        passMark.value = settings.passMark;
-    },
-    { deep: true },
-);
 
 const currentPreview = computed(() => {
     return props.preview.questions[previewIndex.value] ?? null;
@@ -157,15 +141,6 @@ function removeMedia(): void {
     }
 }
 
-function setToggle(key: string, value: boolean): void {
-    const toggle = toggles.value.find((item) => item.key === key);
-    if (toggle) toggle.checked = value;
-}
-
-function saveSettings(): void {
-    emit('save', { toggles: toggles.value, passMark: passMark.value });
-}
-
 const resultIcon: Record<TestResultTone, Component> = {
     brand: ClipboardCheck,
     danger: Clock,
@@ -189,7 +164,14 @@ const resultValueTone: Record<TestResultTone, string> = {
 </script>
 
 <template>
-    <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
+    <div
+        :class="
+            cn(
+                'grid min-w-0 content-start gap-3 md:grid-cols-2 xl:grid-cols-1',
+                props.class,
+            )
+        "
+    >
         <section
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
@@ -274,7 +256,7 @@ const resultValueTone: Record<TestResultTone, string> = {
             </h2>
 
             <div class="tests-media-layout mt-3 grid gap-3">
-                <div class="min-w-0">
+                <div class="@container min-w-0">
                     <div class="grid grid-cols-3 gap-1.5">
                         <button
                             v-for="tab in media.tabs"
@@ -324,7 +306,7 @@ const resultValueTone: Record<TestResultTone, string> = {
                         </p>
                     </div>
 
-                    <div class="mt-2.5 grid grid-cols-2 gap-2">
+                    <div class="mt-2.5 grid gap-2 @[260px]:grid-cols-2">
                         <Button
                             type="button"
                             variant="outline"
@@ -393,65 +375,6 @@ const resultValueTone: Record<TestResultTone, string> = {
             </div>
         </section>
 
-        <section
-            class="border-line bg-surface shadow-card rounded-lg border p-3"
-        >
-            <h2 class="font-heading text-brand-800 text-base font-semibold">
-                {{ $t('Test Settings') }}
-            </h2>
-
-            <div class="tests-settings-layout mt-3 grid gap-4">
-                <div class="grid content-start gap-2.5">
-                    <label
-                        v-for="toggle in settings.toggles"
-                        :key="toggle.key"
-                        class="text-brand-900 flex items-center gap-2 text-[12px] leading-4.5"
-                    >
-                        <Checkbox
-                            :model-value="toggle.checked"
-                            class="size-4 shrink-0"
-                            @update:model-value="
-                                setToggle(toggle.key, Boolean($event))
-                            "
-                        />
-                        <span>{{ toggle.label }}</span>
-                    </label>
-                </div>
-
-                <div class="grid content-start gap-2">
-                    <label
-                        for="test-pass-mark"
-                        class="text-brand-900 text-[12px] font-semibold"
-                    >
-                        {{ $t('Pass mark (%)') }}
-                    </label>
-                    <Input
-                        id="test-pass-mark"
-                        type="number"
-                        v-model="passMark"
-                        class="border-line text-ink bg-surface h-9 rounded-md px-3 text-[13px] shadow-none"
-                    />
-                    <Button
-                        type="button"
-                        class="bg-brand-600 shadow-btn hover:bg-brand-700 mt-3 h-10 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold text-white"
-                        @click="saveSettings"
-                    >
-                        <Save class="size-4" aria-hidden="true" />
-                        {{ $t('Save Test') }}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="border-line text-brand-700 hover:bg-brand-50 h-10 gap-1.5 rounded-md px-3 text-[12.5px] font-semibold shadow-none"
-                        @click="emit('preview')"
-                    >
-                        <Eye class="size-4" aria-hidden="true" />
-                        {{ $t('Preview Test') }}
-                    </Button>
-                </div>
-            </div>
-        </section>
-
         <LessonsMediaPicker
             v-model:open="pickerOpen"
             :tabs="libraryTabs"
@@ -471,13 +394,16 @@ const resultValueTone: Record<TestResultTone, string> = {
                 <h2 class="font-heading text-brand-800 text-base font-semibold">
                     {{ $t('Recent Results') }}
                 </h2>
-                <button
-                    type="button"
-                    class="text-brand-600 text-[11.5px] font-semibold hover:underline"
-                    @click="emit('view-results')"
+                <!-- Full results and AI-judged answers live in Reports &
+                     Export since the Results tab was removed (2026-09-29). -->
+                <Link
+                    v-if="can('reports.view')"
+                    :href="reportsExport()"
+                    class="text-brand-600 focus-visible:ring-brand-600/15 rounded-sm text-[11.5px] font-semibold hover:underline focus-visible:ring-3 focus-visible:outline-none"
+                    data-test="tests-view-all-results-link"
                 >
                     {{ $t('View All Results') }}
-                </button>
+                </Link>
             </div>
 
             <div class="mt-3 grid grid-cols-4 gap-2">
@@ -526,10 +452,6 @@ const resultValueTone: Record<TestResultTone, string> = {
 @media (min-width: 480px) {
     .tests-media-layout {
         grid-template-columns: minmax(0, 1fr) 104px;
-    }
-
-    .tests-settings-layout {
-        grid-template-columns: minmax(0, 1fr) 118px;
     }
 }
 </style>

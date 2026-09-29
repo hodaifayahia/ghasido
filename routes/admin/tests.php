@@ -13,6 +13,8 @@ Route::get('tests', [TestsController::class, 'index'])
 Route::middleware(Permission::TestsManage->middleware())->group(function () {
     Route::post('tests', [TestsController::class, 'store'])->name('tests.store');
     Route::patch('tests/{test}', [TestsController::class, 'update'])->name('tests.update');
+    // Refused (not cascaded) when the test has sittings (DATA-10).
+    Route::delete('tests/{test}', [TestsController::class, 'destroy'])->name('tests.destroy');
     Route::post('tests/{test}/publish', [TestsController::class, 'publish'])->name('tests.publish');
     Route::post('tests/{test}/questions', [TestsController::class, 'storeQuestion'])->name('tests.questions.store');
     // Bulk import from CSV or pasted rows (client request 2026-09-26).

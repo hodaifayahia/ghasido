@@ -165,7 +165,7 @@ function create(): void {
                 <p class="text-ink-slate text-xs leading-5">
                     {{
                         $t(
-                            'After creating it, the question builder will open so you can add question types, media, settings and results rules.',
+                            'After creating it, the question builder will open so you can add questions and media.',
                         )
                     }}
                 </p>

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\ActivityType;
 use App\Enums\ContentStatus;
 use App\Enums\MediaLibrary;
 use App\Enums\ResultsVisibility;
@@ -16,9 +15,7 @@ use App\Http\Requests\Admin\Tests\StoreTestRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestQuestionMediaRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestQuestionRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestRequest;
-use App\Models\Activity;
 use App\Models\ActivityPlacement;
-use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Hotel;
@@ -33,7 +30,6 @@ use App\Services\Tests\TestQuestionGenerator;
 use App\Services\Tests\TestService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -76,28 +72,16 @@ class TestsController extends Controller
             Gate::authorize('view', $selected);
         }
 
+        // The page is the test library and the builder only: the old Question
+        // Bank / Results & Analytics / Settings tabs were removed at the
+        // client's request (2026-09-29). Results live in Reports & Export.
         return Inertia::render('admin/Tests', [
-            'tabs' => [
-                ['key' => 'tests', 'label' => __('Tests')],
-                ['key' => 'question-bank', 'label' => __('Question Bank')],
-                ['key' => 'results', 'label' => __('Results & Analytics')],
-                ['key' => 'settings', 'label' => __('Settings')],
-            ],
-            'activeTab' => $this->activeTab($request),
             'builderOpen' => $selected !== null,
             'stats' => $this->stats($viewer),
             'list' => $this->listPayload($request, $tests, $viewer),
             'editor' => $this->editor($selected, $request, $viewer),
             'preview' => $this->preview($selected),
             'media' => $this->media($viewer, $media),
-            'questionBank' => $this->questionBank(
-                $viewer,
-                array_map(
-                    static fn (mixed $id): int => (int) $id,
-                    $this->scopeToReach(Test::query(), $viewer)->pluck('id')->all(),
-                ),
-            ),
-            'settings' => $this->settings($selected),
             'results' => $this->results($selected, $viewer),
         ]);
     }
@@ -142,6 +126,43 @@ class TestsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title is published.', ['title' => $test->title])]);
 
         return back();
+    }
+
+    /**
+     * Delete a test that nobody has sat yet (client request 2026-09-29).
+     *
+     * A test with any sitting is refused, never cascaded: its attempts hold
+     * the learners' answers, which are research data and are never deleted
+     * (DATA-10). `test_attempts.test_id` is also `restrictOnDelete`, and the
+     * content model has no archived state for tests, so refusing is the only
+     * safe answer. The question activities stay: they are versioned rows a
+     * lesson may also use (PRAC-05, DATA-11); only this test's placements go.
+     */
+    public function destroy(Test $test, TestService $tests): RedirectResponse
+    {
+        Gate::authorize('delete', $test);
+
+        $sittings = $test->attempts()->count();
+
+        if ($sittings > 0) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => trans_choice(
+                    ':title cannot be deleted: :count employee has already taken it, and their answers are kept.|:title cannot be deleted: :count employees have already taken it, and their answers are kept.',
+                    $sittings,
+                    ['title' => $test->title, 'count' => $sittings],
+                ),
+            ]);
+
+            return back();
+        }
+
+        $title = $test->title;
+        $tests->delete($test);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]);
+
+        return to_route('tests');
     }
 
     public function storeQuestion(StoreTestQuestionRequest $request, Test $test, TestService $tests): RedirectResponse
@@ -334,7 +355,7 @@ class TestsController extends Controller
     {
         $query = Test::query()
             ->with(['department:id,name', 'hotel:id,name'])
-            ->withCount('questions')
+            ->withCount(['questions', 'attempts'])
             ->orderBy('id');
         $this->scopeToReach($query, $viewer);
         $term = trim((string) $request->query('search', ''));
@@ -411,6 +432,8 @@ class TestsController extends Controller
             'meta' => __(':questions questions · :minutes', ['questions' => (int) $test->questions_count, 'minutes' => $minutes === null ? __('No time limit') : $minutes.' min']),
             'type' => $test->type->value,
             'questionCount' => (int) $test->questions_count,
+            // Sittings (any status): a test with any cannot be deleted (DATA-10).
+            'attemptCount' => (int) $test->attempts_count,
             'timeLimit' => $minutes,
             'status' => $test->status === ContentStatus::Published ? 'active' : 'draft',
             'crop' => $this->thumbCrop(((int) $test->id) % 7),
@@ -463,6 +486,7 @@ class TestsController extends Controller
             'hotel' => (string) ($selected === null ? '' : $selected->hotel_id),
             'timeLimit' => (string) (($settings['time_limit_seconds'] ?? null) ? (int) round(((int) $settings['time_limit_seconds']) / 60) : ''),
             'questionCount' => (string) ($selected?->questions->count() ?? 0),
+            'attemptCount' => $selected === null ? 0 : $selected->attempts()->count(),
             'description' => $description,
             'descriptionCount' => strlen($description).'/300',
             'kinds' => [
@@ -615,31 +639,11 @@ class TestsController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function settings(?Test $selected): array
-    {
-        $settings = $selected === null ? [] : ($selected->settings ?? []);
-
-        return [
-            'toggles' => [
-                ['key' => 'shuffle_questions', 'label' => __('Show questions in random order'), 'checked' => (bool) ($settings['shuffle_questions'] ?? false)],
-                ['key' => 'shuffle_options', 'label' => __('Show options in random order'), 'checked' => (bool) ($settings['shuffle_options'] ?? false)],
-                ['key' => 'single_attempt', 'label' => __('Allow only one attempt'), 'checked' => (bool) ($settings['single_attempt'] ?? false)],
-                ['key' => 'show_results', 'label' => __('Show results immediately after completion'), 'checked' => ($settings['results_visibility'] ?? ResultsVisibility::Hidden->value) !== ResultsVisibility::Hidden->value],
-                ['key' => 'show_answers', 'label' => __('Show correct answers'), 'checked' => (bool) ($settings['show_answers'] ?? false)],
-                ['key' => 'motivational_message', 'label' => __('Add motivational message at the end'), 'checked' => (bool) ($settings['motivational_message'] ?? false)],
-                ['key' => 'show_meaning', 'label' => __('Allow Show Meaning (Arabic) on questions'), 'checked' => (bool) ($settings['show_meaning'] ?? true)],
-            ],
-            'passMark' => (string) ($settings['pass_score'] ?? ''),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function results(?Test $selected, User $viewer): array
     {
+        // The builder's "Recent Results" summary card; the full result list
+        // and the AI-judged answers live in Reports & Export.
         $query = TestAttempt::query()
-            ->with(['user:id,name,username', 'test:id,title,type'])
             ->whereNotNull('submitted_at')
             ->when($selected !== null, fn (Builder $builder) => $builder->where('test_id', $selected->id))
             ->when($selected === null, function (Builder $builder) use ($viewer): void {
@@ -657,72 +661,7 @@ class TestsController extends Controller
                 ['key' => 'completed', 'value' => $completed, 'label' => __('Employees Completed'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'brand'],
                 ['key' => 'average', 'value' => (int) round((float) $average), 'unit' => '%', 'label' => __('Average Score'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'success'],
             ],
-            'rows' => $attempts->map(function (TestAttempt $attempt) use ($viewer): array {
-                $summary = $attempt->scoreSummary();
-                // Transcripts and recordings: Super Admin only (ROLE-04, PRIV-04).
-                $answers = $this->judgedAnswers($attempt, $viewer->hasRole('super_admin'));
-
-                return [
-                    'id' => $attempt->id,
-                    'employee' => $attempt->user->name ?? $attempt->user->username ?? __('Unknown employee'),
-                    'test' => $attempt->test->title ?? __('Test'),
-                    'type' => $attempt->test->type->label(),
-                    'score' => $summary['percent'] === null ? '—' : $summary['percent'].'%',
-                    'submittedAt' => $attempt->submitted_at?->format('d M Y, H:i') ?? '—',
-                    'answers' => $answers,
-                ];
-            })->values()->all(),
         ];
-    }
-
-    /**
-     * @param  array<int, int>  $reachableTestIds
-     * @return list<array<string, mixed>>
-     */
-    private function questionBank(User $viewer, array $reachableTestIds): array
-    {
-        $query = Activity::query()
-            ->with(['department:id,name', 'hotel:id,name'])
-            ->with(['placements' => function (Relation $placements) use ($reachableTestIds): void {
-                $placements
-                    ->where('placeable_type', (new Test)->getMorphClass())
-                    ->whereIn('placeable_id', $reachableTestIds)
-                    ->with('placeable');
-            }])
-            ->withCount('placements')
-            ->whereHas('placements', fn (Builder $placements): Builder => $placements->where('placeable_type', (new Test)->getMorphClass()))
-            ->orderByDesc('id');
-
-        if ($viewer->hotel_id === null && ! $viewer->hasRole('super_admin')) {
-            $query->whereNull('activities.hotel_id');
-        } elseif ($viewer->hotel_id !== null) {
-            $query->where(function (Builder $scope) use ($viewer): void {
-                $scope->whereNull('activities.hotel_id')->orWhere('activities.hotel_id', $viewer->hotel_id);
-            });
-        }
-
-        return array_values($query->limit(100)->get()->map(function (Activity $activity): array {
-            $item = $activity->items()[0] ?? [];
-            $department = $activity->department;
-            $sourceTest = $activity->placements->first()?->placeable;
-
-            return [
-                'id' => $activity->id,
-                'title' => (string) ($activity->title ?? __('Untitled question')),
-                'kind' => $activity->type->value,
-                'kindLabel' => $activity->type->label(),
-                'prompt' => (string) ($item['question'] ?? $activity->prompt),
-                'department' => (string) ($department === null ? __('All Departments') : $department->name),
-                'uses' => (int) $activity->placements_count,
-                'version' => $activity->current_version,
-                'sourceTest' => $sourceTest instanceof Test
-                    ? $sourceTest->title
-                    : null,
-                'openUrl' => $sourceTest instanceof Test
-                    ? route('tests', ['test' => $sourceTest->id])
-                    : null,
-            ];
-        })->all());
     }
 
     /**
@@ -845,70 +784,6 @@ class TestsController extends Controller
             ],
             'generateAudioUrl' => route('tests.audio.generate', $selected),
         ];
-    }
-
-    /**
-     * The AI-judged answers of one sitting (speaking and writing): the
-     * structured verdict for everyone who may see results, the transcript
-     * and recording for the Super Admin only (ROLE-04, PRIV-04, AIE-04).
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function judgedAnswers(TestAttempt $attempt, bool $fullAccess): array
-    {
-        $rows = Attempt::query()
-            ->with(['activity:id,type,prompt', 'activityVersion', 'responseMedia'])
-            ->where('test_attempt_id', $attempt->id)
-            ->whereHas('activity', fn (Builder $activity): Builder => $activity->whereIn('type', [ActivityType::Speaking->value, ActivityType::Writing->value]))
-            ->orderBy('id')
-            ->get();
-
-        return array_values($rows->map(function (Attempt $row) use ($fullAccess): array {
-            $feedback = is_array($row->ai_feedback) ? $row->ai_feedback : [];
-            $criteria = is_array($feedback['criteria'] ?? null) ? $feedback['criteria'] : [];
-            $item = $row->activityVersion?->items()[0] ?? [];
-            $raw = $row->raw_answer ?? [];
-            $written = null;
-
-            foreach ($raw as $value) {
-                if (is_array($value) && is_string($value['text'] ?? null)) {
-                    $written = $value['text'];
-                }
-            }
-
-            $isSpeaking = $row->activity->type === ActivityType::Speaking;
-
-            return [
-                'id' => $row->id,
-                'type' => $row->activity->type->value,
-                'typeLabel' => $row->activity->type->label(),
-                'question' => (string) ($item['question'] ?? $row->activity->prompt),
-                'answerText' => $isSpeaking ? ($fullAccess ? $row->transcript : null) : ($fullAccess ? $written : null),
-                'recordingUrl' => $isSpeaking && $fullAccess ? $row->responseMedia?->url() : null,
-                'aiStatus' => $row->ai_status?->value,
-                'failedReason' => $row->ai_failed_reason,
-                'score' => $row->score === null ? null : (float) $row->score,
-                'criteria' => array_map(
-                    static fn (string $key, mixed $entry): array => [
-                        'key' => $key,
-                        'label' => ucfirst(str_replace('_', ' ', $key)),
-                        'score' => is_array($entry) ? (int) ($entry['score'] ?? 0) : 0,
-                        'comment' => is_array($entry) ? (string) ($entry['comment'] ?? '') : '',
-                    ],
-                    array_keys($criteria),
-                    $criteria,
-                ),
-                'summary' => (string) ($feedback['summary'] ?? ''),
-                'betterAnswer' => (string) ($feedback['better_answer'] ?? ''),
-            ];
-        })->all());
-    }
-
-    private function activeTab(Request $request): string
-    {
-        $tab = (string) $request->query('tab', 'tests');
-
-        return in_array($tab, ['tests', 'question-bank', 'results', 'settings'], true) ? $tab : 'tests';
     }
 
     private function timeLimitMinutes(Test $test): ?int

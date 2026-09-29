@@ -9,7 +9,6 @@
 
 import type {
     TestAiPanel,
-    TestJudgedAnswer,
     TestQuestionAudio,
     TestQuestionDetail,
 } from './assessment-ai';
@@ -33,13 +32,6 @@ export type TestsMockupCrop = {
 
 export type TestStatus = 'active' | 'draft';
 
-export type TestsTabKey = 'tests' | 'question-bank' | 'results' | 'settings';
-
-export type TestsTab = {
-    key: TestsTabKey;
-    label: string;
-};
-
 export type TestListItem = {
     id: string;
     title: string;
@@ -47,6 +39,8 @@ export type TestListItem = {
     hotel: string;
     meta: string;
     questionCount: number;
+    /** Sittings of any status; a test with any cannot be deleted (DATA-10). */
+    attemptCount: number;
     timeLimit: number | null;
     type: TestVariant;
     status: TestStatus;
@@ -177,6 +171,7 @@ export type TestEditor = {
     hotel?: string;
     timeLimit: string;
     questionCount: string;
+    attemptCount: number;
     description: string;
     descriptionCount: string;
     kinds: TestQuestionKindOption[];
@@ -238,17 +233,6 @@ export type TestMedia = {
     suggested: TestSuggestedImage[];
 };
 
-export type TestSettingToggle = {
-    key: string;
-    label: string;
-    checked: boolean;
-};
-
-export type TestSettings = {
-    toggles: TestSettingToggle[];
-    passMark: string;
-};
-
 export type TestResultTone = 'brand' | 'danger' | 'success' | 'excel';
 
 export type TestResultStat = {
@@ -262,28 +246,4 @@ export type TestResultStat = {
 
 export type TestResults = {
     stats: TestResultStat[];
-    rows: TestResultRow[];
-};
-
-export type TestResultRow = {
-    id: number;
-    employee: string;
-    test: string;
-    type: string;
-    score: string;
-    submittedAt: string;
-    answers?: TestJudgedAnswer[];
-};
-
-export type TestQuestionBankItem = {
-    id: number;
-    title: string;
-    kind: string;
-    kindLabel: string;
-    prompt: string;
-    department: string;
-    uses: number;
-    version: number;
-    sourceTest?: string;
-    openUrl?: string;
 };

@@ -35,6 +35,15 @@ class TestPolicy
         return $user->can(Permission::TestsManage->value) && $this->isInAdminReach($user, $test);
     }
 
+    /**
+     * Same reach as editing. Whether a test with sittings may go is not a
+     * permission question: the controller refuses it for everyone (DATA-10).
+     */
+    public function delete(User $user, Test $test): bool
+    {
+        return $this->update($user, $test);
+    }
+
     public function publish(User $user, Test $test): bool
     {
         return $this->update($user, $test);
