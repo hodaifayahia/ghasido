@@ -52,6 +52,27 @@ class PreTestGateTest extends TestCase
         $this->assertDatabaseCount('block_completions', 0);
     }
 
+    public function test_an_all_departments_pre_test_gates_a_department_without_its_own()
+    {
+        // Client request 2026-09-29: the Pre-test comes first for every
+        // employee, even in a department that has no Pre-test of its own.
+        $learner = $this->learner();
+        $lesson = $this->publishedLesson([BlockType::Situation, BlockType::Complete]);
+        $block = $lesson->visibleBlocks()->firstOrFail();
+        $shared = $this->publishedPreTest();
+        $shared->forceFill(['department_id' => null])->save();
+
+        $this->actingAs($learner)
+            ->get(route('learn.lessons.step', ['lesson' => $lesson, 'block' => $block]))
+            ->assertForbidden();
+
+        $this->assertSame($shared->id, app(\App\Services\Learning\JourneyService::class)->preTest($learner)?->id);
+
+        // The department's own Pre-test wins over the all-departments one.
+        $own = $this->publishedPreTest();
+        $this->assertSame($own->id, app(\App\Services\Learning\JourneyService::class)->preTest($learner)?->id);
+    }
+
     public function test_a_lesson_step_opens_once_the_pre_test_is_submitted()
     {
         $learner = $this->learner();

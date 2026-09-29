@@ -76,7 +76,7 @@ class GenerateTestQuestions implements ShouldBeUnique, ShouldQueue
         $test->forceFill(['ai_status' => GenerationStatus::Running])->save();
 
         $draft = $ai->generateTestQuestions(
-            $test->department->name,
+            $test->department->name ?? __('all hotel departments'),
             is_string($request['level'] ?? null) ? $request['level'] : 'A2',
             $skills,
             is_string($request['prompt'] ?? null) ? $request['prompt'] : '',

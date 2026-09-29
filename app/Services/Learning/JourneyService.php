@@ -101,8 +101,10 @@ class JourneyService
      */
     public function preTest(User $user): ?Test
     {
-        // The learner's own hotel's test wins over a shared one (ORG-04).
+        // The learner's own department's test wins over an all-departments
+        // one, and their own hotel's over a shared one (ORG-04).
         return Test::query()->forLearner($user)->ofType(TestType::Pre)
+            ->orderByRaw('CASE WHEN department_id IS NULL THEN 1 ELSE 0 END')
             ->orderByRaw('CASE WHEN hotel_id IS NULL THEN 1 ELSE 0 END')
             ->orderBy('id')
             ->first();
@@ -114,6 +116,7 @@ class JourneyService
     public function postTest(User $user): ?Test
     {
         return Test::query()->forLearner($user)->ofType(TestType::Post)
+            ->orderByRaw('CASE WHEN department_id IS NULL THEN 1 ELSE 0 END')
             ->orderByRaw('CASE WHEN hotel_id IS NULL THEN 1 ELSE 0 END')
             ->orderBy('id')
             ->first();

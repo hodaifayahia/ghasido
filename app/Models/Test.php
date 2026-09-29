@@ -32,7 +32,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property TestType $type
- * @property int $department_id
+ * @property int|null $department_id null = all departments
  * @property int|null $hotel_id
  * @property int|null $paired_test_id
  * @property string $title
@@ -168,7 +168,8 @@ class Test extends Model
 
         $query
             ->where('status', ContentStatus::Published->value)
-            ->where('department_id', $departmentId)
+            // Their department's test, or one for all departments (null).
+            ->where(fn (Builder $inner) => $inner->where('department_id', $departmentId)->orWhereNull('department_id'))
             ->where(function (Builder $inner) use ($user): void {
                 $inner->whereNull('hotel_id');
 
