@@ -240,11 +240,21 @@ final class AiUsageReport
     {
         $byDay = [];
 
-        // Bucketed in PHP so the same code runs on SQLite and MySQL.
-        foreach ($query->get(['occurred_at', 'provider', 'model', 'prompt_tokens', 'completion_tokens', 'cost_estimate']) as $usage) {
-            $day = $usage->occurred_at->toDateString();
-            $byDay[$day]['calls'] = ($byDay[$day]['calls'] ?? 0) + 1;
-            $byDay[$day]['cost'] = ($byDay[$day]['cost'] ?? 0.0) + self::costOfRow($usage, $prices);
+        // Summed in SQL per day, provider and model: loading every row of
+        // the period into PHP took seconds once usage grew (client report
+        // 2026-09-29). `date()` means the same on SQLite and MySQL.
+        $rows = $query
+            ->groupByRaw('date(occurred_at), provider, model')
+            ->toBase()
+            ->selectRaw('date(occurred_at) as day, provider, model, count(*) as calls, sum(case when cost_estimate > 0 then cost_estimate else 0 end) as cost, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion')
+            ->get();
+
+        foreach ($rows as $row) {
+            $day = substr((string) $row->day, 0, 10);
+            $fake = (string) $row->provider === 'fake';
+            $estimate = $fake ? 0.0 : (AiModelPrice::lookup($prices, (string) $row->model)?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0);
+            $byDay[$day]['calls'] = ($byDay[$day]['calls'] ?? 0) + (int) $row->calls;
+            $byDay[$day]['cost'] = ($byDay[$day]['cost'] ?? 0.0) + ($fake ? 0.0 : (float) $row->cost) + $estimate;
         }
 
         $series = [];
@@ -297,24 +307,6 @@ final class AiUsageReport
         }
 
         return $groups;
-    }
-
-    /**
-     * @param  array<string, AiModelPrice>  $prices
-     */
-    private static function costOfRow(AiUsage $usage, array $prices): float
-    {
-        if ($usage->provider === 'fake') {
-            return 0.0;
-        }
-
-        $stored = (float) $usage->cost_estimate;
-
-        if ($stored > 0) {
-            return $stored;
-        }
-
-        return AiModelPrice::lookup($prices, (string) $usage->model)?->costOf($usage->prompt_tokens, $usage->completion_tokens) ?? 0.0;
     }
 
     public static function featureLabel(AiFeature $feature): string
