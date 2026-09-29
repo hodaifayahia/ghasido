@@ -5,9 +5,11 @@ namespace App\Jobs;
 use App\Enums\ReminderStatus;
 use App\Mail\ReminderMail;
 use App\Models\Reminder;
+use App\Services\Mail\MailDelivery;
 use App\Services\Reminders\ReminderService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -37,7 +39,21 @@ class SendReminderEmail implements ShouldQueue
     /** @var list<int> */
     public array $backoff = [10, 30, 60];
 
-    public function __construct(public Reminder $reminder) {}
+    /**
+     * Sent at once, on the sync connection, because Settings → Email says
+     * "Send emails immediately" (client request 2026-09-29): the host may
+     * have no queue worker. A delayed reminder still waits: handle() leaves
+     * a row that is not due yet for the daily pass.
+     */
+    public bool $immediate = false;
+
+    public function __construct(public Reminder $reminder)
+    {
+        if (app(MailDelivery::class)->immediate()) {
+            $this->immediate = true;
+            $this->onConnection('sync');
+        }
+    }
 
     public function handle(ReminderService $reminders): void
     {
@@ -75,7 +91,29 @@ class SendReminderEmail implements ShouldQueue
             return;
         }
 
-        $sent = Mail::to($user->email, $user->name)->send(new ReminderMail($reminder));
+        $mail = Mail::to($user->email, $user->name)->locale($user->locale ?? 'en');
+
+        if (! $this->immediate) {
+            $sent = $mail->send(new ReminderMail($reminder));
+            $reminder->markSent($sent?->getMessageId());
+
+            return;
+        }
+
+        // Sent inside the request that asked for it: a mail server failure
+        // marks this reminder failed (the Messages log shows it) instead of
+        // breaking a send to the whole team.
+        try {
+            $sent = $mail->send(new ReminderMail($reminder));
+        } catch (Throwable $exception) {
+            Log::warning('A reminder email could not be sent.', [
+                'reminder' => $reminder->id,
+                'error' => MailDelivery::redact($exception->getMessage()),
+            ]);
+            $reminder->markFailed(MailDelivery::explain($exception));
+
+            return;
+        }
 
         $reminder->markSent($sent?->getMessageId());
     }

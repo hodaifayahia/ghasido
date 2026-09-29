@@ -3,22 +3,17 @@
 namespace App\Mail;
 
 use App\Models\ContactMessage;
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
 /**
  * A Contact Us message, forwarded to the support email set in Settings →
  * Landing page. Replying answers the visitor directly.
  */
-class ContactMessageMail extends Mailable implements ShouldQueue
+class ContactMessageMail extends BrandedMailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     public function __construct(public ContactMessage $contact) {}
 
     public function envelope(): Envelope
@@ -33,6 +28,7 @@ class ContactMessageMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'mail.contact-message',
+            text: 'mail.text.contact-message',
             with: ['contact' => $this->contact],
         );
     }

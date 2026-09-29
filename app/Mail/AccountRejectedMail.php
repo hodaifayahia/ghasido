@@ -2,22 +2,17 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
 /**
  * Sent when the Super Admin rejects a hotel or individual subscription
  * bought online, with the reason, so the customer can send a valid payment
  * (client request 2026-09-27).
  */
-class AccountRejectedMail extends Mailable implements ShouldQueue
+class AccountRejectedMail extends BrandedMailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     public function __construct(
         public string $recipientName,
         public string $accountName,
@@ -33,6 +28,7 @@ class AccountRejectedMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'mail.account-rejected',
+            text: 'mail.text.account-rejected',
             with: [
                 'name' => $this->recipientName,
                 'accountName' => $this->accountName,

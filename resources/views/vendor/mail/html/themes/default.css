@@ -1,0 +1,36 @@
+/*
+ * GHASIDO: every style lives inline in resources/views/mail/layout.blade.php
+ * and the <x-mail.*> components, so the Markdown theme only styles what a
+ * notification's Markdown produces (links, lists, code, tables).
+ */
+a {
+    color: #0b5cff;
+}
+p {
+    margin: 0 0 16px;
+}
+ul,
+ol {
+    margin: 0 0 16px;
+    padding-inline-start: 22px;
+}
+.table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e4edf8;
+    text-align: start;
+    font-size: 13px;
+    color: #64748b;
+}
+.table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e4edf8;
+    font-size: 15px;
+    color: #12233d;
+}
+.break-all {
+    word-break: break-all;
+}

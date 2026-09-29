@@ -3,21 +3,16 @@
 namespace App\Mail;
 
 use App\Models\User;
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
 /**
  * Sent when the Super Admin confirms an individual subscriber's payment and
  * activates their account (client request 2026-09-27).
  */
-class IndividualApprovedMail extends Mailable implements ShouldQueue
+class IndividualApprovedMail extends BrandedMailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     public function __construct(
         public User $user,
         public string $planName,
@@ -32,6 +27,7 @@ class IndividualApprovedMail extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'mail.individual-approved',
+            text: 'mail.text.individual-approved',
             with: [
                 'name' => $this->user->name,
                 'username' => $this->user->username,

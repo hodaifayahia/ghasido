@@ -10,6 +10,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAiModels } from '@/routes/ai-models';
 import { index as aiUsage } from '@/routes/ai-usage';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editMailSettings } from '@/routes/mail-settings';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
@@ -21,7 +22,7 @@ const isWideSettingsPage = computed(
         page.component === 'settings/AiUsage',
 );
 
-// "AI models" is the Super Admin's tab only; the route itself is a 403 for
+// "AI models" and "Email" are the Super Admin's tabs only; the route itself is a 403 for
 // everyone else, so hiding it here is presentation (API-04, ROLE-01).
 const sidebarNavItems = computed((): NavItem[] => [
     {
@@ -40,6 +41,7 @@ const sidebarNavItems = computed((): NavItem[] => [
         ? [
               { title: tk('AI models'), href: editAiModels() },
               { title: tk('AI usage'), href: aiUsage() },
+              { title: tk('Email'), href: editMailSettings() },
               { title: tk('Landing page'), href: '/settings/landing-page' },
           ]
         : []),

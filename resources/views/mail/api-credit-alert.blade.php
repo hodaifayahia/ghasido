@@ -1,44 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $empty ? __('AI credit used up') : __('AI credit running low') }}</title>
-</head>
-<body style="margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.6;">
-    <div style="max-width: 560px; margin: 0 auto;">
-        <p style="margin: 0 0 16px;">{{ __('Hello :name,', ['name' => $name]) }}</p>
-
-        <p style="margin: 0 0 16px;">
-            @if ($empty)
-                {{ __('The :service credit has run out, so the AI features that use it are paused. Lessons, tests and the phrasebook still work.', ['service' => $service]) }}
-            @else
-                {{ __('The :service credit is running low (about 20% left). When it runs out, the AI features that use it pause for every learner.', ['service' => $service]) }}
-            @endif
-        </p>
-
-        @if ($dollars || count($units) > 0)
-            <p style="margin: 0 0 16px;">
-                @if ($dollars)
-                    <strong>{{ $dollars }}</strong><br>
-                @endif
-                @foreach ($units as $line)
-                    {{ $line }}<br>
-                @endforeach
-            </p>
+<x-mail-frame
+    :title="$empty ? __('AI credit used up') : __('AI credit running low')"
+    :eyebrow="__('AI credit')"
+    :preheader="$empty
+        ? __('The :service credit has run out, so the AI features that use it are paused. Lessons, tests and the phrasebook still work.', ['service' => $service])
+        : __('The :service credit is running low (about 20% left). When it runs out, the AI features that use it pause for every learner.', ['service' => $service])"
+>
+    <x-mail.p>{{ __('Hello :name,', ['name' => $name]) }}</x-mail.p>
+    <x-mail.note :tone="$empty ? 'danger' : 'warning'">
+        @if ($empty)
+            {{ __('The :service credit has run out, so the AI features that use it are paused. Lessons, tests and the phrasebook still work.', ['service' => $service]) }}
+        @else
+            {{ __('The :service credit is running low (about 20% left). When it runs out, the AI features that use it pause for every learner.', ['service' => $service]) }}
         @endif
-
-        <p style="margin: 0 0 24px;">
-            @if ($forOwner)
-                {{ __('Recharge :provider on the owner console:', ['provider' => $provider]) }}
-            @else
-                {{ __('Please ask the platform owner to recharge it. You can follow the credit on your dashboard:') }}
+    </x-mail.note>
+    @if ($dollars || count($units) > 0)
+        <x-mail.details>
+            @if ($dollars)
+                <x-mail.detail :label="__('Credit left')" :last="count($units) === 0">{{ $dollars }}</x-mail.detail>
             @endif
-            <br>
-            <a href="{{ $url }}">{{ $url }}</a>
-        </p>
-
-        <p style="margin: 0;">{{ config('app.name') }}</p>
-    </div>
-</body>
-</html>
+            @foreach ($units as $line)
+                <x-mail.detail :label="__('Usage left')" :last="$loop->last">{{ $line }}</x-mail.detail>
+            @endforeach
+        </x-mail.details>
+    @endif
+    <x-mail.p>
+        @if ($forOwner)
+            {{ __('Recharge :provider on the owner console:', ['provider' => $provider]) }}
+        @else
+            {{ __('Please ask the platform owner to recharge it. You can follow the credit on your dashboard:') }}
+        @endif
+    </x-mail.p>
+    <x-mail.button :href="$url">{{ $forOwner ? __('Open the owner console') : __('Open your dashboard') }}</x-mail.button>
+</x-mail-frame>

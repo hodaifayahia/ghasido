@@ -9,7 +9,9 @@ use App\Enums\Role;
 use App\Enums\TestAttemptStatus;
 use App\Enums\TestType;
 use App\Services\Learning\JourneyService;
+use App\Support\Locales;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -91,10 +93,19 @@ use Spatie\Permission\Traits\HasRoles;
     'english_level_assessed_at',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+class User extends Authenticatable implements HasLocalePreference, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /**
+     * The language of the emails this user receives, password reset
+     * included (I18N-02): the one chosen in the interface, else English.
+     */
+    public function preferredLocale(): string
+    {
+        return Locales::isSupported($this->locale) ? (string) $this->locale : Locales::DEFAULT;
+    }
 
     /**
      * The department a manager has chosen to train in for this request
