@@ -360,7 +360,7 @@ class TestsController extends Controller
         ]);
 
         try {
-            $tests->reorderQuestions($test, array_map('intval', $data['order']));
+            $tests->reorderQuestions($test, array_values(array_map('intval', $data['order'])));
         } catch (InvalidArgumentException $exception) {
             return back()->withErrors(['order' => $exception->getMessage()]);
         }
