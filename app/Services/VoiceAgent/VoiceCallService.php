@@ -16,6 +16,8 @@ use App\Services\Ai\UsageMeter;
 use App\Services\Learning\ProgressService;
 use App\Services\Learning\RoleplayService;
 use App\Services\Owner\ApiCredit;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
@@ -37,6 +39,9 @@ final class VoiceCallService
 
     public const OUTCOME_DISCARDED = 'discarded';
 
+    /** A live call with no caption for this long has lost its page. */
+    public const int STALE_AFTER_MINUTES = 30;
+
     public function __construct(
         private readonly UsageMeter $meter,
         private readonly RoleplayService $roleplay,
@@ -49,6 +54,10 @@ final class VoiceCallService
      */
     public function start(User $user, AiScenario $scenario, ?Lesson $lesson, ?Block $block, bool $preview = false): RoleplayAttempt
     {
+        // An earlier call of theirs that never hung up is closed and billed
+        // first, so its minutes and points are not lost (API-03, AIL-01).
+        $this->closeStale($user);
+
         // The owner's Deepgram (and Qwen, for the Qwen proxy) credit, for a
         // preview too: it spends the same accounts (spec 0007, D7a).
         $this->meter->assertVoiceCredit($user, $this->settings->forScenario($scenario)['thinkMode'] === 'qwen_proxy');
@@ -159,7 +168,7 @@ final class VoiceCallService
      * a call where the employee never spoke is abandoned; anything else is
      * evaluated (RP-07).
      */
-    public function end(RoleplayAttempt $attempt): string
+    public function end(RoleplayAttempt $attempt, ?CarbonInterface $endedAt = null): string
     {
         if (! $attempt->status->acceptsTurns()) {
             return $attempt->status === RoleplayStatus::Abandoned ? self::OUTCOME_ABANDONED : self::OUTCOME_EVALUATING;
@@ -171,11 +180,13 @@ final class VoiceCallService
             return self::OUTCOME_DISCARDED;
         }
 
+        $endedAt ??= Date::now();
+
         if ($attempt->employeeTurnsCount() === 0) {
             $attempt->forceFill([
                 'status' => RoleplayStatus::Abandoned,
-                'ended_at' => Date::now(),
-                'duration_ms' => (int) abs($attempt->started_at->diffInMilliseconds(Date::now())),
+                'ended_at' => $endedAt,
+                'duration_ms' => (int) abs($attempt->started_at->diffInMilliseconds($endedAt)),
             ])->save();
             $this->meter->chargeVoiceAttempt($attempt);
             $this->meter->recordVoiceCall($attempt);
@@ -183,10 +194,48 @@ final class VoiceCallService
             return self::OUTCOME_ABANDONED;
         }
 
-        $this->roleplay->end($attempt);
+        $this->roleplay->end($attempt, $endedAt);
         $this->meter->chargeVoiceAttempt($attempt);
         $this->meter->recordVoiceCall($attempt->refresh());
 
         return self::OUTCOME_EVALUATING;
+    }
+
+    /**
+     * Close the live calls whose page went away without hanging up (tab
+     * closed, phone locked, network lost). Deepgram billed them all the
+     * same, so they are ended as of their last caption and metered and
+     * charged like any other call (API-03, AIL-01; spec 0007, D9). Each
+     * call is closed once: an ended call no longer accepts turns.
+     *
+     * @return int the calls closed
+     */
+    public function closeStale(?User $user = null, int $idleMinutes = self::STALE_AFTER_MINUTES): int
+    {
+        $closed = 0;
+
+        RoleplayAttempt::query()
+            ->where('channel', RoleplayAttempt::CHANNEL_VOICE_CALL)
+            ->where('status', RoleplayStatus::InProgress->value)
+            ->where('updated_at', '<', Date::now()->subMinutes($idleMinutes))
+            ->when($user !== null, fn (Builder $query) => $query->where('user_id', $user?->id))
+            ->orderBy('id')
+            ->get()
+            ->each(function (RoleplayAttempt $attempt) use (&$closed): void {
+                // Re-read under a lock: the learner's own hang-up, or another
+                // sweep, may have closed it meanwhile, and a call is billed once.
+                DB::transaction(function () use ($attempt, &$closed): void {
+                    $locked = RoleplayAttempt::query()->whereKey($attempt->id)->lockForUpdate()->first();
+
+                    if ($locked === null || ! $locked->status->acceptsTurns()) {
+                        return;
+                    }
+
+                    $this->end($locked, $locked->updated_at ?? $locked->started_at);
+                    $closed++;
+                });
+            });
+
+        return $closed;
     }
 }

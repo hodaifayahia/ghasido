@@ -114,6 +114,17 @@ function unitsLeft(meter: AiCreditAccount['meters'][number]): string {
                             }}
                         </span>
                     </p>
+                    <p
+                        v-if="item.creditUsd > 0 && item.usedUsd !== null"
+                        class="text-ink-slate text-xs"
+                        :data-test="`ai-credit-${item.account}-used`"
+                    >
+                        {{
+                            $t(':amount used so far', {
+                                amount: formatUsd(item.usedUsd),
+                            })
+                        }}
+                    </p>
                     <ProgressBar
                         :value="(item.shareLeft ?? 0) * 100"
                         :tone="

@@ -13,6 +13,7 @@ use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
 use App\Services\Ai\UsageMeter;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Date;
 
 /**
@@ -125,12 +126,16 @@ class RoleplayService
      * End the conversation and queue its evaluation (RP-07). The limit is not
      * checked here — a conversation that happened must always be scored.
      */
-    public function end(RoleplayAttempt $attempt): void
+    public function end(RoleplayAttempt $attempt, ?CarbonInterface $endedAt = null): void
     {
+        // A call closed after the fact (its page went away) ends when it
+        // was last heard, not now, so its length is billed as it happened.
+        $endedAt ??= Date::now();
+
         $attempt->forceFill([
             'status' => RoleplayStatus::Evaluating,
-            'ended_at' => Date::now(),
-            'duration_ms' => (int) $attempt->started_at->diffInMilliseconds(Date::now()),
+            'ended_at' => $endedAt,
+            'duration_ms' => (int) abs($attempt->started_at->diffInMilliseconds($endedAt)),
         ])->save();
 
         EvaluateRoleplayAttempt::dispatch($attempt->id);

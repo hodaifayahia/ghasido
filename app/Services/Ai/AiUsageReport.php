@@ -48,8 +48,10 @@ final class AiUsageReport
 
         foreach ($rows as $row) {
             $model = (string) $row->model;
-            $price = AiModelPrice::lookup($prices, $model);
-            $stored = (float) $row->cost;
+            $fake = (string) $row->provider === 'fake';
+            $price = $fake ? null : AiModelPrice::lookup($prices, $model);
+            // A fake (no-network) call bills nobody, whatever its model id.
+            $stored = $fake ? 0.0 : (float) $row->cost;
             $estimate = $price?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0;
 
             $byModel[] = [
@@ -59,7 +61,7 @@ final class AiUsageReport
                 'promptTokens' => (int) $row->prompt_tokens,
                 'completionTokens' => (int) $row->completion_tokens,
                 'cost' => round($stored + $estimate, 4),
-                'priced' => $price !== null,
+                'priced' => $fake || $price !== null,
                 'unit' => $price->unit ?? null,
                 'estimated' => $estimate > 0,
             ];
@@ -92,7 +94,9 @@ final class AiUsageReport
 
     /**
      * Points used this calendar month alongside the provider cost for voice
-     * agent calls and token-based LLM usage (API-03, AIL-04).
+     * agent calls, token-based LLM usage, speech (lesson audio,
+     * transcription and pronunciation listening) and images (API-03,
+     * AIL-04).
      *
      * Costs use the same saved estimates and current model prices as the AI
      * usage report. Points are an employee allowance, so these figures are
@@ -101,7 +105,9 @@ final class AiUsageReport
      *
      * @return array{
      *     voiceAgent: array{points: int, costUsd: float, priceComplete: bool},
-     *     llm: array{points: int, costUsd: float, priceComplete: bool}
+     *     llm: array{points: int, costUsd: float, priceComplete: bool},
+     *     speech: array{points: int, costUsd: float, priceComplete: bool},
+     *     images: array{points: int, costUsd: float, priceComplete: bool}
      * }
      */
     public function dashboardPointSpend(): array
@@ -111,24 +117,37 @@ final class AiUsageReport
         $summary = [
             'voiceAgent' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
             'llm' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
+            'speech' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
+            'images' => ['points' => 0, 'costUsd' => 0.0, 'priceComplete' => true],
         ];
 
         $rows = AiUsage::query()
             ->where('occurred_at', '>=', $from)
-            ->groupBy('feature', 'model')
+            ->groupBy('provider', 'feature', 'model')
             ->toBase()
-            ->selectRaw('feature, model, sum(points_charged) as points, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else 1 end) as unpriced_calls, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion')
+            ->selectRaw('provider, feature, model, sum(points_charged) as points, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else 1 end) as unpriced_calls, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion')
             ->get();
 
         foreach ($rows as $row) {
             $feature = AiFeature::tryFrom((string) $row->feature);
+            // Every metered feature lands in one tile: speech is billed by
+            // the character or second, images by the picture.
             $key = match (true) {
+                $feature === null => null,
                 $feature === AiFeature::VoiceCall => 'voiceAgent',
-                $feature?->unit() === 'tokens' => 'llm',
-                default => null,
+                $feature->unit() === 'tokens' => 'llm',
+                $feature->unit() === 'images' => 'images',
+                default => 'speech',
             };
 
             if ($key === null) {
+                continue;
+            }
+
+            $summary[$key]['points'] += (int) $row->points;
+
+            // A fake (no-network) call bills nobody, whatever its model id.
+            if ((string) $row->provider === 'fake') {
                 continue;
             }
 
@@ -136,11 +155,12 @@ final class AiUsageReport
             $price = AiModelPrice::lookup($prices, $model);
             $stored = (float) $row->cost;
             $estimate = $price?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0;
+            $unpricedUnits = (int) $row->unpriced_prompt + (int) $row->unpriced_completion;
 
-            $summary[$key]['points'] += (int) $row->points;
             $summary[$key]['costUsd'] += $stored + $estimate;
+            // Only usage with something to bill and no price is incomplete.
             $summary[$key]['priceComplete'] = $summary[$key]['priceComplete']
-                && ((int) $row->unpriced_calls === 0 || $price !== null);
+                && ($unpricedUnits === 0 || $price !== null);
         }
 
         // Live voice points are charged per rounded-up ten-minute call and
@@ -221,7 +241,7 @@ final class AiUsageReport
         $byDay = [];
 
         // Bucketed in PHP so the same code runs on SQLite and MySQL.
-        foreach ($query->get(['occurred_at', 'model', 'prompt_tokens', 'completion_tokens', 'cost_estimate']) as $usage) {
+        foreach ($query->get(['occurred_at', 'provider', 'model', 'prompt_tokens', 'completion_tokens', 'cost_estimate']) as $usage) {
             $day = $usage->occurred_at->toDateString();
             $byDay[$day]['calls'] = ($byDay[$day]['calls'] ?? 0) + 1;
             $byDay[$day]['cost'] = ($byDay[$day]['cost'] ?? 0.0) + self::costOfRow($usage, $prices);
@@ -257,11 +277,11 @@ final class AiUsageReport
         // ever reaches selectRaw(). The alias is `group_key` because
         // `grouping` is a reserved word in MySQL 8 (SQLite accepts it).
         $select = $column === 'feature'
-            ? 'feature as group_key, model, count(*) as calls, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion'
-            : 'hotel_id as group_key, model, count(*) as calls, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion';
+            ? 'feature as group_key, provider, model, count(*) as calls, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion'
+            : 'hotel_id as group_key, provider, model, count(*) as calls, sum(cost_estimate) as cost, sum(case when cost_estimate > 0 then 0 else prompt_tokens end) as unpriced_prompt, sum(case when cost_estimate > 0 then 0 else completion_tokens end) as unpriced_completion';
 
         $rows = $query
-            ->groupBy($column === 'feature' ? 'feature' : 'hotel_id', 'model')
+            ->groupBy($column === 'feature' ? 'feature' : 'hotel_id', 'provider', 'model')
             ->toBase()
             ->selectRaw($select)
             ->get();
@@ -270,9 +290,10 @@ final class AiUsageReport
 
         foreach ($rows as $row) {
             $key = $row->group_key === null ? '' : (string) $row->group_key;
-            $estimate = AiModelPrice::lookup($prices, (string) $row->model)?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0;
+            $fake = (string) $row->provider === 'fake';
+            $estimate = $fake ? 0.0 : (AiModelPrice::lookup($prices, (string) $row->model)?->costOf((int) $row->unpriced_prompt, (int) $row->unpriced_completion) ?? 0.0);
             $groups[$key]['calls'] = ($groups[$key]['calls'] ?? 0) + (int) $row->calls;
-            $groups[$key]['cost'] = round(($groups[$key]['cost'] ?? 0.0) + (float) $row->cost + $estimate, 4);
+            $groups[$key]['cost'] = round(($groups[$key]['cost'] ?? 0.0) + ($fake ? 0.0 : (float) $row->cost) + $estimate, 4);
         }
 
         return $groups;
@@ -283,6 +304,10 @@ final class AiUsageReport
      */
     private static function costOfRow(AiUsage $usage, array $prices): float
     {
+        if ($usage->provider === 'fake') {
+            return 0.0;
+        }
+
         $stored = (float) $usage->cost_estimate;
 
         if ($stored > 0) {

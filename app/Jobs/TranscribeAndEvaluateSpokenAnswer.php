@@ -9,6 +9,7 @@ use App\Enums\AiFeature;
 use App\Enums\GenerationStatus;
 use App\Models\ActivityVersion;
 use App\Models\Attempt;
+use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\UsageMeter;
 use App\Support\LocalMediaFile;
 use App\Support\Queues;
@@ -142,22 +143,18 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * STT is billed per audio minute, not tokens: the row records the call
-     * and the model for the cost report (AIL-04).
-     */
-    /**
      * STT bills audio length: the recording's seconds are the input units
-     * (spec 0007, D9), zero when the length was not captured.
+     * (spec 0007, D9), zero when the length was not captured. Labelled with
+     * the provider and model that really listened, after the Super Admin's
+     * switch and model override: .env alone labelled real Deepgram
+     * transcriptions `fake`/`default` (API-03, AIL-04).
      */
     private static function sttUsage(?int $durationMs): AiUsageInfo
     {
-        $provider = config('services.stt.provider');
-        $model = config('services.stt.model');
+        $settings = app(AiModelSettings::class);
+        $provider = $settings->currentProvider('stt');
+        $model = $settings->sttModel($provider);
 
-        return UsageMeter::audioUsage(
-            is_string($provider) && $provider !== '' ? $provider : 'fake',
-            is_string($model) && $model !== '' ? $model : 'default',
-            $durationMs,
-        );
+        return UsageMeter::audioUsage($provider, $model !== '' ? $model : $provider, $durationMs);
     }
 }

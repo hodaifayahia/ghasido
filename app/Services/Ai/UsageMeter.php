@@ -54,7 +54,10 @@ final class UsageMeter
         // Priced from the Super Admin's table when the caller has no figure
         // of its own (API-03; spec 0005 §4.3). Unpriced models stay at 0 and
         // the usage page says so.
-        if ($costEstimate <= 0) {
+        // A fake (no-network) call is free whatever model id it reports.
+        if ($usage->provider === 'fake') {
+            $costEstimate = 0.0;
+        } elseif ($costEstimate <= 0) {
             $costEstimate = AiModelPrice::for($usage->model)
                 ?->costOf($usage->promptTokens, $usage->completionTokens) ?? 0.0;
         }

@@ -12,6 +12,7 @@ use App\Services\Tts\TtsSettings;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 /**
  * The Super Admin's AI model overrides (API-04): which text, fast, image and
@@ -114,11 +115,51 @@ final class AiModelSettings
     {
         $mode = $this->overrides()[$capability.'Mode'] ?? '';
 
-        return match ($mode) {
+        $provider = match ($mode) {
             'fake' => 'fake',
             'real' => $envProvider !== 'fake' ? $envProvider : (self::REAL_DEFAULTS[$capability] ?? $envProvider),
             default => $envProvider,
         };
+
+        return $capability === 'ai' ? self::aiProviderLabel($provider) : $provider;
+    }
+
+    /**
+     * The provider a capability (`ai`, `fast`, `image`, `tts`, `stt`) runs
+     * on now: its .env provider after the Super Admin's fake/real switch.
+     * Callers that meter a call label its ai_usages row with this, so the
+     * row bills to the account that really answered (API-03; spec 0007).
+     */
+    public function currentProvider(string $capability): string
+    {
+        [$switch, $configKey] = match ($capability) {
+            'ai', 'fast' => ['ai', 'services.ai.provider'],
+            'image' => ['image', 'services.ai.image_provider'],
+            'tts' => ['tts', 'services.tts.provider'],
+            'stt' => ['stt', 'services.stt.provider'],
+            default => throw new InvalidArgumentException(sprintf('Unknown AI capability [%s].', $capability)),
+        };
+
+        return $this->provider($switch, self::config($configKey, 'fake'));
+    }
+
+    /**
+     * The generic OpenAI-compatible provider pointed at Alibaba's host
+     * (DashScope or the token-plan host, both `*.aliyuncs.com`) is Qwen: its
+     * calls bill to the owner's Qwen account and use the owner's Qwen key
+     * (spec 0007, D2/D4). Every other label is returned unchanged.
+     */
+    public static function aiProviderLabel(string $provider): string
+    {
+        if ($provider !== 'openai') {
+            return $provider;
+        }
+
+        $host = parse_url(self::config('services.ai.base_url'), PHP_URL_HOST);
+
+        return is_string($host) && ($host === 'aliyuncs.com' || str_ends_with($host, '.aliyuncs.com'))
+            ? 'qwen'
+            : $provider;
     }
 
     /**
