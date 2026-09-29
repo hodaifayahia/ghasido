@@ -33,13 +33,15 @@ const progressLabel = settingField(settings, 'progress_label');
 <template>
     <div class="grid gap-4">
         <LessonsField
+            meaning
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
-        <LessonsField v-model="motto" :label="$t('Motto')" />
+        <LessonsField meaning v-model="motto" :label="$t('Motto')" />
         <LessonsField
+            meaning
             v-model="progressLabel"
             :label="$t('Progress label')"
             :hint="$t('e.g. “activities completed”.')"

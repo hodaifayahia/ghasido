@@ -285,6 +285,7 @@ function save(): void {
                             : $t('Shown on the learner’s card.')
                     "
                     :error="errors.title"
+                    :meaning="!isTest"
                 />
                 <LessonsField
                     v-if="!isTest"
@@ -302,6 +303,7 @@ function save(): void {
             </div>
 
             <LessonsField
+                meaning
                 v-model="prompt"
                 :label="$t('Instruction')"
                 :hint="$t('The line the learner reads above the question.')"

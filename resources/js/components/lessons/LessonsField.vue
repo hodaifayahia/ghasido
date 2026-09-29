@@ -2,6 +2,7 @@
 import { useId } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import InputError from '@/components/InputError.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,6 +22,11 @@ type Props = {
     name?: string;
     min?: number;
     max?: number;
+    /**
+     * English text a learner reads: show "Translate meaning to Arabic" above
+     * the control (client request 2026-09-29).
+     */
+    meaning?: boolean;
     class?: HTMLAttributes['class'];
 };
 
@@ -30,6 +36,7 @@ const props = withDefaults(defineProps<Props>(), {
     placeholder: '',
     required: false,
     dir: 'ltr',
+    meaning: false,
 });
 
 const emit = defineEmits<{
@@ -60,15 +67,29 @@ function onInput(event: Event): void {
 
 <template>
     <div :class="cn('grid gap-1.5', props.class)">
-        <label
-            :for="id"
-            class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
+        <div
+            :class="
+                meaning && type !== 'number'
+                    ? 'flex flex-wrap items-center justify-between gap-x-2'
+                    : 'contents'
+            "
         >
-            {{ label }}
-            <span v-if="required" class="text-danger" aria-hidden="true">
-                *
-            </span>
-        </label>
+            <label
+                :for="id"
+                class="text-brand-900 text-[12px] font-semibold tracking-[0.02em]"
+            >
+                {{ label }}
+                <span v-if="required" class="text-danger" aria-hidden="true">
+                    *
+                </span>
+            </label>
+            <MeaningFieldButton
+                v-if="meaning && type !== 'number'"
+                :text="String(modelValue ?? '')"
+                :label="label"
+                class="-me-1.5"
+            />
+        </div>
         <textarea
             v-if="type === 'textarea'"
             :id="id"

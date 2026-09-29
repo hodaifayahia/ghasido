@@ -41,7 +41,7 @@ function onImage(item: LessonMediaRef | null): void {
 
 <template>
     <div class="grid gap-4">
-        <LessonsField v-model="subtitle" :label="$t('Subtitle')" />
+        <LessonsField meaning v-model="subtitle" :label="$t('Subtitle')" />
         <LessonsMediaSlot
             label="Image"
             :media="media.lookup(settings.image)"
@@ -51,12 +51,14 @@ function onImage(item: LessonMediaRef | null): void {
         />
         <div class="grid gap-4 md:grid-cols-2">
             <LessonsField
+                meaning
                 v-model="quote"
                 :label="$t('Quote')"
                 type="textarea"
                 :rows="2"
             />
             <LessonsField
+                meaning
                 v-model="closingQuote"
                 :label="$t('Closing quote')"
                 type="textarea"
@@ -64,6 +66,7 @@ function onImage(item: LessonMediaRef | null): void {
             />
         </div>
         <LessonsField
+            meaning
             v-model="encouragement"
             :label="$t('Encouragement')"
             type="textarea"

@@ -156,6 +156,7 @@ function save(): void {
     >
         <div class="mt-2 grid gap-4">
             <LessonsField
+                meaning
                 v-model="title"
                 :label="$t('Step title (optional)')"
                 :placeholder="typeOption?.label ?? block.label"

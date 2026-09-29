@@ -34,6 +34,7 @@ import { cloneData } from '@/components/lessons/lessonsBlocks';
 import LessonsAudioChips from '@/components/lessons/LessonsAudioChips.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import LessonsMediaSlot from '@/components/lessons/LessonsMediaSlot.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
@@ -360,6 +361,9 @@ const pictureAnswers = computed(
                 :rows="field.kind === 'lines' ? 3 : 2"
                 :hint="field.hint ? $t(field.hint) : undefined"
                 :required="field.required"
+                :meaning="
+                    field.kind !== 'lines' && field.key !== 'model_answer'
+                "
                 :data-test="`activity-field-${field.key}`"
                 @update:model-value="setField(field.key, $event)"
             />
@@ -566,6 +570,17 @@ const pictureAnswers = computed(
                             })
                         "
                     />
+                    <MeaningFieldButton
+                        v-if="!readOnly"
+                        compact
+                        :text="option.text"
+                        :label="
+                            $t(':label :letter', {
+                                label: $t(spec.options.label),
+                                letter: option.id.toUpperCase(),
+                            })
+                        "
+                    />
                     <button
                         v-if="spec.options.flexible && !readOnly"
                         type="button"
@@ -683,44 +698,62 @@ const pictureAnswers = computed(
                         {{ index + 1 }}
                     </span>
                     <div class="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                        <input
-                            :value="pair.prompt"
-                            type="text"
-                            :aria-label="
-                                spec.matching === 'legacy'
-                                    ? $t('Word the learner hears')
-                                    : $t('Word')
-                            "
-                            :placeholder="
-                                spec.matching === 'legacy'
-                                    ? $t('Word the learner hears')
-                                    : $t('Word')
-                            "
-                            :class="inputClass"
-                            :readonly="readOnly"
-                            :data-test="`activity-pair-${index + 1}-left`"
-                            @input="
-                                setPair(index, {
-                                    prompt: ($event.target as HTMLInputElement)
-                                        .value,
-                                })
-                            "
-                        />
-                        <input
-                            :value="pair.target"
-                            type="text"
-                            :aria-label="$t('Matching answer')"
-                            :placeholder="$t('Matching answer')"
-                            :class="inputClass"
-                            :readonly="readOnly"
-                            :data-test="`activity-pair-${index + 1}-right`"
-                            @input="
-                                setPair(index, {
-                                    target: ($event.target as HTMLInputElement)
-                                        .value,
-                                })
-                            "
-                        />
+                        <div class="flex min-w-0 items-center gap-1">
+                            <input
+                                :value="pair.prompt"
+                                type="text"
+                                :aria-label="
+                                    spec.matching === 'legacy'
+                                        ? $t('Word the learner hears')
+                                        : $t('Word')
+                                "
+                                :placeholder="
+                                    spec.matching === 'legacy'
+                                        ? $t('Word the learner hears')
+                                        : $t('Word')
+                                "
+                                :class="inputClass"
+                                :readonly="readOnly"
+                                :data-test="`activity-pair-${index + 1}-left`"
+                                @input="
+                                    setPair(index, {
+                                        prompt: (
+                                            $event.target as HTMLInputElement
+                                        ).value,
+                                    })
+                                "
+                            />
+                            <MeaningFieldButton
+                                v-if="!readOnly"
+                                compact
+                                :text="pair.prompt"
+                                :label="$t('Word')"
+                            />
+                        </div>
+                        <div class="flex min-w-0 items-center gap-1">
+                            <input
+                                :value="pair.target"
+                                type="text"
+                                :aria-label="$t('Matching answer')"
+                                :placeholder="$t('Matching answer')"
+                                :class="inputClass"
+                                :readonly="readOnly"
+                                :data-test="`activity-pair-${index + 1}-right`"
+                                @input="
+                                    setPair(index, {
+                                        target: (
+                                            $event.target as HTMLInputElement
+                                        ).value,
+                                    })
+                                "
+                            />
+                            <MeaningFieldButton
+                                v-if="!readOnly"
+                                compact
+                                :text="pair.target"
+                                :label="$t('Matching answer')"
+                            />
+                        </div>
                     </div>
                     <button
                         v-if="spec.matching === 'flexible'"
@@ -843,6 +876,12 @@ const pictureAnswers = computed(
                             })
                         "
                     />
+                    <MeaningFieldButton
+                        v-if="!readOnly"
+                        compact
+                        :text="option.text"
+                        :label="$t('Extra answer')"
+                    />
                     <button
                         v-if="!readOnly"
                         type="button"
@@ -912,6 +951,12 @@ const pictureAnswers = computed(
                                 text: ($event.target as HTMLInputElement).value,
                             })
                         "
+                    />
+                    <MeaningFieldButton
+                        v-if="!readOnly"
+                        compact
+                        :text="line.text"
+                        :label="$t('Line :number', { number: index + 1 })"
                     />
                     <template v-if="!readOnly">
                         <button

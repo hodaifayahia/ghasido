@@ -7,6 +7,7 @@ import PanelCard from '@/components/common/PanelCard.vue';
 import TransText from '@/components/common/TransText.vue';
 
 import InputError from '@/components/InputError.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,7 @@ const courseId = ref(String(props.courses[0]?.id ?? NONE));
 const unitId = ref(String(props.courses[0]?.units[0]?.id ?? NONE));
 const newCourseTitle = ref('');
 const newUnitTitle = ref('');
+const lessonTitle = ref('');
 const withBlocks = ref(true);
 
 const course = computed(() =>
@@ -175,15 +177,25 @@ function onDepartment(value: string): void {
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-course"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Course') }}
-                            <span class="text-ink-muted font-normal">{{
-                                $t('(optional)')
-                            }}</span>
-                        </label>
+                            <label
+                                for="create-course"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Course') }}
+                                <span class="text-ink-muted font-normal">{{
+                                    $t('(optional)')
+                                }}</span>
+                            </label>
+                            <MeaningFieldButton
+                                v-if="courseId === NEW"
+                                :text="newCourseTitle"
+                                :label="$t('New course title')"
+                                class="-me-1.5"
+                            />
+                        </div>
                         <Select v-model="courseId">
                             <SelectTrigger
                                 id="create-course"
@@ -240,15 +252,25 @@ function onDepartment(value: string): void {
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-unit"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Unit') }}
-                            <span class="text-ink-muted font-normal">{{
-                                $t('(optional)')
-                            }}</span>
-                        </label>
+                            <label
+                                for="create-unit"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Unit') }}
+                                <span class="text-ink-muted font-normal">{{
+                                    $t('(optional)')
+                                }}</span>
+                            </label>
+                            <MeaningFieldButton
+                                v-if="unitId === NEW"
+                                :text="newUnitTitle"
+                                :label="$t('New unit title')"
+                                class="-me-1.5"
+                            />
+                        </div>
                         <Select v-model="unitId">
                             <SelectTrigger
                                 id="create-unit"
@@ -300,15 +322,25 @@ function onDepartment(value: string): void {
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-lesson-title"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Lesson title') }}
-                            <span class="text-danger-text">*</span>
-                        </label>
+                            <label
+                                for="create-lesson-title"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Lesson title') }}
+                                <span class="text-danger-text">*</span>
+                            </label>
+                            <MeaningFieldButton
+                                :text="lessonTitle"
+                                :label="$t('Lesson title')"
+                                class="-me-1.5"
+                            />
+                        </div>
                         <Input
                             id="create-lesson-title"
+                            v-model="lessonTitle"
                             name="title"
                             required
                             maxlength="120"

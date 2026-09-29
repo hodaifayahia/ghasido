@@ -9,3 +9,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('translations', [TranslationsController::class, 'index'])->name('translations');
 Route::put('translations', [TranslationsController::class, 'save'])->name('translations.save');
 Route::post('translations/generate', [TranslationsController::class, 'generate'])->name('translations.generate');
+
+// The "Translate meaning to Arabic" button above each English field of the
+// test and lesson builders (client request 2026-09-29). JSON.
+Route::post('translations/lookup', [TranslationsController::class, 'lookup'])->name('translations.lookup');
+Route::post('translations/draft', [TranslationsController::class, 'draft'])->name('translations.draft');
+Route::post('translations/write', [TranslationsController::class, 'write'])->name('translations.write');

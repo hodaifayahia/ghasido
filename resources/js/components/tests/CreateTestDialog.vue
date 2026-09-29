@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { CirclePlus } from '@lucide/vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,12 +77,22 @@ function create(): void {
     >
         <form class="mt-5 space-y-4" @submit.prevent="create">
             <div class="space-y-1.5">
-                <Label
-                    for="new-test-title"
-                    class="text-brand-900 text-xs font-semibold"
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-2"
                 >
-                    {{ $t('Test title') }} <span class="text-danger">*</span>
-                </Label>
+                    <Label
+                        for="new-test-title"
+                        class="text-brand-900 text-xs font-semibold"
+                    >
+                        {{ $t('Test title') }}
+                        <span class="text-danger">*</span>
+                    </Label>
+                    <MeaningFieldButton
+                        :text="title"
+                        :label="$t('Test title')"
+                        class="-me-1.5"
+                    />
+                </div>
                 <Input
                     id="new-test-title"
                     v-model="title"

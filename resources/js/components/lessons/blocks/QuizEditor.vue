@@ -33,12 +33,14 @@ const motto = settingField(settings, 'motto');
 <template>
     <div class="grid gap-4">
         <LessonsField
+            meaning
             v-model="subtitle"
             :label="$t('Introduction')"
             type="textarea"
             :rows="2"
         />
         <LessonsField
+            meaning
             v-model="motto"
             :label="$t('Encouragement')"
             :hint="$t('Shown next to the learner’s progress.')"

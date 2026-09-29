@@ -78,6 +78,7 @@ function removeObjective(index: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
+            meaning
             v-model="quote"
             :label="$t('Quote')"
             type="textarea"

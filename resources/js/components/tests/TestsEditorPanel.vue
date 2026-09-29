@@ -27,6 +27,7 @@ import {
 import { toneClass } from '@/components/lessons/lessonsBlocks';
 import LessonsActivityDeleteDialog from '@/components/lessons/activities/LessonsActivityDeleteDialog.vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import TestsAiGenerateDialog from '@/components/tests/TestsAiGenerateDialog.vue';
 import TestsQuestionDialog from '@/components/tests/TestsQuestionDialog.vue';
 import { Button } from '@/components/ui/button';
@@ -309,14 +310,24 @@ function save(): void {
             </div>
         </div>
 
-        <div class="mt-3 grid gap-3 md:grid-cols-2">
+        <div class="mt-3 grid gap-3 md:grid-cols-2 md:items-end">
             <div class="grid gap-1.5">
-                <label
-                    for="test-title"
-                    class="text-brand-900 text-[12px] font-semibold"
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-2"
                 >
-                    {{ $t('Test Title') }} <span class="text-danger">*</span>
-                </label>
+                    <label
+                        for="test-title"
+                        class="text-brand-900 text-[12px] font-semibold"
+                    >
+                        {{ $t('Test Title') }}
+                        <span class="text-danger">*</span>
+                    </label>
+                    <MeaningFieldButton
+                        :text="title"
+                        :label="$t('Test Title')"
+                        class="-me-1.5"
+                    />
+                </div>
                 <Input
                     id="test-title"
                     v-model="title"
@@ -410,12 +421,19 @@ function save(): void {
         </div>
 
         <div class="mt-3 grid gap-1.5">
-            <label
-                for="test-description"
-                class="text-brand-900 text-[12px] font-semibold"
-            >
-                {{ $t('Test Description (optional)') }}
-            </label>
+            <div class="flex flex-wrap items-center justify-between gap-x-2">
+                <label
+                    for="test-description"
+                    class="text-brand-900 text-[12px] font-semibold"
+                >
+                    {{ $t('Test Description (optional)') }}
+                </label>
+                <MeaningFieldButton
+                    :text="description"
+                    :label="$t('Test Description (optional)')"
+                    class="-me-1.5"
+                />
+            </div>
             <textarea
                 id="test-description"
                 rows="2"
