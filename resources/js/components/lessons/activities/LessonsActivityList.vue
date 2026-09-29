@@ -63,6 +63,9 @@ function add(): void {
     editorOpen.value = true;
 }
 
+// The Quiz / Practice tab opens the chooser of a block from outside.
+defineExpose({ add });
+
 function edit(activity: LessonActivityRow): void {
     editing.value = activity;
     editorOpen.value = true;

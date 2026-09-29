@@ -236,7 +236,10 @@ const toolbarButton =
 
         <LessonsQuizTab
             v-else-if="activeTab === 'quiz'"
+            :lesson-id="editor.id"
             :blocks="lessonBlocks"
+            :library="library"
+            :read-only="!manage"
         />
 
         <!-- minmax(0,1fr): wide content (the block list) must not widen
