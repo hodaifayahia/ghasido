@@ -55,6 +55,11 @@ class IndividualsController extends Controller
                 'individualSubscription',
                 fn (Builder $sub) => $sub->whereDate('ends_on', '<', Date::today()),
             ))
+            // Waiting for approval first (client request 2026-09-29).
+            ->orderByDesc(IndividualSubscription::query()
+                ->selectRaw('case when approval_state = ? then 1 else 0 end', [ApprovalState::Pending->value])
+                ->whereColumn('individual_subscriptions.user_id', 'users.id')
+                ->limit(1))
             ->orderByDesc('id');
 
         $page = $query->paginate(self::PER_PAGE)->withQueryString();

@@ -9,7 +9,6 @@ import HotelReasonDialog from '@/components/hotels/HotelReasonDialog.vue';
 import HotelSeatsDialog from '@/components/hotels/HotelSeatsDialog.vue';
 import HotelsDirectoryPanel from '@/components/hotels/HotelsDirectoryPanel.vue';
 import type { HotelFilterValues } from '@/components/hotels/HotelsDirectoryPanel.vue';
-import HotelsSidebarPanel from '@/components/hotels/HotelsSidebarPanel.vue';
 import HotelsStatsRow from '@/components/hotels/HotelsStatsRow.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
@@ -264,19 +263,18 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
 
         <HotelsStatsRow :stats="stats" />
 
-        <div class="grid min-w-0 gap-3 xl:grid-cols-4 xl:items-start">
+        <!-- Full width: the Hotel Overview and Department Seat Quotas
+             cards were removed (client request 2026-09-29). -->
+        <div class="grid min-w-0 gap-3">
             <HotelsDirectoryPanel
                 :filters="filters"
                 :hotels="hotels"
                 :pagination="pagination"
                 :loading="loading"
-                class="xl:col-span-3"
                 @filter="applyFilters"
                 @page="goToPage"
                 @action="onAction"
             />
-
-            <HotelsSidebarPanel :overview="overview" />
         </div>
     </div>
 

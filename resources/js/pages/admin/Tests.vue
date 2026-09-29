@@ -267,7 +267,6 @@ defineOptions({
                 href: tests(),
             },
         ],
-        topbarTaglineSrc: '/decor/tests-topbar-tagline.png',
     },
 });
 </script>
