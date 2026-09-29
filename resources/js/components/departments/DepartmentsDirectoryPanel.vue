@@ -275,38 +275,38 @@ const skeletonRows = [0, 1, 2, 3, 4, 5, 6];
         >
             <div class="hidden overflow-x-auto md:block">
                 <table
-                    class="min-w-full table-fixed border-collapse text-start"
+                    class="w-full min-w-[900px] table-fixed border-collapse text-start"
                 >
                     <thead class="bg-tint-header">
                         <tr
                             class="text-brand-900 text-[12px] leading-4 font-semibold"
                         >
-                            <th class="w-10 py-2 ps-3 pe-2 text-start">#</th>
-                            <th class="w-[170px] px-2 py-2 text-start">
+                            <th class="w-[4%] py-2 ps-3 pe-2 text-start">#</th>
+                            <th class="w-[17%] px-2 py-2 text-start">
                                 {{ $t('Department') }}
                             </th>
-                            <th class="w-[116px] px-2 py-2 text-start">
+                            <th class="w-[12%] px-2 py-2 text-start">
                                 {{ $t('Scope') }}
                             </th>
-                            <th class="w-[78px] px-2 py-2 text-start">
+                            <th class="w-[7%] px-2 py-2 text-start">
                                 {{ $t('Hotels') }}
                             </th>
-                            <th class="w-[86px] px-2 py-2 text-start">
+                            <th class="w-[8%] px-2 py-2 text-start">
                                 {{ $t('Employees') }}
                             </th>
-                            <th class="w-[154px] px-2 py-2 text-start">
+                            <th class="w-[14%] px-2 py-2 text-start">
                                 {{ $t('Seat Usage') }}
                             </th>
-                            <th class="w-[92px] px-2 py-2 text-start">
+                            <th class="w-[8%] px-2 py-2 text-start">
                                 {{ $t('Lessons') }}
                             </th>
-                            <th class="w-[114px] px-2 py-2 text-start">
+                            <th class="w-[10%] px-2 py-2 text-start">
                                 {{ $t('Assessments') }}
                             </th>
-                            <th class="w-[104px] px-2 py-2 text-start">
+                            <th class="w-[11%] px-2 py-2 text-start">
                                 {{ $t('Status') }}
                             </th>
-                            <th class="w-[108px] px-2 py-2 text-start">
+                            <th class="w-[9%] px-2 py-2 text-start">
                                 {{ $t('Actions') }}
                             </th>
                         </tr>
