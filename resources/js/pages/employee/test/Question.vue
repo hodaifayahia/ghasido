@@ -47,7 +47,16 @@ provide(
 );
 
 const activityRef = ref<InstanceType<typeof GenericActivity> | null>(null);
-const mountedAt = Date.now();
+// When this question appeared. Moving to another question reuses this page
+// component, so the clock restarts on every new question; otherwise each
+// answer's time would include every question before it (TIME-04, DATA-08).
+let shownAt = Date.now();
+watch(
+    () => props.question.number,
+    () => {
+        shownAt = Date.now();
+    },
+);
 const busy = ref(false);
 
 const { label: timeLabel, expired } = useTimer(() => props.attempt.deadlineAt);
@@ -65,7 +74,7 @@ function collect(): AnswerMap {
 }
 
 function elapsed(): number {
-    return Date.now() - mountedAt;
+    return Date.now() - shownAt;
 }
 
 function go(to: number): void {
