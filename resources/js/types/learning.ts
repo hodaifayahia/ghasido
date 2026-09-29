@@ -44,6 +44,7 @@ export type BlockType =
     | 'dialogue'
     | 'video'
     | 'practice'
+    | 'quiz'
     | 'ai_roleplay'
     | 'complete'
     | 'text'
@@ -236,7 +237,7 @@ export type StepBlock =
     | StepBlockBase<'listen_repeat', ListenRepeatSettings>
     | StepBlockBase<'dialogue', DialogueSettings>
     | StepBlockBase<'video', VideoSettings>
-    | StepBlockBase<'practice', PracticeSettings>
+    | StepBlockBase<'practice' | 'quiz', PracticeSettings>
     | StepBlockBase<'ai_roleplay', RoleplaySettings>
     | StepBlockBase<'complete', CompleteSettings>
     | StepBlockBase<

@@ -5,8 +5,10 @@ namespace App\Http\Requests\Admin\Lessons;
 use App\Enums\ActivityType;
 use App\Models\Activity;
 use App\Models\Block;
+use App\Services\Content\ActivityPayloadValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Create an activity (PRAC-01..07, WRITE-05; spec 0003 B.9). The payload is
@@ -43,6 +45,30 @@ class StoreActivityRequest extends FormRequest
             'prompt' => ['required', 'string', 'max:500'],
             'payload' => ['required', 'array'],
             'block_id' => ['nullable', 'integer', Rule::exists('blocks', 'id')],
+        ];
+    }
+
+    /**
+     * The payload must be answerable and scorable for its type (spec 0003
+     * B.9): options with a correct one, real pairs, a full order.
+     *
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $type = ActivityType::tryFrom((string) $this->input('type'));
+                $payload = $this->input('payload');
+
+                if ($type === null || ! is_array($payload) || $validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                foreach (ActivityPayloadValidator::errors($type, $payload) as $key => $message) {
+                    $validator->errors()->add($key, $message);
+                }
+            },
         ];
     }
 

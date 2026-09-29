@@ -10,11 +10,12 @@ import MeaningText from '@/components/learning/meaning/MeaningText.vue';
  * Step 7, "Practice" (PRAC-01..03; photo_7): the heading with a progress
  * pill, then a grid of activity cards, one per placement in the block. Each
  * card links to its activity page; the grid wraps when a lesson has more
- * than the six the mockup draws.
+ * than the six the mockup draws. A Quiz block renders the same way, one
+ * card per question, under its own heading (client report 2026-09-29).
  */
 type Props = {
     lesson: LessonSummary;
-    block: StepBlockOf<'practice'>;
+    block: StepBlockOf<'practice' | 'quiz'>;
     number?: number;
 };
 
@@ -29,11 +30,16 @@ const completed = computed(
 const subtitle = computed(
     () =>
         props.block.settings.subtitle ??
-        t('Choose a practice activity to improve your skills.'),
+        (props.block.type === 'quiz'
+            ? t('Answer the questions to check what you have learned.')
+            : t('Choose a practice activity to improve your skills.')),
 );
 const motto = computed(() => props.block.settings.motto ?? null);
 const heading = computed(
-    () => `${props.number ? `${props.number}. ` : ''}${t('Practice')}`,
+    () =>
+        `${props.number ? `${props.number}. ` : ''}${
+            props.block.type === 'quiz' ? props.block.heading : t('Practice')
+        }`,
 );
 </script>
 

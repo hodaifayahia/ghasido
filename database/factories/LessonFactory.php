@@ -7,6 +7,7 @@ use App\Enums\ContentStatus;
 use App\Models\Block;
 use App\Models\Lesson;
 use App\Models\Unit;
+use App\Services\Content\BlockDefaults;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -22,17 +23,7 @@ class LessonFactory extends Factory
      *
      * @var list<BlockType>
      */
-    public const array DEFAULT_BLOCKS = [
-        BlockType::Situation,
-        BlockType::Vocabulary,
-        BlockType::Expressions,
-        BlockType::ListenRepeat,
-        BlockType::Dialogue,
-        BlockType::Video,
-        BlockType::Practice,
-        BlockType::AiRoleplay,
-        BlockType::Complete,
-    ];
+    public const array DEFAULT_BLOCKS = BlockDefaults::DEFAULT_BLOCKS;
 
     /**
      * @return array<string, mixed>

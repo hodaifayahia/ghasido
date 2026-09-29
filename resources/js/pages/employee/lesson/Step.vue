@@ -89,7 +89,11 @@ const next = computed(() => {
     <Head :title="`${lesson.title} – ${block.heading}`" />
 
     <LessonStepHeader
-        v-if="block.type !== 'complete' && block.type !== 'practice'"
+        v-if="
+            block.type !== 'complete' &&
+            block.type !== 'practice' &&
+            block.type !== 'quiz'
+        "
         :number="current?.number"
         :heading="block.heading"
         :department="lesson.department.name"
@@ -128,7 +132,7 @@ const next = computed(() => {
         :block="block"
     />
     <PracticeHubStep
-        v-else-if="block.type === 'practice'"
+        v-else-if="block.type === 'practice' || block.type === 'quiz'"
         :lesson="lesson"
         :block="block"
         :number="current?.number"

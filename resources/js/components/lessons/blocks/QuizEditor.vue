@@ -9,11 +9,12 @@ import type {
 } from '@/types';
 
 /**
- * Practice hub block (spec 0003 B.10, photo_7), also used for Email and Phone
- * activity blocks: the intro copy and the progress label, then the block's
- * activities, which the admin adds, edits, reorders and deletes here
- * (PRAC-01..07; client report 2026-09-29). Activities save their own rows
- * straight away; "Save block" saves the copy above them.
+ * Quiz / Test block (client report 2026-09-29): a short intro, then the
+ * quiz questions. Each question is one activity with one item (like a test
+ * question, spec 0003 B.9): the admin picks its type, writes it, enters the
+ * answers and marks the correct one; questions are reordered and deleted
+ * here and saved straight away. Learners' answers are stored verbatim
+ * against the question's version (TEST-06, DATA-11).
  */
 type Props = {
     block: LessonBlockRow;
@@ -27,27 +28,25 @@ const settings = defineModel<BlockSettings>('settings', { required: true });
 
 const subtitle = settingField(settings, 'subtitle');
 const motto = settingField(settings, 'motto');
-const progressLabel = settingField(settings, 'progress_label');
 </script>
 
 <template>
     <div class="grid gap-4">
         <LessonsField
             v-model="subtitle"
-            :label="$t('Subtitle')"
+            :label="$t('Introduction')"
             type="textarea"
             :rows="2"
         />
-        <LessonsField v-model="motto" :label="$t('Motto')" />
         <LessonsField
-            v-model="progressLabel"
-            :label="$t('Progress label')"
-            :hint="$t('e.g. “activities completed”.')"
+            v-model="motto"
+            :label="$t('Encouragement')"
+            :hint="$t('Shown next to the learner’s progress.')"
         />
 
         <LessonsActivityList
             :block="block"
-            mode="practice"
+            mode="quiz"
             :library="library"
             :read-only="readOnly"
         />

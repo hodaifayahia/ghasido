@@ -388,7 +388,7 @@ class ContentTree
             ['id' => 'video', 'label' => __('Video'), 'icon' => 'video', 'tone' => 'danger', 'type' => BlockType::Video->value],
             ['id' => 'practice', 'label' => __('Practice Activity'), 'icon' => 'practice', 'tone' => 'warning', 'type' => BlockType::Practice->value],
             ['id' => 'roleplay', 'label' => __('AI Role-play'), 'icon' => 'roleplay', 'tone' => 'brand', 'type' => BlockType::AiRoleplay->value],
-            ['id' => 'quiz', 'label' => __('Quiz / Test'), 'icon' => 'quiz', 'tone' => 'ai', 'type' => BlockType::Practice->value],
+            ['id' => 'quiz', 'label' => __('Quiz / Test'), 'icon' => 'quiz', 'tone' => 'ai', 'type' => BlockType::Quiz->value],
             ['id' => 'download', 'label' => __('Downloadable File'), 'icon' => 'download', 'tone' => 'azure', 'type' => null],
             ['id' => 'note', 'label' => __('Note / Tip'), 'icon' => 'note', 'tone' => 'gold', 'type' => BlockType::Note->value],
         ];

@@ -3,6 +3,7 @@
 use App\Enums\Permission;
 use App\Http\Controllers\Admin\Lessons\ActivityController;
 use App\Http\Controllers\Admin\Lessons\AudioController;
+use App\Http\Controllers\Admin\Lessons\BlockActivityController;
 use App\Http\Controllers\Admin\Lessons\BlockController;
 use App\Http\Controllers\Admin\Lessons\CourseController;
 use App\Http\Controllers\Admin\Lessons\LessonController;
@@ -59,6 +60,10 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
 
     Route::post('activities', [ActivityController::class, 'store'])->name('activities.store');
     Route::patch('activities/{activity}', [ActivityController::class, 'update'])->name('activities.update');
+    // The activities of a Practice block / the questions of a Quiz block
+    // (BLD-03, PRAC-01..07): created and edited through activities.*.
+    Route::put('blocks/{block}/activities/reorder', [BlockActivityController::class, 'reorder'])->name('blocks.activities.reorder');
+    Route::delete('blocks/{block}/activities/{placement}', [BlockActivityController::class, 'destroy'])->scopeBindings()->name('blocks.activities.destroy');
 
     Route::post('audio/generate', [AudioController::class, 'generate'])->name('audio.generate');
     Route::post('audio/generate-all', [AudioController::class, 'generateAll'])->name('audio.generate-all');

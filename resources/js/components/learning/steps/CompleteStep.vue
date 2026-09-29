@@ -84,6 +84,7 @@ const rowIcon: Record<BlockType, Component> = {
     dialogue: MessageSquare,
     video: VideoIcon,
     practice: ListChecks,
+    quiz: ClipboardCheck,
     ai_roleplay: Bot,
     complete: Trophy,
     text: ListChecks,

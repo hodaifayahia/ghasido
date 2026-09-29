@@ -207,6 +207,7 @@ export type BlockTypeKey =
     | 'dialogue'
     | 'video'
     | 'practice'
+    | 'quiz'
     | 'ai_roleplay'
     | 'complete'
     | 'text'

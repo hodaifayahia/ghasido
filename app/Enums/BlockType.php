@@ -20,6 +20,7 @@ enum BlockType: string
     case Dialogue = 'dialogue';
     case Video = 'video';
     case Practice = 'practice';
+    case Quiz = 'quiz';
     case AiRoleplay = 'ai_roleplay';
     case Complete = 'complete';
     case Text = 'text';
@@ -42,6 +43,7 @@ enum BlockType: string
             self::Dialogue => __('Dialogue'),
             self::Video => __('Video'),
             self::Practice => __('Practice'),
+            self::Quiz => __('Quiz'),
             self::AiRoleplay => __('AI Role-play'),
             self::Complete => __('Complete'),
             self::Text => __('Text'),
@@ -66,6 +68,7 @@ enum BlockType: string
             self::Dialogue => __('Dialogue'),
             self::Video => __('Video – Watch the Situation'),
             self::Practice => __('Practice'),
+            self::Quiz => __('Quiz'),
             self::AiRoleplay => __('AI Role-play'),
             self::Complete => __('Lesson Completed!'),
             self::Text => __('Text'),
@@ -90,6 +93,7 @@ enum BlockType: string
             self::Dialogue => __('A short conversation, line by line, with audio.'),
             self::Video => __('Watch the situation happen in a short video.'),
             self::Practice => __('A hub of practice activities.'),
+            self::Quiz => __('Questions with answers to check what the learner has learned.'),
             self::AiRoleplay => __('Practise the situation with an AI guest.'),
             self::Complete => __('The closing screen with the lesson summary.'),
             self::Text => __('A short paragraph of text.'),
@@ -113,7 +117,7 @@ enum BlockType: string
             self::ListenRepeat, self::Audio, self::Dialogue => 'success',
             self::Video => 'warning',
             self::Practice, self::EmailActivity, self::PhoneActivity => 'gold',
-            self::AiRoleplay => 'ai',
+            self::AiRoleplay, self::Quiz => 'ai',
             self::Complete => 'success',
         };
     }
@@ -131,6 +135,7 @@ enum BlockType: string
             self::Dialogue => 'MessagesSquare',
             self::Video => 'Video',
             self::Practice => 'ListChecks',
+            self::Quiz => 'ClipboardCheck',
             self::AiRoleplay => 'Bot',
             self::Complete => 'Award',
             self::Text => 'Type',
@@ -147,7 +152,7 @@ enum BlockType: string
      */
     public function holdsActivities(): bool
     {
-        return in_array($this, [self::Practice, self::EmailActivity, self::PhoneActivity], true);
+        return in_array($this, [self::Practice, self::Quiz, self::EmailActivity, self::PhoneActivity], true);
     }
 
     /**

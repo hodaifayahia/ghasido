@@ -70,7 +70,7 @@ class ContentTreeTest extends TestCase
                 ->where('lessonBlocks.0.type', 'situation')
                 ->where('lessonBlocks.0.position', 1)
                 ->where('lessonBlocks.8.type', 'complete')
-                ->has('blockTypes', 15)
+                ->has('blockTypes', 16)
             );
     }
 

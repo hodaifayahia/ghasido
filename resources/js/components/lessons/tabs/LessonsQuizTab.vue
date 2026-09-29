@@ -41,7 +41,11 @@ const rows = computed((): Row[] =>
             v-if="rows.length === 0"
             class="border-line bg-brand-50/40 text-ink-slate rounded-md border border-dashed px-4 py-8 text-center text-[13px]"
         >
-            {{ $t('No activity yet. Open the Practice block and add one.') }}
+            {{
+                $t(
+                    'No activity yet. Open a Practice or Quiz block and add one.',
+                )
+            }}
         </p>
 
         <ul v-else class="grid gap-2">

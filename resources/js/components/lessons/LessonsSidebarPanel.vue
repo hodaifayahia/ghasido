@@ -118,7 +118,7 @@ function addBlock(block: LessonBuilderBlock): void {
     adding.value = block.id;
     router.post(
         storeBlock.url(props.lessonId),
-        { type: block.type, title: block.id === 'quiz' ? block.label : null },
+        { type: block.type },
         {
             preserveState: true,
             preserveScroll: true,

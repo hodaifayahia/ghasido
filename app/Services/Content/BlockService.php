@@ -7,7 +7,6 @@ use App\Models\AiScenario;
 use App\Models\AuditLog;
 use App\Models\Block;
 use App\Models\Lesson;
-use Database\Factories\BlockFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -36,7 +35,7 @@ class BlockService
             $block->type = $type;
             $block->title = $title;
             $block->layout = 'full';
-            $block->settings = BlockFactory::settingsFor($type);
+            $block->settings = BlockDefaults::settings($type);
             $block->is_visible = true;
             $block->position = $insertAt;
             $block->save();

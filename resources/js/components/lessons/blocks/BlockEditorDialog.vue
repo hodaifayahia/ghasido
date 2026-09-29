@@ -9,6 +9,7 @@ import GenericEditor from '@/components/lessons/blocks/GenericEditor.vue';
 import LexiconEditor from '@/components/lessons/blocks/LexiconEditor.vue';
 import ListenRepeatEditor from '@/components/lessons/blocks/ListenRepeatEditor.vue';
 import PracticeEditor from '@/components/lessons/blocks/PracticeEditor.vue';
+import QuizEditor from '@/components/lessons/blocks/QuizEditor.vue';
 import RoleplayEditor from '@/components/lessons/blocks/RoleplayEditor.vue';
 import SituationEditor from '@/components/lessons/blocks/SituationEditor.vue';
 import VideoEditor from '@/components/lessons/blocks/VideoEditor.vue';
@@ -77,6 +78,7 @@ const editors: Record<BlockTypeKey, Component> = {
     dialogue: DialogueEditor,
     video: VideoEditor,
     practice: PracticeEditor,
+    quiz: QuizEditor,
     ai_roleplay: RoleplayEditor,
     complete: CompleteEditor,
     text: GenericEditor,

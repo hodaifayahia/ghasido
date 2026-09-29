@@ -24,7 +24,8 @@ class ActivityController extends Controller
         $user = $request->user();
         $activity = $activities->create($request->activityData(), $user, $request->block());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __(':label activity was created.', ['label' => $activity->type->label()])]);
+        // Name the activity the way the builder lists it: its title, or its type.
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':label was added.', ['label' => $activity->title ?? $activity->type->label()])]);
 
         return back();
     }
@@ -35,8 +36,8 @@ class ActivityController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => __(':label activity was saved (version :version).', [
-                'label' => $activity->type->label(),
+            'message' => __(':label was saved (version :version).', [
+                'label' => $activity->title ?? $activity->type->label(),
                 'version' => $activity->current_version,
             ]),
         ]);

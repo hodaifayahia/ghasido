@@ -10,8 +10,6 @@ use App\Models\Lesson;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Pronunciation\LessonSpeech;
-use Database\Factories\BlockFactory;
-use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -140,13 +138,13 @@ class LessonService
             $lesson->save();
 
             if ($withDefaultBlocks) {
-                foreach (LessonFactory::DEFAULT_BLOCKS as $index => $type) {
+                foreach (BlockDefaults::DEFAULT_BLOCKS as $index => $type) {
                     Block::query()->create([
                         'lesson_id' => $lesson->id,
                         'type' => $type,
                         'position' => $index + 1,
                         'layout' => 'full',
-                        'settings' => BlockFactory::settingsFor($type),
+                        'settings' => BlockDefaults::settings($type),
                         'is_visible' => true,
                     ]);
                 }

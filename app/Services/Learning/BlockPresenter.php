@@ -351,6 +351,7 @@ class BlockPresenter
             BlockType::Dialogue => ['type' => 'dialogue', 'title' => __('Dialogue Practice'), 'subtitle' => __('Completed')],
             BlockType::Video => ['type' => 'video', 'title' => __('Video'), 'subtitle' => __('Completed')],
             BlockType::Practice => ['type' => 'practice', 'title' => __('Practice'), 'subtitle' => __('Completed')],
+            BlockType::Quiz => ['type' => 'quiz', 'title' => __('Quiz'), 'subtitle' => __('Completed')],
             BlockType::AiRoleplay => ['type' => 'ai_roleplay', 'title' => __('AI Role-play'), 'subtitle' => $this->roleplaySubtitle($block, $user)],
             default => null,
         };
