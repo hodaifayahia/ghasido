@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\LandingPageController;
 use App\Http\Controllers\Settings\AiModelsController;
 use App\Http\Controllers\Settings\AiUsageController;
+use App\Http\Controllers\Settings\LearningSettingsController;
 use App\Http\Controllers\Settings\MailSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -64,6 +65,14 @@ Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
     Route::post('settings/email/test', [MailSettingsController::class, 'test'])
         ->middleware('throttle:10,1')
         ->name('mail-settings.test');
+});
+
+// Settings → Learning: the level-up threshold, Super Admin only (client
+// request 2026-09-30, ADM-02, ROLE-01). The gate is repeated in the
+// controller.
+Route::middleware(['auth', 'can:manage-learning-settings'])->group(function () {
+    Route::get('settings/learning', [LearningSettingsController::class, 'edit'])->name('learning-settings.edit');
+    Route::patch('settings/learning', [LearningSettingsController::class, 'update'])->name('learning-settings.update');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

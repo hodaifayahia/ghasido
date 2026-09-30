@@ -461,6 +461,7 @@ class TestsController extends Controller
             'id' => (string) $test->id,
             'title' => $test->title,
             'department' => $test->department->name ?? __('All departments'),
+            'level' => $test->level?->label() ?? __('All levels'),
             'hotel' => $hotel === null ? __('All Hotels') : $hotel->name,
             'meta' => __(':questions questions · :minutes', ['questions' => (int) $test->questions_count, 'minutes' => $minutes === null ? __('No time limit') : $minutes.' min']),
             'type' => $test->type->value,
@@ -521,6 +522,8 @@ class TestsController extends Controller
                 ...$departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
             ],
             'hotel' => (string) ($selected === null ? '' : $selected->hotel_id),
+            // '' = every level (client decision 2026-09-30).
+            'level' => $selected !== null ? (string) $selected->level?->value : (is_string($request->query('newLevel')) ? (string) $request->query('newLevel') : ''),
             'timeLimit' => (string) (($settings['time_limit_seconds'] ?? null) ? (int) round(((int) $settings['time_limit_seconds']) / 60) : ''),
             'questionCount' => (string) ($selected?->questions->count() ?? 0),
             'attemptCount' => $selected === null ? 0 : $selected->attempts()->count(),

@@ -321,6 +321,13 @@ final class ReportPopulation
                         $scope
                             ->whereNull('courses.hotel_id')
                             ->orWhereColumn('courses.hotel_id', 'users.hotel_id');
+                    })
+                    ->where(function (QueryBuilder $level): void {
+                        // Their level's courses, or every-level ones (client
+                        // decision 2026-09-30).
+                        $level->whereNull('courses.level')
+                            ->orWhereNull('users.english_level')
+                            ->orWhereColumn('courses.level', 'users.english_level');
                     });
             });
     }

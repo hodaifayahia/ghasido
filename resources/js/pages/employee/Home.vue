@@ -23,6 +23,7 @@ import type {
     PreTestIntro,
     StreakSummary,
 } from '@/types';
+import LevelSuggestionCard from '@/components/learning/level/LevelSuggestionCard.vue';
 
 /*
  * The employee home (JOURNEY-01, JOURNEY-02, PROG-05; spec 0003 Part E).
@@ -115,6 +116,7 @@ const continueFacts = computed((): Fact[] => {
     >
         <div class="flex min-w-0 flex-col">
             <JourneyStepper :journey="journey" class="mt-[22px]" />
+            <LevelSuggestionCard class="mt-5" />
 
             <HomeCard
                 v-if="showIntro && test"

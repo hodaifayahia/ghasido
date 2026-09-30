@@ -136,7 +136,7 @@ final class DashboardStats
             ->select([
                 'users.id', 'users.name', 'users.hotel_id', 'users.department_id', 'users.status',
                 'users.last_login_at', 'users.last_activity_at',
-                'users.training_started_at', 'users.training_completed_at', 'users.created_at',
+                'users.training_started_at', 'users.training_completed_at', 'users.created_at', 'users.english_level',
             ])
             ->employees()
             ->active()
@@ -228,7 +228,8 @@ final class DashboardStats
 
         foreach ($employees as $user) {
             $departmentId = (int) $user->department_id;
-            $total = ($totals[$departmentId][0] ?? 0) + ($totals[$departmentId][(int) $user->hotel_id] ?? 0);
+            $total = self::levelTotal($totals[$departmentId][0] ?? [], $user)
+                + self::levelTotal($totals[$departmentId][(int) $user->hotel_id] ?? [], $user);
             $completed = min($completions[$user->id] ?? 0, $total);
 
             $finished = $user->training_completed_at !== null || ($total > 0 && $completed >= $total);
@@ -256,10 +257,27 @@ final class DashboardStats
     }
 
     /**
-     * Published lessons of published courses, counted per department and
-     * hotel. Key 0 stands for the shared catalogue (`hotel_id` null).
+     * The lessons of one department and hotel this employee's level sees:
+     * every-level courses plus their own level's; all of them with no
+     * level yet (client decision 2026-09-30).
      *
-     * @return array<int, array<int, int>>
+     * @param  array<string, int>  $byLevel
+     */
+    private static function levelTotal(array $byLevel, User $user): int
+    {
+        if ($user->english_level === null) {
+            return array_sum($byLevel);
+        }
+
+        return ($byLevel[''] ?? 0) + ($byLevel[$user->english_level->value] ?? 0);
+    }
+
+    /**
+     * Published lessons of published courses, counted per department and
+     * hotel and level. Key 0 stands for the shared catalogue (`hotel_id`
+     * null), level '' for courses of every level.
+     *
+     * @return array<int, array<int, array<string, int>>>
      */
     private function lessonTotals(): array
     {
@@ -267,15 +285,16 @@ final class DashboardStats
             ->join('courses', 'courses.id', '=', 'lessons.course_id')
             ->where('lessons.status', ContentStatus::Published->value)
             ->where('courses.status', ContentStatus::Published->value)
-            ->groupBy('courses.department_id', 'courses.hotel_id')
+            ->groupBy('courses.department_id', 'courses.hotel_id', 'courses.level')
             ->toBase()
-            ->selectRaw('courses.department_id as department_id, courses.hotel_id as hotel_id, count(*) as aggregate')
+            ->selectRaw('courses.department_id as department_id, courses.hotel_id as hotel_id, courses.level as level, count(*) as aggregate')
             ->get();
 
         $totals = [];
 
         foreach ($rows as $row) {
-            $totals[(int) $row->department_id][(int) $row->hotel_id] = (int) $row->aggregate;
+            $key = is_string($row->level) && $row->level !== '' ? $row->level : '';
+            $totals[(int) $row->department_id][(int) $row->hotel_id][$key] = ($totals[(int) $row->department_id][(int) $row->hotel_id][$key] ?? 0) + (int) $row->aggregate;
         }
 
         return $totals;
@@ -303,6 +322,13 @@ final class DashboardStats
                 $scope
                     ->whereNull('courses.hotel_id')
                     ->orWhereColumn('courses.hotel_id', 'users.hotel_id');
+            })
+            ->where(function (Builder $level): void {
+                // Their level's courses, or courses for every level (client
+                // decision 2026-09-30); no level yet = every level.
+                $level->whereNull('courses.level')
+                    ->orWhereNull('users.english_level')
+                    ->orWhereColumn('courses.level', 'users.english_level');
             })
             ->when($hotel !== null, fn (Builder $query) => $query->where('users.hotel_id', $hotel?->id))
             ->whereIn('lesson_completions.user_id', $employees->modelKeys())

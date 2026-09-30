@@ -10,6 +10,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAiModels } from '@/routes/ai-models';
 import { index as aiUsage } from '@/routes/ai-usage';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editLearningSettings } from '@/routes/learning-settings';
 import { edit as editMailSettings } from '@/routes/mail-settings';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -42,6 +43,7 @@ const sidebarNavItems = computed((): NavItem[] => [
               { title: tk('AI models'), href: editAiModels() },
               { title: tk('AI usage'), href: aiUsage() },
               { title: tk('Email'), href: editMailSettings() },
+              { title: tk('Learning'), href: editLearningSettings() },
               { title: tk('Landing page'), href: '/settings/landing-page' },
           ]
         : []),

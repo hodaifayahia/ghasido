@@ -156,6 +156,13 @@ function startAdd(mode: AddMode, parentId: number | null = null): void {
                         <span class="size-2 rounded-full bg-current" />
                     </span>
                     <span class="truncate">{{ course.title }}</span>
+                    <span
+                        v-if="course.levelLabel"
+                        class="rounded-pill bg-ai-tint text-ai shrink-0 px-2 py-0.5 text-[10.5px] font-semibold"
+                        :data-test="`course-${course.id}-level`"
+                    >
+                        {{ course.levelLabel }}
+                    </span>
                 </button>
 
                 <div

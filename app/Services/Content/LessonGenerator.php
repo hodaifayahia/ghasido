@@ -56,7 +56,7 @@ class LessonGenerator
     public const int MAX_LESSONS = 8;
 
     /** @var list<string> */
-    public const array LEVELS = ['beginner', 'elementary', 'intermediate'];
+    public const array LEVELS = ['beginner', 'intermediate', 'advanced'];
 
     public function __construct(
         private readonly LessonService $lessons,

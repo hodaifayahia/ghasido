@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Learn;
 
+use App\Enums\EnglishLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Learn\FirstLoginRequest;
 use App\Models\AuditLog;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +41,16 @@ class FirstLoginController extends Controller
             'requireEmail' => (bool) (($hotel->settings ?? [])['require_email'] ?? false),
             'hotelName' => $hotel?->name,
             'departmentName' => $user->department?->name,
+            // Department first, then level (client decision 2026-09-30). The
+            // department is chosen here only when the account has none.
+            'departments' => $user->department_id === null
+                ? FirstLoginRequest::departmentChoices($user)
+                    ->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])
+                    ->values()
+                    ->all()
+                : [],
+            'level' => $user->english_level?->value,
+            'levels' => EnglishLevel::options(),
         ]);
     }
 
@@ -47,15 +59,33 @@ class FirstLoginController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $email = $request->validated('email');
-        $consent = (bool) $request->validated('reminder_consent');
+        $level = EnglishLevel::from((string) $request->validated('level'));
 
-        $user->forceFill([
-            'email' => is_string($email) ? $email : null,
-            'email_consent_at' => $consent ? ($user->email_consent_at ?? now()) : null,
-            'research_notice_acknowledged_at' => $user->research_notice_acknowledged_at ?? now(),
-            'first_login_completed_at' => $user->first_login_completed_at ?? now(),
-        ]);
+        if ($user->department_id === null) {
+            $user->department_id = (int) $request->validated('department_id');
+        }
+
+        if ($user->english_level !== $level) {
+            $user->forceFill([
+                'english_level' => $level,
+                'english_level_assessed_at' => now(),
+                'level_suggestion' => null,
+            ]);
+        }
+
+        // A returning employee only chose their level: the email, consent and
+        // notice they already gave stay as they are.
+        if (! $user->hasCompletedFirstLogin()) {
+            $email = $request->validated('email');
+            $consent = (bool) $request->validated('reminder_consent');
+
+            $user->forceFill([
+                'email' => is_string($email) ? $email : null,
+                'email_consent_at' => $consent ? ($user->email_consent_at ?? now()) : null,
+                'research_notice_acknowledged_at' => $user->research_notice_acknowledged_at ?? now(),
+                'first_login_completed_at' => now(),
+            ]);
+        }
 
         AuditLog::record($user, 'first_login.completed');
 

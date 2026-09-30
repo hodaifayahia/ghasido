@@ -61,7 +61,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int|null $created_by
  * @property int $ai_points_allocated
  * @property EnglishLevel|null $english_level
- * @property Carbon|null $english_level_assessed_at
+ * @property Carbon|null $english_level_assessed_at when the level was last chosen or set
+ * @property EnglishLevel|null $level_suggestion the next level a strong Pre-test suggested, until the learner answers
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read IndividualSubscription|null $individualSubscription
@@ -91,6 +92,7 @@ use Spatie\Permission\Traits\HasRoles;
     'ai_points_allocated',
     'english_level',
     'english_level_assessed_at',
+    'level_suggestion',
 ])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements HasLocalePreference, PasskeyUser
@@ -141,6 +143,7 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
             'training_completed_at' => 'datetime',
             'english_level' => EnglishLevel::class,
             'english_level_assessed_at' => 'datetime',
+            'level_suggestion' => EnglishLevel::class,
         ];
     }
 

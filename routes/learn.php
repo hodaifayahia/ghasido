@@ -7,6 +7,7 @@ use App\Http\Controllers\Learn\FirstLoginController;
 use App\Http\Controllers\Learn\HomeController;
 use App\Http\Controllers\Learn\LessonsController;
 use App\Http\Controllers\Learn\LessonStepController;
+use App\Http\Controllers\Learn\LevelController;
 use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\Learn\PhrasebookController;
 use App\Http\Controllers\Learn\ProgressController;
@@ -63,6 +64,10 @@ Route::middleware([
 
         Route::middleware(['first-login', 'training.department'])->group(function () {
             Route::get('/', [HomeController::class, 'index'])->name('home');
+
+            // The learner's level (client decision 2026-09-30).
+            Route::put('level', [LevelController::class, 'update'])->name('level.update');
+            Route::post('level/suggestion', [LevelController::class, 'answer'])->name('level.answer');
             Route::get('post-test', [HomeController::class, 'postTest'])->name('post-test');
 
             Route::get('lessons', [LessonsController::class, 'index'])->name('lessons');

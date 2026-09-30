@@ -290,7 +290,7 @@ class AiScenariosController extends Controller
                         'id' => 'room-service',
                         'title' => __('Room Service Request'),
                         'department' => __('Food & Beverage'),
-                        'level' => __('Level: Elementary'),
+                        'level' => __('Level: Intermediate'),
                         'status' => 'published',
                         'crop' => [
                             'x' => 197,
@@ -303,7 +303,7 @@ class AiScenariosController extends Controller
                         'id' => 'spa-information',
                         'title' => __('Spa Information'),
                         'department' => __('Spa'),
-                        'level' => __('Level: Elementary'),
+                        'level' => __('Level: Intermediate'),
                         'status' => 'draft',
                         'crop' => [
                             'x' => 197,
@@ -316,7 +316,7 @@ class AiScenariosController extends Controller
                         'id' => 'complaint',
                         'title' => __('Handling a Complaint'),
                         'department' => __('Reception'),
-                        'level' => __('Level: Intermediate'),
+                        'level' => __('Level: Advanced'),
                         'status' => 'published',
                         'crop' => [
                             'x' => 197,
@@ -342,7 +342,7 @@ class AiScenariosController extends Controller
                         'id' => 'lost-item',
                         'title' => __('Lost Item'),
                         'department' => __('Housekeeping'),
-                        'level' => __('Level: Intermediate'),
+                        'level' => __('Level: Advanced'),
                         'status' => 'draft',
                         'crop' => [
                             'x' => 197,
@@ -355,7 +355,7 @@ class AiScenariosController extends Controller
                         'id' => 'special-requests',
                         'title' => __('Special Requests'),
                         'department' => __('Food & Beverage'),
-                        'level' => __('Level: Intermediate'),
+                        'level' => __('Level: Advanced'),
                         'status' => 'published',
                         'crop' => [
                             'x' => 197,
@@ -389,10 +389,10 @@ class AiScenariosController extends Controller
                 ],
                 'levels' => [
                     ['value' => 'beginner', 'label' => __('Beginner')],
-                    ['value' => 'elementary', 'label' => __('Elementary')],
+                    ['value' => 'intermediate', 'label' => __('Intermediate')],
                     [
-                        'value' => 'intermediate',
-                        'label' => __('Intermediate'),
+                        'value' => 'advanced',
+                        'label' => __('Advanced'),
                     ],
                 ],
                 'coverCrop' => [
@@ -926,19 +926,19 @@ class AiScenariosController extends Controller
             'room-service' => [
                 'title' => __('Room Service Request'),
                 'department' => 'food-service',
-                'level' => 'elementary',
+                'level' => 'intermediate',
                 'status' => __('Published'),
             ],
             'spa-information' => [
                 'title' => __('Spa Information'),
                 'department' => 'spa',
-                'level' => 'elementary',
+                'level' => 'intermediate',
                 'status' => __('Draft'),
             ],
             'complaint' => [
                 'title' => __('Handling a Complaint'),
                 'department' => 'reception',
-                'level' => 'intermediate',
+                'level' => 'advanced',
                 'status' => __('Published'),
             ],
             'directions' => [
@@ -950,13 +950,13 @@ class AiScenariosController extends Controller
             'lost-item' => [
                 'title' => __('Lost Item'),
                 'department' => 'housekeeping',
-                'level' => 'intermediate',
+                'level' => 'advanced',
                 'status' => __('Draft'),
             ],
             'special-requests' => [
                 'title' => __('Special Requests'),
                 'department' => 'food-service',
-                'level' => 'intermediate',
+                'level' => 'advanced',
                 'status' => __('Published'),
             ],
         ];

@@ -61,6 +61,7 @@ import type {
     TestQuestionAudioStatus,
     TestQuestionKind,
 } from '@/types';
+import LevelSelect from '@/components/common/LevelSelect.vue';
 
 type Props = {
     editor: TestEditor;
@@ -207,6 +208,8 @@ function generate(payload: TestAiGeneratePayload): void {
 
 const type = ref(props.editor.type);
 const department = ref(props.editor.department);
+// '' = every level (client decision 2026-09-30).
+const level = ref(props.editor.level ?? '');
 const title = ref(props.editor.title);
 const timeLimit = ref(props.editor.timeLimit);
 const questionCount = ref(props.editor.questionCount);
@@ -216,6 +219,7 @@ const activeKind = ref<TestQuestionKind>(props.editor.activeKind);
 function syncEditor(editor: TestEditor): void {
     type.value = editor.type;
     department.value = editor.department;
+    level.value = editor.level ?? '';
     title.value = editor.title;
     timeLimit.value = editor.timeLimit;
     questionCount.value = editor.questionCount;
@@ -404,6 +408,7 @@ function save(): void {
         type: type.value as TestEditorSavePayload['type'],
         department_id:
             department.value === 'all' ? 'all' : Number(department.value),
+        level: level.value,
         hotel_id: props.editor.hotel ? Number(props.editor.hotel) : null,
         description: description.value.trim(),
         time_limit_minutes:
@@ -543,7 +548,7 @@ function save(): void {
                 </div>
             </div>
 
-            <div class="mt-3 grid gap-3 md:grid-cols-3">
+            <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
                         {{ $t('Department') }}
@@ -569,6 +574,20 @@ function save(): void {
                             </SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+
+                <div class="grid gap-1.5">
+                    <label
+                        for="test-level"
+                        class="text-brand-900 text-[12px] font-semibold"
+                    >
+                        {{ $t('Level') }}
+                    </label>
+                    <LevelSelect
+                        id="test-level"
+                        v-model="level"
+                        trigger-class="h-10 rounded-md px-3 text-[12.5px]"
+                    />
                 </div>
 
                 <div class="grid gap-1.5">

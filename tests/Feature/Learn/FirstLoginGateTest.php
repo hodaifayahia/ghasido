@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Learn;
 
+use App\Enums\EnglishLevel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -57,6 +58,7 @@ class FirstLoginGateTest extends TestCase
             'email' => 'Samira@Example.test',
             'reminder_consent' => '1',
             'research_notice_acknowledged' => '1',
+            'level' => 'beginner',
         ]);
 
         $response->assertRedirect(route('learn.home'));
@@ -82,6 +84,7 @@ class FirstLoginGateTest extends TestCase
             'email' => 'samira@example.test',
             'reminder_consent' => '0',
             'research_notice_acknowledged' => '1',
+            'level' => 'beginner',
         ])->assertRedirect(route('learn.home'));
 
         $learner->refresh();
@@ -111,6 +114,7 @@ class FirstLoginGateTest extends TestCase
 
         $this->actingAs($learner)->post(route('learn.first-login.update'), [
             'research_notice_acknowledged' => '1',
+            'level' => 'beginner',
         ])->assertRedirect(route('learn.home'));
 
         $this->assertNull($learner->fresh()?->email);
@@ -130,6 +134,7 @@ class FirstLoginGateTest extends TestCase
             ->from(route('learn.first-login.edit'))
             ->post(route('learn.first-login.update'), [
                 'research_notice_acknowledged' => '1',
+                'level' => 'beginner',
             ])
             ->assertSessionHasErrors('email');
 
@@ -141,5 +146,36 @@ class FirstLoginGateTest extends TestCase
         $this->actingAs($this->learner())
             ->get(route('learn.home'))
             ->assertOk();
+    }
+
+    public function test_the_employee_chooses_a_level_and_one_who_finished_first_login_before_levels_chooses_it_too()
+    {
+        $learner = $this->learner(['first_login_completed_at' => null, 'research_notice_acknowledged_at' => null, 'english_level' => null]);
+
+        $this->actingAs($learner)
+            ->get(route('learn.first-login.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('level', null)
+                ->has('levels', 3)
+                ->where('departments', []));
+
+        $this->actingAs($learner)->post(route('learn.first-login.update'), [
+            'research_notice_acknowledged' => '1',
+        ])->assertSessionHasErrors('level');
+
+        $this->actingAs($learner)->post(route('learn.first-login.update'), [
+            'research_notice_acknowledged' => '1',
+            'level' => 'intermediate',
+        ])->assertRedirect(route('learn.home'));
+        $this->assertSame(EnglishLevel::Intermediate, $learner->fresh()?->english_level);
+
+        // An employee who completed first login before levels existed is
+        // asked only for the level.
+        $returning = $this->learner(['english_level' => null, 'username' => 'returning']);
+        $this->actingAs($returning)->get(route('learn.home'))->assertRedirect(route('learn.first-login.edit'));
+        $this->actingAs($returning)->post(route('learn.first-login.update'), ['level' => 'advanced'])
+            ->assertRedirect(route('learn.home'));
+        $this->assertSame(EnglishLevel::Advanced, $returning->fresh()?->english_level);
+        $this->actingAs($returning)->get(route('learn.home'))->assertOk();
     }
 }

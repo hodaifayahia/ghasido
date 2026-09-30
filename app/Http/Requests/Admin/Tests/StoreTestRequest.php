@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Tests;
 
+use App\Enums\EnglishLevel;
 use App\Enums\Permission;
 use App\Enums\TestType;
 use Illuminate\Foundation\Http\FormRequest;
@@ -37,11 +38,13 @@ class StoreTestRequest extends FormRequest
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')],
             'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
             'time_limit_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
+            // Empty = every level (client decision 2026-09-30).
+            'level' => ['nullable', 'string', Rule::enum(EnglishLevel::class)],
         ];
     }
 
     /**
-     * @return array{title: string, type: TestType, department_id: int|null, hotel_id: int|null, time_limit_seconds: int|null}
+     * @return array{title: string, type: TestType, department_id: int|null, hotel_id: int|null, time_limit_seconds: int|null, level: string|null}
      */
     public function testData(): array
     {
@@ -53,6 +56,7 @@ class StoreTestRequest extends FormRequest
             'department_id' => $this->validated('department_id') === null ? null : (int) $this->validated('department_id'),
             'hotel_id' => $this->filled('hotel_id') ? (int) $this->validated('hotel_id') : null,
             'time_limit_seconds' => $time === null || (int) $time === 0 ? null : (int) $time * 60,
+            'level' => $this->filled('level') ? (string) $this->validated('level') : null,
         ];
     }
 }

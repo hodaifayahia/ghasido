@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import FirstLoginForm from '@/components/learning/FirstLoginForm.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
-import type { FirstLoginUser } from '@/types';
+import type { FirstLoginUser, LevelOption } from '@/types';
 
 /*
  * First login (AUTH-04, AUTH-05, PRIV-01, PRIV-02; spec 0003 Part E). No
@@ -13,6 +13,9 @@ type Props = {
     requireEmail: boolean;
     hotelName: string | null;
     departmentName: string | null;
+    departments: LevelOption[];
+    level: string | null;
+    levels: LevelOption[];
 };
 
 defineProps<Props>();
@@ -35,6 +38,9 @@ defineProps<Props>();
             :require-email="requireEmail"
             :hotel-name="hotelName"
             :department-name="departmentName"
+            :departments="departments"
+            :level="level"
+            :levels="levels"
             class="max-w-2xl"
         />
     </div>

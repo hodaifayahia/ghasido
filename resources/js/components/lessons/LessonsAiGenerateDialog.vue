@@ -55,8 +55,8 @@ const SHARED = 'shared';
 
 const levels: Array<{ value: ContentGenerationLevel; label: string }> = [
     { value: 'beginner', label: tk('Beginner') },
-    { value: 'elementary', label: tk('Elementary') },
     { value: 'intermediate', label: tk('Intermediate') },
+    { value: 'advanced', label: tk('Advanced') },
 ];
 
 const lessonCounts = ['2', '3', '4', '5', '6', '7', '8'];

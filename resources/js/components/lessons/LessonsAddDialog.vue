@@ -2,6 +2,7 @@
 import { Form } from '@inertiajs/vue3';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
+import LevelSelect from '@/components/common/LevelSelect.vue';
 import InputError from '@/components/InputError.vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ const kind = ref<Props['mode']>(props.mode);
 const department = ref(props.filters.department);
 const hotel = ref(props.filters.hotel);
 const tone = ref('brand');
+const level = ref('');
 const course = ref(props.filters.course);
 const unit = ref(props.filters.unit);
 const withBlocks = ref(true);
@@ -55,6 +57,7 @@ watch(
         department.value = props.filters.department;
         hotel.value = props.filters.hotel;
         tone.value = 'brand';
+        level.value = '';
         course.value =
             props.mode === 'unit' && props.parentId !== null
                 ? String(props.parentId)
@@ -233,6 +236,19 @@ const inputClass =
                         </Select>
                         <InputError :message="errors.hotel_id" />
                     </div>
+                </div>
+
+                <div class="grid gap-1.5">
+                    <Label :class="labelClass">{{ $t('Level') }}</Label>
+                    <LevelSelect v-model="level" name="level" />
+                    <p class="text-ink-slate text-[12px]">
+                        {{
+                            $t(
+                                'Learners see the course when it matches their department and level.',
+                            )
+                        }}
+                    </p>
+                    <InputError :message="errors.level" />
                 </div>
 
                 <div class="grid gap-1.5">

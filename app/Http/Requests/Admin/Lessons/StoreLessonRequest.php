@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\EnglishLevel;
 use App\Models\Course;
 use App\Models\Department;
 use App\Models\Unit;
@@ -62,6 +63,9 @@ class StoreLessonRequest extends FormRequest
             'new_unit_title' => ['nullable', 'string', 'max:120'],
             'title' => ['required', 'string', 'max:120'],
             'blank' => ['sometimes', 'boolean'],
+            // Department + level decide which learners see the lesson
+            // (client decision 2026-09-30). Empty = every level.
+            'level' => ['nullable', 'string', Rule::enum(EnglishLevel::class)],
         ];
     }
 
@@ -111,7 +115,16 @@ class StoreLessonRequest extends FormRequest
             'hotel_id' => $user->hotel_id,
             'description' => null,
             'tone' => 'brand',
+            'level' => $this->level(),
         ], $user);
+    }
+
+    /** The chosen level's value, or null for every level. */
+    public function level(): ?string
+    {
+        $level = $this->input('level');
+
+        return is_string($level) && EnglishLevel::tryFrom($level) !== null ? $level : null;
     }
 
     /**
@@ -133,6 +146,11 @@ class StoreLessonRequest extends FormRequest
                 fn ($query) => $query->where('hotel_id', $user->hotel_id),
             )
             ->where('title', self::DEFAULT_TITLE)
+            ->when(
+                $this->level() === null,
+                fn ($query) => $query->whereNull('level'),
+                fn ($query) => $query->where('level', $this->level()),
+            )
             ->orderBy('id')
             ->first();
 
@@ -142,6 +160,7 @@ class StoreLessonRequest extends FormRequest
             'hotel_id' => $user->hotel_id,
             'description' => null,
             'tone' => 'brand',
+            'level' => $this->level(),
         ], $user);
     }
 }

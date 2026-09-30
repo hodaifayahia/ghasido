@@ -173,22 +173,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Learner English level
+    | Learner levels
     |--------------------------------------------------------------------------
     |
-    | The auto-graded percentage of a learner's latest Pre- or Post-test places
-    | them in a band (App\Enums\EnglishLevel). The AI role-play guest and the
-    | evaluators pitch their English at that band (spec 0005 §2.1). A score at
-    | or above a threshold reaches that band; below Elementary is Beginner.
-    | Difficulty tags, not CEFR: that choice is still open (system/08 8.1).
+    | The learner chooses Beginner, Intermediate or Advanced (App\Enums\
+    | EnglishLevel). A Pre-test at or above this percentage suggests the next
+    | level; the learner decides to move up or stay (client decision
+    | 2026-09-30). The Super Admin changes it in Settings → Learning, which
+    | wins over this default (PlatformSettings).
     |
     */
 
     'levels' => [
-        'thresholds' => [
-            'elementary' => (float) env('LEVEL_ELEMENTARY_FROM', 40),
-            'intermediate' => (float) env('LEVEL_INTERMEDIATE_FROM', 70),
-        ],
+        'level_up_from' => (int) env('LEVEL_UP_FROM', 70),
     ],
 
 ];

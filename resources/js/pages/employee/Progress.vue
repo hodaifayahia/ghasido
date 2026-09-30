@@ -16,6 +16,8 @@ import type {
     StreakSummary,
     TestResultSummary,
 } from '@/types';
+import LevelSuggestionCard from '@/components/learning/level/LevelSuggestionCard.vue';
+import MyLevelCard from '@/components/learning/level/MyLevelCard.vue';
 
 /*
  * My Progress (PROG-02, PROG-05, TEST-04; spec 0003 Part E). No client
@@ -58,6 +60,9 @@ function since(iso: string | null): string {
                 })
             "
         />
+
+        <LevelSuggestionCard />
+        <MyLevelCard />
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\EnglishLevel;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\HotelAiPointTopUpRequest;
@@ -196,9 +197,32 @@ class HandleInertiaRequests extends Middleware
             // reads it. A manager training as an employee gets it too, once
             // they have chosen a department (client decision 2026-09-23).
             'journey' => $this->journeyFor($user),
+            // The learner's level and a pending move-up suggestion (client
+            // decision 2026-09-30). Null for anyone who is not a learner.
+            'learnerLevel' => $this->learnerLevelFor($user),
             // The manager's training department switcher (client decision
             // 2026-09-23): null unless a manager is on a learner route.
             'trainingContext' => $this->trainingContextFor($request, $user),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function learnerLevelFor(?User $user): ?array
+    {
+        if ($user === null || $this->journeyFor($user) === null) {
+            return null;
+        }
+
+        return [
+            'current' => $user->english_level?->value,
+            'currentLabel' => $user->english_level?->label(),
+            'suggestion' => $user->level_suggestion?->value,
+            'suggestionLabel' => $user->level_suggestion?->label(),
+            'options' => EnglishLevel::options(),
+            'updateUrl' => route('learn.level.update'),
+            'answerUrl' => route('learn.level.answer'),
         ];
     }
 

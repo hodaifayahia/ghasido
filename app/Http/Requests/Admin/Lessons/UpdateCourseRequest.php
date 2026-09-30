@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\EnglishLevel;
 use App\Models\Course;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,7 @@ class UpdateCourseRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'tone' => ['sometimes', 'string', Rule::in(StoreCourseRequest::TONES)],
             'status' => ['sometimes', 'string', Rule::in(['draft', 'published'])],
+            'level' => ['sometimes', 'nullable', 'string', Rule::enum(EnglishLevel::class)],
         ];
     }
 
@@ -36,6 +38,12 @@ class UpdateCourseRequest extends FormRequest
      */
     public function courseData(): array
     {
-        return $this->validated();
+        $data = $this->validated();
+
+        if (array_key_exists('level', $data) && $data['level'] === '') {
+            $data['level'] = null;
+        }
+
+        return $data;
     }
 }

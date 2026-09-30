@@ -76,8 +76,8 @@ export const valueLabels: Record<string, string> = {
     published: tk('Published'),
     archived: tk('Archived'),
     beginner: tk('Beginner'),
-    elementary: tk('Elementary'),
     intermediate: tk('Intermediate'),
+    advanced: tk('Advanced'),
 };
 
 /** The label of a stored value, or the value itself when it has none. */

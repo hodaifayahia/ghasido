@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentStatus;
+use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\ResultsVisibility;
 use App\Enums\TestType;
@@ -34,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property TestType $type
  * @property int|null $department_id null = all departments
  * @property int|null $hotel_id
+ * @property EnglishLevel|null $level null = every level
  * @property int|null $paired_test_id
  * @property string $title
  * @property array<string, mixed>|null $intro
@@ -46,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
+    'level',
     'type',
     'department_id',
     'hotel_id',
@@ -77,6 +80,7 @@ class Test extends Model
             'intro' => 'array',
             'settings' => 'array',
             'status' => ContentStatus::class,
+            'level' => EnglishLevel::class,
             'ai_status' => GenerationStatus::class,
             'ai_request' => 'array',
         ];
@@ -177,6 +181,12 @@ class Test extends Model
                     $inner->orWhere('hotel_id', $user->hotel_id);
                 }
             });
+
+        // Their level's test, or one for every level (null) (client
+        // decision 2026-09-30).
+        if ($user->english_level !== null) {
+            $query->where(fn (Builder $inner) => $inner->whereNull('level')->orWhere('level', $user->english_level->value));
+        }
     }
 
     /**

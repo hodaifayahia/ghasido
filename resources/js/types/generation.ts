@@ -48,4 +48,4 @@ export type ContentGenerationCourseOption = {
     status: 'draft' | 'published';
 };
 
-export type ContentGenerationLevel = 'beginner' | 'elementary' | 'intermediate';
+export type ContentGenerationLevel = 'beginner' | 'intermediate' | 'advanced';

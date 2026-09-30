@@ -336,6 +336,13 @@ class EmployeeDirectory
             ->whereColumn('courses.department_id', 'users.department_id')
             ->where(function (Builder $inner): void {
                 $inner->whereNull('courses.hotel_id')->orWhereColumn('courses.hotel_id', 'users.hotel_id');
+            })
+            ->where(function (Builder $level): void {
+                // Their level's courses, or courses for every level (client
+                // decision 2026-09-30); no level yet = every level.
+                $level->whereNull('courses.level')
+                    ->orWhereNull('users.english_level')
+                    ->orWhereColumn('courses.level', 'users.english_level');
             });
     }
 
@@ -356,6 +363,13 @@ class EmployeeDirectory
             ->whereColumn('courses.department_id', 'users.department_id')
             ->where(function (Builder $inner): void {
                 $inner->whereNull('courses.hotel_id')->orWhereColumn('courses.hotel_id', 'users.hotel_id');
+            })
+            ->where(function (Builder $level): void {
+                // Their level's courses, or courses for every level (client
+                // decision 2026-09-30); no level yet = every level.
+                $level->whereNull('courses.level')
+                    ->orWhereNull('users.english_level')
+                    ->orWhereColumn('courses.level', 'users.english_level');
             });
     }
 

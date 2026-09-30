@@ -33,19 +33,12 @@ class RoleplayPromptTest extends TestCase
         return AiScenario::factory()->create(['min_turns' => $min, 'max_turns' => $max]);
     }
 
-    public function test_the_level_bands_follow_the_configured_thresholds()
+    public function test_the_three_levels_move_up_one_step_and_stop_at_advanced()
     {
-        config()->set('guesvia.levels.thresholds', ['elementary' => 40, 'intermediate' => 70]);
-
-        $this->assertSame(EnglishLevel::Beginner, EnglishLevel::fromPercent(0));
-        $this->assertSame(EnglishLevel::Beginner, EnglishLevel::fromPercent(39.9));
-        $this->assertSame(EnglishLevel::Elementary, EnglishLevel::fromPercent(40));
-        $this->assertSame(EnglishLevel::Intermediate, EnglishLevel::fromPercent(70));
-        $this->assertSame(EnglishLevel::Intermediate, EnglishLevel::fromPercent(100));
-
-        config()->set('guesvia.levels.thresholds', ['elementary' => 50, 'intermediate' => 90]);
-        $this->assertSame(EnglishLevel::Beginner, EnglishLevel::fromPercent(45));
-        $this->assertSame(EnglishLevel::Elementary, EnglishLevel::fromPercent(85));
+        $this->assertSame(EnglishLevel::Intermediate, EnglishLevel::Beginner->next());
+        $this->assertSame(EnglishLevel::Advanced, EnglishLevel::Intermediate->next());
+        $this->assertNull(EnglishLevel::Advanced->next());
+        $this->assertSame(['beginner', 'intermediate', 'advanced'], array_column(EnglishLevel::options(), 'value'));
     }
 
     public function test_the_guest_is_pitched_at_the_learners_level_or_a_low_one_by_default()
@@ -76,8 +69,8 @@ class RoleplayPromptTest extends TestCase
         // A prompt cache needs a byte-identical prefix (spec 0005 §5.3): the
         // pacing line is the only thing that moves, and it sits outside.
         $scenario = $this->scenario();
-        $opening = RoleplayPrompt::replySystemParts($scenario, [], EnglishLevel::Elementary);
-        $later = RoleplayPrompt::replySystemParts($scenario, self::transcript(['guest', 'employee', 'guest', 'employee']), EnglishLevel::Elementary);
+        $opening = RoleplayPrompt::replySystemParts($scenario, [], EnglishLevel::Intermediate);
+        $later = RoleplayPrompt::replySystemParts($scenario, self::transcript(['guest', 'employee', 'guest', 'employee']), EnglishLevel::Intermediate);
 
         $this->assertSame($opening['stable'], $later['stable']);
         $this->assertNotSame($opening['turn'], $later['turn']);
@@ -87,18 +80,18 @@ class RoleplayPromptTest extends TestCase
         $this->assertStringContainsString('The employee has replied 2 of', $later['turn']);
         $this->assertSame(
             $opening['stable']."\n\n".$opening['turn'],
-            RoleplayPrompt::replySystem($scenario, [], EnglishLevel::Elementary),
+            RoleplayPrompt::replySystem($scenario, [], EnglishLevel::Intermediate),
         );
     }
 
     public function test_the_evaluation_prompt_carries_the_anchors_the_criteria_and_the_level()
     {
         $scenario = $this->scenario();
-        $system = RoleplayPrompt::evaluationSystem($scenario, ['politeness', 'fluency'], EnglishLevel::Elementary);
+        $system = RoleplayPrompt::evaluationSystem($scenario, ['politeness', 'fluency'], EnglishLevel::Intermediate);
 
         $this->assertStringContainsString(RoleplayPrompt::SCORING_ANCHORS, $system);
         $this->assertStringContainsString('"politeness": {"score"', $system);
         $this->assertStringContainsString('"fluency": {"score"', $system);
-        $this->assertStringContainsString('Elementary level', $system);
+        $this->assertStringContainsString('Intermediate level', $system);
     }
 }

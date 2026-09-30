@@ -22,7 +22,7 @@ use InvalidArgumentException;
 class TestService
 {
     /**
-     * @param  array{title: string, type: TestType, department_id: int, hotel_id: int|null, time_limit_seconds: int|null}  $data
+     * @param  array{title: string, type: TestType, department_id: int|null, hotel_id: int|null, time_limit_seconds: int|null, level?: string|null}  $data
      */
     public function create(array $data, User $actor): Test
     {
@@ -33,12 +33,13 @@ class TestService
                 'type' => $data['type'],
                 'department_id' => $data['department_id'],
                 'hotel_id' => $data['hotel_id'],
+                'level' => $data['level'] ?? null,
                 'intro' => ['description' => ''],
                 'settings' => $this->defaultSettings($data['time_limit_seconds']),
                 'status' => ContentStatus::Draft,
             ]);
             $test->save();
-            AuditLog::record($test, 'test.created', ['created' => $test->only(['title', 'type', 'department_id', 'hotel_id'])]);
+            AuditLog::record($test, 'test.created', ['created' => $test->only(['title', 'type', 'department_id', 'hotel_id', 'level'])]);
 
             return $test;
         });

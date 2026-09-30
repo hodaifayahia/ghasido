@@ -84,6 +84,7 @@ function createTest(payload: CreateTestPayload): void {
                 payload.department === 'all-departments'
                     ? 'all'
                     : Number(payload.department),
+            level: payload.level,
             time_limit_minutes:
                 payload.timeLimit === '' ? null : Number(payload.timeLimit),
         },

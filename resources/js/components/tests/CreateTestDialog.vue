@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { CirclePlus } from '@lucide/vue';
+import LevelSelect from '@/components/common/LevelSelect.vue';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 const title = ref('');
 const type = ref<TestVariant>('pre');
 const department = ref('reception');
+const level = ref('');
 const timeLimit = ref('25');
 
 watch(
@@ -49,6 +51,7 @@ watch(
             )?.value ??
             'all-departments';
         timeLimit.value = '25';
+        level.value = '';
     },
 );
 
@@ -60,6 +63,7 @@ function create(): void {
         title: cleanTitle,
         type: type.value,
         department: department.value,
+        level: level.value,
         timeLimit: timeLimit.value,
     });
 }
@@ -142,6 +146,27 @@ function create(): void {
                         </SelectContent>
                     </Select>
                 </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <Label
+                    for="new-test-level"
+                    class="text-brand-900 text-xs font-semibold"
+                >
+                    {{ $t('Level') }}
+                </Label>
+                <LevelSelect
+                    id="new-test-level"
+                    v-model="level"
+                    trigger-class="h-11 rounded-md text-sm"
+                />
+                <p class="text-ink-muted text-[11.5px]">
+                    {{
+                        $t(
+                            'Employees sit the test that matches their department and level.',
+                        )
+                    }}
+                </p>
             </div>
 
             <div class="space-y-1.5">

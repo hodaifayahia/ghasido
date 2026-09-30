@@ -123,11 +123,11 @@ function create(): void {
                             <SelectItem value="beginner">{{
                                 $t('Beginner')
                             }}</SelectItem>
-                            <SelectItem value="elementary">{{
-                                $t('Elementary')
-                            }}</SelectItem>
                             <SelectItem value="intermediate">{{
                                 $t('Intermediate')
+                            }}</SelectItem>
+                            <SelectItem value="advanced">{{
+                                $t('Advanced')
                             }}</SelectItem>
                         </SelectContent>
                     </Select>

@@ -134,6 +134,9 @@ export type LessonsTreeCourse = {
     tone?: LessonsTreeTone;
     units?: LessonsTreeUnit[];
     status?: LessonContentStatus;
+    /** Null = every level (client decision 2026-09-30). */
+    level?: string | null;
+    levelLabel?: string | null;
 };
 
 export type LessonMockupCrop = {
@@ -175,6 +178,9 @@ export type LessonEditor = {
     unitId: number | null;
     hotelLabel: string | null;
     departmentLabel: string | null;
+    /** The course's level (null = every level) and where to change it. */
+    courseLevel: string | null;
+    courseLevelUrl: string | null;
     previewUrl: string | null;
     updatedAt: string | null;
 };

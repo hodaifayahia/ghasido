@@ -17,6 +17,7 @@ use App\Services\Images\DashScopeImageProvider;
 use App\Services\Images\FakeImageProvider;
 use App\Services\Owner\ApiCredit;
 use App\Services\Owner\ApiKeyring;
+use App\Services\Platform\PlatformSettings;
 use App\Services\Stt\DeepgramSpeechToTextProvider;
 use App\Services\Stt\FakeSpeechToTextProvider;
 use App\Services\Stt\OpenAiCompatibleSpeechToTextProvider;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         // the next job without restarting workers.
         $this->app->scoped(ApiKeyring::class);
         $this->app->scoped(ApiCredit::class);
+        $this->app->scoped(PlatformSettings::class);
 
         $this->registerProviders();
     }
@@ -207,6 +209,10 @@ class AppServiceProvider extends ServiceProvider
         // Written out rather than left to Gate::before so the rule stands
         // on its own if the override ever changes.
         Gate::define('manage-ai-models', fn (User $user): bool => $user->hasRole(Role::SuperAdmin->value));
+
+        // Settings → Learning: the level-up threshold and the helper
+        // languages (client request 2026-09-30).
+        Gate::define('manage-learning-settings', fn (User $user): bool => $user->hasRole(Role::SuperAdmin->value));
     }
 
     /**

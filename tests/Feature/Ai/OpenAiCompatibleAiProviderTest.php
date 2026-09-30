@@ -49,14 +49,14 @@ class OpenAiCompatibleAiProviderTest extends TestCase
         Http::fake(['*' => Http::response(self::reply(['reply' => 'Good evening!']))]);
         $scenario = AiScenario::factory()->create();
 
-        $reply = $this->provider()->roleplayReply($scenario, [], EnglishLevel::Elementary);
+        $reply = $this->provider()->roleplayReply($scenario, [], EnglishLevel::Intermediate);
 
         $this->assertSame('Good evening!', $reply->text);
         Http::assertSent(function (Request $request) use ($scenario): bool {
             $system = $request['messages'][0]['content'];
 
             $this->assertSame('fast-model', $request['model']);
-            $this->assertSame(RoleplayPrompt::replySystem($scenario, [], EnglishLevel::Elementary), $system);
+            $this->assertSame(RoleplayPrompt::replySystem($scenario, [], EnglishLevel::Intermediate), $system);
             $this->assertEqualsWithDelta(0.6, $request['temperature'], 0.001);
 
             return true;
@@ -125,7 +125,7 @@ class OpenAiCompatibleAiProviderTest extends TestCase
             'arabic' => 'null',
         ]))]);
 
-        $coaching = $this->provider()->coachPronunciation(['words' => []], ['a', 'very', 'quiet', 'room'], Accent::American, EnglishLevel::Elementary);
+        $coaching = $this->provider()->coachPronunciation(['words' => []], ['a', 'very', 'quiet', 'room'], Accent::American, EnglishLevel::Intermediate);
 
         $this->assertSame('Nice rhythm! Now work on very.', $coaching->headline);
         $this->assertSame([['word' => 'Very', 'tip' => 'Put your top teeth on your lower lip.']], $coaching->tips);

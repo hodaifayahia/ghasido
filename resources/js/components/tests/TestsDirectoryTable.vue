@@ -276,6 +276,12 @@ function statusClass(item: TestListItem): string {
                         </td>
                         <td class="text-ink-slate px-3 py-3 text-xs">
                             {{ item.department }}
+                            <span
+                                v-if="item.level"
+                                class="text-ai block text-[11px] font-semibold"
+                            >
+                                {{ item.level }}
+                            </span>
                         </td>
                         <td class="text-ink-slate px-3 py-3 text-xs">
                             {{ item.questionCount }}
@@ -369,6 +375,9 @@ function statusClass(item: TestListItem): string {
                         </span>
                         <span class="text-ink-muted mt-0.5 block text-[11px]">
                             {{ item.department }} ·
+                            <template v-if="item.level">
+                                {{ item.level }} ·
+                            </template>
                             {{
                                 $tc(
                                     ':count question|:count questions',

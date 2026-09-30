@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Tests;
 
+use App\Enums\EnglishLevel;
 use App\Enums\Permission;
 use App\Enums\ResultsVisibility;
 use App\Enums\TestType;
@@ -52,6 +53,8 @@ class UpdateTestRequest extends FormRequest
             'show_meaning' => ['sometimes', 'boolean'],
             'pass_mark' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['sometimes', Rule::in(['draft', 'published'])],
+            // Empty = every level (client decision 2026-09-30).
+            'level' => ['sometimes', 'nullable', 'string', Rule::enum(EnglishLevel::class)],
         ];
     }
 
@@ -67,6 +70,10 @@ class UpdateTestRequest extends FormRequest
         $validated['department_id'] = isset($validated['department_id']) ? (int) $validated['department_id'] : null;
         $validated['hotel_id'] = $this->filled('hotel_id') ? (int) $validated['hotel_id'] : null;
         $validated['title'] = trim((string) $validated['title']);
+
+        if (array_key_exists('level', $validated) && ($validated['level'] ?? '') === '') {
+            $validated['level'] = null;
+        }
         $validated['time_limit_seconds'] = $minutes === null || (int) $minutes === 0 ? null : (int) $minutes * 60;
         $validated['intro'] = [
             'description' => trim((string) ($validated['description'] ?? '')),

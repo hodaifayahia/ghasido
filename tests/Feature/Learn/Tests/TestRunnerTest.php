@@ -4,7 +4,6 @@ namespace Tests\Feature\Learn\Tests;
 
 use App\Enums\ActivityType;
 use App\Enums\BlockType;
-use App\Enums\EnglishLevel;
 use App\Enums\TestAttemptStatus;
 use App\Models\Activity;
 use App\Models\Attempt;
@@ -146,12 +145,11 @@ class TestRunnerTest extends TestCase
         $this->assertNotNull($attempt->score);
         $this->assertNotNull($attempt->max_score);
 
-        // The sitting places the learner in a level band the AI then speaks
-        // at (spec 0005 §2.1).
+        // The level is the learner's choice: a sitting never changes it
+        // (client decision 2026-09-30).
+        $level = $learner->english_level;
         $learner->refresh();
-        $percent = (float) $attempt->score / (float) $attempt->max_score * 100;
-        $this->assertSame(EnglishLevel::fromPercent($percent), $learner->english_level);
-        $this->assertNotNull($learner->english_level_assessed_at);
+        $this->assertSame($level, $learner->english_level);
 
         $this->actingAs($learner)
             ->get(route('learn.lessons.step', ['lesson' => $lesson, 'block' => $block]))

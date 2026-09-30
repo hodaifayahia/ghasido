@@ -110,7 +110,7 @@ export type AiScenarioLessonUsage = {
 export type AiScenarioSavePayload = {
     title: string;
     department_id: number;
-    difficulty: 'beginner' | 'elementary' | 'intermediate';
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
     description: string;
     situation: string;
     ai_role: string;

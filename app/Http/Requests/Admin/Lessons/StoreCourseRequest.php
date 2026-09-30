@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\EnglishLevel;
 use App\Models\Course;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,15 +30,17 @@ class StoreCourseRequest extends FormRequest
             'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
             'description' => ['nullable', 'string', 'max:500'],
             'tone' => ['nullable', 'string', Rule::in(self::TONES)],
+            // Empty = every level (client decision 2026-09-30).
+            'level' => ['nullable', 'string', Rule::enum(EnglishLevel::class)],
         ];
     }
 
     /**
-     * @return array{title: string, department_id: int, hotel_id: int|null, description: string|null, tone: string}
+     * @return array{title: string, department_id: int, hotel_id: int|null, description: string|null, tone: string, level: string|null}
      */
     public function courseData(): array
     {
-        /** @var array{title: string, department_id: int|string, hotel_id?: int|string|null, description?: string|null, tone?: string|null} $data */
+        /** @var array{title: string, department_id: int|string, hotel_id?: int|string|null, description?: string|null, tone?: string|null, level?: string|null} $data */
         $data = $this->validated();
 
         return [
@@ -46,6 +49,7 @@ class StoreCourseRequest extends FormRequest
             'hotel_id' => isset($data['hotel_id']) && $data['hotel_id'] !== '' ? (int) $data['hotel_id'] : null,
             'description' => $data['description'] ?? null,
             'tone' => $data['tone'] ?? 'brand',
+            'level' => isset($data['level']) && $data['level'] !== '' ? $data['level'] : null,
         ];
     }
 }

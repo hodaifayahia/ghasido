@@ -42,6 +42,8 @@ export type TestListItem = {
     id: string;
     title: string;
     department: string;
+    /** The level label, or "All levels" (client decision 2026-09-30). */
+    level?: string;
     hotel: string;
     meta: string;
     questionCount: number;
@@ -70,6 +72,8 @@ export type CreateTestPayload = {
     title: string;
     type: TestVariant;
     department: string;
+    /** '' = every level (client decision 2026-09-30). */
+    level: string;
     timeLimit: string;
 };
 
@@ -160,6 +164,8 @@ export type TestEditorSavePayload = {
     type: TestVariant;
     /** A department id, or 'all' for a test every department sits. */
     department_id: number | 'all';
+    /** '' = every level. */
+    level: string;
     hotel_id: number | null;
     description: string;
     time_limit_minutes: number | null;
@@ -184,6 +190,8 @@ export type TestEditor = {
     typeOptions: TestsSelectOption[];
     department: string;
     departments: TestsSelectOption[];
+    /** '' = every level (client decision 2026-09-30). */
+    level?: string;
     hotel?: string;
     timeLimit: string;
     questionCount: string;

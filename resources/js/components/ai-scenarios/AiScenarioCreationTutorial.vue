@@ -606,7 +606,7 @@ watch(open, (value) => {
                                                     ><span
                                                         class="text-ink mt-1 block text-[7px] sm:text-[11px]"
                                                         >{{
-                                                            $t('Elementary')
+                                                            $t('Intermediate')
                                                         }}</span
                                                     >
                                                 </div>

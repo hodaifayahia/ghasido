@@ -30,7 +30,10 @@ class EnsureFirstLoginCompleted
             return $next($request);
         }
 
-        if ($user->hasCompletedFirstLogin() || $request->routeIs('learn.first-login.*')) {
+        // A level is part of the setup too (client decision 2026-09-30), so
+        // an employee who finished first login before levels existed chooses
+        // one on the same screen.
+        if (($user->hasCompletedFirstLogin() && $user->english_level !== null) || $request->routeIs('learn.first-login.*')) {
             return $next($request);
         }
 

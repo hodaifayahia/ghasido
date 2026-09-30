@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\EnglishLevel;
 use App\Enums\Role;
 use App\Models\Department;
 use App\Models\Hotel;
@@ -138,14 +139,16 @@ class UserFactory extends Factory
 
     /**
      * Past the first-login screen: email confirmed, research notice
-     * acknowledged (AUTH-04, PRIV-01).
+     * acknowledged (AUTH-04, PRIV-01) and a level chosen (client decision
+     * 2026-09-30).
      */
-    public function firstLoginDone(): static
+    public function firstLoginDone(?EnglishLevel $level = EnglishLevel::Beginner): static
     {
         return $this->state(fn (array $attributes) => [
             'first_login_completed_at' => now(),
             'research_notice_acknowledged_at' => now(),
             'last_login_at' => now(),
+            'english_level' => $attributes['english_level'] ?? $level,
         ]);
     }
 

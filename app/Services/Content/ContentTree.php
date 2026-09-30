@@ -292,6 +292,9 @@ class ContentTree
                 'title' => $row->title,
                 'tone' => $row->tone,
                 'status' => $row->status->value,
+                // Who sees it: every level, or one (client decision 2026-09-30).
+                'level' => $row->level?->value,
+                'levelLabel' => $row->level?->label(),
                 'expanded' => $expanded,
                 'units' => $row->units->values()->map(function (Unit $unitRow, int $index) use ($unit, $lesson, $open): array {
                     $unitExpanded = $unitRow->id === $unit?->id || in_array('u'.$unitRow->id, $open, true);
@@ -343,6 +346,8 @@ class ContentTree
                 'unitId' => null,
                 'hotelLabel' => null,
                 'departmentLabel' => null,
+                'courseLevel' => null,
+                'courseLevelUrl' => null,
                 'previewUrl' => null,
                 'updatedAt' => null,
             ];
@@ -376,6 +381,10 @@ class ContentTree
                 ? __('Shared (all hotels)')
                 : ($hotels->firstWhere('id', $lesson->hotel_id)->name ?? __('Hotel #:id', ['id' => $lesson->hotel_id])),
             'departmentLabel' => $course === null ? null : ($departments->firstWhere('id', $course->department_id)->name ?? null),
+            // The level comes from the course, like the department (client
+            // decision 2026-09-30); null = every level.
+            'courseLevel' => $course?->level?->value,
+            'courseLevelUrl' => $course === null ? null : route('courses.update', ['course' => $course]),
             'previewUrl' => route('lessons.preview', ['lesson' => $lesson]),
             'updatedAt' => $lesson->updated_at?->toIso8601String(),
         ];

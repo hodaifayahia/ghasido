@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
+import LevelSelect from '@/components/common/LevelSelect.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +49,20 @@ const minScore = ref<number | null>(
 const status = ref<LessonContentStatus>(props.editor.status);
 const accent = ref<Accent>(props.editor.effectiveAccent);
 const saving = ref(false);
+// Department + level decide who sees the lesson; the level belongs to the
+// course (client decision 2026-09-30).
+const courseLevel = ref(props.editor.courseLevel ?? '');
+
+function saveCourseLevel(value: string): void {
+    const url = props.editor.courseLevelUrl;
+
+    if (url === null || !manage.value || value === courseLevel.value) {
+        return;
+    }
+
+    courseLevel.value = value;
+    router.patch(url, { level: value }, { preserveScroll: true });
+}
 const errors = ref<Record<string, string>>({});
 
 watch(
@@ -58,6 +73,7 @@ watch(
         minScore.value = editor.completionCondition?.min_score ?? null;
         status.value = editor.status;
         accent.value = editor.effectiveAccent;
+        courseLevel.value = editor.courseLevel ?? '';
     },
 );
 
@@ -284,6 +300,23 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                 <dt class="text-ink-slate">{{ $t('Hotel scope') }}</dt>
                 <dd class="text-ink font-medium">
                     {{ editor.hotelLabel ?? '—' }}
+                </dd>
+            </div>
+            <div
+                v-if="editor.courseLevelUrl"
+                class="grid gap-1 md:col-span-2"
+                data-test="lesson-course-level"
+            >
+                <dt class="text-ink-slate">
+                    {{ $t('Level (the whole course)') }}
+                </dt>
+                <dd>
+                    <LevelSelect
+                        :model-value="courseLevel"
+                        class="max-w-60"
+                        :class="!manage && 'pointer-events-none opacity-60'"
+                        @update:model-value="saveCourseLevel"
+                    />
                 </dd>
             </div>
             <p class="text-ink-faint md:col-span-2">

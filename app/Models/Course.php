@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentStatus;
+use App\Enums\EnglishLevel;
 use Database\Factories\CourseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $department_id
  * @property int|null $hotel_id
+ * @property EnglishLevel|null $level null = every level
  * @property string $title
  * @property string $slug
  * @property string|null $description
@@ -37,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read int|null $lessons_count
  */
 #[Fillable([
+    'level',
     'department_id',
     'hotel_id',
     'title',
@@ -62,6 +65,7 @@ class Course extends Model
         return [
             'position' => 'integer',
             'status' => ContentStatus::class,
+            'level' => EnglishLevel::class,
             'published_at' => 'datetime',
         ];
     }
@@ -155,7 +159,21 @@ class Course extends Model
         $query
             ->published()
             ->where('department_id', $user->learningDepartmentId() ?? 0)
-            ->sharedOrFor($user->hotel_id);
+            ->sharedOrFor($user->hotel_id)
+            ->forLevel($user->english_level);
+    }
+
+    /**
+     * The learner's level, or courses for every level (null). A learner with
+     * no level yet sees every level (client decision 2026-09-30).
+     *
+     * @param  Builder<Course>  $query
+     */
+    public function scopeForLevel(Builder $query, ?EnglishLevel $level): void
+    {
+        if ($level !== null) {
+            $query->where(fn (Builder $inner) => $inner->whereNull('level')->orWhere('level', $level->value));
+        }
     }
 
     // ---------------------------------------------------------------- reading

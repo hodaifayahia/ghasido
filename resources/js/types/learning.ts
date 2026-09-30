@@ -452,6 +452,24 @@ export type FirstLoginUser = {
     completed: boolean;
 };
 
+// ---------------------------------------------------------------- levels
+
+/** Beginner, Intermediate or Advanced (client decision 2026-09-30). */
+export type EnglishLevelValue = 'beginner' | 'intermediate' | 'advanced';
+
+export type LevelOption = { value: string; label: string };
+
+/** The learner's level and a pending move-up suggestion (shared prop). */
+export type LearnerLevel = {
+    current: EnglishLevelValue | null;
+    currentLabel: string | null;
+    suggestion: EnglishLevelValue | null;
+    suggestionLabel: string | null;
+    options: LevelOption[];
+    updateUrl: string;
+    answerUrl: string;
+};
+
 /**
  * An admin-written Arabic meaning for one piece of lesson text
  * (lessons.meanings, user request 2026-09-25).

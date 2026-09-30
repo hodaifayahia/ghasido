@@ -6,6 +6,7 @@ import Celebration from '@/components/learning/Celebration.vue';
 import TestAnswerReview from '@/components/learning/test/TestAnswerReview.vue';
 import TestMotivationCard from '@/components/learning/test/TestMotivationCard.vue';
 import type { TestReviewRow } from '@/types';
+import LevelSuggestionCard from '@/components/learning/level/LevelSuggestionCard.vue';
 
 /*
  * The test result (TEST-04, JOURNEY-01/05; spec 0003 Part E). What the
@@ -44,6 +45,7 @@ const showScore = computed(() => props.result !== null);
     <Head :title="$t(':test complete', { test: test.label })" />
 
     <section class="mx-auto grid max-w-2xl content-start gap-6 p-4 md:p-6">
+        <LevelSuggestionCard />
         <div
             class="border-line bg-surface shadow-card relative grid justify-items-center gap-4 rounded-lg border p-8 text-center"
         >

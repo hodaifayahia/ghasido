@@ -6,13 +6,16 @@ use App\Enums\ActivityType;
 use App\Enums\EnglishLevel;
 use App\Enums\GenerationStatus;
 use App\Enums\TestAttemptStatus;
+use App\Enums\TestType;
 use App\Jobs\AssessSpokenPronunciation;
 use App\Jobs\EvaluateWrittenAnswer;
 use App\Jobs\TranscribeAndEvaluateSpokenAnswer;
 use App\Models\Activity;
 use App\Models\Attempt;
+use App\Models\Test;
 use App\Models\TestAttempt;
-use Carbon\CarbonInterface;
+use App\Models\User;
+use App\Services\Platform\PlatformSettings;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
@@ -100,7 +103,7 @@ class TestScorer
             $user->forceFill([
                 'training_started_at' => $user->training_started_at ?? Date::now(),
                 'last_activity_at' => Date::now(),
-                ...self::levelColumns($totalScore, $totalMax),
+                ...self::levelColumns($user, $test, $totalScore, $totalMax),
             ])->save();
         });
 
@@ -124,23 +127,24 @@ class TestScorer
     }
 
     /**
-     * The learner's English level from this sitting's auto-graded share
-     * (spec 0005 §2.1). The latest sitting wins, so a Post-test moves it on.
-     * A sitting with nothing auto-graded (only spoken or written items)
-     * leaves the level as it was.
+     * A Pre-test at or above the Super Admin's threshold suggests the next
+     * level; the learner then chooses to move up or stay (client decision
+     * 2026-09-30). The level itself is the learner's choice, so a test never
+     * changes it. Advanced has no next level, and a sitting with nothing
+     * auto-graded (only spoken or written items) suggests nothing.
      *
-     * @return array{english_level?: EnglishLevel, english_level_assessed_at?: CarbonInterface}
+     * @return array{level_suggestion?: EnglishLevel|null}
      */
-    private static function levelColumns(float $score, float $max): array
+    private static function levelColumns(User $user, Test $test, float $score, float $max): array
     {
-        if ($max <= 0) {
+        if ($test->type !== TestType::Pre || $max <= 0 || $user->english_level === null) {
             return [];
         }
 
-        return [
-            'english_level' => EnglishLevel::fromPercent($score / $max * 100),
-            'english_level_assessed_at' => Date::now(),
-        ];
+        $next = $user->english_level->next();
+        $passed = $score / $max * 100 >= app(PlatformSettings::class)->levelUpFrom();
+
+        return ['level_suggestion' => $passed ? $next : null];
     }
 
     /**

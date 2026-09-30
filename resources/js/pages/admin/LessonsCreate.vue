@@ -23,6 +23,7 @@ import { create as createLessonPage } from '@/routes/lessons-content';
 import { store as storeLesson } from '@/routes/lessons';
 import type { LessonCreateCourse, LessonFilterOption } from '@/types';
 import { tk } from '@/lib/i18n';
+import LevelSelect from '@/components/common/LevelSelect.vue';
 
 type Props = {
     departments: LessonFilterOption[];
@@ -54,6 +55,9 @@ const unitId = ref(String(props.courses[0]?.units[0]?.id ?? NONE));
 const newCourseTitle = ref('');
 const newUnitTitle = ref('');
 const lessonTitle = ref('');
+// Department + level decide who sees the lesson (client decision
+// 2026-09-30); an existing course brings its own level.
+const level = ref('');
 const withBlocks = ref(true);
 
 const course = computed(() =>
@@ -174,6 +178,24 @@ function onDepartment(value: string): void {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div
+                        v-if="courseId === NONE || courseId === NEW"
+                        class="grid gap-1.5"
+                    >
+                        <label
+                            for="create-level"
+                            class="text-brand-900 text-[12px] font-semibold"
+                        >
+                            {{ $t('Level') }}
+                        </label>
+                        <LevelSelect
+                            id="create-level"
+                            v-model="level"
+                            name="level"
+                        />
+                        <InputError :message="errors.level" />
                     </div>
 
                     <div class="grid gap-1.5">
