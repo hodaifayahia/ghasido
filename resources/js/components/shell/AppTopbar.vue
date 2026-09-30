@@ -67,7 +67,7 @@ const iconButtonClass =
     <header
         :class="
             cn(
-                'h-topbar bg-surface relative sticky top-0 z-9 flex shrink-0 items-center gap-1.5 ps-2 pe-3 pt-[3px] md:ps-4 md:pe-5 xl:ps-6 xl:pe-[22px]',
+                'md:h-topbar bg-surface relative sticky top-0 z-9 flex h-14 shrink-0 items-center gap-1 ps-1 pe-2 md:gap-1.5 md:ps-4 md:pe-5 md:pt-[3px] xl:ps-6 xl:pe-[22px]',
                 props.class,
             )
         "
@@ -77,7 +77,7 @@ const iconButtonClass =
         <SidebarTrigger
             :class="
                 cn(
-                    'text-brand-800 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/40 size-11 focus-visible:ring-2 [&_svg:not([class*=\'size-\'])]:size-5',
+                    'text-brand-800 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/40 size-10 shrink-0 focus-visible:ring-2 md:size-11 [&_svg:not([class*=\'size-\'])]:size-5',
                     state === 'expanded' && !isMobile && 'xl:hidden',
                 )
             "
@@ -87,7 +87,7 @@ const iconButtonClass =
             :href="dashboard()"
             class="focus-visible:ring-brand-600/40 flex shrink-0 items-center rounded-md focus-visible:ring-2 focus-visible:outline-none"
         >
-            <AppLogo variant="mark" class="size-10" />
+            <AppLogo variant="mark" class="size-8" />
         </Link>
 
         <!-- The handwritten tagline sits where the Lessons & Content mockup
@@ -116,12 +116,12 @@ const iconButtonClass =
                         data-test="topbar-user-menu"
                         :class="
                             cn(
-                                'ms-1 flex min-w-0 items-center gap-[15px] p-1 text-start md:ms-[15px]',
+                                'ms-0.5 flex min-w-0 shrink-0 items-center gap-[15px] p-1 text-start md:ms-[15px]',
                                 iconButtonClass,
                             )
                         "
                     >
-                        <Avatar class="size-[34px]">
+                        <Avatar class="size-8 md:size-[34px]">
                             <AvatarImage
                                 v-if="hasAvatar"
                                 :src="user.avatar ?? ''"

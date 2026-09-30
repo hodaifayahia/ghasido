@@ -34,7 +34,7 @@ const progressColor = computed(() => {
 <template>
     <div
         v-if="balance"
-        class="me-1 w-[100px] min-w-0 sm:me-3 sm:w-36"
+        class="me-0.5 w-12 min-w-0 shrink sm:me-3 sm:w-36"
         :title="
             depleted
                 ? guidance
@@ -46,7 +46,7 @@ const progressColor = computed(() => {
     >
         <div class="flex min-w-0 items-center justify-between gap-1">
             <span
-                class="text-ink-slate truncate text-[9px] leading-3 font-semibold sm:text-[10px]"
+                class="text-ink-slate hidden truncate text-[9px] leading-3 font-semibold sm:inline sm:text-[10px]"
             >
                 {{
                     balance.role === 'manager'

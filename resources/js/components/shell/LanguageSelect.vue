@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// LOCKED geometry: the admin topbar's language box (111×46 at x 1147 / y 15
+// LOCKED geometry from md up (below md it shrinks to a 36px chip at the
+// user's request, 2026-09-30): the admin topbar's language box (111×46 at x 1147 / y 15
 // on the approved Admin Dashboard mockup, AGENTS.md §0.4), extracted here so
 // the lesson top bar reuses the same control (spec 0003 H.1).
 import { ChevronDown, Globe } from '@lucide/vue';
@@ -49,7 +50,7 @@ function choose(value: Locale): void {
                 data-test="language-select"
                 :class="
                     cn(
-                        'border-line bg-surface shadow-card ease-brand hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 data-[state=open]:bg-brand-50 ms-2 flex h-11 shrink-0 items-center rounded-md border ps-2.5 pe-1.5 transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none md:ms-6 md:h-[46px] md:w-[111px] md:ps-[17px] md:pe-[11px]',
+                        'border-line bg-surface shadow-card ease-brand hover:bg-brand-50 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 data-[state=open]:bg-brand-50 ms-1 flex h-9 shrink-0 items-center gap-0.5 rounded-md border ps-2 pe-1 transition-colors duration-150 focus-visible:ring-3 focus-visible:outline-none md:ms-6 md:h-[46px] md:w-[111px] md:gap-0 md:ps-[17px] md:pe-[11px]',
                         props.compact &&
                             'md:h-10 md:w-[100px] md:ps-[15px] md:pe-3',
                         props.class,
@@ -59,8 +60,8 @@ function choose(value: Locale): void {
                 <Globe
                     :class="
                         cn(
-                            'text-brand-700 size-[22px] shrink-0',
-                            props.compact && 'size-5',
+                            'text-brand-700 size-4 shrink-0 md:size-[22px]',
+                            props.compact && 'md:size-5',
                         )
                     "
                     aria-hidden="true"
@@ -68,8 +69,8 @@ function choose(value: Locale): void {
                 <span
                     :class="
                         cn(
-                            'text-ink-indigo ms-2 text-base leading-none font-semibold',
-                            props.compact && 'ms-[7px] text-[15px]',
+                            'text-ink-indigo ms-1 text-[13px] leading-none font-semibold md:ms-2 md:text-base',
+                            props.compact && 'md:ms-[7px] md:text-[15px]',
                         )
                     "
                 >
@@ -78,8 +79,8 @@ function choose(value: Locale): void {
                 <ChevronDown
                     :class="
                         cn(
-                            'text-ink-slate ms-auto size-6 shrink-0 stroke-[2.25]',
-                            props.compact && 'size-5',
+                            'text-ink-slate ms-auto size-4 shrink-0 stroke-[2.25] md:size-6',
+                            props.compact && 'md:size-5',
                         )
                     "
                     aria-hidden="true"

@@ -7,6 +7,7 @@ import EmployeeLayout from '@/layouts/EmployeeLayout.vue';
 import LessonLayout from '@/layouts/LessonLayout.vue';
 import OwnerLayout from '@/layouts/OwnerLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import SettingsShellLayout from '@/layouts/SettingsShellLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { initializeI18n, installI18n } from '@/lib/i18n';
 import { initializePagePrefetch } from '@/lib/pagePrefetch';
@@ -33,8 +34,10 @@ void initializeI18n().then(() =>
                 // not the app sidebar, since the owner is not an app user.
                 case name.startsWith('owner/'):
                     return OwnerLayout;
+                // Employees keep the learner shell in Settings; everyone
+                // else the admin one (SettingsShellLayout).
                 case name.startsWith('settings/'):
-                    return [AppLayout, SettingsLayout];
+                    return [SettingsShellLayout, SettingsLayout];
                 // The lesson runner and AI role-play share the step-tracker shell
                 // (spec 0003 H.1); every other learner page gets the sidebar
                 // shell with the employee nav. Order matters: the narrower
