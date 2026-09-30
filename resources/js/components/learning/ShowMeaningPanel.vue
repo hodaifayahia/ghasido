@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
+import { useHelperLanguage } from '@/composables/useHelperLanguage';
 
 /*
  * The revealed meaning (CTRL-01..03, I18N-01, I18N-03): Arabic first, in
@@ -25,6 +26,10 @@ const props = withDefaults(defineProps<Props>(), {
     example: null,
     exampleArabic: null,
 });
+
+// `arabic` / `exampleArabic` hold the meaning in the learner's helper
+// language (client request 2026-09-30); the server swaps them.
+const helper = useHelperLanguage();
 </script>
 
 <template>
@@ -40,9 +45,14 @@ const props = withDefaults(defineProps<Props>(), {
     >
         <p
             v-if="arabic"
-            lang="ar"
-            dir="rtl"
-            class="font-arabic text-ink text-start text-xl font-semibold"
+            :lang="helper.code.value"
+            :dir="helper.dir.value"
+            :class="
+                cn(
+                    'text-ink text-start text-xl font-semibold',
+                    helper.fontClass.value,
+                )
+            "
         >
             {{ arabic }}
         </p>
@@ -53,9 +63,14 @@ const props = withDefaults(defineProps<Props>(), {
             <p class="text-ink text-base">{{ example }}</p>
             <p
                 v-if="exampleArabic"
-                lang="ar"
-                dir="rtl"
-                class="font-arabic text-ink-graphite mt-1 text-start text-base"
+                :lang="helper.code.value"
+                :dir="helper.dir.value"
+                :class="
+                    cn(
+                        'text-ink-graphite mt-1 text-start text-base',
+                        helper.fontClass.value,
+                    )
+                "
             >
                 {{ exampleArabic }}
             </p>

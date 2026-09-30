@@ -15,6 +15,7 @@ use App\Services\Ai\FakeAiProvider;
 use App\Services\Ai\OpenAiCompatibleAiProvider;
 use App\Services\Images\DashScopeImageProvider;
 use App\Services\Images\FakeImageProvider;
+use App\Services\Meaning\HelperLanguages;
 use App\Services\Owner\ApiCredit;
 use App\Services\Owner\ApiKeyring;
 use App\Services\Platform\PlatformSettings;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(ApiKeyring::class);
         $this->app->scoped(ApiCredit::class);
         $this->app->scoped(PlatformSettings::class);
+        $this->app->scoped(HelperLanguages::class);
 
         $this->registerProviders();
     }

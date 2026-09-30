@@ -4,7 +4,7 @@ import type {
     LearnerJourney,
     TrainingContext,
 } from '@/types/auth';
-import type { LearnerLevel } from '@/types/learning';
+import type { HelperLanguage, LearnerLevel } from '@/types/learning';
 import type { NotificationData } from '@/types/notifications';
 import type { OwnerIdentity } from '@/types/owner';
 
@@ -33,6 +33,8 @@ declare module '@inertiajs/core' {
             journey: LearnerJourney | null;
             /** The learner's level (client decision 2026-09-30); null for non-learners. */
             learnerLevel: LearnerLevel | null;
+            /** The Show Meaning language (client request 2026-09-30). */
+            helperLanguage: HelperLanguage | null;
             /**
              * A manager's training department switcher; null unless a
              * manager is on a learner route (client decision 2026-09-23).

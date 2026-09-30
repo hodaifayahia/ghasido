@@ -8,6 +8,7 @@ use App\Http\Requests\Learn\FirstLoginRequest;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\Meaning\HelperLanguages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -51,6 +52,9 @@ class FirstLoginController extends Controller
                 : [],
             'level' => $user->english_level?->value,
             'levels' => EnglishLevel::options(),
+            // The Show Meaning language (client request 2026-09-30).
+            'helperLanguage' => app(HelperLanguages::class)->forUser($user),
+            'helperLanguages' => app(HelperLanguages::class)->options(),
         ]);
     }
 
@@ -63,6 +67,12 @@ class FirstLoginController extends Controller
 
         if ($user->department_id === null) {
             $user->department_id = (int) $request->validated('department_id');
+        }
+
+        $helper = $request->validated('helper_language');
+
+        if (is_string($helper) && $helper !== '') {
+            $user->meaning_locale = $helper;
         }
 
         if ($user->english_level !== $level) {

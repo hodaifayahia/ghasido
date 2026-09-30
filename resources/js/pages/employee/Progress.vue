@@ -17,6 +17,7 @@ import type {
     TestResultSummary,
 } from '@/types';
 import LevelSuggestionCard from '@/components/learning/level/LevelSuggestionCard.vue';
+import HelperLanguageCard from '@/components/learning/level/HelperLanguageCard.vue';
 import MyLevelCard from '@/components/learning/level/MyLevelCard.vue';
 
 /*
@@ -62,7 +63,10 @@ function since(iso: string | null): string {
         />
 
         <LevelSuggestionCard />
-        <MyLevelCard />
+        <div class="grid min-w-0 gap-3 md:grid-cols-2">
+            <MyLevelCard />
+            <HelperLanguageCard />
+        </div>
 
         <div class="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard

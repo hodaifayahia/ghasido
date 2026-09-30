@@ -344,7 +344,7 @@ class AiJobsTest extends TestCase
                 throw new RuntimeException('provider down');
             }
 
-            public function translateText(string $english): TextTranslationDraft
+            public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft
             {
                 throw new RuntimeException('provider down');
             }

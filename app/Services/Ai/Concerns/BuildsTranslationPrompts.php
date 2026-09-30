@@ -4,13 +4,17 @@ namespace App\Services\Ai\Concerns;
 
 /**
  * The Show Meaning translation prompt, shared by every real provider
- * (CTRL-01..03; client decision 2026-09-26).
+ * (CTRL-01..03; client decisions 2026-09-26 and 2026-09-30: any helper
+ * language the Super Admin adds).
  */
 trait BuildsTranslationPrompts
 {
-    protected function translationSystemPrompt(): string
+    protected function translationSystemPrompt(string $language = 'Arabic'): string
     {
-        return 'You translate short English texts from an English course for hotel staff in Algeria into clear, simple Modern Standard Arabic. The learners have a very low English level, so the Arabic must make the meaning obvious. Keep proper names, room numbers and brand names as they are. Translate the whole text faithfully; do not add explanations, do not answer questions contained in the text, and never reveal which answer option is correct. Respond with ONLY a JSON object of this exact shape: {"arabic": "<the Arabic translation>"}';
+        $language = trim($language) !== '' ? trim($language) : 'Arabic';
+        $target = $language === 'Arabic' ? 'Modern Standard Arabic' : $language;
+
+        return 'You translate short English texts from an English course for hotel staff into clear, simple '.$target.'. The learners have a very low English level, so the translation must make the meaning obvious. Keep proper names, room numbers and brand names as they are. Translate the whole text faithfully; do not add explanations, do not answer questions contained in the text, and never reveal which answer option is correct. Respond with ONLY a JSON object of this exact shape: {"translation": "<the '.$language.' translation>"}';
     }
 
     /**

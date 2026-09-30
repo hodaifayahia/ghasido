@@ -2,6 +2,7 @@
 import { Eye, Gauge, Turtle } from '@lucide/vue';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
+import { useHelperLanguage } from '@/composables/useHelperLanguage';
 
 /*
  * The Normal Speed / Slower Speed / Show Meaning trio under a prompt
@@ -30,6 +31,7 @@ const { locale } = useI18n();
 
 const base =
     'ease-brand focus-visible:ring-brand-600/40 flex h-14 items-center justify-center gap-2 rounded-md text-base font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none active:scale-[.98] motion-reduce:transition-none';
+const helper = useHelperLanguage();
 </script>
 
 <template>
@@ -85,12 +87,19 @@ const base =
         >
             <Eye class="size-5" aria-hidden="true" />
             <span class="flex flex-col items-center leading-tight">
-                <span class="font-arabic text-sm" dir="rtl" lang="ar">
+                <span
+                    v-if="helper.isArabic.value"
+                    class="font-arabic text-sm"
+                    dir="rtl"
+                    lang="ar"
+                >
                     إظهار المعنى
                 </span>
-                <span v-if="locale === 'en'" class="text-xs">{{
-                    $t('Show Meaning')
-                }}</span>
+                <span
+                    v-if="locale === 'en' || !helper.isArabic.value"
+                    class="text-xs"
+                    >{{ $t('Show Meaning') }}</span
+                >
             </span>
         </button>
     </div>

@@ -10,17 +10,21 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * The Arabic meaning of one distinct English text (CTRL-01..03; client
- * decision 2026-09-26: Show Meaning on every English text a learner reads).
+ * The meaning of one distinct English text in one helper language
+ * (CTRL-01..03; client decisions 2026-09-26: Show Meaning on every English
+ * text a learner reads, and 2026-09-30: Arabic, French and any language the
+ * Super Admin adds).
  *
- * Keyed by a hash of the normalised text, so "Check-in basics" on the course
- * card, in the lesson header and on the progress page is translated once.
- * `source` is `ai` until the Super Admin corrects it (`manual`).
+ * Keyed by a hash of the normalised text and the language, so "Check-in
+ * basics" on the course card, in the lesson header and on the progress page
+ * is translated once per language. `source` is `ai` until the Super Admin
+ * corrects it (`manual`).
  *
  * @property int $id
  * @property string $hash
+ * @property string $locale the helper language (HelperLanguages)
  * @property string $source_text
- * @property string|null $arabic
+ * @property string|null $translation
  * @property GenerationStatus $status
  * @property string $source
  * @property string|null $failed_reason
@@ -29,7 +33,7 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['hash', 'source_text', 'arabic', 'status', 'source', 'failed_reason', 'requested_by', 'updated_by'])]
+#[Fillable(['hash', 'locale', 'source_text', 'translation', 'status', 'source', 'failed_reason', 'requested_by', 'updated_by'])]
 class TextTranslation extends Model
 {
     public const int MAX_LENGTH = 1500;

@@ -179,13 +179,14 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
         );
     }
 
-    public function translateText(string $english): TextTranslationDraft
+    public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft
     {
-        $result = $this->complete($this->translationSystemPrompt(), $this->translationMessages($english));
+        $result = $this->complete($this->translationSystemPrompt($language), $this->translationMessages($english));
         $data = $this->decodeJson($result['text']);
 
         return new TextTranslationDraft(
-            arabic: $this->string($data, 'arabic', ''),
+            // "arabic" is what the prompt asked for before other languages.
+            text: $this->string($data, 'translation', $this->string($data, 'arabic', '')),
             usage: $result['usage'],
         );
     }

@@ -41,13 +41,16 @@ class TranslationsTest extends TestCase
         // Run the pass: the texts without a meaning get a draft each.
         (new TranslateContent('lesson', $lesson->id))->handle(app(MeaningTranslations::class));
 
-        Queue::assertPushed(TranslateText::class, 4);
-        $this->assertSame(4, TextTranslation::query()->where('source', 'ai')->count());
+        // Four texts, in each helper language that is on: Arabic and French
+        // (client request 2026-09-30).
+        Queue::assertPushed(TranslateText::class, 8);
+        $this->assertSame(4, TextTranslation::query()->where('source', 'ai')->where('locale', 'ar')->count());
+        $this->assertSame(4, TextTranslation::query()->where('source', 'ai')->where('locale', 'fr')->count());
         $this->assertDatabaseMissing('text_translations', ['source_text' => 'image-left']);
 
         // A second pass sends nothing: every text already has its draft.
         (new TranslateContent('lesson', $lesson->id))->handle(app(MeaningTranslations::class));
-        Queue::assertPushed(TranslateText::class, 4);
+        Queue::assertPushed(TranslateText::class, 8);
     }
 
     public function test_a_meaning_written_by_hand_is_never_replaced_by_the_ai()
@@ -63,7 +66,7 @@ class TranslationsTest extends TestCase
         $this->assertSame('manual', $translation->source);
         $this->assertSame(GenerationStatus::Done, $translation->status);
 
-        $this->assertSame(0, app(MeaningTranslations::class)->queue(['Welcoming a guest'], $admin));
+        $this->assertSame(0, app(MeaningTranslations::class)->queue(['Welcoming a guest'], $admin, ['ar']));
         Queue::assertNotPushed(TranslateText::class);
         $this->assertDatabaseHas('audit_logs', ['action' => 'meaning.updated']);
     }
@@ -107,13 +110,13 @@ class TranslationsTest extends TestCase
         $translation = TextTranslation::query()->create([
             'hash' => TextTranslation::hashOf('Hello'),
             'source_text' => 'Hello',
-            'arabic' => 'أهلا',
+            'translation' => 'أهلا',
             'status' => GenerationStatus::Pending,
             'source' => 'manual',
         ]);
 
         dispatch_sync(new TranslateText($translation->id));
 
-        $this->assertSame('أهلا', $translation->refresh()->arabic);
+        $this->assertSame('أهلا', $translation->refresh()->translation);
     }
 }

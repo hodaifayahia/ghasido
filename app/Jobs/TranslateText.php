@@ -8,6 +8,7 @@ use App\Enums\GenerationStatus;
 use App\Models\TextTranslation;
 use App\Models\User;
 use App\Services\Ai\UsageMeter;
+use App\Services\Meaning\HelperLanguages;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -68,7 +69,10 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
         $translation->forceFill(['status' => GenerationStatus::Running])->save();
 
         try {
-            $draft = $ai->translateText($translation->source_text);
+            $draft = $ai->translateText(
+                $translation->source_text,
+                app(HelperLanguages::class)->name($translation->locale),
+            );
         } catch (RequestException $e) {
             // A 429 is either "too busy" (worth waiting for) or an exhausted
             // plan (it will not come back by itself; fail with its reason).
@@ -96,12 +100,12 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
             chargePoints: false,
         );
 
-        $arabic = trim($draft->arabic);
+        $text = trim($draft->text);
 
         $translation->forceFill([
-            'arabic' => $arabic !== '' ? $arabic : null,
-            'status' => $arabic !== '' ? GenerationStatus::Done : GenerationStatus::Failed,
-            'failed_reason' => $arabic !== '' ? null : 'empty translation',
+            'translation' => $text !== '' ? $text : null,
+            'status' => $text !== '' ? GenerationStatus::Done : GenerationStatus::Failed,
+            'failed_reason' => $text !== '' ? null : 'empty translation',
         ])->save();
     }
 

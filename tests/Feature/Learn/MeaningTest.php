@@ -50,7 +50,7 @@ class MeaningTest extends TestCase
             ->postJson(route('meaning'), ['text' => '  check-in   BASICS '])
             ->assertOk()
             ->assertJsonPath('status', 'done')
-            ->assertJsonPath('arabic', 'أساسيات تسجيل الوصول');
+            ->assertJsonPath('text', 'أساسيات تسجيل الوصول');
 
         $this->assertDatabaseCount('text_translations', 1);
     }
@@ -64,7 +64,7 @@ class MeaningTest extends TestCase
             ->postJson(route('meaning'), ['text' => 'Room service'])
             ->assertOk()
             ->assertJsonPath('status', 'missing')
-            ->assertJsonPath('arabic', null);
+            ->assertJsonPath('text', null);
 
         // Tapping again, or by another learner, still calls nothing.
         $this->actingAs($this->learner(['username' => 'karim']))
@@ -136,7 +136,7 @@ class MeaningTest extends TestCase
         return TextTranslation::query()->create([
             'hash' => TextTranslation::hashOf($text),
             'source_text' => $text,
-            'arabic' => $arabic,
+            'translation' => $arabic,
             'status' => GenerationStatus::Done,
             'source' => MeaningTranslations::SOURCE_AI,
         ]);

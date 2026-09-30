@@ -11,6 +11,7 @@ import { tk } from '@/lib/i18n';
 import { dashboard, translations } from '@/routes';
 import { generate } from '@/routes/translations';
 import type {
+    TranslationLanguage,
     TranslationFilters,
     TranslationOptions,
     TranslationRow,
@@ -28,6 +29,9 @@ type Props = {
     filters: TranslationFilters;
     counts: { waiting: number; total: number };
     options: TranslationOptions;
+    /** Helper languages (client request 2026-09-30). */
+    languages: { value: string; label: string; dir: string }[];
+    language: TranslationLanguage;
 };
 
 const props = defineProps<Props>();
@@ -54,6 +58,9 @@ function query(
     if (filters.content !== '') q.content = filters.content;
     if (filters.search !== '') q.search = filters.search;
     if (filters.state !== 'all') q.state = filters.state;
+    if (filters.language && filters.language !== 'ar') {
+        q.language = filters.language;
+    }
     if (page > 1) q.page = page;
 
     return q;
@@ -72,25 +79,46 @@ function visit(q: Record<string, string | number>): void {
 }
 
 function filter(filters: TranslationFilters & { content: string }): void {
-    visit(query(filters));
+    visit(query({ ...filters, language: props.language.code }));
+}
+
+function chooseLanguage(code: string): void {
+    visit(
+        query({ ...props.filters, content: currentContent(), language: code }),
+    );
 }
 
 function goToPage(page: number): void {
-    visit(query({ ...props.filters, content: currentContent() }, page));
+    visit(
+        query(
+            {
+                ...props.filters,
+                content: currentContent(),
+                language: props.language.code,
+            },
+            page,
+        ),
+    );
 }
 
 function generateMissing(): void {
     const content = currentContent();
 
-    router.post(generate.url(), content === '' ? {} : { content }, {
-        preserveScroll: true,
-        onStart: () => {
-            generating.value = true;
+    const language = props.language.code;
+
+    router.post(
+        generate.url(),
+        content === '' ? { language } : { content, language },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                generating.value = true;
+            },
+            onFinish: () => {
+                generating.value = false;
+            },
         },
-        onFinish: () => {
-            generating.value = false;
-        },
-    });
+    );
 }
 </script>
 
@@ -103,7 +131,7 @@ function generateMissing(): void {
             :title="$t('Show Meaning translations')"
             :description="
                 $t(
-                    'The Arabic meaning behind every English text learners read. Drafted once by AI when content is saved, or written by hand; learners never trigger the AI.',
+                    'The meaning behind every English text learners read, in each helper language. Drafted once by AI when content is saved, or written by hand; learners never trigger the AI.',
                 )
             "
             class="mb-1"
@@ -134,7 +162,35 @@ function generateMissing(): void {
             </StatCard>
         </div>
 
+        <div
+            v-if="languages.length > 1"
+            class="flex flex-wrap items-center gap-2"
+            role="group"
+            :aria-label="$t('Helper language')"
+            data-test="translation-languages"
+        >
+            <span class="text-ink-slate text-[12.5px] font-semibold">
+                {{ $t('Helper language') }}
+            </span>
+            <button
+                v-for="option in languages"
+                :key="option.value"
+                type="button"
+                :aria-pressed="option.value === language.code"
+                :class="
+                    option.value === language.code
+                        ? 'bg-brand-600 text-white'
+                        : 'border-line bg-surface text-brand-700 hover:bg-brand-50 border'
+                "
+                class="rounded-pill min-h-9 px-3.5 text-[12.5px] font-semibold"
+                @click="chooseLanguage(option.value)"
+            >
+                {{ option.label }}
+            </button>
+        </div>
+
         <TranslationsPanel
+            :language="language"
             :rows="rows"
             :scope="scope"
             :filters="filters"

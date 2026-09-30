@@ -12,6 +12,9 @@ export type TranslationState =
 export type TranslationRow = {
     id: number | null;
     text: string;
+    /** The meaning in the language being edited. */
+    translation: string | null;
+    /** The same, for the builders' Arabic field button. */
     arabic: string | null;
     state: TranslationState;
     updatedAt: string | null;
@@ -27,7 +30,11 @@ export type TranslationFilters = {
     /** `all`, `missing`, `ai` or `manual`. */
     state: string;
     search: string;
+    /** The helper language being edited (client request 2026-09-30). */
+    language?: string;
 };
+
+export type TranslationLanguage = { code: string; name: string; dir: string };
 
 export type TranslationOption = { value: string; label: string };
 

@@ -25,19 +25,37 @@ final class MeaningTranslations
 
     public const string SOURCE_REQUESTED = 'requested';
 
+    public function __construct(private readonly HelperLanguages $languages) {}
+
     /**
      * Queue one AI draft for each text that has no translation yet (or whose
-     * draft failed). Done and hand-written ones are left alone, so a text is
-     * never paid for twice. Returns how many were queued.
+     * draft failed), in every active helper language or the ones given.
+     * Done and hand-written ones are left alone, so a text is never paid for
+     * twice. Returns how many were queued.
      *
      * @param  list<string>  $texts
+     * @param  list<string>|null  $locales
      */
-    public function queue(array $texts, ?User $by = null): int
+    public function queue(array $texts, ?User $by = null, ?array $locales = null): int
+    {
+        $queued = 0;
+
+        foreach ($locales ?? $this->languages->activeCodes() as $locale) {
+            $queued += $this->queueIn($texts, $locale, $by);
+        }
+
+        return $queued;
+    }
+
+    /**
+     * @param  list<string>  $texts
+     */
+    private function queueIn(array $texts, string $locale, ?User $by): int
     {
         $queued = 0;
 
         foreach (MeaningTexts::clean($texts) as $text) {
-            $translation = TextTranslation::query()->firstOrNew(['hash' => TextTranslation::hashOf($text)]);
+            $translation = self::find($text, $locale);
 
             $needsDraft = ! $translation->exists
                 || $translation->source === self::SOURCE_REQUESTED
@@ -69,15 +87,28 @@ final class MeaningTranslations
     }
 
     /**
+     * The row for a text in one language, new (unsaved) when there is none.
+     */
+    public static function find(string $text, string $locale): TextTranslation
+    {
+        $text = TextTranslation::normalise($text);
+
+        return TextTranslation::query()->firstOrNew(
+            ['hash' => TextTranslation::hashOf($text), 'locale' => $locale],
+            ['source_text' => $text],
+        );
+    }
+
+    /**
      * A learner tapped a text with no translation: note it for the admin,
      * without calling the AI.
      */
-    public function request(string $text, User $learner): TextTranslation
+    public function request(string $text, User $learner, string $locale): TextTranslation
     {
         $text = TextTranslation::normalise($text);
 
         return TextTranslation::query()->firstOrCreate(
-            ['hash' => TextTranslation::hashOf($text)],
+            ['hash' => TextTranslation::hashOf($text), 'locale' => $locale],
             [
                 'source_text' => $text,
                 'status' => GenerationStatus::Pending,
@@ -87,13 +118,13 @@ final class MeaningTranslations
         );
     }
 
-    /** The admin's own Arabic; the AI never replaces it (SEC-06 audit). */
-    public function write(TextTranslation $translation, string $arabic, User $admin): TextTranslation
+    /** The admin's own translation; the AI never replaces it (SEC-06 audit). */
+    public function write(TextTranslation $translation, string $text, User $admin): TextTranslation
     {
-        $before = $translation->arabic;
+        $before = $translation->translation;
 
         $translation->forceFill([
-            'arabic' => trim($arabic),
+            'translation' => trim($text),
             'status' => GenerationStatus::Done,
             'source' => self::SOURCE_MANUAL,
             'failed_reason' => null,
@@ -101,9 +132,10 @@ final class MeaningTranslations
         ])->save();
 
         AuditLog::record($translation, 'meaning.updated', [
+            'locale' => $translation->locale,
             'text' => $translation->source_text,
             'from' => $before,
-            'to' => $translation->arabic,
+            'to' => $translation->translation,
         ]);
 
         return $translation;

@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Learn\ActivityController;
 use App\Http\Controllers\Learn\CertificateController;
 use App\Http\Controllers\Learn\FirstLoginController;
+use App\Http\Controllers\Learn\HelperLanguageController;
 use App\Http\Controllers\Learn\HomeController;
 use App\Http\Controllers\Learn\LessonsController;
 use App\Http\Controllers\Learn\LessonStepController;
@@ -68,6 +69,8 @@ Route::middleware([
             // The learner's level (client decision 2026-09-30).
             Route::put('level', [LevelController::class, 'update'])->name('level.update');
             Route::post('level/suggestion', [LevelController::class, 'answer'])->name('level.answer');
+            // Their helper language for Show Meaning (client request 2026-09-30).
+            Route::put('helper-language', [HelperLanguageController::class, 'update'])->name('helper-language.update');
             Route::get('post-test', [HomeController::class, 'postTest'])->name('post-test');
 
             Route::get('lessons', [LessonsController::class, 'index'])->name('lessons');

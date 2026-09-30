@@ -11,6 +11,7 @@ import type {
     TranslationOptions,
     TranslationRow,
     TranslationScope,
+    TranslationLanguage,
 } from '@/types';
 
 /*
@@ -29,6 +30,7 @@ type Props = {
     total: number;
     canEdit: boolean;
     generating: boolean;
+    language: TranslationLanguage;
 };
 
 const props = defineProps<Props>();
@@ -165,7 +167,11 @@ const selectClass =
                 <input
                     v-model="search"
                     type="search"
-                    :placeholder="$t('Search English or Arabic')"
+                    :placeholder="
+                        $t('Search English or :language', {
+                            language: language.name,
+                        })
+                    "
                     :class="cn(selectClass, 'w-full ps-9')"
                     @input="onSearch"
                 />
@@ -201,6 +207,7 @@ const selectClass =
                 :key="row.id ?? row.text"
                 :row="row"
                 :can-edit="canEdit"
+                :language="language"
             />
         </ul>
         <p

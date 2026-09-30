@@ -26,6 +26,9 @@ type Props = {
     departments?: LevelOption[];
     level?: string | null;
     levels?: LevelOption[];
+    /** The Show Meaning language (client request 2026-09-30). */
+    helperLanguage?: string;
+    helperLanguages?: LevelOption[];
     class?: HTMLAttributes['class'];
 };
 
@@ -33,6 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
     departments: () => [],
     level: null,
     levels: () => [],
+    helperLanguage: 'ar',
+    helperLanguages: () => [],
 });
 
 // Department first, then level (client decision 2026-09-30).
@@ -144,6 +149,35 @@ const levelHints: Record<string, string> = {
             </p>
             <InputError :message="errors.level" />
         </fieldset>
+
+        <div v-if="helperLanguages.length > 1" class="grid gap-2">
+            <Label for="helper_language">{{
+                $t('Language for word meanings')
+            }}</Label>
+            <select
+                id="helper_language"
+                name="helper_language"
+                class="border-line bg-surface text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-11 rounded-md border px-3 text-base focus-visible:ring-3 focus-visible:outline-none"
+                data-test="first-login-helper-language"
+            >
+                <option
+                    v-for="option in helperLanguages"
+                    :key="option.value"
+                    :value="option.value"
+                    :selected="option.value === helperLanguage"
+                >
+                    {{ option.label }}
+                </option>
+            </select>
+            <p class="text-ink-slate text-sm">
+                {{
+                    $t(
+                        'Show Meaning explains English words in this language. You can change it later.',
+                    )
+                }}
+            </p>
+            <InputError :message="errors.helper_language" />
+        </div>
 
         <template v-if="!user.completed">
             <div class="grid gap-2">

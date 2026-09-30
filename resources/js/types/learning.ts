@@ -493,3 +493,15 @@ export type TestReviewRow = {
     correctAnswer: string | null;
     status: TestReviewStatus;
 };
+
+// -------------------------------------------------------- helper language
+
+/** The Show Meaning language (client request 2026-09-30; shared prop). */
+export type HelperLanguage = {
+    code: string;
+    name: string;
+    dir: 'ltr' | 'rtl';
+    options: { value: string; label: string; dir: string }[];
+    /** Null for anyone who is not a learner. */
+    updateUrl: string | null;
+};

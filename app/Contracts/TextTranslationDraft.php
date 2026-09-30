@@ -3,12 +3,13 @@
 namespace App\Contracts;
 
 /**
- * The Arabic meaning of one English text, for Show Meaning (CTRL-01..03).
+ * The meaning of one English text in one helper language, for Show Meaning
+ * (CTRL-01..03).
  */
 final readonly class TextTranslationDraft
 {
     public function __construct(
-        public string $arabic,
+        public string $text,
         public AiUsageInfo $usage,
     ) {}
 }

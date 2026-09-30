@@ -12,6 +12,7 @@ use App\Models\Test;
 use App\Models\TextTranslation;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
+use App\Services\Meaning\HelperLanguages;
 use App\Services\Meaning\MeaningTexts;
 use App\Services\Meaning\MeaningTranslations;
 use App\Services\Owner\ApiCredit;
@@ -25,14 +26,18 @@ use Inertia\Response;
 
 /**
  * Show Meaning translations, managed by the admin (user request 2026-09-26):
- * every English text of a lesson, test or course with its Arabic, written by
- * hand or drafted once by AI. Learners only ever read them.
+ * every English text of a lesson, test or course with its meaning in one
+ * helper language (Arabic, French or any the Super Admin added; client
+ * request 2026-09-30), written by hand or drafted once by AI. Learners only
+ * ever read them. `language` picks the helper language; Arabic by default.
  *
  * Open to whoever may edit lessons or tests; the check is repeated in every
  * action (ROLE-01, SEC-01).
  */
 class TranslationsController extends Controller
 {
+    public function __construct(private readonly HelperLanguages $languages) {}
+
     private const int PER_PAGE = 30;
 
     public function index(Request $request): Response
@@ -40,6 +45,7 @@ class TranslationsController extends Controller
         $this->authorizeEditor($request);
 
         $scope = $this->scope($request);
+        $locale = $this->locale($request);
         $state = (string) $request->query('state', 'all');
         $search = trim((string) $request->query('search', ''));
 
@@ -47,6 +53,7 @@ class TranslationsController extends Controller
             // One piece of content: every text it shows, translated or not.
             $texts = $scope['texts'];
             $rows = TextTranslation::query()
+                ->where('locale', $locale)
                 ->whereIn('hash', array_map(TextTranslation::hashOf(...), $texts))
                 ->get()
                 ->keyBy('hash');
@@ -60,9 +67,10 @@ class TranslationsController extends Controller
         } else {
             // Everything: the texts learners asked for first, then the rest.
             $page = TextTranslation::query()
+                ->where('locale', $locale)
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $inner) => $inner
                     ->where('source_text', 'like', '%'.addcslashes($search, '%_').'%')
-                    ->orWhere('arabic', 'like', '%'.addcslashes($search, '%_').'%')))
+                    ->orWhere('translation', 'like', '%'.addcslashes($search, '%_').'%')))
                 ->when($state === 'missing', fn (Builder $q) => $q->where('status', '!=', GenerationStatus::Done->value))
                 ->when($state === 'ai', fn (Builder $q) => $q->where('source', MeaningTranslations::SOURCE_AI)->where('status', GenerationStatus::Done->value))
                 ->when($state === 'manual', fn (Builder $q) => $q->where('source', MeaningTranslations::SOURCE_MANUAL))
@@ -83,10 +91,16 @@ class TranslationsController extends Controller
             'rows' => $items,
             'pagination' => $pagination,
             'scope' => $scope === null ? null : ['kind' => $scope['kind'], 'id' => $scope['id'], 'title' => $scope['title']],
-            'filters' => ['state' => $state, 'search' => $search],
+            'filters' => ['state' => $state, 'search' => $search, 'language' => $locale],
+            'languages' => array_map(fn (array $language): array => [
+                'value' => $language['code'],
+                'label' => $language['name'].($language['active'] ? '' : ' ('.__('off').')'),
+                'dir' => $language['dir'],
+            ], $this->languages->all()),
+            'language' => ['code' => $locale, 'name' => $this->languages->name($locale), 'dir' => $this->languages->direction($locale)],
             'counts' => [
-                'waiting' => TextTranslation::query()->where('source', MeaningTranslations::SOURCE_REQUESTED)->where('status', '!=', GenerationStatus::Done->value)->count(),
-                'total' => TextTranslation::query()->where('status', GenerationStatus::Done->value)->count(),
+                'waiting' => TextTranslation::query()->where('locale', $locale)->where('source', MeaningTranslations::SOURCE_REQUESTED)->where('status', '!=', GenerationStatus::Done->value)->count(),
+                'total' => TextTranslation::query()->where('locale', $locale)->where('status', GenerationStatus::Done->value)->count(),
             ],
             'options' => [
                 'lessons' => Lesson::query()->orderBy('title')->get(['id', 'title'])->map(fn (Lesson $lesson): array => ['value' => 'lesson:'.$lesson->id, 'label' => $lesson->title])->all(),
@@ -101,18 +115,11 @@ class TranslationsController extends Controller
     {
         $admin = $this->authorizeEditor($request);
 
-        $data = $request->validate([
-            'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
-            'arabic' => ['required', 'string', 'max:3000'],
-        ]);
+        $written = $this->writtenText($request);
+        $text = TextTranslation::normalise((string) $request->input('text'));
+        $translation = $this->manualRow($text, $this->locale($request));
 
-        $text = TextTranslation::normalise((string) $data['text']);
-        $translation = TextTranslation::query()->firstOrNew(
-            ['hash' => TextTranslation::hashOf($text)],
-            ['source_text' => $text, 'status' => GenerationStatus::Pending, 'source' => MeaningTranslations::SOURCE_MANUAL],
-        );
-
-        $translations->write($translation, (string) $data['arabic'], $admin);
+        $translations->write($translation, $written, $admin);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Meaning saved.')]);
 
@@ -127,12 +134,13 @@ class TranslationsController extends Controller
     {
         $admin = $this->authorizeEditor($request);
         $scope = $this->scope($request);
+        $locale = $this->locale($request);
 
         $texts = $scope !== null
             ? $scope['texts']
-            : TextTranslation::query()->where('source', MeaningTranslations::SOURCE_REQUESTED)->pluck('source_text')->all();
+            : TextTranslation::query()->where('locale', $locale)->where('source', MeaningTranslations::SOURCE_REQUESTED)->pluck('source_text')->all();
 
-        $queued = $translations->queue(array_values(array_map(strval(...), $texts)), $admin);
+        $queued = $translations->queue(array_values(array_map(strval(...), $texts)), $admin, [$locale]);
 
         Inertia::flash('toast', [
             'type' => $queued > 0 ? 'success' : 'info',
@@ -164,6 +172,7 @@ class TranslationsController extends Controller
         $normalised = array_map(fn (?string $text): string => TextTranslation::normalise((string) $text), $texts);
 
         $rows = TextTranslation::query()
+            ->where('locale', $this->locale($request))
             ->whereIn('hash', array_map(TextTranslation::hashOf(...), array_filter($normalised, fn (string $text): bool => $text !== '')))
             ->get()
             ->keyBy('hash');
@@ -194,7 +203,7 @@ class TranslationsController extends Controller
 
         abort_if($text === '' || preg_match('/\p{L}/u', $text) !== 1, 422, __('There is nothing to translate.'));
 
-        $translation = TextTranslation::query()->firstOrNew(['hash' => TextTranslation::hashOf($text)]);
+        $translation = MeaningTranslations::find($text, $this->locale($request));
 
         if ($translation->exists && $translation->source === MeaningTranslations::SOURCE_MANUAL) {
             return response()->json(['item' => $this->row($text, $translation)]);
@@ -228,23 +237,54 @@ class TranslationsController extends Controller
     {
         $admin = $this->authorizeEditor($request);
 
-        $data = $request->validate([
-            'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
-            'arabic' => ['required', 'string', 'max:3000'],
-        ]);
-
-        $text = TextTranslation::normalise((string) $data['text']);
+        $written = $this->writtenText($request);
+        $text = TextTranslation::normalise((string) $request->input('text'));
 
         abort_if($text === '', 422, __('There is nothing to translate.'));
 
-        $translation = TextTranslation::query()->firstOrNew(
-            ['hash' => TextTranslation::hashOf($text)],
-            ['source_text' => $text, 'status' => GenerationStatus::Pending, 'source' => MeaningTranslations::SOURCE_MANUAL],
-        );
+        $translation = $this->manualRow($text, $this->locale($request));
 
-        $translations->write($translation, (string) $data['arabic'], $admin);
+        $translations->write($translation, $written, $admin);
 
         return response()->json(['item' => $this->row($text, $translation)]);
+    }
+
+    /**
+     * The helper language being edited: `language`, Arabic by default. Any
+     * language on the list, switched off or not, so its translations can
+     * be prepared before it goes live.
+     */
+    private function locale(Request $request): string
+    {
+        $code = $request->input('language');
+
+        return is_string($code) && $this->languages->find($code) !== null ? $code : 'ar';
+    }
+
+    /**
+     * The hand-written meaning: `translation`, or `arabic` from the builders'
+     * Arabic field button.
+     */
+    private function writtenText(Request $request): string
+    {
+        $data = $request->validate([
+            'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
+            'translation' => ['required_without:arabic', 'nullable', 'string', 'max:3000'],
+            'arabic' => ['required_without:translation', 'nullable', 'string', 'max:3000'],
+        ]);
+
+        return (string) ($data['translation'] ?? $data['arabic'] ?? '');
+    }
+
+    private function manualRow(string $text, string $locale): TextTranslation
+    {
+        $translation = MeaningTranslations::find($text, $locale);
+
+        if (! $translation->exists) {
+            $translation->fill(['status' => GenerationStatus::Pending, 'source' => MeaningTranslations::SOURCE_MANUAL]);
+        }
+
+        return $translation;
     }
 
     private function authorizeEditor(Request $request): User
@@ -292,7 +332,7 @@ class TranslationsController extends Controller
     }
 
     /**
-     * @return array{id: int|null, text: string, arabic: string|null, state: string, updatedAt: string|null}
+     * @return array{id: int|null, text: string, translation: string|null, arabic: string|null, state: string, updatedAt: string|null}
      */
     private function row(string $text, ?TextTranslation $translation): array
     {
@@ -306,14 +346,16 @@ class TranslationsController extends Controller
         return [
             'id' => $translation?->id,
             'text' => $text,
-            'arabic' => $translation?->arabic,
+            'translation' => $translation?->translation,
+            // The builders' Arabic field button reads this name.
+            'arabic' => $translation?->translation,
             'state' => $state,
             'updatedAt' => $translation?->updated_at?->diffForHumans(),
         ];
     }
 
     /**
-     * @param  array{id: int|null, text: string, arabic: string|null, state: string, updatedAt: string|null}  $row
+     * @param  array{id: int|null, text: string, translation: string|null, arabic: string|null, state: string, updatedAt: string|null}  $row
      */
     private function matches(array $row, string $state, string $search): bool
     {
@@ -323,6 +365,6 @@ class TranslationsController extends Controller
             default => true,
         };
 
-        return $stateOk && ($search === '' || str_contains(mb_strtolower($row['text'].' '.$row['arabic']), mb_strtolower($search)));
+        return $stateOk && ($search === '' || str_contains(mb_strtolower($row['text'].' '.$row['translation']), mb_strtolower($search)));
     }
 }

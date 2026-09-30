@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Learning\BlockPresenter;
 use App\Services\Learning\LessonNavigator;
 use App\Services\Learning\ProgressService;
+use App\Services\Meaning\HelperMeaningSwap;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -44,7 +45,9 @@ class LessonStepController extends Controller
         return Inertia::render('employee/lesson/Step', [
             'lesson' => $this->presenter->lesson($lesson),
             'steps' => $this->navigator->steps($user, $lesson, $block),
-            'block' => $this->presenter->present($block, $user),
+            // Inline meanings in the learner's helper language (client
+            // request 2026-09-30).
+            'block' => app(HelperMeaningSwap::class)->apply($this->presenter->present($block, $user), $user),
             'prevUrl' => $neighbours['prev'] === null ? null : $this->navigator->stepUrl($lesson, $neighbours['prev']),
             'nextUrl' => $neighbours['next'] === null ? null : $this->navigator->stepUrl($lesson, $neighbours['next']),
             'completeUrl' => route('learn.lessons.step.complete', ['lesson' => $lesson, 'block' => $block]),

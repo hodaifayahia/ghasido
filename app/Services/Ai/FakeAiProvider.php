@@ -176,10 +176,12 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
         );
     }
 
-    public function translateText(string $english): TextTranslationDraft
+    public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft
     {
         return new TextTranslationDraft(
-            arabic: sprintf('(ترجمة تجريبية) %s', trim($english)),
+            text: $language === 'Arabic'
+                ? sprintf('(ترجمة تجريبية) %s', trim($english))
+                : sprintf('(%s draft) %s', $language, trim($english)),
             usage: AiUsageInfo::none(),
         );
     }

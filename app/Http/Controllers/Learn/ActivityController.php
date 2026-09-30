@@ -13,6 +13,7 @@ use App\Services\Learning\ActivityPresenter;
 use App\Services\Learning\AttemptRecorder;
 use App\Services\Learning\BlockPresenter;
 use App\Services\Learning\LessonNavigator;
+use App\Services\Meaning\HelperMeaningSwap;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -78,7 +79,7 @@ class ActivityController extends Controller
                 'url' => $this->navigator->stepUrl($lesson, $block),
                 'activityNumber' => $placement->position,
             ],
-            'activity' => $this->activities->present($placement, $user, ActivityPresenter::MODE_PRACTICE, $lesson->accent),
+            'activity' => app(HelperMeaningSwap::class)->apply($this->activities->present($placement, $user, ActivityPresenter::MODE_PRACTICE, $lesson->accent), $user),
             'backUrl' => $this->navigator->stepUrl($lesson, $block),
             'answerUrl' => route('learn.lessons.activity.answer', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement]),
             'result' => $result,

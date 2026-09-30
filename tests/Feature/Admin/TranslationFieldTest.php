@@ -27,7 +27,7 @@ class TranslationFieldTest extends TestCase
         TextTranslation::query()->create([
             'hash' => TextTranslation::hashOf('Welcome the guest'),
             'source_text' => 'Welcome the guest',
-            'arabic' => 'رحّب بالضيف',
+            'translation' => 'رحّب بالضيف',
             'status' => GenerationStatus::Done,
             'source' => 'manual',
         ]);
@@ -56,7 +56,7 @@ class TranslationFieldTest extends TestCase
         $translation = TextTranslation::query()->sole();
         $this->assertSame(GenerationStatus::Done, $translation->status);
         $this->assertSame('ai', $translation->source);
-        $this->assertStringContainsString('Check the booking', (string) $translation->arabic);
+        $this->assertStringContainsString('Check the booking', (string) $translation->translation);
         $this->assertSame(1, AiUsage::query()->where('feature', AiFeature::Translation->value)->where('user_id', $admin->id)->count());
 
         $this->actingAs($admin)
@@ -93,7 +93,7 @@ class TranslationFieldTest extends TestCase
             ->assertJsonPath('item.state', 'manual');
 
         Bus::assertNotDispatched(TranslateText::class);
-        $this->assertSame('خدمة الغرف', TextTranslation::query()->sole()->arabic);
+        $this->assertSame('خدمة الغرف', TextTranslation::query()->sole()->translation);
         $this->assertDatabaseHas('audit_logs', ['action' => 'meaning.updated']);
     }
 

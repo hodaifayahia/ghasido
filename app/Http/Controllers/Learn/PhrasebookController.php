@@ -10,6 +10,7 @@ use App\Models\PhrasebookItem;
 use App\Models\User;
 use App\Services\Learning\PayloadResolver;
 use App\Services\Learning\ProgressService;
+use App\Services\Meaning\HelperMeaningSwap;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -142,7 +143,7 @@ class PhrasebookController extends Controller
         $audio = $this->resolver->audioForMany($texts);
         $silent = ['normal' => null, 'slow' => null];
 
-        return array_values($items->map(function (PhrasebookItem $item) use ($audio, $silent): array {
+        $entries = array_values($items->map(function (PhrasebookItem $item) use ($audio, $silent): array {
             $lexicon = $this->lexiconOf($item);
             $text = $lexicon === null ? (string) $item->custom_text : $lexicon->english_text;
 
@@ -179,6 +180,12 @@ class PhrasebookController extends Controller
                 'reviewUrl' => route('learn.phrasebook.review.store', ['item' => $item]),
             ];
         })->all());
+
+        // The meanings in the learner's helper language (client request
+        // 2026-09-30).
+        $user = request()->user('web');
+
+        return $user instanceof User ? app(HelperMeaningSwap::class)->apply($entries, $user) : $entries;
     }
 
     public function store(StorePhrasebookItemRequest $request): JsonResponse|RedirectResponse

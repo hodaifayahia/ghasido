@@ -6,6 +6,7 @@ use App\Enums\EnglishLevel;
 use App\Enums\Role;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\Meaning\HelperLanguages;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
@@ -37,6 +38,7 @@ class FirstLoginRequest extends FormRequest
 
         $rules = [
             'level' => ['required', 'string', Rule::enum(EnglishLevel::class)],
+            'helper_language' => ['nullable', 'string', Rule::in(app(HelperLanguages::class)->activeCodes())],
             'department_id' => $user->department_id === null
                 ? ['required', 'integer', Rule::in(self::departmentChoices($user)->modelKeys())]
                 : ['prohibited'],

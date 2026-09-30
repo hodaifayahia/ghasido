@@ -3,6 +3,7 @@ import { Eye, EyeOff } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
+import { useHelperLanguage } from '@/composables/useHelperLanguage';
 
 /*
  * The 🌐 Show Meaning toggle (CTRL-01..04), drawn as desginphotos/employ/
@@ -31,6 +32,9 @@ const emit = defineEmits<{ toggle: [] }>();
 // The button already carries the Arabic label; in the Arabic interface the
 // English second line would only repeat it (I18N-02).
 const { locale } = useI18n();
+// The Arabic label only for learners who read meanings in Arabic (client
+// request 2026-09-30).
+const helper = useHelperLanguage();
 </script>
 
 <template>
@@ -62,6 +66,7 @@ const { locale } = useI18n();
         />
         <span class="flex flex-col items-center leading-tight">
             <span
+                v-if="helper.isArabic.value"
                 lang="ar"
                 dir="rtl"
                 :class="
@@ -74,10 +79,12 @@ const { locale } = useI18n();
                 {{ shown ? 'إخفاء المعنى' : 'إظهار المعنى' }}
             </span>
             <span
-                v-if="locale === 'en'"
+                v-if="locale === 'en' || !helper.isArabic.value"
                 :class="
                     cn(
-                        'text-ink-slate',
+                        helper.isArabic.value
+                            ? 'text-ink-slate'
+                            : 'text-ink font-semibold',
                         size === 'md' ? 'text-[13px]' : 'text-xs',
                     )
                 "

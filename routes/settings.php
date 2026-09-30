@@ -73,6 +73,7 @@ Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
 Route::middleware(['auth', 'can:manage-learning-settings'])->group(function () {
     Route::get('settings/learning', [LearningSettingsController::class, 'edit'])->name('learning-settings.edit');
     Route::patch('settings/learning', [LearningSettingsController::class, 'update'])->name('learning-settings.update');
+    Route::put('settings/learning/languages', [LearningSettingsController::class, 'languages'])->name('learning-settings.languages');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

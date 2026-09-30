@@ -14,32 +14,45 @@ import { useI18n } from '@/composables/useI18n';
 import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { save } from '@/routes/translations';
-import type { TranslationRow, TranslationState } from '@/types';
+import type {
+    TranslationLanguage,
+    TranslationRow,
+    TranslationState,
+} from '@/types';
 
 /*
  * One English text and its Arabic, editable in place (user request
  * 2026-09-26). Saving marks it as written by hand: the AI never replaces
  * it. The state is said with an icon and words (ACC-02).
  */
-type Props = { row: TranslationRow; canEdit: boolean };
+type Props = {
+    row: TranslationRow;
+    canEdit: boolean;
+    /** The helper language being edited (client request 2026-09-30). */
+    language?: TranslationLanguage;
+};
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    language: () => ({ code: 'ar', name: 'Arabic', dir: 'rtl' }),
+});
+
+const isArabic = computed(() => props.language.code === 'ar');
 
 const { t } = useI18n();
 
-const arabic = ref(props.row.arabic ?? '');
+const arabic = ref(props.row.translation ?? '');
 const saving = ref(false);
 const error = ref<string | null>(null);
 
 watch(
-    () => props.row.arabic,
+    () => props.row.translation,
     (value) => {
         arabic.value = value ?? '';
     },
 );
 
 const dirty = computed(
-    () => arabic.value.trim() !== (props.row.arabic ?? '').trim(),
+    () => arabic.value.trim() !== (props.row.translation ?? '').trim(),
 );
 
 const states: Record<
@@ -71,7 +84,7 @@ const states: Record<
 
 function submit(): void {
     if (arabic.value.trim() === '') {
-        error.value = t('Write the Arabic meaning first.');
+        error.value = t('Write the meaning first.');
 
         return;
     }
@@ -79,7 +92,11 @@ function submit(): void {
     error.value = null;
     router.put(
         save.url(),
-        { text: props.row.text, arabic: arabic.value },
+        {
+            text: props.row.text,
+            translation: arabic.value,
+            language: props.language.code,
+        },
         {
             preserveScroll: true,
             preserveState: true,
@@ -91,7 +108,9 @@ function submit(): void {
             },
             onError: (errors) => {
                 error.value =
-                    errors.arabic ?? errors.text ?? t('Could not save it.');
+                    errors.translation ??
+                    errors.text ??
+                    t('Could not save it.');
             },
         },
     );
@@ -134,16 +153,30 @@ function submit(): void {
 
         <label class="min-w-0">
             <span class="sr-only">{{
-                $t('Arabic meaning of: :text', { text: row.text })
+                $t(':language meaning of: :text', {
+                    language: language.name,
+                    text: row.text,
+                })
             }}</span>
             <textarea
                 v-model="arabic"
-                dir="rtl"
-                lang="ar"
+                :dir="language.dir"
+                :lang="language.code"
                 rows="2"
                 :readonly="!canEdit"
-                placeholder="المعنى بالعربية"
-                class="border-line bg-surface font-arabic text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-11 w-full resize-y rounded-sm border px-3 py-2 text-[15px] leading-[1.9] focus-visible:ring-3 focus-visible:outline-none"
+                :placeholder="
+                    isArabic
+                        ? 'المعنى بالعربية'
+                        : $t('Meaning in :language', {
+                              language: language.name,
+                          })
+                "
+                :class="
+                    cn(
+                        'border-line bg-surface text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-11 w-full resize-y rounded-sm border px-3 py-2 text-[15px] focus-visible:ring-3 focus-visible:outline-none',
+                        isArabic ? 'font-arabic leading-[1.9]' : 'leading-6',
+                    )
+                "
             />
             <span v-if="error" class="text-danger-text mt-1 block text-[12px]">
                 {{ error }}

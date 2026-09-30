@@ -11,6 +11,7 @@ use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\TrainingDepartments;
+use App\Services\Meaning\HelperLanguages;
 use App\Services\Subscriptions\AiPointsBalanceService;
 use App\Support\Locales;
 use Illuminate\Http\Request;
@@ -200,9 +201,34 @@ class HandleInertiaRequests extends Middleware
             // The learner's level and a pending move-up suggestion (client
             // decision 2026-09-30). Null for anyone who is not a learner.
             'learnerLevel' => $this->learnerLevelFor($user),
+            // The Show Meaning language: the learner's choice or the
+            // platform default (client request 2026-09-30). Everyone reads
+            // it, so the meaning panels know the language and direction.
+            'helperLanguage' => $this->helperLanguageFor($user),
             // The manager's training department switcher (client decision
             // 2026-09-23): null unless a manager is on a learner route.
             'trainingContext' => $this->trainingContextFor($request, $user),
+        ];
+    }
+
+    /**
+     * @return array{code: string, name: string, dir: string, options: list<array{value: string, label: string, dir: string}>, updateUrl: string|null}|null
+     */
+    private function helperLanguageFor(?User $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $languages = app(HelperLanguages::class);
+        $code = $languages->forUser($user);
+
+        return [
+            'code' => $code,
+            'name' => $languages->name($code),
+            'dir' => $languages->direction($code),
+            'options' => $languages->options(),
+            'updateUrl' => $this->journeyFor($user) !== null ? route('learn.helper-language.update') : null,
         ];
     }
 

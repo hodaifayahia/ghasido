@@ -16,6 +16,8 @@ type Props = {
     departments: LevelOption[];
     level: string | null;
     levels: LevelOption[];
+    helperLanguage: string;
+    helperLanguages: LevelOption[];
 };
 
 defineProps<Props>();
@@ -41,6 +43,8 @@ defineProps<Props>();
             :departments="departments"
             :level="level"
             :levels="levels"
+            :helper-language="helperLanguage"
+            :helper-languages="helperLanguages"
             class="max-w-2xl"
         />
     </div>

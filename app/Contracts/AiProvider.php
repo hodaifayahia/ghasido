@@ -130,9 +130,11 @@ interface AiProvider
     public function coachPronunciation(array $result, array $words, Accent $accent, ?EnglishLevel $level = null): PronunciationCoaching;
 
     /**
-     * The Arabic meaning of one English text a learner is reading: a course
-     * title, an objective, a question (CTRL-01..03; client decision
-     * 2026-09-26). Plain translation, never a hint at the right answer.
+     * The meaning of one English text a learner is reading, in one helper
+     * language: a course title, an objective, a question (CTRL-01..03;
+     * client decisions 2026-09-26 and 2026-09-30). Plain translation, never
+     * a hint at the right answer. `$language` is the language's English
+     * name ("Arabic", "French"…), from HelperLanguages.
      */
-    public function translateText(string $english): TextTranslationDraft;
+    public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft;
 }

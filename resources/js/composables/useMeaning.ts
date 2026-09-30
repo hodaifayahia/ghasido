@@ -1,6 +1,7 @@
 import { tryOnScopeDispose } from '@vueuse/core';
 import type { InjectionKey, Ref } from 'vue';
 import { inject, ref } from 'vue';
+import { useHelperLanguage } from '@/composables/useHelperLanguage';
 import { meaning as meaningRoute } from '@/routes';
 
 /*
@@ -21,6 +22,7 @@ export type MeaningState = 'idle' | 'loading' | 'ready' | 'missing' | 'error';
 export type UseMeaningReturn = {
     shown: Ref<boolean>;
     state: Ref<MeaningState>;
+    /** The meaning, in the learner's helper language (named before French). */
     arabic: Ref<string | null>;
     enabled: () => boolean;
     toggle: () => void;
@@ -39,11 +41,20 @@ function xsrfToken(): string {
     return match?.[1] ? decodeURIComponent(match[1]) : '';
 }
 
+let cacheLanguage = '';
+
+/** Per helper language: switching language starts a fresh cache. */
 function keyOf(text: string): string {
-    return text.trim().replace(/\s+/gu, ' ').toLowerCase();
+    return `${cacheLanguage}|${text.trim().replace(/\s+/gu, ' ').toLowerCase()}`;
 }
 
-type MeaningReply = { status: string; arabic: string | null };
+/** `text` is in the learner's helper language (client request 2026-09-30). */
+type MeaningReply = {
+    status: string;
+    text: string | null;
+    locale?: string;
+    dir?: string;
+};
 
 async function ask(text: string): Promise<MeaningReply> {
     const response = await fetch(meaningRoute.url(), {
@@ -70,6 +81,7 @@ export function useMeaning(text: () => string): UseMeaningReturn {
     const state = ref<MeaningState>('idle');
     const arabic = ref<string | null>(null);
     const injected = inject(MEANING_ENABLED, true);
+    const helper = useHelperLanguage();
 
     let timer: ReturnType<typeof setTimeout> | null = null;
     let run = 0;
@@ -101,9 +113,9 @@ export function useMeaning(text: () => string): UseMeaningReturn {
                 return;
             }
 
-            if (reply.status === 'done' && reply.arabic) {
-                cache.set(keyOf(value), reply.arabic);
-                arabic.value = reply.arabic;
+            if (reply.status === 'done' && reply.text) {
+                cache.set(keyOf(value), reply.text);
+                arabic.value = reply.text;
                 state.value = 'ready';
 
                 return;
@@ -146,6 +158,11 @@ export function useMeaning(text: () => string): UseMeaningReturn {
         }
 
         shown.value = !shown.value;
+
+        if (cacheLanguage !== helper.code.value) {
+            cacheLanguage = helper.code.value;
+            state.value = 'idle';
+        }
 
         if (!shown.value || state.value === 'ready') {
             return;

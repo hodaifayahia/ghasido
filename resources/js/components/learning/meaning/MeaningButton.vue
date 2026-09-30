@@ -3,6 +3,7 @@ import { Languages, LoaderCircle } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import type { MeaningState } from '@/composables/useMeaning';
 import { cn } from '@/lib/utils';
+import { useHelperLanguage } from '@/composables/useHelperLanguage';
 
 /*
  * The small 🌐 Show Meaning button that sits after any English text
@@ -20,6 +21,8 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), { controls: undefined });
 
 const emit = defineEmits<{ toggle: [] }>();
+
+const helper = useHelperLanguage();
 </script>
 
 <template>
@@ -27,7 +30,13 @@ const emit = defineEmits<{ toggle: [] }>();
         type="button"
         :aria-expanded="shown"
         :aria-controls="controls"
-        :aria-label="shown ? $t('Hide meaning') : $t('Show meaning in Arabic')"
+        :aria-label="
+            shown
+                ? $t('Hide meaning')
+                : $t('Show meaning in :language', {
+                      language: helper.name.value,
+                  })
+        "
         :title="shown ? $t('Hide meaning') : $t('Show meaning')"
         :class="
             cn(

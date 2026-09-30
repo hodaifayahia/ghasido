@@ -7,6 +7,7 @@ use App\Enums\TestAttemptStatus;
 use App\Models\TestAttempt;
 use App\Models\TextTranslation;
 use App\Models\User;
+use App\Services\Meaning\HelperLanguages;
 use App\Services\Meaning\MeaningTranslations;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,14 +22,17 @@ use Illuminate\Http\Request;
  * tap. A text nobody has translated yet is noted for the admin and the
  * learner is told the meaning is not ready; no AI call is made.
  *
- * The Arabic never ships in the page: it leaves the server only here, after
+ * The meaning is in the learner's helper language (Arabic, French or any
+ * language the Super Admin added; client request 2026-09-30).
+ *
+ * The meaning never ships in the page: it leaves the server only here, after
  * the learner's tap (CTRL-02). While the learner sits a test whose admin
  * switched Show Meaning off, every request is refused, so a hidden button is
  * never the only guard (CTRL-04, SEC-01).
  */
 final class MeaningController extends Controller
 {
-    public function __invoke(Request $request, MeaningTranslations $translations): JsonResponse
+    public function __invoke(Request $request, MeaningTranslations $translations, HelperLanguages $languages): JsonResponse
     {
         $data = $request->validate([
             'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
@@ -43,19 +47,26 @@ final class MeaningController extends Controller
 
         abort_if($text === '' || ! preg_match('/\p{L}/u', $text), 422, __('There is nothing to translate.'));
 
-        $translation = TextTranslation::query()->where('hash', TextTranslation::hashOf($text))->first()
-            ?? $translations->request($text, $user);
+        // The learner's own helper language (client request 2026-09-30).
+        $locale = $languages->forUser($user);
+        $language = ['locale' => $locale, 'dir' => $languages->direction($locale)];
+
+        $translation = TextTranslation::query()
+            ->where('hash', TextTranslation::hashOf($text))
+            ->where('locale', $locale)
+            ->first()
+            ?? $translations->request($text, $user, $locale);
 
         if ($translation->status === GenerationStatus::Done) {
-            return response()->json(['status' => 'done', 'arabic' => $translation->arabic]);
+            return response()->json(['status' => 'done', 'text' => $translation->translation, ...$language]);
         }
 
         // An AI draft is on its way: the button waits for it.
         if ($translation->source === MeaningTranslations::SOURCE_AI && in_array($translation->status, [GenerationStatus::Pending, GenerationStatus::Running], true)) {
-            return response()->json(['status' => 'pending', 'arabic' => null], 202);
+            return response()->json(['status' => 'pending', 'text' => null, ...$language], 202);
         }
 
-        return response()->json(['status' => 'missing', 'arabic' => null]);
+        return response()->json(['status' => 'missing', 'text' => null, ...$language]);
     }
 
     private function sittingWithoutMeaning(User $user): bool
