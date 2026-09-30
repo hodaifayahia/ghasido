@@ -5,6 +5,7 @@ namespace App\Services\VoiceAgent;
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
 use App\Enums\ApiAccount;
+use App\Exceptions\AiQuotaExhausted;
 use App\Models\AiScenario;
 use App\Models\AudioClip;
 use App\Models\RoleplayAttempt;
@@ -77,7 +78,7 @@ final class VoiceReplyService
     }
 
     /**
-     * @return array{turn: int, rev: int, text: string, audioUrl: string|null, source: string, limitReached: bool, stale: bool}
+     * @return array{turn: int, rev: int, text: string, audioUrl: string|null, source: string, limitReached: bool, endReason: string|null, stale: bool}
      *
      * @throws RuntimeException when the language model could not answer (the employee's line is still stored)
      */
@@ -101,6 +102,14 @@ final class VoiceReplyService
 
         try {
             $result = $this->complete($scenario, $attempt, $history, $employeeText, $candidates, $values);
+        } catch (AiQuotaExhausted) {
+            // Qwen's plan is spent (client report 2026-09-30): the guest
+            // closes the call politely, as on the voice agent, instead of
+            // the call breaking on an error. The next calls use the voice
+            // agent until the quota is topped up (VoiceAgentSettings).
+            $line = $this->bank->lineFor(null, $voice, self::CLOSING_LINE, false, $user);
+
+            return $this->finish($attempt, $turn, $rev, $employeeText, $line, false, true, 'quota');
         } catch (RuntimeException $e) {
             // The employee's words are data: keep them even when the guest
             // could not answer (DATA-05).
@@ -125,9 +134,9 @@ final class VoiceReplyService
     }
 
     /**
-     * @return array{turn: int, rev: int, text: string, audioUrl: string|null, source: string, limitReached: bool, stale: bool}
+     * @return array{turn: int, rev: int, text: string, audioUrl: string|null, source: string, limitReached: bool, endReason: string|null, stale: bool}
      */
-    private function finish(RoleplayAttempt $attempt, int $turn, int $rev, string $employeeText, VoiceLine $line, bool $reused, bool $limitReached): array
+    private function finish(RoleplayAttempt $attempt, int $turn, int $rev, string $employeeText, VoiceLine $line, bool $reused, bool $limitReached, ?string $endReason = null): array
     {
         $stored = $this->store($attempt, $turn, $rev, $employeeText, $line);
 
@@ -142,6 +151,9 @@ final class VoiceReplyService
             'audioUrl' => $line->url(),
             'source' => $reused ? self::SOURCE_REUSED : self::SOURCE_NEW,
             'limitReached' => $limitReached,
+            // Why the guest closed the call: `limit` (the learner's AI
+            // practice limit) or `quota` (the AI service's plan is spent).
+            'endReason' => $limitReached ? ($endReason ?? 'limit') : null,
             'stale' => ! $stored,
         ];
     }
@@ -307,13 +319,24 @@ final class VoiceReplyService
             $response = $this->post($baseUrl, $key, $body);
         }
 
-        if ($response->status() === 429 && str_contains($response->body(), 'quota')) {
+        if (self::quotaExhausted($response)) {
+            // The fast model's plan may be spent while the main model still
+            // has quota on the same key: try it once before giving up.
+            $main = config('services.ai.model');
+
+            if (is_string($main) && trim($main) !== '' && trim($main) !== $model) {
+                $body['model'] = $model = trim($main);
+                $response = $this->post($baseUrl, $key, $body);
+            }
+        }
+
+        if (self::quotaExhausted($response)) {
             // Seen live 2026-09-26: "Your token-plan quota has been
-            // exhausted." Saying it again cannot help; say who can, and
-            // send the next calls to the voice agent meanwhile.
+            // exhausted." Saying it again cannot help: the call closes
+            // politely and the next calls go to the voice agent meanwhile.
             VoiceAgentSettings::markQwenQuotaExhausted();
 
-            throw new RuntimeException(__('The AI text service has run out of quota. Please tell your administrator.'));
+            throw new AiQuotaExhausted(__('The AI text service has run out of quota. Please tell your administrator.'));
         }
 
         if (! $response->successful()) {
@@ -332,6 +355,11 @@ final class VoiceReplyService
             (string) $response->json('model', $model),
             self::PROVIDER_LABEL,
         )];
+    }
+
+    private static function quotaExhausted(Response $response): bool
+    {
+        return $response->status() === 429 && str_contains(strtolower($response->body()), 'quota');
     }
 
     /**

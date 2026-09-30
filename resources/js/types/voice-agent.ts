@@ -133,6 +133,8 @@ export type VoiceReplyResponse = {
     audioUrl: string | null;
     source: 'new' | 'reused';
     limitReached: boolean;
+    /** Why the guest closed the call: the learner's limit or the AI quota. */
+    endReason?: 'limit' | 'quota' | null;
     stale: boolean;
 };
 

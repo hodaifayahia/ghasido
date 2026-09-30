@@ -57,6 +57,9 @@ class VoicePipelineTest extends TestCase
     /** Qwen answers 429 "quota exhausted", as seen live on 2026-09-26. */
     protected bool $qwenQuotaSpent = false;
 
+    /** Only this model's plan is spent (the others still answer). */
+    private ?string $spentModel = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -80,7 +83,7 @@ class VoicePipelineTest extends TestCase
             'api.deepgram.com/v1/speak*' => fn () => $this->speakStatus === 200
                 ? Http::response('ID3-fake-mp3-bytes', 200, ['Content-Type' => 'audio/mpeg'])
                 : Http::response(['err_msg' => 'boom'], $this->speakStatus),
-            'qwen.test/*' => fn () => $this->qwenQuotaSpent
+            'qwen.test/*' => fn ($request) => $this->qwenQuotaSpent || ($this->spentModel !== null && ($request->data()['model'] ?? null) === $this->spentModel)
                 ? Http::response(['error' => ['message' => 'Your token-plan quota has been exhausted.', 'code' => 'insufficient_quota']], 429)
                 : Http::response([
                     'model' => 'qwen-flash-test',
@@ -318,6 +321,24 @@ class VoicePipelineTest extends TestCase
         $this->assertDatabaseHas('ai_usages', ['feature' => 'tts', 'user_id' => $learner->id]);
     }
 
+    public function test_a_spent_fast_model_falls_back_to_the_main_model()
+    {
+        $this->useQwen();
+        config()->set('services.ai.model', 'qwen-main-test');
+        $this->spentModel = 'qwen-flash-test';
+        $this->qwenContent = json_encode(['say' => 'Good evening, I have a booking.', 'keep' => false]) ?: '';
+        $learner = $this->learner();
+        $attempt = $this->voiceCall($learner);
+
+        $this->actingAs($learner)
+            ->postJson($this->replyUrl($attempt), ['turn' => 0, 'rev' => 0, 'text' => 'Hello, welcome.'])
+            ->assertOk()
+            ->assertJsonPath('limitReached', false)
+            ->assertJsonPath('text', 'Good evening, I have a booking.');
+
+        $this->assertTrue(app(VoiceAgentSettings::class)->pipelineAvailable());
+    }
+
     public function test_a_spent_qwen_quota_moves_the_next_calls_to_the_voice_agent()
     {
         $this->useQwen();
@@ -327,8 +348,11 @@ class VoicePipelineTest extends TestCase
 
         $this->actingAs($learner)
             ->postJson($this->replyUrl($attempt), ['turn' => 0, 'rev' => 0, 'text' => 'Hello, welcome.'])
-            ->assertStatus(502)
-            ->assertJsonPath('message', 'The AI text service has run out of quota. Please tell your administrator.');
+            ->assertOk()
+            // The call closes politely instead of breaking on an error.
+            ->assertJsonPath('limitReached', true)
+            ->assertJsonPath('endReason', 'quota')
+            ->assertJsonPath('text', VoiceReplyService::CLOSING_LINE);
 
         // The employee's words are kept.
         $this->assertSame('Hello, welcome.', $attempt->refresh()->transcript[1]['text']);

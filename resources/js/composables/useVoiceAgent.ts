@@ -600,9 +600,13 @@ export function useVoiceAgent(
         void speak(result.text, result.audioUrl, () => {
             if (result.limitReached && !ended) {
                 toast.warning(
-                    t(
-                        'You have reached today’s AI practice limit. The call will end now.',
-                    ),
+                    result.endReason === 'quota'
+                        ? t(
+                              'The AI service has run out of quota, so the call ends here. Please tell your administrator.',
+                          )
+                        : t(
+                              'You have reached today’s AI practice limit. The call will end now.',
+                          ),
                 );
                 void end();
             }
