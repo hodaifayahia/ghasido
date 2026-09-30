@@ -34,10 +34,6 @@
 
         <link rel="icon" href="/favicon.ico?v=ghasido-20260925" sizes="any">
         <link rel="icon" href="/favicon-32x32.png?v=ghasido-20260925" type="image/png" sizes="32x32">
-        {{-- Google Search shows a site's favicon next to its result and wants
-             a square of a multiple of 48px (48, 96, 192). --}}
-        <link rel="icon" href="/favicon-48x48.png?v=ghasido-20260930" type="image/png" sizes="48x48">
-        <link rel="icon" href="/favicon-96x96.png?v=ghasido-20260930" type="image/png" sizes="96x96">
         <link rel="icon" href="/favicon-192x192.png?v=ghasido-20260925" type="image/png" sizes="192x192">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=ghasido-20260925">
 
@@ -48,24 +44,6 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-title" content="GHASIDO">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-        @if ($page['component'] === 'Welcome')
-            {{-- Search engines: the site name and logo for the result card. --}}
-            <link rel="canonical" href="{{ url('/') }}">
-            <meta property="og:type" content="website">
-            <meta property="og:site_name" content="GHASIDO">
-            <meta property="og:url" content="{{ url('/') }}">
-            <meta property="og:image" content="{{ url('/brand/ghasido-app-512.png') }}">
-            <script type="application/ld+json">
-                {!! json_encode([
-                    '@context' => 'https://schema.org',
-                    '@graph' => [
-                        ['@type' => 'WebSite', 'name' => 'GHASIDO', 'url' => url('/')],
-                        ['@type' => 'Organization', 'name' => 'GHASIDO', 'url' => url('/'), 'logo' => url('/brand/ghasido-app-512.png')],
-                    ],
-                ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}
-            </script>
-        @endif
 
         @fonts
 
