@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PaymentStatus;
 use App\Enums\Permission;
+use App\Enums\ReminderChannel;
+use App\Enums\ReminderStatus;
 use App\Http\Controllers\Controller;
 use App\Mail\CustomerMessageMail;
 use App\Models\AuditLog;
 use App\Models\PaymentSubmission;
+use App\Models\Reminder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -117,13 +120,27 @@ class PaymentsController extends Controller
             'body' => ['required', 'string', 'max:5000'],
         ]);
 
-        $locale = $payment->individualSubscription?->user->locale
-            ?? User::query()->where('email', $payment->payer_email)->value('locale')
-            ?? 'en';
+        $recipient = $payment->individualSubscription->user
+            ?? User::query()->where('email', $payment->payer_email)->first();
+        $locale = $recipient->locale ?? 'en';
 
         Mail::to($payment->payer_email, $payment->payer_name)
-            ->locale(is_string($locale) ? $locale : 'en')
+            ->locale($locale)
             ->queue(new CustomerMessageMail($payment->payer_name, (string) $data['subject'], (string) $data['body']));
+
+        // The same message in the customer's account notifications, at once
+        // (client request 2026-09-30).
+        if ($recipient !== null) {
+            Reminder::query()->create([
+                'user_id' => $recipient->id,
+                'channel' => ReminderChannel::InApp,
+                'subject' => (string) $data['subject'],
+                'body' => (string) $data['body'],
+                'sent_by' => $request->user('web')?->id,
+                'status' => ReminderStatus::Sent,
+                'sent_at' => now(),
+            ]);
+        }
 
         AuditLog::record($payment, 'payment.customer_emailed', ['subject' => $data['subject']]);
 

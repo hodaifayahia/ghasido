@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\ReminderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -115,19 +116,45 @@ class Reminder extends Model
     // ----------------------------------------------------------------- scopes
 
     /**
-     * Delivered reminders visible to their recipient for 24 hours. This
-     * includes email reminders as an in-app copy (REM-08). Expiry hides the
-     * notice but DATA-10 keeps the log row.
+     * Reminders visible to their recipient for 24 hours. An email reminder is
+     * also an in-app notice from the moment it is written: the employee sees
+     * it in the bell and in Messages at once, whether the email is still
+     * queued, was blocked (no address or no consent) or failed (REM-08,
+     * client request 2026-09-30). Expiry hides the notice but DATA-10 keeps
+     * the log row.
      *
      * @param  Builder<Reminder>  $query
      */
     public function scopeVisibleInNotificationCenter(Builder $query): void
     {
+        $cutoff = Date::now()->subHours(self::IN_APP_EXPIRY_HOURS);
+
         $query
             ->whereIn('channel', [ReminderChannel::InApp->value, ReminderChannel::Email->value])
-            ->where('status', ReminderStatus::Sent->value)
-            ->whereNotNull('sent_at')
-            ->where('sent_at', '>', Date::now()->subHours(self::IN_APP_EXPIRY_HOURS));
+            ->where(fn (Builder $visible) => $visible
+                ->where(fn (Builder $sent) => $sent
+                    ->where('status', ReminderStatus::Sent->value)
+                    ->whereNotNull('sent_at')
+                    ->where('sent_at', '>', $cutoff))
+                ->orWhere(fn (Builder $email) => $email
+                    ->where('channel', ReminderChannel::Email->value)
+                    ->whereIn('status', [
+                        ReminderStatus::Queued->value,
+                        ReminderStatus::Blocked->value,
+                        ReminderStatus::Failed->value,
+                    ])
+                    ->whereNull('sent_at')
+                    ->where(fn (Builder $recent) => $recent
+                        ->where('scheduled_for', '>', $cutoff)
+                        ->orWhere(fn (Builder $now) => $now
+                            ->whereNull('scheduled_for')
+                            ->where('created_at', '>', $cutoff)))));
+    }
+
+    /** When the notice reached the employee's account. */
+    public function noticedAt(): ?CarbonInterface
+    {
+        return $this->sent_at ?? $this->scheduled_for ?? $this->created_at;
     }
 
     /**

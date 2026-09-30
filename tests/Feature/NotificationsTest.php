@@ -98,13 +98,18 @@ class NotificationsTest extends TestCase
 
         $this->assertNotNull($notice->fresh()?->read_at);
 
+        // A blocked email still reaches the account (client request
+        // 2026-09-30): the email and the blocked email are unread.
         $this->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('notifications.unread', 1)
+                ->where('notifications.unread', 2)
             );
 
         $this->actingAs($recipient)
             ->post(route('notifications.read', ['reminder' => $email]))
+            ->assertRedirect();
+        $this->actingAs($recipient)
+            ->post(route('notifications.read', ['reminder' => $blocked]))
             ->assertRedirect();
 
         $this->get(route('dashboard'))
@@ -117,15 +122,25 @@ class NotificationsTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($recipient)
-            ->post(route('notifications.read', ['reminder' => $blocked]))
-            ->assertNotFound();
-
-        $this->actingAs($recipient)
             ->post(route('notifications.read', ['reminder' => $expired]))
             ->assertNotFound();
 
         $this->assertNotNull($email->fresh()?->read_at);
-        $this->assertNull($blocked->fresh()?->read_at);
+        $this->assertNotNull($blocked->fresh()?->read_at);
         $this->assertNull($expired->fresh()?->read_at);
+    }
+
+    public function test_an_email_reminder_reaches_the_account_before_the_mail_goes_out()
+    {
+        $recipient = User::factory()->create();
+        $queued = Reminder::factory()->for($recipient)->queued()->create(['subject' => 'Queued email']);
+        $blocked = Reminder::factory()->for($recipient)->blocked()->create(['subject' => 'No consent']);
+
+        $this->actingAs($recipient);
+        $ids = Reminder::query()->visibleInNotificationCenter()->pluck('id')->all();
+
+        $this->assertContains($queued->id, $ids);
+        $this->assertContains($blocked->id, $ids);
+        $this->assertNotNull($queued->fresh()?->noticedAt());
     }
 }

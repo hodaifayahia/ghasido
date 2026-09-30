@@ -25,7 +25,6 @@ class MessagesController extends Controller
 
         $messages = $user->reminders()
             ->visibleInNotificationCenter()
-            ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->get();
 
@@ -35,8 +34,8 @@ class MessagesController extends Controller
                 'channel' => $reminder->channel->value,
                 'subject' => $reminder->subject,
                 'body' => $reminder->body,
-                'sentAt' => $reminder->sent_at?->toIso8601String(),
-                'expiresAt' => $reminder->sent_at?->copy()
+                'sentAt' => $reminder->noticedAt()?->toIso8601String(),
+                'expiresAt' => $reminder->noticedAt()?->copy()
                     ->addHours(Reminder::IN_APP_EXPIRY_HOURS)
                     ->toIso8601String(),
                 'readAt' => $reminder->read_at?->toIso8601String(),

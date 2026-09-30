@@ -109,6 +109,13 @@ class PaymentReviewTest extends TestCase
             ->assertSessionHasNoErrors();
 
         Mail::assertQueued(CustomerMessageMail::class, fn (CustomerMessageMail $mail) => $mail->hasTo('manager@bluecoast.test'));
+
+        // The same message lands in the manager's account notifications.
+        $this->assertDatabaseHas('reminders', [
+            'channel' => 'in_app',
+            'subject' => 'Your receipt',
+            'status' => 'sent',
+        ]);
     }
 
     public function test_approving_the_hotel_confirms_its_payment(): void

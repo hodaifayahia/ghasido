@@ -65,7 +65,6 @@ class HandleInertiaRequests extends Middleware
         $user?->append('role');
         $notifications = $user?->reminders()
             ->visibleInNotificationCenter()
-            ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->get() ?? collect();
         // Payments sent from the checkout wait for whoever manages
@@ -103,8 +102,8 @@ class HandleInertiaRequests extends Middleware
                 'channel' => $reminder->channel->value,
                 'subject' => $reminder->subject,
                 'body' => $reminder->body,
-                'sentAt' => $reminder->sent_at?->toIso8601String() ?? '',
-                'expiresAt' => $reminder->sent_at?->copy()
+                'sentAt' => $reminder->noticedAt()?->toIso8601String() ?? '',
+                'expiresAt' => $reminder->noticedAt()?->copy()
                     ->addHours(Reminder::IN_APP_EXPIRY_HOURS)
                     ->toIso8601String() ?? '',
                 'read' => $reminder->read_at !== null,
