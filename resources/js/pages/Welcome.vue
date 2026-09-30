@@ -2,18 +2,13 @@
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
-    AudioLines,
     BookOpenCheck,
-    Building2,
     ChartNoAxesCombined,
     Check,
     ChevronRight,
     CircleCheck,
-    GraduationCap,
-    Headphones,
     Hotel,
     Globe,
-    Languages,
     MessageCircleMore,
     Mic2,
     ShieldCheck,
@@ -32,7 +27,6 @@ import InstallAppButton from '@/components/landing/InstallAppButton.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
 import { vReveal } from '@/directives/vReveal';
-import type { RevealMotion } from '@/directives/vReveal';
 import { cn } from '@/lib/utils';
 import { contact } from '@/routes';
 import { show as checkoutShow } from '@/routes/checkout';
@@ -51,16 +45,6 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const visibleRoles = computed(() =>
-    props.content.roles.items.filter(
-        (role) => role.title.trim().toLowerCase() !== 'super admin',
-    ),
-);
-const rolesEyebrow = computed(() =>
-    props.content.roles.eyebrow === 'One platform, four clear experiences'
-        ? 'One platform, three clear experiences'
-        : props.content.roles.eyebrow,
-);
 // Algerian hotels pay in DZD, everyone else in USD (client decision
 // 2026-09-26); both prices are set per plan by the Super Admin.
 type Region = 'dz' | 'intl';
@@ -118,23 +102,13 @@ function checkoutHref(plan: LandingPlan): string {
     );
 }
 
-const aiIcons: Component[] = [MessageCircleMore, Mic2, Sparkles, AudioLines];
-const roleIcons: Component[] = [Building2, UsersRound, GraduationCap];
+const aiIcons: Component[] = [MessageCircleMore, Mic2, Hotel];
 const whyIcons: Component[] = [Hotel, Smartphone, ChartNoAxesCombined];
 const featureIcons: Component[] = [
     BookOpenCheck,
     UsersRound,
     ChartNoAxesCombined,
 ];
-const featureShots = [
-    '/landing/lesson-builder-ghasido.png',
-    '/landing/team-management-ghasido.png',
-    '/landing/reports-and-export-ghasido.png',
-] as const;
-
-/** A feature's screenshot slides in from the side it sits on. */
-const shotMotion = (index: number): RevealMotion =>
-    index % 2 === 1 ? 'end' : 'start';
 
 const formatDzd = (value: number): string =>
     new Intl.NumberFormat('fr-DZ').format(value);
@@ -224,7 +198,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 as-child
                                 class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 group h-12 rounded-md px-6 text-[14px] font-semibold"
                             >
-                                <a href="#ai">
+                                <a href="#how-it-works">
                                     {{ content.hero.primary_cta }}
                                     <ArrowRight
                                         class="size-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5"
@@ -345,320 +319,8 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
             </section>
 
             <section
-                id="ai"
-                class="bg-brand-900 text-surface relative scroll-mt-20 overflow-hidden py-16 sm:py-20 lg:py-24"
-                aria-labelledby="ai-title"
-            >
-                <div
-                    class="bg-ai/20 animate-landing-drift pointer-events-none absolute -end-32 -top-40 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
-                    aria-hidden="true"
-                />
-                <div class="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-                    <div
-                        class="grid items-end gap-5 lg:grid-cols-[0.75fr_1.25fr] lg:gap-12"
-                    >
-                        <div>
-                            <p
-                                v-reveal
-                                class="text-brand-200 text-[12px] font-bold tracking-[0.16em] uppercase"
-                            >
-                                {{ content.ai.eyebrow }}
-                            </p>
-                            <h2
-                                id="ai-title"
-                                v-reveal="80"
-                                class="font-heading text-surface mt-3 text-[clamp(2rem,4vw,3.35rem)] leading-[1.08] font-bold tracking-[-0.04em]"
-                            >
-                                {{ content.ai.title }}
-                            </h2>
-                        </div>
-                        <p
-                            v-reveal="160"
-                            class="text-brand-100 max-w-2xl text-[15px] leading-7 lg:justify-self-end lg:text-[17px]"
-                        >
-                            {{ content.ai.description }}
-                        </p>
-                    </div>
-
-                    <div
-                        class="mt-10 grid items-stretch gap-6 lg:mt-14 lg:grid-cols-[1.35fr_0.65fr]"
-                    >
-                        <figure
-                            v-reveal:zoom="100"
-                            class="border-surface/15 bg-surface/10 shadow-pop overflow-hidden rounded-xl border p-2 sm:p-3"
-                        >
-                            <div
-                                class="border-surface/10 flex h-9 items-center gap-2 border-b px-2"
-                            >
-                                <span
-                                    class="bg-surface/25 size-2 rounded-full"
-                                />
-                                <span
-                                    class="bg-surface/20 size-2 rounded-full"
-                                />
-                                <span
-                                    class="bg-surface/15 size-2 rounded-full"
-                                />
-                                <span
-                                    class="text-brand-200 ms-2 text-[10px] font-semibold tracking-wide uppercase"
-                                    >{{ $t('AI scenario workspace') }}</span
-                                >
-                            </div>
-                            <img
-                                src="/landing/ai-roleplay-builder-ghasido.png"
-                                :alt="
-                                    $t(
-                                        'GHASIDO AI role-play scenario builder and preview',
-                                    )
-                                "
-                                width="1280"
-                                height="853"
-                                loading="lazy"
-                                class="mt-2 block aspect-[1280/853] w-full rounded-lg object-cover object-top sm:mt-3"
-                            />
-                        </figure>
-
-                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                            <article
-                                v-for="(item, index) in content.ai.items"
-                                :key="item.title"
-                                v-reveal:end="200 + index * 110"
-                                class="border-surface/15 bg-surface/8 hover:bg-surface/12 group flex gap-4 rounded-lg border p-4 transition-colors sm:p-5"
-                            >
-                                <span
-                                    class="bg-ai/25 text-brand-100 group-hover:bg-ai/40 grid size-10 shrink-0 place-items-center rounded-md transition-[background-color,scale] duration-300 group-hover:scale-110 motion-reduce:transition-none"
-                                >
-                                    <component
-                                        :is="aiIcons[index % aiIcons.length]"
-                                        class="size-5"
-                                    />
-                                </span>
-                                <div>
-                                    <h3
-                                        class="font-heading text-[14px] font-semibold sm:text-[15px]"
-                                    >
-                                        {{ item.title }}
-                                    </h3>
-                                    <p
-                                        class="text-brand-100 mt-1.5 text-[12px] leading-5"
-                                    >
-                                        {{ item.description }}
-                                    </p>
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-
-                    <div
-                        v-reveal="150"
-                        class="border-surface/15 bg-surface/8 mt-6 flex items-start gap-3 rounded-lg border px-4 py-3"
-                    >
-                        <ShieldCheck
-                            class="text-success mt-0.5 size-5 shrink-0"
-                        />
-                        <p class="text-brand-100 text-[12px] leading-5">
-                            {{ content.ai.review_note }}
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <section
-                id="about"
-                class="bg-surface scroll-mt-20 py-16 sm:py-20 lg:py-24"
-                aria-labelledby="about-title"
-            >
-                <div
-                    class="mx-auto grid max-w-7xl items-center gap-10 px-5 sm:px-8 md:grid-cols-[0.78fr_1.22fr] md:gap-14 lg:px-10"
-                >
-                    <figure class="relative mx-auto w-full max-w-[330px]">
-                        <div
-                            v-reveal:tilt="150"
-                            class="bg-aqua-tint absolute inset-0 translate-x-4 translate-y-4 rounded-xl"
-                            aria-hidden="true"
-                        />
-                        <div
-                            v-reveal:rise
-                            class="border-brand-900 bg-brand-900 shadow-hover relative mx-auto w-[210px] overflow-hidden rounded-xl border-[7px] sm:w-[250px]"
-                        >
-                            <img
-                                src="/landing/employee-pretest-mobile-ghasido.png"
-                                :alt="content.about.image_alt"
-                                width="390"
-                                height="844"
-                                loading="lazy"
-                                class="block aspect-[390/844] w-full object-cover object-top"
-                            />
-                        </div>
-                        <div
-                            v-reveal:pop="550"
-                            class="border-line bg-surface shadow-card animate-landing-float absolute end-0 top-16 max-w-[158px] rounded-lg border p-3 motion-reduce:animate-none sm:-end-4"
-                        >
-                            <Languages class="text-brand-600 size-5" />
-                            <p
-                                class="text-ink-indigo mt-2 text-[11px] leading-4 font-semibold"
-                            >
-                                {{
-                                    $t(
-                                        'English first. Arabic meaning only when the learner asks.',
-                                    )
-                                }}
-                            </p>
-                        </div>
-                        <img
-                            src="/decor/palm-island-tagline.png"
-                            alt=""
-                            v-reveal:fade="750"
-                            class="pointer-events-none absolute -start-2 -bottom-6 w-28 opacity-70 select-none sm:w-34"
-                        />
-                    </figure>
-
-                    <div class="max-w-2xl">
-                        <p
-                            v-reveal
-                            class="text-brand-600 text-[12px] font-bold tracking-[0.16em] uppercase"
-                        >
-                            {{ content.about.eyebrow }}
-                        </p>
-                        <h2
-                            id="about-title"
-                            v-reveal="80"
-                            class="font-heading text-ink-night mt-3 text-[clamp(2rem,4vw,3.2rem)] leading-[1.08] font-bold tracking-[-0.04em]"
-                        >
-                            {{ content.about.title }}
-                        </h2>
-                        <p
-                            v-reveal="160"
-                            class="text-ink-slate mt-5 text-[16px] leading-8"
-                        >
-                            {{ content.about.description }}
-                        </p>
-                        <div
-                            v-reveal="260"
-                            class="border-brand-100 bg-brand-50 mt-7 flex items-start gap-4 rounded-lg border p-5"
-                        >
-                            <span
-                                class="bg-surface text-brand-700 shadow-card grid size-11 shrink-0 place-items-center rounded-md"
-                            >
-                                <Headphones class="size-5" />
-                            </span>
-                            <div>
-                                <p
-                                    class="font-heading text-brand-900 text-[15px] font-semibold"
-                                >
-                                    {{
-                                        $t(
-                                            'Designed for adults learning at work',
-                                        )
-                                    }}
-                                </p>
-                                <p
-                                    class="text-ink-slate mt-1 text-[13px] leading-6"
-                                >
-                                    {{ content.about.learner_note }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section
-                id="roles"
-                class="bg-app scroll-mt-20 py-16 sm:py-20 lg:py-24"
-                aria-labelledby="roles-title"
-            >
-                <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-                    <div
-                        class="grid items-end gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12"
-                    >
-                        <div>
-                            <p
-                                v-reveal
-                                class="text-brand-600 text-[12px] font-bold tracking-[0.16em] uppercase"
-                            >
-                                {{ rolesEyebrow }}
-                            </p>
-                            <h2
-                                id="roles-title"
-                                v-reveal="80"
-                                class="font-heading text-ink-night mt-3 text-[clamp(2rem,4vw,3.15rem)] leading-[1.08] font-bold tracking-[-0.04em]"
-                            >
-                                {{ content.roles.title }}
-                            </h2>
-                        </div>
-                        <p
-                            v-reveal="160"
-                            class="text-ink-slate max-w-2xl text-[15px] leading-7 lg:justify-self-end lg:text-[16px]"
-                        >
-                            {{ content.roles.description }}
-                        </p>
-                    </div>
-
-                    <div class="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        <article
-                            v-for="(role, index) in visibleRoles"
-                            :key="role.title"
-                            v-reveal="index * 120"
-                            class="border-line bg-surface shadow-card hover:shadow-hover group relative overflow-hidden rounded-xl border p-5 transition-[translate,box-shadow] duration-200 hover:-translate-y-1 motion-reduce:transition-none sm:p-6"
-                        >
-                            <div
-                                class="bg-brand-600 absolute inset-x-0 top-0 h-1 origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100 motion-reduce:transition-none rtl:origin-right"
-                            />
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <span
-                                    :class="
-                                        index === 2
-                                            ? 'bg-aqua-tint text-aqua'
-                                            : 'bg-brand-100 text-brand-700'
-                                    "
-                                    class="grid size-12 place-items-center rounded-md transition-[scale] duration-300 group-hover:scale-110 motion-reduce:transition-none"
-                                >
-                                    <component
-                                        :is="
-                                            roleIcons[index % roleIcons.length]
-                                        "
-                                        class="size-6"
-                                    />
-                                </span>
-                                <span
-                                    class="text-ink-faint font-heading text-[11px] font-bold tracking-[0.15em]"
-                                    >0{{ index + 1 }}</span
-                                >
-                            </div>
-                            <h3
-                                class="font-heading text-brand-900 mt-5 text-[18px] font-semibold"
-                            >
-                                {{ role.title }}
-                            </h3>
-                            <p
-                                class="text-ink-slate mt-2.5 text-[13px] leading-6"
-                            >
-                                {{ role.description }}
-                            </p>
-                            <ul
-                                class="border-line mt-5 space-y-2.5 border-t pt-4"
-                            >
-                                <li
-                                    v-for="capability in role.capabilities"
-                                    :key="capability"
-                                    class="text-ink-indigo flex items-start gap-2 text-[12px] leading-5 font-medium"
-                                >
-                                    <Check
-                                        class="text-success mt-0.5 size-4 shrink-0"
-                                    />
-                                    {{ capability }}
-                                </li>
-                            </ul>
-                        </article>
-                    </div>
-                </div>
-            </section>
-
-            <section
-                class="bg-surface py-16 sm:py-20 lg:py-24"
+                id="how-it-works"
+                class="bg-surface scroll-mt-20 py-14 sm:py-18 lg:py-20"
                 aria-labelledby="journey-title"
             >
                 <div
@@ -722,8 +384,92 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
             </section>
 
             <section
+                id="ai"
+                class="bg-brand-900 text-surface relative scroll-mt-20 overflow-hidden py-14 sm:py-18 lg:py-20"
+                aria-labelledby="ai-title"
+            >
+                <div
+                    class="bg-ai/20 animate-landing-drift pointer-events-none absolute -end-32 -top-40 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
+                    aria-hidden="true"
+                />
+                <div
+                    class="relative mx-auto grid max-w-7xl items-center gap-8 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12 lg:px-10"
+                >
+                    <div>
+                        <p
+                            v-reveal
+                            class="text-brand-200 text-[12px] font-bold tracking-[0.16em] uppercase"
+                        >
+                            {{ content.ai.eyebrow }}
+                        </p>
+                        <h2
+                            id="ai-title"
+                            v-reveal="80"
+                            class="font-heading text-surface mt-3 text-[clamp(1.9rem,4vw,3.1rem)] leading-[1.08] font-bold tracking-[-0.04em]"
+                        >
+                            {{ content.ai.title }}
+                        </h2>
+                        <p
+                            v-reveal="160"
+                            class="text-brand-100 mt-4 text-[15px] leading-7"
+                        >
+                            {{ content.ai.description }}
+                        </p>
+                        <!-- Short points only (client request 2026-09-30). -->
+                        <ul
+                            v-reveal="220"
+                            class="mt-6 flex flex-wrap gap-2"
+                            data-test="landing-ai-points"
+                        >
+                            <li
+                                v-for="(item, index) in content.ai.items"
+                                :key="item.title"
+                                class="border-surface/15 bg-surface/8 rounded-pill inline-flex min-h-9 items-center gap-2 border px-3.5 text-[12.5px] font-semibold"
+                            >
+                                <component
+                                    :is="aiIcons[index % aiIcons.length]"
+                                    class="text-brand-200 size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                {{ item.title }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <figure
+                        v-reveal:zoom="100"
+                        class="border-surface/15 bg-surface/10 shadow-pop overflow-hidden rounded-xl border p-2 sm:p-3"
+                    >
+                        <div
+                            class="border-surface/10 flex h-9 items-center gap-2 border-b px-2"
+                        >
+                            <span class="bg-surface/25 size-2 rounded-full" />
+                            <span class="bg-surface/20 size-2 rounded-full" />
+                            <span class="bg-surface/15 size-2 rounded-full" />
+                            <span
+                                class="text-brand-200 ms-2 text-[10px] font-semibold tracking-wide uppercase"
+                                >{{ $t('AI scenario workspace') }}</span
+                            >
+                        </div>
+                        <img
+                            src="/landing/ai-roleplay-builder-ghasido.png"
+                            :alt="
+                                $t(
+                                    'GHASIDO AI role-play scenario builder and preview',
+                                )
+                            "
+                            width="1280"
+                            height="853"
+                            loading="lazy"
+                            class="mt-2 block aspect-[1280/853] w-full rounded-lg object-cover object-top sm:mt-3"
+                        />
+                    </figure>
+                </div>
+            </section>
+
+            <section
                 id="platform"
-                class="bg-app scroll-mt-20 py-16 sm:py-20 lg:py-24"
+                class="bg-app scroll-mt-20 py-14 sm:py-18 lg:py-20"
                 aria-labelledby="features-title"
             >
                 <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -737,129 +483,86 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         <h2
                             id="features-title"
                             v-reveal="80"
-                            class="font-heading text-ink-night mt-3 text-[clamp(2rem,4vw,3.2rem)] leading-[1.08] font-bold tracking-[-0.04em]"
+                            class="font-heading text-ink-night mt-3 text-[clamp(1.9rem,4vw,3rem)] leading-[1.08] font-bold tracking-[-0.04em]"
                         >
                             {{ content.features.title }}
                         </h2>
                         <p
+                            v-if="content.features.description"
                             v-reveal="160"
-                            class="text-ink-slate mx-auto mt-4 max-w-2xl text-[15px] leading-7"
+                            class="text-ink-slate mx-auto mt-3 max-w-2xl text-[15px] leading-7"
                         >
                             {{ content.features.description }}
                         </p>
                     </div>
 
-                    <div class="mt-12 space-y-8 lg:mt-16 lg:space-y-12">
+                    <!-- Train / Manage / Measure and one screenshot
+                         (client request 2026-09-30). -->
+                    <div class="mt-8 grid gap-3 sm:grid-cols-3 lg:mt-10">
                         <article
                             v-for="(item, index) in content.features.items"
                             :key="item.title"
-                            v-reveal
-                            class="border-line bg-surface shadow-card group grid items-center gap-7 overflow-hidden rounded-xl border p-5 sm:p-7 lg:grid-cols-2 lg:gap-12 lg:p-8"
+                            v-reveal="index * 100"
+                            class="border-line bg-surface shadow-card flex items-start gap-3 rounded-lg border p-4"
                         >
-                            <div
-                                v-reveal:[shotMotion(index)]="150"
-                                :class="index % 2 === 1 ? 'lg:order-2' : ''"
-                                class="relative"
+                            <span
+                                class="bg-brand-100 text-brand-700 grid size-10 shrink-0 place-items-center rounded-md"
                             >
-                                <div
-                                    v-reveal:tilt="350"
-                                    :class="
-                                        index === 0
-                                            ? 'bg-brand-100'
-                                            : index === 1
-                                              ? 'bg-aqua-tint'
-                                              : 'bg-gold-tint'
+                                <component
+                                    :is="
+                                        featureIcons[
+                                            index % featureIcons.length
+                                        ]
                                     "
-                                    class="absolute -inset-2 rotate-1 rounded-xl"
+                                    class="size-5"
                                     aria-hidden="true"
                                 />
-                                <figure
-                                    class="border-line bg-surface shadow-hover relative overflow-hidden rounded-lg border p-2 transition-[translate] duration-300 group-hover:-translate-y-1 motion-reduce:transition-none"
-                                >
-                                    <div
-                                        class="border-line flex h-8 items-center gap-1.5 border-b px-1"
-                                    >
-                                        <span
-                                            class="bg-danger/65 size-2 rounded-full"
-                                        />
-                                        <span
-                                            class="bg-warning/75 size-2 rounded-full"
-                                        />
-                                        <span
-                                            class="bg-success/75 size-2 rounded-full"
-                                        />
-                                    </div>
-                                    <img
-                                        :src="
-                                            featureShots[
-                                                index % featureShots.length
-                                            ]
-                                        "
-                                        :alt="`${item.title} in the GHASIDO platform`"
-                                        width="1280"
-                                        height="853"
-                                        loading="lazy"
-                                        class="mt-2 block aspect-[1280/853] w-full rounded-md object-cover object-top"
-                                    />
-                                </figure>
-                            </div>
-
-                            <div
-                                v-reveal="250"
-                                :class="index % 2 === 1 ? 'lg:order-1' : ''"
-                                class="max-w-xl"
-                            >
-                                <div class="flex items-center gap-3">
-                                    <span
-                                        class="bg-brand-100 text-brand-700 grid size-11 place-items-center rounded-md transition-[scale] duration-300 group-hover:scale-110 motion-reduce:transition-none"
-                                    >
-                                        <component
-                                            :is="
-                                                featureIcons[
-                                                    index % featureIcons.length
-                                                ]
-                                            "
-                                            class="size-5"
-                                        />
-                                    </span>
-                                    <span
-                                        class="text-brand-600 text-[11px] font-bold tracking-[0.15em] uppercase"
-                                        >{{
-                                            $t('Feature :number', {
-                                                number: `0${index + 1}`,
-                                            })
-                                        }}</span
-                                    >
-                                </div>
+                            </span>
+                            <div class="min-w-0">
                                 <h3
-                                    class="font-heading text-ink-night mt-5 text-[clamp(1.55rem,3vw,2.25rem)] leading-[1.15] font-bold tracking-[-0.03em]"
+                                    class="font-heading text-brand-900 text-[15px] font-semibold"
                                 >
                                     {{ item.title }}
                                 </h3>
                                 <p
-                                    class="text-ink-slate mt-4 text-[14px] leading-7 sm:text-[15px]"
+                                    class="text-ink-slate mt-1 text-[12.5px] leading-5"
                                 >
                                     {{ item.description }}
                                 </p>
-                                <div
-                                    class="text-brand-700 mt-6 inline-flex items-center gap-2 text-[12px] font-semibold"
-                                >
-                                    <CircleCheck class="text-success size-4" />
-                                    {{
-                                        $t(
-                                            'Connected to the same secure GHASIDO workspace',
-                                        )
-                                    }}
-                                </div>
                             </div>
                         </article>
                     </div>
+
+                    <figure
+                        v-reveal:zoom="150"
+                        class="border-line bg-surface shadow-hover mx-auto mt-6 max-w-5xl overflow-hidden rounded-xl border p-2 lg:mt-8"
+                    >
+                        <div
+                            class="border-line flex h-8 items-center gap-1.5 border-b px-1"
+                        >
+                            <span class="bg-danger/65 size-2 rounded-full" />
+                            <span class="bg-warning/75 size-2 rounded-full" />
+                            <span class="bg-success/75 size-2 rounded-full" />
+                        </div>
+                        <img
+                            src="/landing/reports-and-export-ghasido.png"
+                            :alt="
+                                $t(
+                                    'GHASIDO reports with training statistics and progress',
+                                )
+                            "
+                            width="1280"
+                            height="853"
+                            loading="lazy"
+                            class="mt-2 block aspect-[1280/853] w-full rounded-md object-cover object-top"
+                        />
+                    </figure>
                 </div>
             </section>
 
             <section
                 id="why-us"
-                class="bg-surface scroll-mt-20 py-16 sm:py-20"
+                class="bg-surface scroll-mt-20 py-12 sm:py-16"
                 aria-labelledby="why-title"
             >
                 <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -876,7 +579,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             <h2
                                 id="why-title"
                                 v-reveal="80"
-                                class="font-heading text-ink-night mt-3 text-[clamp(2rem,4vw,3rem)] leading-[1.08] font-bold tracking-[-0.04em]"
+                                class="font-heading text-ink-night mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.08] font-bold tracking-[-0.04em]"
                             >
                                 {{ content.why_us.title }}
                             </h2>
@@ -893,19 +596,20 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 v-for="(item, index) in content.why_us.items"
                                 :key="item.title"
                                 v-reveal="index * 110"
-                                class="border-line bg-app hover:bg-surface hover:shadow-hover group rounded-xl border p-5 transition-[translate,box-shadow,background-color] duration-200 hover:-translate-y-1 motion-reduce:transition-none"
+                                class="border-line bg-app hover:bg-surface hover:shadow-hover group rounded-lg border p-4 transition-[translate,box-shadow,background-color] duration-200 hover:-translate-y-1 motion-reduce:transition-none"
                             >
-                                <component
-                                    :is="whyIcons[index % whyIcons.length]"
-                                    class="text-brand-600 size-6 transition-[scale] duration-300 group-hover:scale-110 motion-reduce:transition-none"
-                                />
                                 <h3
-                                    class="font-heading text-brand-900 mt-4 text-[15px] font-semibold"
+                                    class="font-heading text-brand-900 flex items-center gap-2 text-[14px] font-semibold"
                                 >
+                                    <component
+                                        :is="whyIcons[index % whyIcons.length]"
+                                        class="text-brand-600 size-5 shrink-0"
+                                        aria-hidden="true"
+                                    />
                                     {{ item.title }}
                                 </h3>
                                 <p
-                                    class="text-ink-slate mt-2 text-[12px] leading-5"
+                                    class="text-ink-slate mt-1.5 text-[12px] leading-5"
                                 >
                                     {{ item.description }}
                                 </p>
@@ -1259,7 +963,8 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                     <div
                         v-if="paymentMethods.length"
                         v-reveal:fade="120"
-                        class="border-line bg-surface mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-lg border px-4 py-3"
+                        class="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center"
+                        data-test="landing-payment-line"
                     >
                         <span
                             class="text-ink-slate text-[11px] font-semibold tracking-wide uppercase"

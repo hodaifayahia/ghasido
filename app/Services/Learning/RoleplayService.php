@@ -126,7 +126,7 @@ class RoleplayService
      * End the conversation and queue its evaluation (RP-07). The limit is not
      * checked here — a conversation that happened must always be scored.
      */
-    public function end(RoleplayAttempt $attempt, ?CarbonInterface $endedAt = null): void
+    public function end(RoleplayAttempt $attempt, ?CarbonInterface $endedAt = null, bool $queueEvaluation = true): void
     {
         // A call closed after the fact (its page went away) ends when it
         // was last heard, not now, so its length is billed as it happened.
@@ -138,6 +138,9 @@ class RoleplayService
             'duration_ms' => (int) abs($attempt->started_at->diffInMilliseconds($endedAt)),
         ])->save();
 
-        EvaluateRoleplayAttempt::dispatch($attempt->id);
+        // The admin preview scores inline instead (AiScenarioPreviewController).
+        if ($queueEvaluation) {
+            EvaluateRoleplayAttempt::dispatch($attempt->id);
+        }
     }
 }

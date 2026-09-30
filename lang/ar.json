@@ -4204,5 +4204,7 @@
     "· overridden": "· معدَّلة",
     "· read :time": "· قُرئ :time",
     "— once published": "— بعد النشر",
-    "“:template” sent to :count employee(s).": "تم إرسال «:template» إلى :count موظف."
+    "“:template” sent to :count employee(s).": "تم إرسال «:template» إلى :count موظف.",
+    "The AI could not score this conversation. Start a new test to try again.": "تعذّر على الذكاء الاصطناعي تقييم هذه المحادثة. ابدأ اختبارًا جديدًا للمحاولة مرة أخرى.",
+    "GHASIDO reports with training statistics and progress": "تقارير GHASIDO مع إحصاءات التدريب والتقدم"
 }

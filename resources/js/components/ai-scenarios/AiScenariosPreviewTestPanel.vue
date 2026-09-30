@@ -59,10 +59,18 @@ const selectedScenario = computed(
 // Poll the server while the guest reply or the evaluation is being produced
 // by the queued job (PERF-04). Under the sync queue it is already done, so
 // this simply never starts.
+const evaluationFailed = computed(
+    () =>
+        attempt.value !== null &&
+        attempt.value.status === 'evaluating' &&
+        attempt.value.aiStatus === 'failed',
+);
+
 const isBusy = computed(
     () =>
         attempt.value !== null &&
-        (attempt.value.pendingReply || attempt.value.status === 'evaluating'),
+        (attempt.value.pendingReply ||
+            (attempt.value.status === 'evaluating' && !evaluationFailed.value)),
 );
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -511,17 +519,32 @@ function titleCase(value: string): string {
                             class="mt-px size-4 shrink-0"
                             aria-hidden="true"
                         />
-                        <p class="text-[11.5px] leading-[1.45]">
-                            {{
-                                $t(
-                                    'The AI could not reply. Start a new test to try again.',
-                                )
-                            }}
-                        </p>
+                        <div class="grid gap-0.5 text-[11.5px] leading-[1.45]">
+                            <p>
+                                {{
+                                    evaluationFailed
+                                        ? $t(
+                                              'The AI could not score this conversation. Start a new test to try again.',
+                                          )
+                                        : $t(
+                                              'The AI could not reply. Start a new test to try again.',
+                                          )
+                                }}
+                            </p>
+                            <p
+                                v-if="attempt.failedReason"
+                                class="break-words opacity-80"
+                                data-test="preview-failed-reason"
+                            >
+                                {{ attempt.failedReason }}
+                            </p>
+                        </div>
                     </div>
 
                     <div
-                        v-if="attempt.status === 'evaluating'"
+                        v-if="
+                            attempt.status === 'evaluating' && !evaluationFailed
+                        "
                         class="text-ink-slate mt-3 flex items-center justify-center gap-2 text-[12px]"
                     >
                         <LoaderCircle

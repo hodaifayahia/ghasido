@@ -56,9 +56,11 @@ const whatsappHref = computed(() => {
                 <a :href="`${anchorBase}#ai`" class="hover:text-brand-600">{{
                     content.navigation.ai_practice
                 }}</a>
-                <a :href="`${anchorBase}#roles`" class="hover:text-brand-600">{{
-                    content.navigation.roles
-                }}</a>
+                <a
+                    :href="`${anchorBase}#why-us`"
+                    class="hover:text-brand-600"
+                    >{{ content.navigation.why_us }}</a
+                >
                 <a
                     :href="`${anchorBase}#pricing`"
                     class="hover:text-brand-600"

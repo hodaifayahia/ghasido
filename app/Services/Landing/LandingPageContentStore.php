@@ -61,9 +61,9 @@ final class LandingPageContentStore
                 ],
             ],
             'journey' => [
-                'eyebrow' => 'A learning path that stays clear',
-                'title' => 'From first assessment to confident guest conversations.',
-                'description' => 'Every learner always knows what comes next, and progress is saved throughout the journey.',
+                'eyebrow' => 'How it works',
+                'title' => 'A simple path from assessment to progress.',
+                'description' => 'Assess current skills, train for real hotel situations, practise with AI and measure improvement.',
                 'steps' => [
                     ['title' => 'Pre-test', 'description' => 'Start with a clear picture of current skills.'],
                     ['title' => 'Department training', 'description' => 'Work through short lessons for the employee’s role.'],
@@ -89,25 +89,24 @@ final class LandingPageContentStore
                 'image_alt' => 'An employee using the GHASIDO pre-test on a phone',
             ],
             'features' => [
-                'eyebrow' => 'The complete platform',
-                'title' => 'Built to make training easier to run and easier to finish.',
-                'description' => 'GHASIDO connects content, people and evidence of progress without adding administrative clutter.',
+                'eyebrow' => 'Everything in one place',
+                'title' => 'Built for hotel training.',
+                'description' => 'Lessons, people and progress in one secure workspace.',
                 'items' => [
-                    ['title' => 'Create hotel-specific learning without code', 'description' => 'Build and organise department lessons, activities, tests, audio and examples from one visual content workspace.'],
-                    ['title' => 'Keep every hotel team organised', 'description' => 'Manage employees, seat limits, departments and reminders while each hotel stays securely separated.'],
-                    ['title' => 'Turn learning activity into useful evidence', 'description' => 'See progress, scores and detailed answers, then export the data needed for follow-up and research.'],
+                    ['title' => 'Train', 'description' => 'Create department-specific lessons and workplace activities.'],
+                    ['title' => 'Manage', 'description' => 'Organise employees, departments and training access.'],
+                    ['title' => 'Measure', 'description' => 'Track progress, compare results and export reports.'],
                 ],
             ],
             'ai' => [
                 'eyebrow' => 'AI-assisted practice',
                 'title' => 'Practise real conversations with helpful AI.',
-                'description' => 'Give employees a safe place to try guest conversations and get encouraging feedback.',
+                'description' => 'Give employees a safe place to practise realistic hotel conversations and receive immediate, supportive feedback.',
                 'review_note' => 'AI-generated content stays a draft for administrator review before it is published.',
                 'items' => [
-                    ['title' => 'Hotel guest role-play', 'description' => 'Practise realistic department scenarios by voice or text while the AI stays in its assigned guest role.'],
-                    ['title' => 'Speaking and writing feedback', 'description' => 'Give adult learners encouraging, structured feedback and a clearer suggested response.'],
-                    ['title' => 'AI-assisted content creation', 'description' => 'Draft explanations, examples, scenarios and assessment questions for an administrator to review.'],
-                    ['title' => 'Normal and slow lesson audio', 'description' => 'Generate reusable audio files so learners can listen again without waiting for a live AI request.'],
+                    ['title' => 'AI guest role-play', 'description' => 'Practise by voice or text with an AI guest.'],
+                    ['title' => 'Speaking & writing feedback', 'description' => 'Encouraging, structured feedback after each try.'],
+                    ['title' => 'Real hotel scenarios', 'description' => 'Situations from each department’s daily work.'],
                 ],
             ],
             'pricing' => [

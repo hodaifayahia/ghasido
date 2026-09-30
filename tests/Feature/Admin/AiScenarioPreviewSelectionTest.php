@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Contracts\AiProvider;
+use App\Jobs\GenerateRoleplayReply;
 use App\Models\AiScenario;
 use App\Models\Department;
 use App\Models\RoleplayAttempt;
@@ -9,6 +11,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -79,5 +83,49 @@ class AiScenarioPreviewSelectionTest extends TestCase
         $this->actingAs($admin)
             ->post(route('ai-scenarios.preview.store'), ['scenario' => $scenario->id])
             ->assertRedirect(route('ai-scenarios', ['tab' => 'preview', 'preview' => RoleplayAttempt::query()->latest('id')->value('id')]));
+    }
+
+    public function test_a_preview_reply_does_not_wait_for_the_queue_worker(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->superAdmin()->create();
+        $scenario = $this->scenarioBy($admin);
+
+        $this->actingAs($admin)
+            ->post(route('ai-scenarios.preview.store'), ['scenario' => $scenario->id, 'editor' => 1]);
+
+        $attempt = RoleplayAttempt::query()->firstOrFail();
+        $this->assertFalse($attempt->pending_reply);
+        $this->assertCount(1, $attempt->transcript);
+        Queue::assertNotPushed(GenerateRoleplayReply::class);
+    }
+
+    public function test_a_failed_preview_reply_says_why_instead_of_spinning(): void
+    {
+        $this->mock(AiProvider::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('roleplayReply')->andThrow(new RuntimeException('Qwen quota exhausted'));
+        });
+        $admin = User::factory()->superAdmin()->create();
+        $scenario = $this->scenarioBy($admin);
+
+        $this->actingAs($admin)
+            ->post(route('ai-scenarios.preview.store'), ['scenario' => $scenario->id, 'editor' => 1])
+            ->assertRedirect();
+
+        $attempt = RoleplayAttempt::query()->firstOrFail();
+        $this->assertFalse($attempt->pending_reply);
+        $this->assertSame('Qwen quota exhausted', $attempt->failed_reason);
+    }
+
+    private function scenarioBy(User $admin): AiScenario
+    {
+        $department = Department::factory()->create(['hotel_id' => null, 'is_active' => true]);
+        $this->actingAs($admin)->post(route('ai-scenarios.store'), [
+            'title' => 'Late checkout',
+            'department_id' => $department->id,
+            'difficulty' => 'beginner',
+        ]);
+
+        return AiScenario::query()->firstOrFail();
     }
 }

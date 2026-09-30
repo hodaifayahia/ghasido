@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\RoleplayStatus;
 use App\Http\Controllers\Controller;
+use App\Jobs\EvaluateRoleplayAttempt;
 use App\Jobs\GenerateRoleplayReply;
 use App\Models\AiScenario;
 use App\Models\RoleplayAttempt;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 /**
  * The Super Admin "Preview & Test" role-play (RP-13): a real conversation
@@ -24,6 +26,11 @@ use Illuminate\Validation\Rule;
  *
  * The employee daily limit is deliberately not checked here: a preview is the
  * admin authoring content, not an employee chatting (AIL-01..AIL-03).
+ *
+ * Unlike a learner's conversation, the guest's reply and the evaluation run
+ * inside the request: a preview must work, or say why it failed, even when
+ * the server's queue worker is stopped (client report 2026-09-30, "Test
+ * this scenario" sat on "The guest is replying…" forever).
  */
 class AiScenarioPreviewController extends Controller
 {
@@ -52,7 +59,7 @@ class AiScenarioPreviewController extends Controller
             'started_at' => Date::now(),
         ]);
 
-        GenerateRoleplayReply::dispatch($attempt->id);
+        $this->runNow(new GenerateRoleplayReply($attempt->id));
 
         return $this->backToPreview($request, $attempt);
     }
@@ -75,7 +82,7 @@ class AiScenarioPreviewController extends Controller
         $attempt->appendTurn(RoleplayAttempt::ROLE_EMPLOYEE, $validated['text']);
         $attempt->forceFill(['pending_reply' => true])->save();
 
-        GenerateRoleplayReply::dispatch($attempt->id);
+        $this->runNow(new GenerateRoleplayReply($attempt->id));
 
         return $this->backToPreview($request, $attempt);
     }
@@ -88,7 +95,8 @@ class AiScenarioPreviewController extends Controller
         $this->assertOwnedPreview($request, $attempt);
 
         if ($attempt->status->acceptsTurns()) {
-            $this->roleplay->end($attempt);
+            $this->roleplay->end($attempt, queueEvaluation: false);
+            $this->runNow(new EvaluateRoleplayAttempt($attempt->id));
         }
 
         return $this->backToPreview($request, $attempt);
@@ -108,6 +116,22 @@ class AiScenarioPreviewController extends Controller
         return $request->boolean('editor')
             ? to_route('ai-scenarios', ['tab' => 'scenarios', 'scenario' => $scenarioId, 'section' => 'test'])
             : to_route('ai-scenarios', ['tab' => 'preview']);
+    }
+
+    /**
+     * Run an AI job now; on failure write the job's own failed state, which
+     * the Test panel shows with its reason (PERF-04).
+     */
+    private function runNow(GenerateRoleplayReply|EvaluateRoleplayAttempt $job): void
+    {
+        @set_time_limit(180);
+
+        try {
+            app()->call([$job, 'handle']);
+        } catch (Throwable $exception) {
+            report($exception);
+            $job->failed($exception);
+        }
     }
 
     private function admin(Request $request): User

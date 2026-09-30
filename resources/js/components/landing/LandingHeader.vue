@@ -58,19 +58,14 @@ const mobileMenuOpen = ref(false);
                     >{{ content.navigation.ai_practice }}</a
                 >
                 <a
-                    :href="`${anchorBase}#about`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                    >{{ content.navigation.about }}</a
-                >
-                <a
-                    :href="`${anchorBase}#roles`"
-                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
-                    >{{ content.navigation.roles }}</a
-                >
-                <a
                     :href="`${anchorBase}#platform`"
                     class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
                     >{{ content.navigation.platform }}</a
+                >
+                <a
+                    :href="`${anchorBase}#why-us`"
+                    class="hover:text-brand-600 focus-visible:ring-brand-600 rounded-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    >{{ content.navigation.why_us }}</a
                 >
                 <a
                     :href="`${anchorBase}#pricing`"
@@ -140,16 +135,12 @@ const mobileMenuOpen = ref(false);
                             label: content.navigation.ai_practice,
                         },
                         {
-                            href: anchorBase + '#about',
-                            label: content.navigation.about,
-                        },
-                        {
-                            href: anchorBase + '#roles',
-                            label: content.navigation.roles,
-                        },
-                        {
                             href: anchorBase + '#platform',
                             label: content.navigation.platform,
+                        },
+                        {
+                            href: anchorBase + '#why-us',
+                            label: content.navigation.why_us,
                         },
                         {
                             href: anchorBase + '#pricing',
