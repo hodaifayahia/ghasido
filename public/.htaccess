@@ -5,6 +5,15 @@
 
     RewriteEngine On
 
+    # One address for search engines: http:// and www. go to
+    # https://ghasido.com (only on the live domain, never locally).
+    RewriteCond %{HTTP_HOST} ^www\.ghasido\.com$ [NC]
+    RewriteRule ^ https://ghasido.com%{REQUEST_URI} [L,R=301]
+    RewriteCond %{HTTP_HOST} ^ghasido\.com$ [NC]
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://ghasido.com%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
