@@ -4270,5 +4270,9 @@
     "The meaning behind every English text learners read, in each helper language. Drafted once by AI when content is saved, or written by hand; learners never trigger the AI.": "معنى كل نص إنجليزي يقرؤه المتعلمون، بكل لغة مساعدة. يُصاغ مرة واحدة بالذكاء الاصطناعي عند حفظ المحتوى أو يُكتب يدوياً؛ ولا يستدعي المتعلمون الذكاء الاصطناعي أبداً.",
     "Use a short language code, like fr, ms, id or tr.": "استخدم رمز لغة قصيراً، مثل fr أو ms أو id أو tr.",
     "Write the meaning first.": "اكتب المعنى أولاً.",
-    "off": "متوقفة"
+    "off": "متوقفة",
+    "The test could not start. Please try again.": "تعذّر بدء الاختبار. حاول مرة أخرى.",
+    "The test could not start (error :status). Please try again.": "تعذّر بدء الاختبار (خطأ :status). حاول مرة أخرى.",
+    "The test could not start: no connection. Please try again.": "تعذّر بدء الاختبار: لا يوجد اتصال. حاول مرة أخرى.",
+    "Save this scenario first (Scenario details → Save), then come back to test it.": "احفظ هذا السيناريو أولاً (تفاصيل السيناريو ← حفظ)، ثم عد لاختباره."
 }

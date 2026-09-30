@@ -27,6 +27,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/composables/useI18n';
 import type { AiScenarioPreviewTest } from '@/types';
 
 type Props = {
@@ -42,6 +43,8 @@ type Props = {
 
 const props = withDefaults(defineProps<Props>(), { locked: false });
 
+const { t } = useI18n();
+
 /** Tells the server to send the admin back to the editor, not Preview & Test. */
 const origin = computed(() => (props.locked ? { editor: 1 } : {}));
 
@@ -49,6 +52,14 @@ const attempt = computed(() => props.previewTest.attempt);
 const selected = ref(props.previewTest.selected);
 const draft = ref('');
 const starting = ref(false);
+/** Why the last action failed, said in the panel (client report 2026-09-30). */
+const actionError = ref<string | null>(null);
+
+function explain(errors: Record<string, string>): void {
+    actionError.value =
+        Object.values(errors)[0] ??
+        t('The test could not start. Please try again.');
+}
 
 const selectedScenario = computed(
     () =>
@@ -118,6 +129,7 @@ function start(): void {
         return;
     }
 
+    actionError.value = null;
     router.post(
         props.previewTest.startUrl,
         { scenario: Number(selected.value), ...origin.value },
@@ -126,6 +138,22 @@ function start(): void {
             preserveState: true,
             onStart: () => (starting.value = true),
             onFinish: () => (starting.value = false),
+            onError: explain,
+            onHttpException: (response) => {
+                actionError.value = t(
+                    'The test could not start (error :status). Please try again.',
+                    { status: response.status },
+                );
+
+                return false;
+            },
+            onNetworkError: () => {
+                actionError.value = t(
+                    'The test could not start: no connection. Please try again.',
+                );
+
+                return false;
+            },
         },
     );
 }
@@ -138,6 +166,7 @@ function send(): void {
         return;
     }
 
+    actionError.value = null;
     router.post(
         active.messageUrl,
         { text, ...origin.value },
@@ -145,6 +174,7 @@ function send(): void {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => (draft.value = ''),
+            onError: explain,
         },
     );
 }
@@ -337,6 +367,33 @@ function titleCase(value: string): string {
                     <Info class="mt-px size-4 shrink-0" aria-hidden="true" />
                     <p class="text-[11.5px] leading-[1.45]">
                         {{ previewTest.notSavedNote }}
+                    </p>
+                </div>
+
+                <div
+                    v-if="locked && previewTest.scenarios.length === 0"
+                    class="border-line bg-app-alt text-ink-slate flex items-start gap-2 rounded-md border px-3 py-2"
+                    data-test="preview-save-first"
+                >
+                    <Info class="mt-px size-4 shrink-0" aria-hidden="true" />
+                    <p class="text-[12px] leading-[1.45]">
+                        {{
+                            $t(
+                                'Save this scenario first (Scenario details → Save), then come back to test it.',
+                            )
+                        }}
+                    </p>
+                </div>
+
+                <div
+                    v-if="actionError"
+                    role="alert"
+                    class="border-danger/30 bg-danger-tint text-danger-text flex items-start gap-2 rounded-md border px-3 py-2"
+                    data-test="preview-start-error"
+                >
+                    <Info class="mt-px size-4 shrink-0" aria-hidden="true" />
+                    <p class="text-[11.5px] leading-[1.45]">
+                        {{ actionError }}
                     </p>
                 </div>
 

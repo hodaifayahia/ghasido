@@ -122,13 +122,16 @@ const openLibraryItem = computed(
 /** The Test tab offers only the scenario being edited. */
 const editorPreviewTest = computed((): AiScenarioPreviewTest => {
     const id = String(props.editor.id ?? '');
+    // The server sends the open scenario itself, so the tab never depends
+    // on the preview list (client report 2026-09-30).
+    const own =
+        props.previewTest.editorScenario ??
+        props.previewTest.scenarios.find((scenario) => scenario.value === id);
 
     return {
         ...props.previewTest,
-        scenarios: props.previewTest.scenarios.filter(
-            (scenario) => scenario.value === id,
-        ),
-        selected: id,
+        scenarios: own && id !== '' ? [own] : [],
+        selected: own && id !== '' ? id : '',
     };
 });
 const tutorialOpen = ref(false);

@@ -128,4 +128,23 @@ class AiScenarioPreviewSelectionTest extends TestCase
 
         return AiScenario::query()->firstOrFail();
     }
+
+    public function test_the_editor_test_tab_gets_the_open_scenario_itself()
+    {
+        $this->withoutVite();
+        $admin = User::factory()->superAdmin()->create();
+        $scenario = $this->scenarioBy($admin);
+
+        $this->actingAs($admin)
+            ->get(route('ai-scenarios', ['scenario' => $scenario->id, 'section' => 'test']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('previewTest.editorScenario.value', (string) $scenario->id)
+                ->where('previewTest.editorScenario.label', 'Late checkout'));
+
+        // Without an open scenario there is nothing to test in the editor.
+        $this->actingAs($admin)
+            ->get(route('ai-scenarios', ['tab' => 'preview']))
+            ->assertInertia(fn (Assert $page) => $page->where('previewTest.editorScenario', null));
+    }
 }

@@ -628,7 +628,7 @@ class AiScenariosController extends Controller
                     ],
                 ],
             ],
-            'previewTest' => $this->previewPayload($request, $audio),
+            'previewTest' => $this->previewPayload($request, $audio, $selected),
             'tts' => $tts->payload(),
         ];
 
@@ -1006,26 +1006,14 @@ class AiScenariosController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function previewPayload(Request $request, AudioLibrary $audio): array
+    private function previewPayload(Request $request, AudioLibrary $audio, ?AiScenario $editing = null): array
     {
         $models = $this->visibleScenarios($request->user('web'))
             ->with('department')
             ->orderBy('title')
             ->get();
 
-        $scenarios = $models->map(fn (AiScenario $scenario): array => [
-            'value' => (string) $scenario->id,
-            'label' => $scenario->title,
-            'department' => $scenario->department->name ?? __('Unknown Department'),
-            'level' => Str::headline($scenario->difficulty->value),
-            'situation' => $scenario->situation,
-            'aiRole' => $scenario->ai_role,
-            'employeeRole' => $scenario->employee_role,
-            'objective' => $scenario->objective,
-            'quote' => $scenario->quote,
-            'icon' => $scenario->icon,
-            'status' => $scenario->status->value,
-        ])->all();
+        $scenarios = $models->map(fn (AiScenario $scenario): array => $this->previewOption($scenario))->all();
 
         $attempt = $this->activePreview($request);
         // "Test Scenario" from the editor names the scenario to test; any
@@ -1042,6 +1030,30 @@ class AiScenariosController extends Controller
             'placeholder' => __('Type a reply to test the scenario...'),
             'notSavedNote' => __('Preview conversations are not saved to any employee record (RP-13).'),
             'attempt' => $attempt !== null ? $this->attemptPayload($attempt, $audio) : null,
+            // The scenario open in the editor, for its Test tab: built from
+            // the scenario itself, so the tab never depends on the list
+            // above (client report 2026-09-30, "I can't start a test").
+            'editorScenario' => $editing !== null ? $this->previewOption($editing->loadMissing('department')) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function previewOption(AiScenario $scenario): array
+    {
+        return [
+            'value' => (string) $scenario->id,
+            'label' => $scenario->title,
+            'department' => $scenario->department->name ?? __('Unknown Department'),
+            'level' => Str::headline($scenario->difficulty->value),
+            'situation' => $scenario->situation,
+            'aiRole' => $scenario->ai_role,
+            'employeeRole' => $scenario->employee_role,
+            'objective' => $scenario->objective,
+            'quote' => $scenario->quote,
+            'icon' => $scenario->icon,
+            'status' => $scenario->status->value,
         ];
     }
 

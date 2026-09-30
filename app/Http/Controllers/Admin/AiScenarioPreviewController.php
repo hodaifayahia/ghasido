@@ -28,9 +28,10 @@ use Throwable;
  * admin authoring content, not an employee chatting (AIL-01..AIL-03).
  *
  * Unlike a learner's conversation, the guest's reply and the evaluation run
- * inside the request: a preview must work, or say why it failed, even when
- * the server's queue worker is stopped (client report 2026-09-30, "Test
- * this scenario" sat on "The guest is replying…" forever).
+ * right after the response, in the same PHP process: a preview must work,
+ * or say why it failed, even when the server's queue worker is stopped
+ * (client report 2026-09-30, "Test this scenario" sat on "The guest is
+ * replying…" forever).
  */
 class AiScenarioPreviewController extends Controller
 {
@@ -119,19 +120,23 @@ class AiScenarioPreviewController extends Controller
     }
 
     /**
-     * Run an AI job now; on failure write the job's own failed state, which
-     * the Test panel shows with its reason (PERF-04).
+     * Run an AI job right after the response is sent, in this same PHP
+     * process: no queue worker is needed, and a slow AI answer never holds
+     * the admin's click (the page polls, PERF-04). On failure the job's own
+     * failed state is written, which the Test panel shows with its reason.
      */
     private function runNow(GenerateRoleplayReply|EvaluateRoleplayAttempt $job): void
     {
-        @set_time_limit(180);
+        app()->terminating(function () use ($job): void {
+            @set_time_limit(180);
 
-        try {
-            app()->call([$job, 'handle']);
-        } catch (Throwable $exception) {
-            report($exception);
-            $job->failed($exception);
-        }
+            try {
+                app()->call([$job, 'handle']);
+            } catch (Throwable $exception) {
+                report($exception);
+                $job->failed($exception);
+            }
+        });
     }
 
     private function admin(Request $request): User

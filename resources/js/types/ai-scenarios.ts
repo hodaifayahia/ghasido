@@ -287,4 +287,6 @@ export type AiScenarioPreviewTest = {
     placeholder: string;
     notSavedNote: string;
     attempt: AiScenarioPreviewAttempt | null;
+    /** The scenario open in the editor, for its Test tab. */
+    editorScenario?: AiScenarioPreviewScenario | null;
 };
