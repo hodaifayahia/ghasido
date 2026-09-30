@@ -2,7 +2,6 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowLeft, CircleHelp } from '@lucide/vue';
 import { ref, watch } from 'vue';
-import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import LessonCreateStartDialog from '@/components/lessons/LessonCreateStartDialog.vue';
 import LessonCreationTutorial from '@/components/lessons/LessonCreationTutorial.vue';
 import LessonsAiGenerateDialog from '@/components/lessons/LessonsAiGenerateDialog.vue';
@@ -21,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { tk } from '@/lib/i18n';
 import { dashboard, lessonsContent } from '@/routes';
-import { destroy as destroyLesson, edit as editLesson } from '@/routes/lessons';
+import { edit as editLesson } from '@/routes/lessons';
 import type {
     LessonBlockRow,
     LessonBlockTypeOption,
@@ -197,25 +196,6 @@ function changeDirectoryPageSize(size: number): void {
     visitDirectory(directoryQuery(currentDirectoryFilters(), 1, size));
 }
 
-// Safe delete: the server refuses while learners depend on the lesson and
-// redirects back with fresh directory props on success (DATA-10).
-const deleteLessonOpen = ref(false);
-const deleteLessonTarget = ref<LessonDirectoryRow | null>(null);
-
-function askDeleteLesson(lesson: LessonDirectoryRow): void {
-    deleteLessonTarget.value = lesson;
-    deleteLessonOpen.value = true;
-}
-
-/** Deleting the only row of the last page leaves it empty: step back. */
-function onLessonDeleted(): void {
-    const { currentPage, lastPage } = props.directoryPagination;
-
-    if (props.lessonDirectory.length === 0 && currentPage > lastPage) {
-        goToDirectoryPage(lastPage);
-    }
-}
-
 function startGuidedTour(): void {
     if (!builderOpen.value && props.editor.id !== null) {
         router.visit(editLesson(props.editor.id).url, {
@@ -274,20 +254,6 @@ function onPick(image: LessonLibraryImage): void {
                 @filter="applyDirectoryFilters"
                 @page="goToDirectoryPage"
                 @page-size="changeDirectoryPageSize"
-                @delete="askDeleteLesson"
-            />
-
-            <DeleteRowDialog
-                v-if="canManage"
-                v-model:open="deleteLessonOpen"
-                :url="
-                    deleteLessonTarget
-                        ? destroyLesson.url(deleteLessonTarget.id)
-                        : null
-                "
-                :name="deleteLessonTarget?.title ?? ''"
-                :kind="$t('lesson')"
-                @deleted="onLessonDeleted"
             />
 
             <LessonCreateStartDialog

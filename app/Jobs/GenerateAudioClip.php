@@ -10,6 +10,7 @@ use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Models\AudioClip;
 use App\Models\MediaAsset;
+use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\UsageMeter;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -92,19 +93,22 @@ class GenerateAudioClip implements ShouldBeUnique, ShouldQueue
             'label' => Str::limit($clip->text, 80),
         ]);
 
-        $provider = config('services.tts.provider', 'fake');
-        $provider = is_string($provider) ? $provider : 'unknown';
-
-        // Speech is metered in characters (spec 0005 §4.3): it used to be
-        // the one paid call with no ledger row (API-03).
+        // Speech is metered in characters (spec 0005 §4.3), under the
+        // provider that really spoke: the .env provider after the Super
+        // Admin's fake/real switch. Reading .env alone labelled real Deepgram
+        // audio `fake`, so it never reached the Deepgram credit (API-03;
+        // spec 0007, D4).
         $meter->record(null, AiFeature::Tts, new AiUsageInfo(
             promptTokens: mb_strlen($clip->text),
             completionTokens: 0,
             model: $clip->voice,
-            provider: $provider,
+            provider: app(AiModelSettings::class)->currentProvider('tts'),
         ), chargePoints: false);
 
-        $clip->markDone($asset, $provider);
+        // The clip keeps the library's own key (AudioLibrary::provider()),
+        // which is what playback looks clips up by.
+        $provider = config('services.tts.provider', 'fake');
+        $clip->markDone($asset, is_string($provider) ? $provider : 'unknown');
     }
 
     public function failed(?Throwable $exception): void

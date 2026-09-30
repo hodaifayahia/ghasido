@@ -153,10 +153,7 @@ final class LandingPageContentStore
             'support' => [
                 'whatsapp_number' => '',
                 'phone' => '',
-                // The business email: public contact address and the sender
-                // of every outgoing email (App\Services\Mail\BusinessEmail).
                 'email' => '',
-                'sender_name' => 'GHASIDO',
             ],
             'contact' => [
                 'eyebrow' => 'Contact us',

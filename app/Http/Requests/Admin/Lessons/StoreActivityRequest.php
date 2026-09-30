@@ -5,8 +5,10 @@ namespace App\Http\Requests\Admin\Lessons;
 use App\Enums\ActivityType;
 use App\Models\Activity;
 use App\Models\Block;
+use App\Services\Content\ActivityPayloadValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Create an activity (PRAC-01..07, WRITE-05; spec 0003 B.9). The payload is
@@ -47,6 +49,30 @@ class StoreActivityRequest extends FormRequest
     }
 
     /**
+     * The payload must be answerable and scorable for its type (spec 0003
+     * B.9): options with a correct one, real pairs, a full order.
+     *
+     * @return list<callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $type = ActivityType::tryFrom((string) $this->input('type'));
+                $payload = $this->input('payload');
+
+                if ($type === null || ! is_array($payload) || $validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                foreach (ActivityPayloadValidator::errors($type, $payload) as $key => $message) {
+                    $validator->errors()->add($key, $message);
+                }
+            },
+        ];
+    }
+
+    /**
      * @return array<string, list<mixed>>
      */
     public static function activityRules(): array
@@ -74,14 +100,6 @@ class StoreActivityRequest extends FormRequest
     {
         $data = $this->validated();
         unset($data['block_id']);
-
-        if (($block = $this->block()) !== null) {
-            $lesson = $block->lesson()->with('course')->firstOrFail();
-            // A lesson activity inherits its tenant scope from the lesson;
-            // the browser cannot assign it to a different hotel/department.
-            $data['department_id'] = $lesson->course?->department_id;
-            $data['hotel_id'] = $lesson->hotel_id;
-        }
 
         // The payload is authored content whose per-type item shape must round
         // trip verbatim (DATA-11); validated() would narrow items to their

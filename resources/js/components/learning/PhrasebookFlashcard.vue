@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Eye, EyeOff } from '@lucide/vue';
 import { useId } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
+import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
@@ -43,36 +43,15 @@ const panelId = `review-${useId()}`;
             class="h-36 w-full max-w-[280px] rounded-md object-cover"
         />
 
-        <div class="flex items-start gap-2">
-            <div class="grid min-w-0 gap-1">
-                <p
-                    class="font-heading text-ink-cobalt text-[26px] leading-9 font-semibold"
-                >
-                    {{ entry.text }}
-                </p>
-                <p v-if="entry.ipa" class="text-ink-slate text-base">
-                    {{ entry.ipa }}
-                </p>
-            </div>
-            <button
-                v-if="entry.showMeaning && entry.meaning"
-                type="button"
-                :aria-label="
-                    meaning.shown.value
-                        ? $t('Hide Meaning')
-                        : $t('Show the meaning of :text', { text: entry.text })
-                "
-                :aria-expanded="meaning.shown.value"
-                :aria-controls="panelId"
-                class="bg-tint-grid text-ink-slate hover:bg-brand-50 focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full focus-visible:ring-3 focus-visible:outline-none"
-                @click="meaning.toggle()"
+        <div class="grid gap-1">
+            <p
+                class="font-heading text-ink-cobalt text-[26px] leading-9 font-semibold"
             >
-                <component
-                    :is="meaning.shown.value ? EyeOff : Eye"
-                    class="size-5"
-                    aria-hidden="true"
-                />
-            </button>
+                {{ entry.text }}
+            </p>
+            <p v-if="entry.ipa" class="text-ink-slate text-base">
+                {{ entry.ipa }}
+            </p>
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-3">
@@ -90,6 +69,13 @@ const panelId = `review-${useId()}`;
         >
             “{{ entry.example }}”
         </p>
+
+        <ShowMeaningButton
+            v-if="entry.showMeaning"
+            :shown="meaning.shown.value"
+            :controls="panelId"
+            @toggle="meaning.toggle()"
+        />
 
         <ShowMeaningPanel
             v-if="entry.meaning"

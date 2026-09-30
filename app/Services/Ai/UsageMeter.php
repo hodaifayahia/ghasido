@@ -60,7 +60,10 @@ final class UsageMeter
         // Priced from the Super Admin's table when the caller has no figure
         // of its own (API-03; spec 0005 §4.3). Unpriced models stay at 0 and
         // the usage page says so.
-        if ($costEstimate <= 0) {
+        // A fake (no-network) call is free whatever model id it reports.
+        if ($usage->provider === 'fake') {
+            $costEstimate = 0.0;
+        } elseif ($costEstimate <= 0) {
             $costEstimate = AiModelPrice::for($usage->model)
                 ?->costOf($usage->promptTokens, $usage->completionTokens) ?? 0.0;
         }
@@ -107,8 +110,9 @@ final class UsageMeter
         // The platform owner's Qwen credit comes first (spec 0007, D7a).
         $this->assertCredit($user, 'ai');
 
-        // An individual subscriber's plan may leave AI practice out.
-        $individual = $this->individualFor($user);
+        // An individual subscriber's own plan may leave AI out (user request
+        // 2026-09-25).
+        $individual = $this->individualPlan($user);
 
         if ($individual !== null && ! $individual->ai_enabled) {
             throw AiLimitReached::forIndividualPlan($feature);
@@ -116,7 +120,7 @@ final class UsageMeter
 
         $this->assertPointsAvailable($user, $this->aiActionCost($user));
 
-        $perEmployee = $individual->daily_ai_turns ?? self::perEmployeeDailyTurns();
+        $perEmployee = $this->dailyTurnsFor($user);
         $perHotel = self::perHotelDailyTurns();
 
         if ($this->turnsUsedTodayBy($user) >= $perEmployee) {
@@ -196,11 +200,11 @@ final class UsageMeter
             return;
         }
 
-        $individual = $this->individualFor($user);
+        $individual = $this->individualPlan($user);
 
         if ($individual !== null) {
             if (! $individual->ai_enabled || ! $individual->voice_enabled) {
-                throw AiLimitReached::forIndividualPlan(AiFeature::VoiceCall);
+                throw AiLimitReached::forIndividualPlan(AiFeature::RoleplayTurn);
             }
 
             $this->assertPointsAvailable($user, $individual->voice_points_per_10_minutes);
@@ -220,7 +224,7 @@ final class UsageMeter
     public function canContinueVoice(RoleplayAttempt $attempt): bool
     {
         $user = $attempt->user;
-        $individual = $user === null ? null : $this->individualFor($user);
+        $individual = $user !== null ? $this->individualPlan($user) : null;
 
         if ($user === null || ($user->hotel_id === null && $individual === null) || ! $user->hasRole(Role::Employee->value)) {
             return true;
@@ -230,8 +234,12 @@ final class UsageMeter
             return false;
         }
 
+        if ($individual !== null && (! $individual->ai_enabled || ! $individual->voice_enabled)) {
+            return false;
+        }
+
         $rate = $individual !== null
-            ? ($individual->ai_enabled && $individual->voice_enabled ? $individual->voice_points_per_10_minutes : null)
+            ? $individual->voice_points_per_10_minutes
             : $this->hotelFor($user)?->subscriptionPlan?->voice_points_per_10_minutes;
 
         if ($rate === null) {
@@ -257,7 +265,7 @@ final class UsageMeter
             return;
         }
 
-        $individual = $this->individualFor($user);
+        $individual = $this->individualPlan($user);
         $rate = $individual !== null
             ? $individual->voice_points_per_10_minutes
             : ($user->hotel_id !== null ? $this->hotelFor($user)?->subscriptionPlan?->voice_points_per_10_minutes : null);
@@ -294,7 +302,7 @@ final class UsageMeter
             return 0;
         }
 
-        $individual = $this->individualFor($user);
+        $individual = $this->individualPlan($user);
 
         if ($individual !== null) {
             return $individual->ai_action_points;
@@ -316,9 +324,7 @@ final class UsageMeter
 
     private function isWithinDailyLimits(User $user): bool
     {
-        $perEmployee = $this->individualFor($user)->daily_ai_turns ?? self::perEmployeeDailyTurns();
-
-        return $this->turnsUsedTodayBy($user) < $perEmployee
+        return $this->turnsUsedTodayBy($user) < $this->dailyTurnsFor($user)
             && ($user->hotel_id === null || $this->turnsUsedTodayByHotel($user->hotel_id) < self::perHotelDailyTurns());
     }
 
@@ -338,25 +344,30 @@ final class UsageMeter
 
     private function assertPointsAvailable(User $user, int $required): void
     {
-        $individual = $this->individualFor($user);
-        $metered = $user->hotel_id !== null || $individual !== null;
+        $metered = $user->hotel_id !== null || $this->individualPlan($user) !== null;
 
         if ($user->hasRole(Role::Employee->value) && $metered && $this->availablePoints($user) < $required) {
-            throw AiLimitReached::forPoints($required, max(0, $this->availablePoints($user)), $individual !== null);
+            throw AiLimitReached::forPoints($required, max(0, $this->availablePoints($user)));
         }
     }
 
     /**
-     * An individual subscriber's configuration, or null for everyone else
-     * (a hotel's employee, an admin). It stands in for the hotel's plan.
+     * An individual subscriber's own plan, or null for everyone else (user
+     * request 2026-09-25).
      */
-    private function individualFor(User $user): ?IndividualSubscription
+    private function individualPlan(User $user): ?IndividualSubscription
     {
-        if ($user->hotel_id !== null) {
-            return null;
-        }
+        return $user->hotel_id === null ? $user->individualSubscription : null;
+    }
 
-        return $user->individualSubscription;
+    /** The daily AI turn cap: an individual's own, else the platform one. */
+    private function dailyTurnsFor(User $user): int
+    {
+        $individual = $this->individualPlan($user);
+
+        return $individual !== null && $individual->daily_ai_turns !== null
+            ? $individual->daily_ai_turns
+            : self::perEmployeeDailyTurns();
     }
 
     private function hotelFor(User $user): ?Hotel

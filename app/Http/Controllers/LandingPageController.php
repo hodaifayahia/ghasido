@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SubscriptionCatalogSetting;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
 use App\Services\Landing\LandingPageContentStore;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,21 +15,10 @@ final class LandingPageController extends Controller
     {
         return Inertia::render('Welcome', [
             'content' => $content->current(),
-            'individualPricing' => $this->individualPricing(),
-            'plans' => SubscriptionPlan::query()
-                ->active()
-                ->orderBy('employee_limit')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (SubscriptionPlan $plan): array => [
-                    'id' => $plan->id,
-                    'name' => $plan->name,
-                    'slug' => $plan->slug,
-                    'employeeLimit' => $plan->employee_limit,
-                    'priceDzd' => $plan->price_dzd,
-                    'priceUsd' => $plan->price_usd,
-                    'pointsPool' => $plan->pointsPool(),
-                ])->values()->all(),
+            'plans' => $this->plans(SubscriptionPlan::query()->active()->forHotels()->orderBy('employee_limit')),
+            // One learner, monthly AI points and no seats (client request
+            // 2026-09-27).
+            'individualPlans' => $this->plans(SubscriptionPlan::query()->active()->forIndividuals()->orderBy('price_dzd')),
             'paymentMethods' => SubscriptionPaymentMethod::query()
                 ->where('is_active', true)
                 ->whereNotNull('account_reference')
@@ -47,14 +36,20 @@ final class LandingPageController extends Controller
         ]);
     }
 
-    /** @return array{priceDzd: int, priceUsd: float} */
-    private function individualPricing(): array
+    /**
+     * @param  Builder<SubscriptionPlan>  $query
+     * @return list<array{id: int, name: string, slug: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int}>
+     */
+    private function plans(Builder $query): array
     {
-        $pricing = SubscriptionCatalogSetting::query()->findOrFail(1);
-
-        return [
-            'priceDzd' => $pricing->individual_price_dzd,
-            'priceUsd' => $pricing->individual_price_usd,
-        ];
+        return array_values($query->orderBy('id')->get()->map(fn (SubscriptionPlan $plan): array => [
+            'id' => $plan->id,
+            'name' => $plan->name,
+            'slug' => $plan->slug,
+            'employeeLimit' => $plan->employee_limit,
+            'priceDzd' => $plan->price_dzd,
+            'priceUsd' => $plan->price_usd,
+            'pointsPool' => $plan->pointsPool(),
+        ])->all());
     }
 }

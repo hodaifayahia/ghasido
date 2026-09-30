@@ -103,22 +103,11 @@ final class ApiCredit
             return ApiAccount::Deepgram;
         }
 
-        [$switch, $configKey] = match ($capability) {
-            'ai', 'fast' => ['ai', 'services.ai.provider'],
-            'image' => ['image', 'services.ai.image_provider'],
-            'tts' => ['tts', 'services.tts.provider'],
-            'stt' => ['stt', 'services.stt.provider'],
-            default => [null, null],
-        };
-
-        if ($switch === null) {
+        if (! in_array($capability, ['ai', 'fast', 'image', 'tts', 'stt'], true)) {
             return null;
         }
 
-        $env = config($configKey);
-        $env = is_string($env) && trim($env) !== '' ? trim($env) : 'fake';
-
-        return ApiAccount::forProvider(app(AiModelSettings::class)->provider($switch, $env));
+        return ApiAccount::forProvider(app(AiModelSettings::class)->currentProvider($capability));
     }
 
     /**

@@ -7,7 +7,6 @@ use App\Jobs\GenerateAudioClip;
 use App\Models\AudioClip;
 use App\Models\Block;
 use App\Models\Lesson;
-use App\Services\Audio\PlayableTextCollector;
 use App\Services\Content\BlockShaper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -37,23 +36,6 @@ class AudioGenerationTest extends TestCase
         $this->assertIsArray($listen);
         $this->assertSame('missing', $listen['audio']['How can I help you?']['normal']['status']);
         $this->assertSame('missing', $listen['audio']['How can I help you?']['slow']['status']);
-    }
-
-    public function test_each_block_carries_only_its_own_clips()
-    {
-        $rows = collect(app(BlockShaper::class)->forLesson($this->lesson))->keyBy('id');
-        $collector = app(PlayableTextCollector::class);
-        $blocks = $this->lesson->blocks()->with(['lexiconItems', 'placements.activity'])->get();
-
-        $this->assertGreaterThan(1, $blocks->filter(fn (Block $block): bool => $collector->forBlock($block) !== [])->count());
-
-        foreach ($blocks as $block) {
-            $this->assertEqualsCanonicalizing(
-                $collector->forBlock($block),
-                array_map('strval', array_keys($rows[$block->id]['audio'])),
-                "Block {$block->type->value} must not carry another block's clips.",
-            );
-        }
     }
 
     public function test_super_admin_can_queue_audio_for_every_existing_lesson()

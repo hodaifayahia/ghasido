@@ -2,23 +2,20 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
+import HotelDepartmentsDialog from '@/components/hotels/HotelDepartmentsDialog.vue';
 import HotelExtendDialog from '@/components/hotels/HotelExtendDialog.vue';
 import HotelFormDialog from '@/components/hotels/HotelFormDialog.vue';
 import HotelReasonDialog from '@/components/hotels/HotelReasonDialog.vue';
-import HotelDepartmentsDialog from '@/components/hotels/HotelDepartmentsDialog.vue';
 import HotelSeatsDialog from '@/components/hotels/HotelSeatsDialog.vue';
 import HotelsDirectoryPanel from '@/components/hotels/HotelsDirectoryPanel.vue';
 import type { HotelFilterValues } from '@/components/hotels/HotelsDirectoryPanel.vue';
-import HotelsSidebarPanel from '@/components/hotels/HotelsSidebarPanel.vue';
 import HotelsStatsRow from '@/components/hotels/HotelsStatsRow.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
-import { useI18n } from '@/composables/useI18n';
 import { Button } from '@/components/ui/button';
 import { dashboard, hotels as hotelsRoute } from '@/routes';
-import { approve, destroy, pause, resume, show } from '@/routes/hotels';
+import { approve, pause, resume, show } from '@/routes/hotels';
 import type {
     HotelFilters,
     HotelMetric,
@@ -55,7 +52,6 @@ defineOptions({
 });
 
 const { can } = useCan();
-const { t } = useI18n();
 const canManage = can('hotels.manage');
 
 // ------------------------------------------------------------ navigation
@@ -159,12 +155,7 @@ const departmentsOpen = ref(false);
 const reasonOpen = ref(false);
 const reasonMode = ref<'reject' | 'archive'>('archive');
 const extendOpen = ref(false);
-const deleteOpen = ref(false);
 const actionHotel = ref<HotelRecord | null>(null);
-
-const deleteUrl = computed(() =>
-    actionHotel.value === null ? null : destroy.url(actionHotel.value.id),
-);
 
 const seatsOverview = computed(() =>
     actionHotel.value !== null && props.overview?.id === actionHotel.value.id
@@ -213,7 +204,6 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
             });
             return;
         case 'departments':
-            // Reads the hotel's quotas and catalogue from the overview too.
             selectHotel(hotel, () => {
                 departmentsOpen.value = true;
             });
@@ -234,9 +224,6 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
             return;
         case 'extend':
             extendOpen.value = true;
-            return;
-        case 'delete':
-            deleteOpen.value = true;
     }
 }
 </script>
@@ -276,19 +263,18 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
 
         <HotelsStatsRow :stats="stats" />
 
-        <div class="grid min-w-0 gap-3 xl:grid-cols-4 xl:items-start">
+        <!-- Full width: the Hotel Overview and Department Seat Quotas
+             cards were removed (client request 2026-09-29). -->
+        <div class="grid min-w-0 gap-3">
             <HotelsDirectoryPanel
                 :filters="filters"
                 :hotels="hotels"
                 :pagination="pagination"
                 :loading="loading"
-                class="xl:col-span-3"
                 @filter="applyFilters"
                 @page="goToPage"
                 @action="onAction"
             />
-
-            <HotelsSidebarPanel :overview="overview" />
         </div>
     </div>
 
@@ -305,11 +291,5 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
             :mode="reasonMode"
         />
         <HotelExtendDialog v-model:open="extendOpen" :hotel="actionHotel" />
-        <DeleteRowDialog
-            v-model:open="deleteOpen"
-            :url="deleteUrl"
-            :name="actionHotel?.name ?? ''"
-            :kind="t('hotel')"
-        />
     </template>
 </template>

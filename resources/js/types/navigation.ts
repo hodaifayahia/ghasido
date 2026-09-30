@@ -50,6 +50,8 @@ export type SidebarNavItem = Omit<NavItem, 'href' | 'icon'> & {
      * solid, so most entries fill the glyph and re-stroke its inner details.
      */
     iconClass?: HTMLAttributes['class'];
+    /** A count drawn as a small red badge after the label when above 0. */
+    badge?: number;
     /** Extra classes for the label, e.g. to keep a long name on one line. */
     labelClass?: HTMLAttributes['class'];
 };

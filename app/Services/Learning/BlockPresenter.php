@@ -13,7 +13,6 @@ use App\Models\Lesson;
 use App\Models\LexiconItem;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -41,7 +40,7 @@ class BlockPresenter
     /**
      * @return array<string, mixed>
      */
-    public function present(Block $block, User $user, bool $preview = false): array
+    public function present(Block $block, User $user): array
     {
         $type = $block->type;
         // The step plays in its lesson's accent voice; a lesson with no
@@ -60,7 +59,7 @@ class BlockPresenter
             'settings' => $this->resolver->forAccent($accent)->resolve($block->settings ?? []),
             'lexicon' => $type->holdsLexicon() ? $this->lexicon($block, $user, $accent) : [],
             'activities' => $type->holdsActivities() ? $this->activities($block, $user) : [],
-            'scenarios' => $type === BlockType::AiRoleplay ? $this->scenarios($block, $user, $preview) : [],
+            'scenarios' => $type === BlockType::AiRoleplay ? $this->scenarios($block, $user) : [],
             'summary' => $type === BlockType::Complete ? $this->summary($block, $user) : null,
         ];
     }
@@ -162,7 +161,7 @@ class BlockPresenter
                 'id' => $placement->id,
                 'activityId' => $activity->id,
                 'type' => $activity->type->value,
-                'label' => $activity->title ?? $activity->skill_label ?? $activity->type->label(),
+                'label' => $activity->title ?? $activity->type->label(),
                 'description' => $activity->type->hubDescription(),
                 'tone' => $activity->type->tone(),
                 'icon' => $activity->type->icon(),
@@ -204,7 +203,8 @@ class BlockPresenter
 
         return [
             'images' => array_slice($this->previewImages($resolved), 0, 4),
-            'sentence' => is_string($sentence) ? $sentence : null,
+            // A typed fill-in marks its blanks `[[b1]]`: shown as a gap.
+            'sentence' => is_string($sentence) ? (string) preg_replace('/\[\[[A-Za-z0-9_-]+\]\]/', '____', $sentence) : null,
         ];
     }
 
@@ -249,7 +249,7 @@ class BlockPresenter
      *
      * @return list<array<string, mixed>>
      */
-    public function scenarios(Block $block, User $user, bool $preview = false): array
+    public function scenarios(Block $block, User $user): array
     {
         $ids = $block->scenarioIds();
 
@@ -259,11 +259,8 @@ class BlockPresenter
 
         $lesson = $block->lesson()->firstOrFail();
 
-        // The admin preview shows every scenario the block links, drafts
-        // included: the admin has no learner department, so the learner
-        // scope would hide them all and the step would look empty.
         $scenarios = AiScenario::query()
-            ->when(! $preview, fn (Builder $query) => $query->forLearner($user))
+            ->forLearner($user)
             ->whereIn('id', $ids)
             ->with('thumbnail')
             ->get()
@@ -277,7 +274,7 @@ class BlockPresenter
             ->get()
             ->countBy('ai_scenario_id');
 
-        return array_values($scenarios->map(function (AiScenario $scenario) use ($lesson, $block, $used, $preview): array {
+        return array_values($scenarios->map(function (AiScenario $scenario) use ($lesson, $block, $used): array {
             $attemptsUsed = (int) ($used->get($scenario->id) ?? 0);
 
             return [
@@ -287,11 +284,7 @@ class BlockPresenter
                 'difficulty' => $scenario->difficulty->value,
                 'icon' => $scenario->icon,
                 'thumbnail' => $this->resolver->media($scenario->thumbnail),
-                // In the preview the card opens the scenario's own page,
-                // where the admin can test it (RP-13).
-                'url' => $preview
-                    ? route('ai-scenarios', ['scenario' => $scenario->id])
-                    : route('learn.roleplay.ready', ['lesson' => $lesson, 'block' => $block, 'scenario' => $scenario]),
+                'url' => route('learn.roleplay.ready', ['lesson' => $lesson, 'block' => $block, 'scenario' => $scenario]),
                 'attemptsAllowed' => $scenario->attempts_allowed,
                 'attemptsUsed' => $attemptsUsed,
                 'attemptsLeft' => max(0, $scenario->attempts_allowed - $attemptsUsed),
@@ -359,6 +352,7 @@ class BlockPresenter
             BlockType::Dialogue => ['type' => 'dialogue', 'title' => __('Dialogue Practice'), 'subtitle' => __('Completed')],
             BlockType::Video => ['type' => 'video', 'title' => __('Video'), 'subtitle' => __('Completed')],
             BlockType::Practice => ['type' => 'practice', 'title' => __('Practice'), 'subtitle' => __('Completed')],
+            BlockType::Quiz => ['type' => 'quiz', 'title' => __('Quiz'), 'subtitle' => __('Completed')],
             BlockType::AiRoleplay => ['type' => 'ai_roleplay', 'title' => __('AI Role-play'), 'subtitle' => $this->roleplaySubtitle($block, $user)],
             default => null,
         };

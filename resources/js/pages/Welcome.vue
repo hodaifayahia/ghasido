@@ -19,10 +19,12 @@ import {
     ShieldCheck,
     Smartphone,
     Sparkles,
+    UserRound,
     UsersRound,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
+import { individualInclusions } from '@/components/checkout/individualPlan';
 import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
@@ -33,8 +35,8 @@ import { vReveal } from '@/directives/vReveal';
 import type { RevealMotion } from '@/directives/vReveal';
 import { cn } from '@/lib/utils';
 import { contact } from '@/routes';
+import { show as checkoutShow } from '@/routes/checkout';
 import type {
-    LandingIndividualPricing,
     LandingPageContent,
     LandingPaymentMethod,
     LandingPlan,
@@ -43,7 +45,7 @@ import type {
 const props = defineProps<{
     content: LandingPageContent;
     plans: LandingPlan[];
-    individualPricing: LandingIndividualPricing;
+    individualPlans?: LandingPlan[];
     paymentMethods: LandingPaymentMethod[];
 }>();
 
@@ -63,24 +65,58 @@ const rolesEyebrow = computed(() =>
 // 2026-09-26); both prices are set per plan by the Super Admin.
 type Region = 'dz' | 'intl';
 const region = ref<Region>('dz');
-type OfferType = 'hotel' | 'individual';
-const offerType = ref<OfferType>('hotel');
 const regions = computed((): { key: Region; label: string }[] => [
     { key: 'dz', label: props.content.pricing.region_algeria },
     { key: 'intl', label: props.content.pricing.region_international },
 ]);
-const offerTypes = computed(() => [
-    { key: 'hotel' as const, label: t('Hotel') },
-    { key: 'individual' as const, label: t('Individual') },
-]);
-const pricingEyebrow = computed(() =>
-    offerType.value === 'individual'
-        ? t('Individual subscription')
-        : props.content.pricing.eyebrow,
+// Hotel teams or one learner on their own (user request 2026-09-27).
+// Individual plans carry monthly AI points, never seats.
+type Audience = 'hotel' | 'individual';
+const audience = ref<Audience>('hotel');
+const audiences = computed(
+    (): { key: Audience; label: string; icon: Component }[] => [
+        { key: 'hotel', label: t('Hotels'), icon: Hotel },
+        { key: 'individual', label: t('Individuals'), icon: UserRound },
+    ],
+);
+const individualPlans = computed(() => props.individualPlans ?? []);
+const isIndividual = computed(() => audience.value === 'individual');
+const shownPlans = computed(() =>
+    isIndividual.value ? individualPlans.value : props.plans,
 );
 const featuredIndex = computed(() =>
-    props.plans.length >= 4 ? 2 : Math.min(1, props.plans.length - 1),
+    shownPlans.value.length >= 4 ? 2 : Math.min(1, shownPlans.value.length - 1),
 );
+
+/** Arrow keys move between the audience options, as in a radio group. */
+function onAudienceKey(event: KeyboardEvent): void {
+    if (
+        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    ) {
+        return;
+    }
+
+    event.preventDefault();
+    audience.value = isIndividual.value ? 'hotel' : 'individual';
+
+    const group = (event.currentTarget as HTMLElement).closest(
+        '[role="radiogroup"]',
+    );
+    group
+        ?.querySelector<HTMLElement>(`[data-audience="${audience.value}"]`)
+        ?.focus();
+}
+
+function checkoutHref(plan: LandingPlan): string {
+    if (onRequest(plan)) {
+        return contact().url;
+    }
+
+    return checkoutShow.url(
+        plan.slug,
+        region.value === 'intl' ? { query: { region: 'intl' } } : undefined,
+    );
+}
 
 const aiIcons: Component[] = [MessageCircleMore, Mic2, Sparkles, AudioLines];
 const roleIcons: Component[] = [Building2, UsersRound, GraduationCap];
@@ -111,45 +147,17 @@ const formatUsd = (value: number): string =>
 
 /** A plan with no USD price yet is quoted on request, never shown as $0. */
 function onRequest(plan: LandingPlan): boolean {
-    return region.value === 'intl' ? plan.priceUsd <= 0 : plan.priceDzd <= 0;
+    return region.value === 'intl' && plan.priceUsd <= 0;
 }
 
 function price(plan: LandingPlan): { amount: string; currency: string } {
-    if (onRequest(plan)) {
-        return { amount: t('On request'), currency: '' };
-    }
-
     if (region.value === 'dz') {
         return { amount: formatDzd(plan.priceDzd), currency: 'DZD' };
     }
 
-    return { amount: `$${formatUsd(plan.priceUsd)}`, currency: 'USD' };
-}
-
-function pricePerSeat(plan: LandingPlan): string {
-    if (onRequest(plan)) return t('On request');
-
-    return region.value === 'dz'
-        ? `${formatDzd(plan.priceDzd / plan.employeeLimit)} DZD`
-        : `$${formatUsd(plan.priceUsd / plan.employeeLimit)} USD`;
-}
-
-function individualPrice(): { amount: string; currency: string } {
-    if (region.value === 'dz') {
-        return props.individualPricing.priceDzd > 0
-            ? {
-                  amount: formatDzd(props.individualPricing.priceDzd),
-                  currency: 'DZD',
-              }
-            : { amount: t('On request'), currency: '' };
-    }
-
-    return props.individualPricing.priceUsd > 0
-        ? {
-              amount: `$${formatUsd(props.individualPricing.priceUsd)}`,
-              currency: 'USD',
-          }
-        : { amount: t('On request'), currency: '' };
+    return onRequest(plan)
+        ? { amount: t('On request'), currency: '' }
+        : { amount: `$${formatUsd(plan.priceUsd)}`, currency: 'USD' };
 }
 </script>
 
@@ -178,17 +186,14 @@ function individualPrice(): { amount: string; currency: string } {
                 />
 
                 <div
-                    class="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-10 lg:py-22"
+                    class="relative mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-10 lg:py-22"
                 >
-                    <div class="relative z-10 max-w-xl">
+                    <div class="relative z-10 max-w-xl min-w-0">
                         <span
                             v-reveal
                             class="border-brand-200 bg-surface text-brand-700 shadow-card rounded-pill inline-flex items-center gap-2 border px-3.5 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
                         >
-                            <span
-                                class="relative flex size-2"
-                                aria-hidden="true"
-                            >
+                            <span class="relative flex size-2">
                                 <span
                                     class="bg-success absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:animate-none"
                                 />
@@ -262,14 +267,14 @@ function individualPrice(): { amount: string; currency: string } {
 
                     <figure
                         v-reveal:end="200"
-                        class="relative mx-auto w-full max-w-[720px] pb-10 sm:pb-14 lg:ms-auto"
+                        class="relative mx-auto w-full max-w-[720px] min-w-0 pb-10 sm:pb-14 lg:ms-auto"
                     >
                         <div
-                            v-reveal:tilt="450"
                             class="bg-brand-200/60 absolute -inset-3 rotate-1 rounded-xl"
                             aria-hidden="true"
                         />
                         <div
+                            v-reveal:tilt="450"
                             class="border-line bg-surface shadow-pop relative overflow-hidden rounded-xl border p-2 sm:p-3"
                         >
                             <div
@@ -501,9 +506,9 @@ function individualPrice(): { amount: string; currency: string } {
                             </p>
                         </div>
                         <img
-                            v-reveal:fade="750"
                             src="/decor/palm-island-tagline.png"
                             alt=""
+                            v-reveal:fade="750"
                             class="pointer-events-none absolute -start-2 -bottom-6 w-28 opacity-70 select-none sm:w-34"
                         />
                     </figure>
@@ -921,7 +926,7 @@ function individualPrice(): { amount: string; currency: string } {
                             v-reveal
                             class="text-brand-600 text-[12px] font-bold tracking-[0.16em] uppercase"
                         >
-                            {{ pricingEyebrow }}
+                            {{ content.pricing.eyebrow }}
                         </p>
                         <h2
                             id="pricing-title"
@@ -939,132 +944,102 @@ function individualPrice(): { amount: string; currency: string } {
 
                         <div
                             v-reveal="200"
-                            class="border-line bg-surface shadow-card mx-auto mt-7 grid max-w-3xl gap-4 rounded-2xl border p-3 text-start sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] sm:gap-5 sm:p-4"
-                            data-test="pricing-selector"
+                            class="mt-7 flex flex-wrap items-center justify-center gap-3"
                         >
-                            <fieldset
-                                class="min-w-0"
-                                data-test="pricing-offer-type-tabs"
+                            <div
+                                v-if="individualPlans.length"
+                                role="radiogroup"
+                                :aria-label="$t('Plans for')"
+                                class="border-line bg-surface shadow-card rounded-pill inline-grid grid-cols-2 gap-1 border p-1"
                             >
-                                <legend
-                                    class="text-ink-slate mb-2 px-1 text-[12px] leading-5 font-semibold"
+                                <button
+                                    v-for="option in audiences"
+                                    :key="option.key"
+                                    type="button"
+                                    role="radio"
+                                    :aria-checked="audience === option.key"
+                                    :tabindex="audience === option.key ? 0 : -1"
+                                    :data-audience="option.key"
+                                    :class="
+                                        cn(
+                                            'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none sm:px-6 sm:text-[14px]',
+                                            audience === option.key
+                                                ? 'bg-brand-600 text-surface shadow-btn'
+                                                : 'text-ink-indigo hover:bg-brand-50',
+                                        )
+                                    "
+                                    :data-test="`pricing-audience-${option.key}`"
+                                    @click="audience = option.key"
+                                    @keydown="onAudienceKey"
                                 >
-                                    {{ $t('Subscription type') }}
-                                </legend>
-                                <div
-                                    class="bg-app-alt grid grid-cols-2 gap-1 rounded-xl p-1"
-                                >
-                                    <label
-                                        v-for="option in offerTypes"
-                                        :key="option.key"
-                                        :data-test="`pricing-type-${option.key}`"
-                                        class="cursor-pointer"
-                                    >
-                                        <input
-                                            v-model="offerType"
-                                            class="peer sr-only"
-                                            type="radio"
-                                            name="pricing-offer-type"
-                                            :value="option.key"
-                                        />
-                                        <span
-                                            :class="
-                                                cn(
-                                                    'focus-visible:ring-brand-600 flex min-h-10 items-center justify-center rounded-lg px-3 text-center text-[13px] font-semibold transition-colors peer-focus-visible:ring-2 peer-focus-visible:outline-none',
-                                                    offerType === option.key
-                                                        ? 'bg-brand-900 text-surface shadow-btn'
-                                                        : 'text-ink-indigo hover:bg-surface',
-                                                )
-                                            "
-                                        >
-                                            {{ option.label }}
-                                        </span>
-                                    </label>
-                                </div>
-                            </fieldset>
+                                    <component
+                                        :is="option.icon"
+                                        :class="
+                                            audience === option.key
+                                                ? 'text-brand-100'
+                                                : 'text-brand-600'
+                                        "
+                                        class="size-4.5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    {{ option.label }}
+                                </button>
+                            </div>
 
-                            <fieldset
-                                class="border-line min-w-0 border-t pt-4 sm:border-s sm:border-t-0 sm:ps-5 sm:pt-0"
-                                data-test="pricing-region-selector"
+                            <div
+                                role="radiogroup"
+                                :aria-label="$t('Pricing region')"
+                                class="border-line bg-surface shadow-card rounded-pill inline-grid grid-cols-2 gap-1 border p-1"
                             >
-                                <legend
-                                    class="text-ink-slate mb-2 px-1 text-[12px] leading-5 font-semibold"
+                                <button
+                                    v-for="option in regions"
+                                    :key="option.key"
+                                    type="button"
+                                    role="radio"
+                                    :aria-checked="region === option.key"
+                                    :class="
+                                        cn(
+                                            'rounded-pill focus-visible:ring-brand-600 flex min-h-11 items-center justify-center gap-2.5 px-4 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-6 sm:text-[14px]',
+                                            region === option.key
+                                                ? 'bg-brand-900 text-surface shadow-btn'
+                                                : 'text-ink-indigo hover:bg-brand-50',
+                                        )
+                                    "
+                                    :data-test="`pricing-region-${option.key}`"
+                                    @click="region = option.key"
                                 >
-                                    {{ $t('Pricing region') }}
-                                </legend>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label
-                                        v-for="option in regions"
-                                        :key="option.key"
-                                        :data-test="`pricing-region-${option.key}`"
-                                        class="cursor-pointer"
-                                    >
-                                        <input
-                                            v-model="region"
-                                            class="peer sr-only"
-                                            type="radio"
-                                            name="pricing-region"
-                                            :value="option.key"
-                                        />
-                                        <span
-                                            :class="
-                                                cn(
-                                                    'border-line flex min-h-11 items-center gap-2 rounded-xl border px-2.5 py-2 transition-colors sm:px-3',
-                                                    region === option.key
-                                                        ? 'border-brand-600 bg-brand-50 text-ink-indigo'
-                                                        : 'bg-surface text-ink-slate hover:border-brand-300',
-                                                )
-                                            "
-                                        >
-                                            <AlgeriaFlagIcon
-                                                v-if="option.key === 'dz'"
-                                                class="size-5 shrink-0"
-                                            />
-                                            <Globe
-                                                v-else
-                                                class="text-brand-600 size-5 shrink-0"
-                                                aria-hidden="true"
-                                            />
-                                            <span
-                                                class="min-w-0 flex-1 text-[12px] leading-4 font-semibold sm:text-[13px]"
-                                            >
-                                                {{ option.label }}
-                                            </span>
-                                            <span
-                                                :class="
-                                                    cn(
-                                                        'size-4 shrink-0 rounded-full border-2 transition-colors',
-                                                        region === option.key
-                                                            ? 'border-brand-600 bg-brand-600 text-surface'
-                                                            : 'border-line-strong bg-surface',
-                                                    )
-                                                "
-                                                aria-hidden="true"
-                                            >
-                                                <Check
-                                                    v-if="region === option.key"
-                                                    class="size-full p-[2px]"
-                                                    :stroke-width="3"
-                                                />
-                                            </span>
-                                        </span>
-                                    </label>
-                                </div>
-                            </fieldset>
+                                    <AlgeriaFlagIcon
+                                        v-if="option.key === 'dz'"
+                                        class="size-6 shrink-0"
+                                    />
+                                    <Globe
+                                        v-else
+                                        :class="
+                                            region === option.key
+                                                ? 'text-brand-200'
+                                                : 'text-brand-600'
+                                        "
+                                        class="size-5 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    {{ option.label }}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div
-                        v-if="offerType === 'hotel' && plans.length"
+                        v-if="shownPlans.length"
+                        :key="audience"
                         :class="
-                            plans.length >= 4
+                            shownPlans.length >= 4
                                 ? 'max-w-7xl md:grid-cols-2 xl:grid-cols-4'
                                 : 'max-w-6xl lg:grid-cols-3'
                         "
                         class="mx-auto mt-10 grid items-stretch gap-5 lg:mt-14"
                     >
                         <article
-                            v-for="(plan, index) in plans"
+                            v-for="(plan, index) in shownPlans"
                             :key="plan.id"
                             v-reveal="index * 110"
                             :class="
@@ -1090,52 +1065,23 @@ function individualPrice(): { amount: string; currency: string } {
                             >
                                 {{ plan.name }}
                             </h3>
-                            <!-- Switching region swaps the price with a
-                                 short fade instead of a jump. -->
-                            <p class="mt-5 min-h-[38px]">
-                                <Transition
-                                    mode="out-in"
-                                    enter-active-class="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300"
-                                    leave-active-class="motion-safe:animate-out motion-safe:fade-out motion-safe:duration-150"
+                            <p class="mt-5 flex flex-wrap items-end gap-2">
+                                <span
+                                    class="font-heading text-[38px] leading-none font-bold tracking-[-0.04em]"
                                 >
-                                    <span
-                                        :key="region"
-                                        class="flex flex-wrap items-end gap-2"
-                                    >
-                                        <span
-                                            class="font-heading text-[38px] leading-none font-bold tracking-[-0.04em]"
-                                        >
-                                            {{ price(plan).amount }}
-                                        </span>
-                                        <span
-                                            v-if="!onRequest(plan)"
-                                            :class="
-                                                index === featuredIndex
-                                                    ? 'text-brand-200'
-                                                    : 'text-ink-slate'
-                                            "
-                                            class="pb-0.5 text-[12px]"
-                                            >{{ price(plan).currency }} /
-                                            {{
-                                                content.pricing.monthly_label
-                                            }}</span
-                                        >
-                                    </span>
-                                </Transition>
-                            </p>
-                            <p
-                                :class="
-                                    index === featuredIndex
-                                        ? 'text-brand-100'
-                                        : 'text-ink-slate'
-                                "
-                                class="mt-2 text-[12px]"
-                                data-test="hotel-price-per-seat"
-                            >
-                                <strong class="font-semibold">{{
-                                    pricePerSeat(plan)
-                                }}</strong>
-                                {{ $t('per employee seat / month') }}
+                                    {{ price(plan).amount }}
+                                </span>
+                                <span
+                                    v-if="!onRequest(plan)"
+                                    :class="
+                                        index === featuredIndex
+                                            ? 'text-brand-200'
+                                            : 'text-ink-slate'
+                                    "
+                                    class="pb-0.5 text-[12px]"
+                                    >{{ price(plan).currency }} /
+                                    {{ content.pricing.monthly_label }}</span
+                                >
                             </p>
 
                             <div
@@ -1146,7 +1092,10 @@ function individualPrice(): { amount: string; currency: string } {
                                 "
                                 class="mt-6 space-y-3 border-y py-5"
                             >
-                                <div class="flex items-center gap-3">
+                                <div
+                                    v-if="!isIndividual"
+                                    class="flex items-center gap-3"
+                                >
                                     <UsersRound
                                         :class="
                                             index === featuredIndex
@@ -1175,14 +1124,23 @@ function individualPrice(): { amount: string; currency: string } {
                                         <strong class="font-semibold">{{
                                             plan.pointsPool.toLocaleString()
                                         }}</strong>
-                                        {{ content.pricing.ai_points_label }}
+                                        {{
+                                            isIndividual
+                                                ? $t('AI points per month')
+                                                : content.pricing
+                                                      .ai_points_label
+                                        }}
                                     </p>
                                 </div>
                             </div>
 
                             <ul class="mt-5 flex-1 space-y-3">
                                 <li
-                                    v-for="item in content.pricing.inclusions"
+                                    v-for="item in isIndividual
+                                        ? individualInclusions.map((line) =>
+                                              $t(line),
+                                          )
+                                        : content.pricing.inclusions"
                                     :key="item"
                                     :class="
                                         index === featuredIndex
@@ -1212,85 +1170,8 @@ function individualPrice(): { amount: string; currency: string } {
                                 "
                                 class="mt-7 h-12 w-full rounded-md text-[13px] font-semibold"
                             >
-                                <Link
-                                    :href="
-                                        onRequest(plan)
-                                            ? contact().url
-                                            : `/checkout/${plan.slug}${region === 'intl' ? '?region=intl' : ''}`
-                                    "
-                                >
+                                <Link :href="checkoutHref(plan)">
                                     {{ content.pricing.button_text }}
-                                    <ChevronRight class="size-4" />
-                                </Link>
-                            </Button>
-                        </article>
-                    </div>
-
-                    <div
-                        v-else-if="offerType === 'individual'"
-                        class="mx-auto mt-10 max-w-md"
-                        role="tabpanel"
-                        :aria-label="$t('Individual subscription')"
-                    >
-                        <article
-                            class="border-line bg-surface text-ink shadow-card hover:shadow-hover flex h-full flex-col rounded-xl border p-6 transition-[translate,box-shadow] duration-200 hover:-translate-y-1 motion-reduce:transition-none sm:p-7"
-                            data-test="pricing-individual"
-                        >
-                            <h3
-                                class="font-heading text-ink-night text-[21px] font-semibold"
-                            >
-                                {{ $t('Individual subscription') }}
-                            </h3>
-                            <p
-                                class="text-ink-slate mt-2 text-[13px] leading-5"
-                            >
-                                {{
-                                    $t(
-                                        'A monthly GHASIDO subscription for one learner, without a hotel account.',
-                                    )
-                                }}
-                            </p>
-                            <p
-                                class="mt-5 flex min-h-[38px] flex-wrap items-end gap-2"
-                            >
-                                <span
-                                    class="font-heading text-ink-night text-[38px] leading-none font-bold tracking-[-0.04em]"
-                                >
-                                    {{ individualPrice().amount }}
-                                </span>
-                                <span
-                                    v-if="individualPrice().currency"
-                                    class="text-ink-slate pb-0.5 text-[12px]"
-                                >
-                                    {{ individualPrice().currency }} /
-                                    {{ content.pricing.monthly_label }}
-                                </span>
-                            </p>
-                            <p class="text-ink-slate mt-2 text-[12px]">
-                                {{ $t('For one individual learner') }}
-                            </p>
-                            <ul
-                                class="border-line mt-6 flex-1 space-y-3 border-t py-5"
-                            >
-                                <li
-                                    v-for="item in content.pricing.inclusions"
-                                    :key="item"
-                                    class="text-ink-slate flex items-start gap-2 text-[12px] leading-5"
-                                >
-                                    <Check
-                                        class="text-success mt-0.5 size-4 shrink-0"
-                                    />
-                                    {{ item }}
-                                </li>
-                            </ul>
-                            <Button
-                                as-child
-                                class="bg-brand-600 text-surface hover:bg-brand-700 mt-2 h-12 w-full rounded-md text-[13px] font-semibold"
-                            >
-                                <Link :href="contact().url">
-                                    {{
-                                        $t('Contact us about individual access')
-                                    }}
                                     <ChevronRight class="size-4" />
                                 </Link>
                             </Button>
@@ -1300,7 +1181,7 @@ function individualPrice(): { amount: string; currency: string } {
                     <!-- Hotel / Enterprise (client pricing mockup 2026-09-26):
                          larger teams are sent to Contact Us for a quote. -->
                     <div
-                        v-if="offerType === 'hotel'"
+                        v-if="!isIndividual"
                         v-reveal
                         class="border-brand-100 bg-brand-50 shadow-card mx-auto mt-10 grid max-w-7xl gap-6 rounded-xl border p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center lg:gap-8"
                         data-test="pricing-enterprise"
@@ -1365,7 +1246,6 @@ function individualPrice(): { amount: string; currency: string } {
 
                     <div
                         v-reveal:fade
-                        v-if="offerType === 'hotel'"
                         class="mx-auto mt-7 flex max-w-3xl items-start justify-center gap-2 text-center"
                     >
                         <ShieldCheck
@@ -1375,18 +1255,6 @@ function individualPrice(): { amount: string; currency: string } {
                             {{ content.pricing.footnote }}
                         </p>
                     </div>
-
-                    <p
-                        v-else
-                        v-reveal:fade
-                        class="text-ink-slate mx-auto mt-7 max-w-3xl text-center text-[12px] leading-5"
-                    >
-                        {{
-                            $t(
-                                'Contact GHASIDO to set up an individual learner subscription.',
-                            )
-                        }}
-                    </p>
 
                     <div
                         v-if="paymentMethods.length"

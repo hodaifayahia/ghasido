@@ -32,10 +32,16 @@ final class AnswerFormatter
             ActivityType::WordsSentences => self::string($item, 'sentence'),
             ActivityType::DialogueOrder => self::prefixed(__('Put in order'), self::labels(self::list($item, 'sentences'), 'text')),
             ActivityType::PictureOrder => self::prefixed(__('Put in order'), self::string($item, 'context')),
-            ActivityType::MultipleChoice => self::string($item, 'question'),
-            ActivityType::ShortAnswer => self::string($item, 'question'),
             ActivityType::Speaking => self::join([self::string($item, 'situation'), self::string($item, 'question')]),
-            ActivityType::Writing => self::string($item, 'scenario'),
+            ActivityType::Writing => self::string($item, 'scenario') !== '' ? self::string($item, 'scenario') : self::string($item, 'question'),
+            ActivityType::MultipleChoice,
+            ActivityType::AudioQuestion,
+            ActivityType::ImageQuestion,
+            ActivityType::VideoQuestion,
+            ActivityType::ShortAnswer,
+            ActivityType::Matching,
+            ActivityType::Ordering => self::string($item, 'question') !== '' ? self::string($item, 'question') : self::prefixed(__('Listen'), self::string($item, 'audio_text')),
+            ActivityType::FillBlank => self::join([self::string($item, 'question'), (string) preg_replace('/\[\[[A-Za-z0-9_-]+\]\]/', '____', self::string($item, 'sentence'))]),
         };
 
         return $text === '' ? $fallback : $text;
@@ -60,16 +66,18 @@ final class AnswerFormatter
             ActivityType::LookListen,
             ActivityType::BestResponse,
             ActivityType::WatchRespond,
-            ActivityType::MultipleChoice => self::option($item, $rawAnswer),
-            ActivityType::ListenMatch => self::pairs($item, $rawAnswer),
-            ActivityType::DialogueOrder => self::ordered(self::list($item, 'sentences'), 'text', $rawAnswer),
+            ActivityType::WordsSentences,
+            ActivityType::MultipleChoice,
+            ActivityType::AudioQuestion,
+            ActivityType::ImageQuestion,
+            ActivityType::VideoQuestion => self::option($item, $rawAnswer),
+            ActivityType::ListenMatch, ActivityType::Matching => self::pairs($item, $rawAnswer),
+            ActivityType::DialogueOrder, ActivityType::Ordering => self::ordered(self::list($item, 'sentences'), 'text', $rawAnswer),
+            ActivityType::ShortAnswer => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
+            ActivityType::FillBlank => self::blanks($rawAnswer),
             ActivityType::PictureOrder => self::ordered(self::list($item, 'cards'), 'caption', $rawAnswer),
             ActivityType::Speaking => self::recording($rawAnswer, $transcript, $withTranscript),
             ActivityType::Writing => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
-            ActivityType::ShortAnswer => is_array($rawAnswer) ? self::string($rawAnswer, 'text') : self::scalar($rawAnswer),
-            ActivityType::WordsSentences => is_array($rawAnswer) && isset($item['accepted_answers'])
-                ? self::string($rawAnswer, 'text')
-                : self::option($item, $rawAnswer),
         };
     }
 
@@ -131,14 +139,33 @@ final class AnswerFormatter
             return self::scalar($chosen);
         }
 
-        $prompts = self::byId(self::list($item, 'prompts'), 'audio_text');
-        $targets = self::byId(self::list($item, 'targets'), 'label');
+        // Listen & match names its sides audio_text / label, Matching text.
+        $prompts = array_filter(self::byId(self::list($item, 'prompts'), 'audio_text')) + self::byId(self::list($item, 'prompts'), 'text');
+        $targets = array_filter(self::byId(self::list($item, 'targets'), 'label')) + self::byId(self::list($item, 'targets'), 'text');
         $parts = [];
 
         foreach ($chosen as $promptId => $targetId) {
             $promptId = (string) $promptId;
             $targetId = self::scalar($targetId);
             $parts[] = ($prompts[$promptId] ?? $promptId).' → '.($targets[$targetId] ?? $targetId);
+        }
+
+        return implode('; ', $parts);
+    }
+
+    /**
+     * Fill in the blank: `b1: passport; b2: key`.
+     */
+    private static function blanks(mixed $raw): string
+    {
+        if (! is_array($raw)) {
+            return self::scalar($raw);
+        }
+
+        $parts = [];
+
+        foreach ($raw as $id => $word) {
+            $parts[] = $id.': '.self::scalar($word);
         }
 
         return implode('; ', $parts);

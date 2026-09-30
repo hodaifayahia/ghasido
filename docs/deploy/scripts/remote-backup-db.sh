@@ -2,7 +2,7 @@
 # Snapshot the live SQLite database before a migration (VACUUM INTO gives a
 # consistent copy even in WAL mode). Keeps backups in database/backups/.
 set -euo pipefail
-APP=/home/u673635734/domains/ghasido.com/guesvia
+APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
 cd "$APP"
 mkdir -p database/backups
 out="database/backups/database-$(date +%Y%m%d-%H%M%S).sqlite"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Mic, Square, Upload } from '@lucide/vue';
+import { Upload } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { t, tk } from '@/lib/i18n';
-import { useRecorder } from '@/composables/useRecorder';
 import { store } from '@/routes/media';
 import type { LessonLibraryImage } from '@/types';
 
@@ -43,20 +42,6 @@ const altText = ref('');
 const category = ref('');
 const errors = ref<ValidationErrors>({});
 const processing = ref(false);
-const recorder = useRecorder({ maxSeconds: 180 });
-
-watch(recorder.state, (state) => {
-    if (state !== 'recorded' || recorder.blob.value === null) return;
-
-    const mime = recorder.mimeType.value.split(';')[0] || 'audio/webm';
-    const extension =
-        mime === 'audio/mp4' ? 'm4a' : mime === 'audio/ogg' ? 'ogg' : 'webm';
-    file.value = new File(
-        [recorder.blob.value],
-        `recorded-audio-${Date.now()}.${extension}`,
-        { type: mime },
-    );
-});
 
 watch(open, (isOpen) => {
     if (isOpen) {
@@ -64,21 +49,18 @@ watch(open, (isOpen) => {
         altText.value = '';
         category.value = '';
         errors.value = {};
-        recorder.reset();
-    } else {
-        recorder.reset();
     }
 });
 
 const accept: Record<NonNullable<Props['kind']>, string> = {
     image: 'image/jpeg,image/png,image/webp',
-    audio: 'audio/mpeg,audio/wav,audio/mp4,audio/webm,audio/ogg',
+    audio: 'audio/mpeg,audio/wav,audio/mp4,audio/webm',
     video: 'video/mp4,video/webm',
 };
 
 const limit: Record<NonNullable<Props['kind']>, string> = {
     image: tk('JPG, PNG or WebP, up to 5 MB'),
-    audio: tk('MP3, WAV, M4A, Ogg or WebM, up to 20 MB'),
+    audio: tk('MP3, WAV, M4A or WebM, up to 20 MB'),
     video: tk('MP4 or WebM, up to 200 MB'),
 };
 
@@ -90,21 +72,7 @@ const titles: Record<NonNullable<Props['kind']>, string> = {
 
 function onFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    recorder.reset();
     file.value = input.files?.[0] ?? null;
-}
-
-function recordAudio(): void {
-    errors.value = {};
-
-    if (recorder.state.value === 'recording') {
-        recorder.stop();
-
-        return;
-    }
-
-    file.value = null;
-    void recorder.start();
 }
 
 async function submit(): Promise<void> {
@@ -113,13 +81,6 @@ async function submit(): Promise<void> {
     }
 
     errors.value = {};
-
-    if (file.value === null) {
-        errors.value = { file: t('Choose or record an audio file.') };
-
-        return;
-    }
-
     processing.value = true;
 
     const body = new FormData();
@@ -172,73 +133,13 @@ const inputClass =
                     type="file"
                     name="file"
                     :accept="accept[kind]"
-                    :disabled="recorder.state.value === 'recording'"
+                    required
                     class="sr-only"
                     data-test="upload-file-input"
                     @change="onFile"
                 />
             </label>
             <InputError :message="errors.file" />
-
-            <div v-if="kind === 'audio'" class="grid gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="border-line text-brand-700 hover:bg-brand-50 h-10 justify-start gap-2"
-                    :disabled="
-                        processing || recorder.state.value === 'requesting'
-                    "
-                    @click="recordAudio"
-                >
-                    <Square
-                        v-if="recorder.state.value === 'recording'"
-                        class="size-4 fill-current"
-                        aria-hidden="true"
-                    />
-                    <Mic v-else class="size-4" aria-hidden="true" />
-                    {{
-                        recorder.state.value === 'recording'
-                            ? $t('Stop recording')
-                            : recorder.state.value === 'recorded'
-                              ? $t('Record again')
-                              : $t('Record audio')
-                    }}
-                </Button>
-                <p
-                    v-if="recorder.state.value === 'recording'"
-                    class="text-danger-text text-[12px]"
-                    role="status"
-                >
-                    {{ $t('Recording audio…') }}
-                    {{ Math.ceil(recorder.elapsedMs.value / 1000) }}s
-                </p>
-                <p
-                    v-else-if="
-                        recorder.state.value === 'denied' ||
-                        recorder.state.value === 'unsupported' ||
-                        recorder.state.value === 'error'
-                    "
-                    class="text-danger-text text-[12px]"
-                    role="alert"
-                >
-                    {{
-                        $t(
-                            recorder.state.value === 'denied'
-                                ? 'Microphone access was denied.'
-                                : recorder.state.value === 'unsupported'
-                                  ? 'Audio recording is not supported in this browser.'
-                                  : 'Audio recording failed. Try uploading a file instead.',
-                        )
-                    }}
-                </p>
-                <p
-                    v-else-if="recorder.state.value === 'recorded'"
-                    class="text-success-text text-[12px]"
-                    role="status"
-                >
-                    {{ $t('Recording ready to upload.') }}
-                </p>
-            </div>
 
             <div class="grid gap-1.5">
                 <Label

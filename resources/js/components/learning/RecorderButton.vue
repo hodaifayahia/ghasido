@@ -36,25 +36,39 @@ const emit = defineEmits<{
         },
     ];
     reset: [];
+    /** The microphone is refused or missing: the parent offers typing. */
+    unavailable: [];
 }>();
 
 const recorder = useRecorder({ maxSeconds: props.maxSeconds });
 const { t } = useI18n();
 
-watch(recorder.state, (state) => {
-    if (
-        state === 'recorded' &&
-        recorder.blob.value !== null &&
-        recorder.url.value !== null
-    ) {
-        emit('recorded', {
-            blob: recorder.blob.value,
-            url: recorder.url.value,
-            durationMs: recorder.durationMs.value,
-            mimeType: recorder.mimeType.value,
-        });
-    }
-});
+watch(
+    recorder.state,
+    (state) => {
+        if (
+            state === 'denied' ||
+            state === 'unsupported' ||
+            state === 'error'
+        ) {
+            emit('unavailable');
+        }
+
+        if (
+            state === 'recorded' &&
+            recorder.blob.value !== null &&
+            recorder.url.value !== null
+        ) {
+            emit('recorded', {
+                blob: recorder.blob.value,
+                url: recorder.url.value,
+                durationMs: recorder.durationMs.value,
+                mimeType: recorder.mimeType.value,
+            });
+        }
+    },
+    { immediate: true },
+);
 
 function clock(ms: number): string {
     const total = Math.floor(ms / 1000);

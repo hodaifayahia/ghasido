@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Image, Replace, Sparkles, Trash2, Upload } from '@lucide/vue';
+import { Image, Mic, Replace, Sparkles, Trash2, Upload } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import LessonsAudioRecordDialog from '@/components/lessons/LessonsAudioRecordDialog.vue';
 import LessonsImageGenerateDialog from '@/components/lessons/LessonsImageGenerateDialog.vue';
 import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
 import LessonsUploadDialog from '@/components/lessons/LessonsUploadDialog.vue';
@@ -19,8 +20,9 @@ import type {
 /**
  * One media slot (MED-02): Upload / Choose when empty, Replace / Remove when
  * filled. The slot holds an id; the parent stores it in the block settings
- * or the row column. Images open the library picker; audio and video only
- * upload.
+ * or the row column. Every kind can be uploaded or chosen from the library
+ * (the picker lists that kind); audio can also be recorded (client report
+ * 2026-09-29), images generated.
  */
 type Props = {
     label: string;
@@ -63,6 +65,7 @@ const emit = defineEmits<{
 const pickerOpen = ref(false);
 const uploadOpen = ref(false);
 const generateOpen = ref(false);
+const recordOpen = ref(false);
 
 /** A generated picture fills the slot like a picked library image. */
 function onGenerated(media: ContentGenerationMedia): void {
@@ -162,7 +165,17 @@ const buttonClass =
                 {{ filled && kind !== 'image' ? $t('Replace') : $t('Upload') }}
             </Button>
             <Button
-                v-if="kind === 'image'"
+                v-if="kind === 'audio'"
+                type="button"
+                variant="outline"
+                :class="buttonClass"
+                :data-test="`slot-record-${label}`"
+                @click="recordOpen = true"
+            >
+                <Mic class="size-3.5" aria-hidden="true" />
+                {{ $t('Record') }}
+            </Button>
+            <Button
                 type="button"
                 variant="outline"
                 :class="buttonClass"
@@ -170,7 +183,13 @@ const buttonClass =
                 @click="pickerOpen = true"
             >
                 <Replace class="size-3.5" aria-hidden="true" />
-                {{ filled ? $t('Replace') : $t('Choose') }}
+                {{
+                    kind === 'image'
+                        ? filled
+                            ? $t('Replace')
+                            : $t('Choose')
+                        : $t('Library')
+                }}
             </Button>
             <Button
                 v-if="kind === 'image'"
@@ -197,11 +216,17 @@ const buttonClass =
         </div>
 
         <LessonsMediaPicker
-            v-if="kind === 'image'"
             v-model:open="pickerOpen"
             :tabs="tabs"
             :categories="categories"
+            :kind="kind"
+            :initial-tab="kind === 'image' ? undefined : 'my-images'"
             @choose="onChoose"
+        />
+        <LessonsAudioRecordDialog
+            v-if="kind === 'audio'"
+            v-model:open="recordOpen"
+            @uploaded="onChoose"
         />
         <LessonsImageGenerateDialog
             v-if="kind === 'image'"

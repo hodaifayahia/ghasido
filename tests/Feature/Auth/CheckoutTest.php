@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Enums\HotelAccessState;
 use App\Enums\Role;
 use App\Models\Hotel;
+use App\Models\PaymentSubmission;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,8 @@ class CheckoutTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Welcome')
                 ->has('plans', 3)
+                // Individual plans are listed apart (client request 2026-09-27).
+                ->has('individualPlans', 3)
                 ->where('plans.1.slug', 'gold')
                 ->where('plans.1.employeeLimit', 7)
                 ->where('plans.1.priceDzd', 20000)
@@ -56,8 +59,10 @@ class CheckoutTest extends TestCase
         $plan = SubscriptionPlan::query()->where('slug', 'gold')->firstOrFail();
 
         $this->post(route('checkout.store', $plan), $this->validRequest())
-            ->assertRedirect(route('login'))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('checkout.submitted', [
+                'submission' => PaymentSubmission::query()->sole()->public_id,
+            ]));
 
         $hotel = Hotel::query()->where('name', 'Blue Coast Hotel')->firstOrFail();
         $manager = User::query()->where('username', 'blue.coast.manager')->firstOrFail();
@@ -87,8 +92,10 @@ class CheckoutTest extends TestCase
             'manager_name' => 'Nassim Benali',
             'manager_email' => 'manager@bluecoast.test',
             'manager_username' => 'blue.coast.manager',
+            'phone' => '+213 555 12 34 56',
             'password' => 'SecretPass123',
             'password_confirmation' => 'SecretPass123',
+            'reference' => 'BM-0001',
         ];
     }
 }

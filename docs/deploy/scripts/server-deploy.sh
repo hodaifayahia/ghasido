@@ -128,7 +128,7 @@ rsync -a --relative \
   --exclude='public/build' --exclude='public/hot' --exclude='public/storage' \
   --exclude='public/fonts-manifest.dev.json' \
   --exclude='database/*.sqlite*' \
-  app bootstrap config database lang public resources routes artisan composer.json composer.lock \
+  app bootstrap config database public resources routes artisan composer.json composer.lock \
   "$APP/"
 rsync -a --delete public/build/ "$APP/public/build/"
 

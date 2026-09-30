@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, UserRound } from '@lucide/vue';
+import { Pencil, Plus, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import UserFormDialog from '@/components/users/UserFormDialog.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
@@ -10,7 +9,6 @@ import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { dashboard } from '@/routes';
-import { destroy as destroyUser } from '@/routes/users';
 import { tk } from '@/lib/i18n';
 
 type UserRole = {
@@ -73,15 +71,6 @@ function editUser(account: AppAccount): void {
     selectedAccount.value = account;
     modalOpen.value = true;
 }
-
-const deleteOpen = ref(false);
-const deletingAccount = ref<AppAccount | null>(null);
-
-/** Safe delete: the server refuses while anything depends on the account. */
-function deleteUser(account: AppAccount): void {
-    deletingAccount.value = account;
-    deleteOpen.value = true;
-}
 </script>
 
 <template>
@@ -139,10 +128,10 @@ function deleteUser(account: AppAccount): void {
                         }}
                     </caption>
                     <colgroup>
-                        <col class="w-[43%] sm:w-[34%]" />
-                        <col class="w-[26%] sm:w-[28%]" />
+                        <col class="w-[43%] sm:w-[38%]" />
+                        <col class="w-[26%] sm:w-[30%]" />
                         <col class="w-[17%] sm:w-[17%]" />
-                        <col class="w-[14%] sm:w-[21%]" />
+                        <col class="w-[14%] sm:w-[15%]" />
                     </colgroup>
                     <thead
                         class="bg-app text-ink-slate text-[10px] tracking-wide uppercase sm:text-[11px]"
@@ -161,9 +150,7 @@ function deleteUser(account: AppAccount): void {
                                 scope="col"
                                 class="px-2 py-2.5 text-end sm:px-4"
                             >
-                                <span class="sr-only sm:not-sr-only">{{
-                                    $t('Actions')
-                                }}</span>
+                                {{ $t('Edit') }}
                             </th>
                         </tr>
                     </thead>
@@ -243,54 +230,25 @@ function deleteUser(account: AppAccount): void {
                                 </span>
                             </td>
                             <td class="px-1.5 py-3 text-end sm:px-4">
-                                <!-- Stacked on a phone, where the column is
-                                     too narrow for two buttons side by side. -->
-                                <div
+                                <Button
                                     v-if="canManage"
-                                    class="flex flex-col items-end gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-1.5"
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-ink size-8 rounded-md p-0 sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                                    :data-test="`edit-app-user-${account.id}-button`"
+                                    :aria-label="
+                                        $t('Edit :name', { name: account.name })
+                                    "
+                                    @click="editUser(account)"
                                 >
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        class="border-line text-ink size-8 rounded-md p-0 sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
-                                        :data-test="`edit-app-user-${account.id}-button`"
-                                        :aria-label="
-                                            $t('Edit :name', {
-                                                name: account.name,
-                                            })
-                                        "
-                                        @click="editUser(account)"
-                                    >
-                                        <Pencil
-                                            class="size-3.5"
-                                            aria-hidden="true"
-                                        />
-                                        <span class="hidden sm:inline">{{
-                                            $t('Edit')
-                                        }}</span>
-                                    </Button>
-                                    <Button
-                                        v-if="!account.isCurrentUser"
-                                        type="button"
-                                        variant="outline"
-                                        class="border-danger text-danger-text hover:bg-danger-tint bg-surface relative size-8 rounded-md p-0 before:absolute before:-inset-1.5 sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5 sm:before:hidden"
-                                        :data-test="`delete-app-user-${account.id}-button`"
-                                        :aria-label="
-                                            $t('Delete :name', {
-                                                name: account.name,
-                                            })
-                                        "
-                                        @click="deleteUser(account)"
-                                    >
-                                        <Trash2
-                                            class="size-3.5"
-                                            aria-hidden="true"
-                                        />
-                                        <span class="hidden sm:inline">{{
-                                            $t('Delete')
-                                        }}</span>
-                                    </Button>
-                                </div>
+                                    <Pencil
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="hidden sm:inline">{{
+                                        $t('Edit')
+                                    }}</span>
+                                </Button>
                             </td>
                         </tr>
                         <tr v-if="accounts.data.length === 0">
@@ -350,13 +308,5 @@ function deleteUser(account: AppAccount): void {
         v-model:open="modalOpen"
         :account="selectedAccount"
         :roles="roles"
-    />
-
-    <DeleteRowDialog
-        v-if="canManage"
-        v-model:open="deleteOpen"
-        :url="deletingAccount ? destroyUser.url(deletingAccount.id) : null"
-        :name="deletingAccount?.name ?? ''"
-        :kind="$t('user')"
     />
 </template>

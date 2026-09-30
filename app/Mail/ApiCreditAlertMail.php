@@ -2,12 +2,9 @@
 
 namespace App\Mail;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 
 /**
  * An AI service's credit is running low (20% left) or used up (spec 0007,
@@ -16,10 +13,8 @@ use Illuminate\Queue\SerializesModels;
  * AI features pause for her learners. Carries the Super Admin's figures
  * only (CreditSummary), never the owner's cost.
  */
-class ApiCreditAlertMail extends Mailable implements ShouldQueue
+class ApiCreditAlertMail extends BrandedMailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
-
     public const string LOW = 'low';
 
     public const string EMPTY = 'empty';
@@ -64,6 +59,7 @@ class ApiCreditAlertMail extends Mailable implements ShouldQueue
 
         return new Content(
             view: 'mail.api-credit-alert',
+            text: 'mail.text.api-credit-alert',
             with: [
                 'name' => $this->recipientName,
                 'empty' => $this->level === self::EMPTY,

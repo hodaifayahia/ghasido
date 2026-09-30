@@ -31,10 +31,36 @@ export type IndividualRow = {
     paymentReference: string | null;
     notes: string | null;
     lastActivity: string | null;
+    phone: string | null;
+    /** The plan bought online; null for subscribers added by hand. */
+    planName: string | null;
+    approvalState: IndividualApprovalState;
+    /** Already translated by the server. */
+    approvalLabel: string;
+    rejectionReason: string | null;
+    /** The latest payment sent with the online purchase. */
+    payment: IndividualPayment | null;
+};
+
+/** Bought online and waiting for the payment to be confirmed (2026-09-27). */
+export type IndividualApprovalState = 'pending' | 'approved' | 'rejected';
+
+export type IndividualPayment = {
+    id: number;
+    method: string;
+    amount: number;
+    currency: string;
+    reference: string | null;
+    /** Streams the private receipt inline; null when only a reference was sent. */
+    receiptUrl: string | null;
+    isImage: boolean;
+    status: 'pending' | 'confirmed' | 'rejected';
+    submittedAt: string | null;
 };
 
 export type IndividualStats = {
     total: number;
+    pending: number;
     active: number;
     endingSoon: number;
     withAi: number;
@@ -49,7 +75,7 @@ export type IndividualDefaults = {
 
 export type IndividualFilters = {
     search: string;
-    /** `all`, `inactive` or `ended`; the server falls back to `all`. */
+    /** `all`, `pending`, `inactive` or `ended`; the server falls back to `all`. */
     state: string;
 };
 

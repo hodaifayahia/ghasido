@@ -35,6 +35,10 @@ export type LessonDirectoryRow = {
     /** Number of visible employee steps in this lesson. */
     steps: number;
     url: string;
+    /** May the viewer delete it (LessonPolicy::destroy)? */
+    canDelete: boolean;
+    /** Learner progress/answer rows; above 0 a delete keeps them (DATA-10). */
+    learnerRecords: number;
 };
 
 export type LessonDirectoryMetricKey =
@@ -207,6 +211,7 @@ export type BlockTypeKey =
     | 'dialogue'
     | 'video'
     | 'practice'
+    | 'quiz'
     | 'ai_roleplay'
     | 'complete'
     | 'text'
@@ -249,7 +254,6 @@ export type LessonLibraryImage = {
     width?: number | null;
     height?: number | null;
     category?: string | null;
-    kind?: 'image' | 'audio' | 'video';
 };
 
 export type LessonsImageLibrary = {
@@ -329,9 +333,15 @@ export type ActivityTypeKey =
     | 'dialogue_order'
     | 'picture_order'
     | 'multiple_choice'
-    | 'short_answer'
     | 'speaking'
-    | 'writing';
+    | 'writing'
+    | 'short_answer'
+    | 'fill_blank'
+    | 'matching'
+    | 'ordering'
+    | 'audio_question'
+    | 'image_question'
+    | 'video_question';
 
 export type LessonActivityItem = Record<string, unknown> & { id: string };
 

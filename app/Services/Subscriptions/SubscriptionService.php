@@ -15,7 +15,16 @@ final class SubscriptionService
     public function updatePlan(SubscriptionPlan $plan, array $data): SubscriptionPlan
     {
         return DB::transaction(function () use ($plan, $data): SubscriptionPlan {
-            if (! $data['is_active'] && $plan->is_active && SubscriptionPlan::query()->active()->count() <= 1) {
+            // An individual plan is one learner with an AI point allowance:
+            // never seats, never a shared pool (client request 2026-09-27).
+            if ($plan->isIndividual()) {
+                $data['employee_limit'] = 1;
+                $data['bonus_points_per_employee'] = 0;
+            }
+
+            // Hotels always need a plan to sign up on. Individual plans may
+            // all be switched off, which hides the individual offer.
+            if (! $plan->isIndividual() && ! $data['is_active'] && $plan->is_active && SubscriptionPlan::query()->active()->forHotels()->count() <= 1) {
                 throw ValidationException::withMessages([
                     'is_active' => __('At least one plan must stay available for new hotel subscriptions.'),
                 ]);

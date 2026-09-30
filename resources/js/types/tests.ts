@@ -7,12 +7,17 @@
  * learner runner (TEST-01..10, TSTM-01..05).
  */
 
+import type { ActivityView } from './assessment';
 import type {
     TestAiPanel,
-    TestJudgedAnswer,
     TestQuestionAudio,
     TestQuestionDetail,
 } from './assessment-ai';
+import type {
+    LessonActivityRow,
+    LessonAudioPair,
+    LessonMediaRef,
+} from './lessons';
 
 // Pre-test vs Post-test. Named TestVariant (not TestType) so it never clashes
 // with the learner-facing TestType union in assessment.ts.
@@ -33,13 +38,6 @@ export type TestsMockupCrop = {
 
 export type TestStatus = 'active' | 'draft';
 
-export type TestsTabKey = 'tests' | 'question-bank' | 'results' | 'settings';
-
-export type TestsTab = {
-    key: TestsTabKey;
-    label: string;
-};
-
 export type TestListItem = {
     id: string;
     title: string;
@@ -47,6 +45,8 @@ export type TestListItem = {
     hotel: string;
     meta: string;
     questionCount: number;
+    /** Sittings of any status; a test with any cannot be deleted (DATA-10). */
+    attemptCount: number;
     timeLimit: number | null;
     type: TestVariant;
     status: TestStatus;
@@ -84,23 +84,21 @@ export type TestsList = {
     items: TestListItem[];
 };
 
+/**
+ * The client's ten question types (client report 2026-09-29), the same
+ * ten the lesson activity editor offers.
+ */
 export type TestQuestionKind =
     | 'multiple_choice'
-    | 'true_false'
-    | 'fill_blank'
+    | 'ordering'
     | 'matching'
     | 'short_answer'
-    | 'audio'
-    | 'image'
-    | 'video'
+    | 'audio_question'
+    | 'image_question'
+    | 'video_question'
     | 'speaking'
-    | 'ordering'
+    | 'fill_blank'
     | 'writing';
-
-export type TestQuestionPair = {
-    left: string;
-    right: string;
-};
 
 export type TestQuestionKindOption = {
     value: TestQuestionKind;
@@ -111,11 +109,6 @@ export type TestQuestionOption = {
     id: string;
     text: string;
     correct: boolean;
-    imageId?: number | null;
-    image?: TestQuestionMediaRef | null;
-    audioId?: number | null;
-    audio?: TestQuestionMediaRef | null;
-    audioText?: string | null;
 };
 
 export type TestEditorQuestion = {
@@ -129,18 +122,16 @@ export type TestEditorQuestion = {
     imageCrop?: TestsMockupCrop;
     media: TestQuestionMedia;
     options: TestQuestionOption[];
-    pairs: TestQuestionPair[];
-    acceptedAnswers: string[];
-    audioText: string;
-    requestText: string;
-    information: string[];
-    speakingSeconds: number;
     typeLabel?: string;
     /** An AI draft learners cannot see until it is approved (GEN-03). */
     aiDraft?: boolean;
     releaseUrl?: string;
     details?: TestQuestionDetail[];
     audio?: TestQuestionAudio | null;
+    /** What the shared activity editor opens with. */
+    activity: LessonActivityRow | null;
+    mediaMap: Record<string, LessonMediaRef>;
+    audioMap: Record<string, LessonAudioPair>;
 };
 
 export type TestQuestionMediaRef = {
@@ -157,51 +148,18 @@ export type TestQuestionMedia = {
     video: TestQuestionMediaRef | null;
 };
 
+/** The short form (kind, text, options) the CSV import still reads. */
 export type TestQuestionPayload = {
     kind: TestQuestionKind;
     text: string;
-    options: Array<{
-        id: string;
-        text: string;
-        correct: boolean;
-        image_id?: number | null;
-        audio_id?: number | null;
-        audio_text?: string | null;
-    }>;
-    pairs?: TestQuestionPair[];
-    accepted_answers?: string[];
-    audio_text?: string;
-    request_text?: string;
-    information?: string[];
-    speaking_seconds?: number;
-    media?: {
-        image?: number | null;
-        audio?: number | null;
-        video?: number | null;
-    };
-};
-
-export type TestQuestionDraft = {
-    kind: TestQuestionKind;
-    text: string;
     options: TestQuestionOption[];
-    pairs: TestQuestionPair[];
-    acceptedAnswers: string[];
-    audioText: string;
-    requestText: string;
-    information: string[];
-    speakingSeconds: number;
-    media: {
-        image?: number | null;
-        audio?: number | null;
-        video?: number | null;
-    };
 };
 
 export type TestEditorSavePayload = {
     title: string;
     type: TestVariant;
-    department_id: number;
+    /** A department id, or 'all' for a test every department sits. */
+    department_id: number | 'all';
     hotel_id: number | null;
     description: string;
     time_limit_minutes: number | null;
@@ -229,6 +187,7 @@ export type TestEditor = {
     hotel?: string;
     timeLimit: string;
     questionCount: string;
+    attemptCount: number;
     description: string;
     descriptionCount: string;
     kinds: TestQuestionKindOption[];
@@ -267,7 +226,12 @@ export type TestPreview = {
     options: TestPreviewOption[];
     media: TestQuestionMedia;
     questions: TestEditorQuestion[];
+    /** Each question as the learner's test runner shows it (test mode). */
+    activities: ActivityView[];
 };
+
+/** The Create / Edit Test builder's tabs (client request 2026-09-29). */
+export type TestEditorTab = 'questions' | 'settings' | 'preview';
 
 export type TestMediaTabKey = 'image' | 'audio' | 'video';
 
@@ -290,17 +254,6 @@ export type TestMedia = {
     suggested: TestSuggestedImage[];
 };
 
-export type TestSettingToggle = {
-    key: string;
-    label: string;
-    checked: boolean;
-};
-
-export type TestSettings = {
-    toggles: TestSettingToggle[];
-    passMark: string;
-};
-
 export type TestResultTone = 'brand' | 'danger' | 'success' | 'excel';
 
 export type TestResultStat = {
@@ -314,28 +267,4 @@ export type TestResultStat = {
 
 export type TestResults = {
     stats: TestResultStat[];
-    rows: TestResultRow[];
-};
-
-export type TestResultRow = {
-    id: number;
-    employee: string;
-    test: string;
-    type: string;
-    score: string;
-    submittedAt: string;
-    answers?: TestJudgedAnswer[];
-};
-
-export type TestQuestionBankItem = {
-    id: number;
-    title: string;
-    kind: string;
-    kindLabel: string;
-    prompt: string;
-    department: string;
-    uses: number;
-    version: number;
-    sourceTest?: string;
-    openUrl?: string;
 };

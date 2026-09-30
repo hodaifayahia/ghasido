@@ -99,7 +99,7 @@ function removeLine(index: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
-            translatable
+            meaning
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -122,11 +122,12 @@ function removeLine(index: number): void {
             />
         </div>
         <LessonsField
+            meaning
             v-model="situationCaption"
             :label="$t('Situation caption')"
         />
         <LessonsField
-            translatable
+            meaning
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"

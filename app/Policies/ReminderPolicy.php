@@ -38,6 +38,16 @@ class ReminderPolicy
         return $user->can(Permission::MessagesManage->value);
     }
 
+    /**
+     * Delete one log entry: the messaging permission, inside the actor's
+     * own hotel for a manager.
+     */
+    public function delete(User $user, Reminder $reminder): bool
+    {
+        return $user->can(Permission::MessagesManage->value)
+            && $this->reaches($user, $reminder);
+    }
+
     private function reaches(User $user, Reminder $reminder): bool
     {
         if ($user->hasRole(Role::SuperAdmin->value)) {

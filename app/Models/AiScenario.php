@@ -49,6 +49,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $ai_draft
  * @property GenerationStatus|null $ai_status
  * @property int|null $created_by
+ * @property Carbon|null $archived_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -118,6 +119,7 @@ class AiScenario extends Model
             'min_turns' => 'integer',
             'max_turns' => 'integer',
             'status' => ContentStatus::class,
+            'archived_at' => 'datetime',
             'ai_draft' => 'array',
             'ai_status' => GenerationStatus::class,
         ];
@@ -172,7 +174,24 @@ class AiScenario extends Model
      */
     public function scopePublished(Builder $query): void
     {
-        $query->where('status', ContentStatus::Published);
+        // A removed row is never live again, whatever its status (DATA-10).
+        $query->where('status', ContentStatus::Published)->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    /**
+     * Rows still in the admin library: not removed by "Delete" (CMS-01).
+     * A removed row keeps its answers for reports (DATA-10).
+     *
+     * @param  Builder<AiScenario>  $query
+     */
+    public function scopeNotArchived(Builder $query): void
+    {
+        $query->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 
     /**

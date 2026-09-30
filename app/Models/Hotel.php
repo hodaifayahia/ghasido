@@ -119,6 +119,17 @@ class Hotel extends Model
         return $this->hasMany(User::class);
     }
 
+    /**
+     * The manual payments sent for this hotel from the checkout (client
+     * request 2026-09-27).
+     *
+     * @return HasMany<PaymentSubmission, $this>
+     */
+    public function paymentSubmissions(): HasMany
+    {
+        return $this->hasMany(PaymentSubmission::class);
+    }
+
     /** @return HasMany<HotelAiPointTopUp, $this> */
     public function aiPointTopUps(): HasMany
     {

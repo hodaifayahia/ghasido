@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ApprovalState;
 use Database\Factories\IndividualSubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 
@@ -29,6 +31,11 @@ use Illuminate\Support\Facades\Date;
  * @property int $voice_points_per_10_minutes
  * @property int|null $price_dzd
  * @property float|null $price_usd
+ * @property int|null $subscription_plan_id the plan bought online, if any
+ * @property ApprovalState $approval_state
+ * @property Carbon|null $approved_at
+ * @property int|null $approved_by
+ * @property string|null $rejection_reason
  * @property string|null $payment_reference
  * @property string|null $notes
  * @property int|null $created_by
@@ -47,6 +54,11 @@ use Illuminate\Support\Facades\Date;
     'voice_points_per_10_minutes',
     'price_dzd',
     'price_usd',
+    'subscription_plan_id',
+    'approval_state',
+    'approved_at',
+    'approved_by',
+    'rejection_reason',
     'payment_reference',
     'notes',
     'created_by',
@@ -69,6 +81,8 @@ class IndividualSubscription extends Model
             'voice_points_per_10_minutes' => 'integer',
             'price_dzd' => 'integer',
             'price_usd' => 'float',
+            'approval_state' => ApprovalState::class,
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -76,6 +90,23 @@ class IndividualSubscription extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<SubscriptionPlan, $this> */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
+    /** @return HasMany<PaymentSubmission, $this> */
+    public function paymentSubmissions(): HasMany
+    {
+        return $this->hasMany(PaymentSubmission::class);
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_state === ApprovalState::Pending;
     }
 
     /** @return BelongsTo<User, $this> */

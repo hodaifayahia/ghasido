@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\Permission;
-use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\DepartmentsController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,5 +15,4 @@ Route::middleware(Permission::DepartmentsManage->middleware())->group(function (
     Route::post('departments', [DepartmentsController::class, 'store'])->name('departments.store');
     Route::patch('departments/{department}', [DepartmentsController::class, 'update'])->name('departments.update');
     Route::post('departments/{department}/toggle', [DepartmentsController::class, 'toggle'])->name('departments.toggle');
-    Route::delete('departments/{department}', [DeleteController::class, 'department'])->name('departments.destroy');
 });

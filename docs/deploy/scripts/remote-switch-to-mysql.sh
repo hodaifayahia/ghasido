@@ -16,7 +16,7 @@
 # and running `php artisan optimize`. Safe to run again: the MySQL tables are
 # emptied and refilled from SQLite each time. Prints no secrets.
 set -euo pipefail
-APP=${APP:-/home/u673635734/domains/ghasido.com/guesvia}
+APP=${APP:-/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia}
 SQLITE=${SQLITE:-$APP/database/database.sqlite}
 cd "$APP"
 

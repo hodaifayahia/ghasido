@@ -39,7 +39,7 @@ class HotelApprovalController extends Controller
 
     public function reject(RejectHotelRequest $request, Hotel $hotel, HotelService $hotels): RedirectResponse
     {
-        $hotels->reject($hotel, $request->reason());
+        $hotels->reject($hotel, $request->reason(), $request->user('web'));
 
         Inertia::flash('toast', [
             'type' => 'info',

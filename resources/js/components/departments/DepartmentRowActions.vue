@@ -6,7 +6,6 @@ import {
     Eye,
     Pencil,
     RotateCcw,
-    Trash2,
 } from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import type { Component } from 'vue';
@@ -99,16 +98,6 @@ const items = computed<Item[]>(() => {
                       group: 'end',
                   },
         );
-
-        // Safe delete: the server refuses while anything depends on the
-        // department (DATA-10).
-        list.push({
-            action: 'delete',
-            label: tk('Delete'),
-            icon: Trash2,
-            destructive: true,
-            group: 'end',
-        });
     }
 
     return list;

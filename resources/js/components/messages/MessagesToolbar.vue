@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RotateCcw, Send } from '@lucide/vue';
+import { Bell, Clock, FileText, RotateCcw, Send } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
 import { reactive, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -25,6 +25,10 @@ type Props = {
     canSend: boolean;
     /** How many employees are selected, for the button label. */
     selectedCount: number;
+    /** The counts on the Templates, Rules and Log buttons. */
+    templatesCount: number;
+    rulesCount: number;
+    logTotal: number;
     class?: HTMLAttributes['class'];
 };
 
@@ -37,7 +41,51 @@ const emit = defineEmits<{
     filter: [values: MessageFilterValues];
     /** Send Group Reminder: the page opens the send dialog. */
     send: [];
+    /** The three management modals next to Send (REM-03, REM-04, REM-06). */
+    openTemplates: [];
+    openRules: [];
+    openLog: [];
 }>();
+
+type ManageButton = {
+    key: 'templates' | 'rules' | 'log';
+    label: string;
+    count: () => number;
+    icon: typeof FileText;
+    iconClass: string;
+    test: string;
+    open: () => void;
+};
+
+const manageButtons: ManageButton[] = [
+    {
+        key: 'templates',
+        label: tk('Reminder Templates'),
+        count: () => props.templatesCount,
+        icon: FileText,
+        iconClass: 'text-brand-600',
+        test: 'open-templates-button',
+        open: () => emit('openTemplates'),
+    },
+    {
+        key: 'rules',
+        label: tk('Automation Rules'),
+        count: () => props.rulesCount,
+        icon: Bell,
+        iconClass: 'text-ai',
+        test: 'open-rules-button',
+        open: () => emit('openRules'),
+    },
+    {
+        key: 'log',
+        label: tk('Reminder Log'),
+        count: () => props.logTotal,
+        icon: Clock,
+        iconClass: 'text-warning',
+        test: 'open-full-log-button',
+        open: () => emit('openLog'),
+    },
+];
 
 const values = reactive<Record<FilterKey, string>>({
     hotel: props.filters.hotel,
@@ -171,10 +219,40 @@ function resetFilters(): void {
             </Button>
         </div>
 
-        <div v-if="canSend" class="flex justify-end">
+        <!-- Templates, rules and the log open as modals beside Send (REM-03, REM-04, REM-06). -->
+        <div
+            class="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:items-center md:justify-end"
+        >
             <Button
+                v-for="button in manageButtons"
+                :key="button.key"
                 type="button"
-                class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
+                variant="outline"
+                class="border-line text-brand-700 hover:bg-brand-50 bg-surface h-auto min-h-11 min-w-0 flex-wrap content-start justify-start gap-x-2 gap-y-1 rounded-md px-2.5 py-2 text-start text-[12.5px] leading-4 font-semibold whitespace-normal shadow-none md:h-10 md:min-h-0 md:flex-nowrap md:justify-center md:px-3 md:py-0 md:whitespace-nowrap"
+                :data-test="button.test"
+                @click="button.open()"
+            >
+                <component
+                    :is="button.icon"
+                    :class="cn('size-4 shrink-0', button.iconClass)"
+                    aria-hidden="true"
+                />
+                <!-- Phone: icon and count on the first line, the label wraps below. -->
+                <span
+                    class="order-last min-w-0 basis-full md:order-none md:basis-auto"
+                    >{{ $t(button.label) }}</span
+                >
+                <span
+                    class="bg-brand-50 text-brand-700 rounded-pill ms-auto inline-flex min-w-5 shrink-0 items-center justify-center px-1.5 text-[11px] leading-5 font-semibold md:ms-0"
+                >
+                    {{ button.count() }}
+                </span>
+            </Button>
+
+            <Button
+                v-if="canSend"
+                type="button"
+                class="bg-brand-600 shadow-btn hover:bg-brand-700 col-span-3 h-11 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97] md:h-10"
                 data-test="send-group-reminder-button"
                 @click="emit('send')"
             >

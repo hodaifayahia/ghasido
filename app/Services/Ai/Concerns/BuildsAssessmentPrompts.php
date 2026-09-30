@@ -45,12 +45,22 @@ trait BuildsAssessmentPrompts
             .'"better_answer": "<a short model answer the employee could say>", "summary": "<one encouraging sentence>"}';
     }
 
-    protected function writingSystemPrompt(?EnglishLevel $level = null): string
+    /**
+     * @param  array<string, string>  $rubric  criterion key => label (WritingEvaluation::rubricFor())
+     */
+    protected function writingSystemPrompt(?EnglishLevel $level = null, array $rubric = WritingEvaluation::DEFAULT_CRITERIA): string
     {
-        return 'You are an encouraging English coach for hotel staff. Evaluate the written reply below against the task. Reward getting the message across over perfect grammar; the tone is adult, warm and professional. '
-            .$this->assessmentContext($level).' Respond with ONLY a JSON object of this exact shape: '
-            .'{"criteria": {"task_completion": {"score": <int 0-100>, "comment": "<text>"}, "accuracy": {"score": <int>, "comment": "<text>"}, "politeness": {"score": <int>, "comment": "<text>"}, "clarity": {"score": <int>, "comment": "<text>"}}, '
-            .'"better_answer": "<a model reply of similar length>", "summary": "<one encouraging sentence>"}';
+        $criteria = [];
+
+        foreach ($rubric as $key => $label) {
+            $criteria[] = sprintf('"%s": {"score": <int 0-100 for %s>, "comment": "<one sentence>"}', $key, str_replace('"', "'", $label));
+        }
+
+        return 'You are an encouraging English coach for hotel staff. Evaluate the written reply below (an email, message or reply) against the task. Reward getting the message across over perfect grammar; the tone is adult, warm and professional. '
+            .$this->assessmentContext($level).' List up to five of the learner\'s own phrases that need correcting, each with the corrected phrase and a short reason. Respond with ONLY a JSON object of this exact shape: '
+            .'{"criteria": {'.implode(', ', $criteria).'}, '
+            .'"corrections": [{"original": "<the learner\'s phrase, verbatim>", "corrected": "<the corrected phrase>", "note": "<why, in simple English>"}], '
+            .'"better_answer": "<an improved model reply of similar length>", "summary": "<one encouraging sentence>"}';
     }
 
     /**
@@ -74,17 +84,38 @@ trait BuildsAssessmentPrompts
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function parseWritingEvaluation(array $data, AiUsageInfo $usage): WritingEvaluation
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $rubric  criterion key => label
+     */
+    protected function parseWritingEvaluation(array $data, AiUsageInfo $usage, array $rubric = WritingEvaluation::DEFAULT_CRITERIA): WritingEvaluation
     {
         $raw = is_array($data['criteria'] ?? null) ? $data['criteria'] : [];
         $criteria = [];
 
-        foreach (['task_completion', 'accuracy', 'politeness', 'clarity'] as $key) {
+        foreach ($rubric as $key => $label) {
             $entry = is_array($raw[$key] ?? null) ? $raw[$key] : [];
             $criteria[$key] = [
                 'score' => $this->score($entry, 'score'),
                 'comment' => $this->string($entry, 'comment', ''),
+                'label' => $label,
             ];
+        }
+
+        $corrections = [];
+
+        foreach (is_array($data['corrections'] ?? null) ? $data['corrections'] : [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            /** @var array<string, mixed> $row */
+            $original = $this->string($row, 'original', '');
+            $corrected = $this->string($row, 'corrected', '');
+
+            if ($original !== '' && $corrected !== '') {
+                $corrections[] = ['original' => $original, 'corrected' => $corrected, 'note' => $this->string($row, 'note', '')];
+            }
         }
 
         return new WritingEvaluation(
@@ -92,6 +123,7 @@ trait BuildsAssessmentPrompts
             betterAnswer: $this->string($data, 'better_answer', ''),
             summary: $this->string($data, 'summary', ''),
             usage: $usage,
+            corrections: array_slice($corrections, 0, 5),
         );
     }
 

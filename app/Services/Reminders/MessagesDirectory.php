@@ -4,6 +4,7 @@ namespace App\Services\Reminders;
 
 use App\Enums\AccountStatus;
 use App\Enums\AutomationTrigger;
+use App\Enums\Permission;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
@@ -42,7 +43,7 @@ class MessagesDirectory
     public const PER_PAGE = 8;
 
     /** Delivery log rows per page. */
-    public const LOG_PER_PAGE = 5;
+    public const LOG_PER_PAGE = 10;
 
     /** The stat card's window for "scheduled" reminders, in days. */
     public const SCHEDULED_WINDOW_DAYS = 7;
@@ -61,6 +62,14 @@ class MessagesDirectory
         $logs = $this->logQuery($actor)
             ->paginate(self::LOG_PER_PAGE, ['*'], 'log_page')
             ->withQueryString();
+
+        // Past the last page (the last row of a page was just deleted from
+        // the log modal): show the last page there is instead of nothing.
+        if ($logs->isEmpty() && $logs->currentPage() > $logs->lastPage()) {
+            $logs = $this->logQuery($actor)
+                ->paginate(self::LOG_PER_PAGE, ['*'], 'log_page', $logs->lastPage())
+                ->withQueryString();
+        }
 
         /** @var list<User> $recipientRows */
         $recipientRows = $recipients->items();
@@ -103,6 +112,9 @@ class MessagesDirectory
                 'send' => Gate::forUser($actor)->allows('send', Reminder::class),
                 'manageTemplates' => Gate::forUser($actor)->allows('create', ReminderTemplate::class),
                 'manageRules' => Gate::forUser($actor)->allows('create', AutomationRule::class),
+                // Log rows are already scoped to the actor; each delete is
+                // still checked by ReminderPolicy::delete.
+                'deleteLogs' => $actor->can(Permission::MessagesManage->value),
             ],
         ];
     }

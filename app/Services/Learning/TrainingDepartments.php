@@ -2,7 +2,6 @@
 
 namespace App\Services\Learning;
 
-use App\Enums\Role;
 use App\Models\Course;
 use App\Models\Department;
 use App\Models\User;
@@ -19,10 +18,6 @@ use Illuminate\Database\Eloquent\Collection;
  * empty curriculum. The same list validates the session value in
  * ResolveTrainingDepartment, so a manager cannot train in a department that
  * is not theirs (ROLE-02, SEC-01).
- *
- * An individual subscriber with several departments (owner request
- * 2026-09-25) switches the same way, between exactly the departments on
- * their subscription.
  */
 class TrainingDepartments
 {
@@ -31,16 +26,6 @@ class TrainingDepartments
      */
     public function availableFor(User $user): Collection
     {
-        if ($user->isIndividual()) {
-            $ids = $user->individualSubscription?->departmentIds() ?? [];
-
-            return Department::query()
-                ->active()
-                ->whereIn('id', $ids)
-                ->orderBy('name')
-                ->get(['id', 'name']);
-        }
-
         return Department::query()
             ->active()
             ->visibleTo($user)
@@ -50,19 +35,6 @@ class TrainingDepartments
             })
             ->orderBy('name')
             ->get(['id', 'name']);
-    }
-
-    /**
-     * Whether this user switches between departments: a manager (who has
-     * none of their own) or an individual subscriber with more than one.
-     */
-    public function switches(User $user): bool
-    {
-        if ($user->isIndividual()) {
-            return count($user->individualSubscription?->departmentIds() ?? []) > 1;
-        }
-
-        return $user->department_id === null && $user->hasRole(Role::Manager->value);
     }
 
     /**

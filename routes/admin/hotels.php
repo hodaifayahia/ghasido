@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\Permission;
-use App\Http\Controllers\Admin\DeleteController;
 use App\Http\Controllers\Admin\Hotels\HotelAccessController;
 use App\Http\Controllers\Admin\Hotels\HotelApprovalController;
 use App\Http\Controllers\Admin\Hotels\HotelContractController;
@@ -31,8 +30,6 @@ Route::middleware(Permission::HotelsManage->middleware())->group(function () {
     Route::put('hotels/{hotel}/seat-quotas', [HotelSeatQuotasController::class, 'update'])->name('hotels.seat-quotas');
     Route::post('hotels/{hotel}/departments', [HotelDepartmentsController::class, 'store'])->name('hotels.departments.store');
     Route::delete('hotels/{hotel}/departments/{department}', [HotelDepartmentsController::class, 'destroy'])->name('hotels.departments.destroy');
-    // Safe delete (owner decision 2026-09-27): refused while anything depends on the row.
-    Route::delete('hotels/{hotel}', [DeleteController::class, 'hotel'])->name('hotels.destroy');
 });
 
 Route::middleware(Permission::HotelsApprove->middleware())->group(function () {

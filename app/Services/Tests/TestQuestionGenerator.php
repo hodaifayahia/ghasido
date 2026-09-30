@@ -209,7 +209,7 @@ class TestQuestionGenerator
 
         return Test::query()
             ->ofType(TestType::Pre)
-            ->where('department_id', $test->department_id)
+            ->where(fn ($query) => $test->department_id === null ? $query->whereNull('department_id') : $query->where('department_id', $test->department_id))
             ->where(fn ($query) => $test->hotel_id === null ? $query->whereNull('hotel_id') : $query->where('hotel_id', $test->hotel_id))
             ->whereHas('questions')
             ->latest('id')

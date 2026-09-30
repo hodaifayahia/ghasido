@@ -25,3 +25,5 @@ export * from './voice-agent';
 export * from './assessment-ai';
 export * from './individuals';
 export * from './translations';
+export * from './payments';
+export * from './mail-settings';

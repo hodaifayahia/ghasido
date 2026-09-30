@@ -13,6 +13,7 @@ use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * Writes the assessment builder's aggregate (TEST-01..10, TSTM-01..05).
@@ -49,6 +50,18 @@ class TestService
     public function update(Test $test, array $data, User $actor): Test
     {
         return DB::transaction(function () use ($test, $data): Test {
+            // The builder's Settings tab sends the rules it edits; anything
+            // else already stored on the test (a timeout rule, say) is kept.
+            if (is_array($data['settings'] ?? null)) {
+                $data['settings'] = array_merge($test->settings ?? [], $data['settings']);
+            }
+
+            // Likewise the builder edits only the intro's description; the
+            // learner's intro page copy (heading, facts…) stays.
+            if (is_array($data['intro'] ?? null)) {
+                $data['intro'] = array_merge(is_array($test->intro) ? $test->intro : [], $data['intro']);
+            }
+
             $test->fill($data);
             AuditLog::record($test, 'test.updated');
             $test->save();
@@ -101,49 +114,46 @@ class TestService
     }
 
     /**
-     * The builder's question kind for a stored activity type. The inverse of
-     * activityType(); speaking and ordering only come from AI drafts.
+     * The builder's question kind for a stored activity type: the type
+     * itself for the client's ten types (client report 2026-09-29), the
+     * nearest of the ten for an older type.
      */
-    public static function kindFor(ActivityType $type, ?string $skillLabel = null): string
+    public static function kindFor(ActivityType $type): string
     {
-        // True / False is stored as a two-option multiple choice; its skill
-        // label is what tells the builder it is a True / False question.
-        if ($type === ActivityType::MultipleChoice && $skillLabel === 'True / False') {
-            return 'true_false';
-        }
-        if ($type === ActivityType::MultipleChoice && $skillLabel === 'Image Question') {
-            return 'image';
+        if (! $type->isLegacy()) {
+            return $type->value;
         }
 
         return match ($type) {
-            ActivityType::WordsSentences => 'fill_blank',
-            ActivityType::ListenMatch => 'matching',
-            ActivityType::ShortAnswer => 'short_answer',
-            ActivityType::Writing => 'writing',
-            ActivityType::ListenChoose, ActivityType::BestResponse => 'audio',
-            ActivityType::LookListen => 'image',
-            ActivityType::WatchRespond => 'video',
-            ActivityType::Speaking => 'speaking',
-            ActivityType::DialogueOrder, ActivityType::PictureOrder => 'ordering',
-            default => 'multiple_choice',
+            ActivityType::WordsSentences => ActivityType::FillBlank->value,
+            ActivityType::ListenMatch => ActivityType::Matching->value,
+            ActivityType::ListenChoose, ActivityType::BestResponse => ActivityType::AudioQuestion->value,
+            ActivityType::LookListen => ActivityType::ImageQuestion->value,
+            ActivityType::WatchRespond => ActivityType::VideoQuestion->value,
+            ActivityType::DialogueOrder, ActivityType::PictureOrder => ActivityType::Ordering->value,
+            default => ActivityType::MultipleChoice->value,
         };
     }
 
     /**
-     * @param  array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}  $data
+     * Add one question built in the shared activity editor: its type, its
+     * instruction and its one item (spec 0003 B.9). It starts as a draft,
+     * like every question until the test is published.
+     *
+     * @param  array{type: ActivityType, prompt: string, title?: string|null, payload: array<string, mixed>}  $data
      */
-    public function addQuestion(Test $test, array $data, User $actor): ActivityPlacement
+    public function addActivity(Test $test, array $data, User $actor): ActivityPlacement
     {
         return DB::transaction(function () use ($test, $data, $actor): ActivityPlacement {
-            $type = $this->activityType($data['kind']);
-            $options = $this->options($data['options'], $data['kind']);
+            $number = ((int) $test->questions()->max('position')) + 1;
+            $title = trim((string) ($data['title'] ?? ''));
             $activity = new Activity;
             $activity->fill([
-                'type' => $type,
-                'skill_label' => $this->skillLabel($data['kind']),
-                'title' => $test->title.' – Question '.(((int) $test->questions()->max('position')) + 1),
-                'prompt' => $data['text'],
-                'payload' => ['items' => [$this->newItem($data, $options)]],
+                'type' => $data['type'],
+                'skill_label' => $data['type']->defaultSkillLabel(),
+                'title' => $title !== '' ? $title : $test->title.' – Question '.$number,
+                'prompt' => $data['prompt'],
+                'payload' => $data['payload'],
                 'scoring' => null,
                 'show_meaning_enabled' => false,
                 'status' => ContentStatus::Draft,
@@ -154,12 +164,59 @@ class TestService
 
             $placement = $test->questions()->create([
                 'activity_id' => $activity->id,
-                'position' => ((int) $test->questions()->max('position')) + 1,
+                'position' => $number,
             ]);
-            AuditLog::record($test, 'test.question.created', ['activity_id' => $activity->id]);
+            AuditLog::record($test, 'test.question.created', ['activity_id' => $activity->id, 'type' => $activity->type->value]);
 
             return $placement;
         });
+    }
+
+    /**
+     * Save an edited question. The type never changes (a different kind of
+     * question is a new one); a changed payload is a new version, so the
+     * answers already given keep the version they answered (DATA-11).
+     *
+     * @param  array{prompt: string, title?: string|null, payload: array<string, mixed>}  $data
+     */
+    public function updateActivity(ActivityPlacement $placement, array $data): ActivityPlacement
+    {
+        return DB::transaction(function () use ($placement, $data): ActivityPlacement {
+            $activity = $placement->activity()->firstOrFail();
+            $title = trim((string) ($data['title'] ?? ''));
+            $activity->fill([
+                'prompt' => $data['prompt'],
+                'payload' => $data['payload'],
+                'show_meaning_enabled' => false,
+            ]);
+
+            if ($title !== '') {
+                $activity->title = $title;
+            }
+
+            AuditLog::record($activity, 'test.question.updated', ['version_before' => $activity->current_version]);
+            $activity->save();
+
+            return $placement->refresh();
+        });
+    }
+
+    /**
+     * Add a question from the short form the CSV import (and the older
+     * builder) sends: a kind, the question text and its options. It is
+     * turned into the same type and item the shared editor writes.
+     *
+     * @param  array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}  $data
+     */
+    public function addQuestion(Test $test, array $data, User $actor): ActivityPlacement
+    {
+        [$type, $item] = $this->legacyItem($data);
+
+        return $this->addActivity($test, [
+            'type' => $type,
+            'prompt' => $data['text'],
+            'payload' => ['items' => [$item]],
+        ], $actor);
     }
 
     /**
@@ -181,42 +238,42 @@ class TestService
     }
 
     /**
+     * Save a question sent in the short form (kind, text, options). The
+     * stored type is kept when the kind still names it; the rest of the
+     * item (media, scripts) is kept and only the text and the answers
+     * change (DATA-11: the edit is a new version of the same question).
+     *
      * @param  array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}  $data
      */
     public function updateQuestion(ActivityPlacement $placement, array $data): ActivityPlacement
     {
-        return DB::transaction(function () use ($placement, $data): ActivityPlacement {
-            $activity = $placement->activity()->firstOrFail();
-            $kindUnchanged = self::kindFor($activity->type, $activity->skill_label) === $data['kind'];
-            $type = $kindUnchanged ? $activity->type : $this->activityType($data['kind']);
-            $options = $this->options($data['options'], $data['kind']);
-            $oldItem = $activity->items()[0] ?? ['id' => 'i1'];
-            $item = $this->newItem($data, $options);
+        $activity = $placement->activity()->firstOrFail();
+        [$type, $fresh] = $this->legacyItem($data);
+        $item = $activity->items()[0] ?? ['id' => 'i1'];
 
-            // Retain attached question media when the editor only changes
-            // text or answer structure. Media is independently replaceable.
-            foreach (['image', 'audio', 'video', 'poster', 'media'] as $key) {
-                if (! array_key_exists($key, $item) && array_key_exists($key, $oldItem)) {
-                    $item[$key] = $oldItem[$key];
-                }
-            }
+        if ($type !== $activity->type && self::kindFor($activity->type) !== $data['kind']) {
+            // A different kind of question: a new activity in its place, the
+            // old one kept with its answers (DATA-10, DATA-11).
+            return DB::transaction(function () use ($placement, $activity, $type, $fresh, $data): ActivityPlacement {
+                $replacement = $activity->replicate(['current_version']);
+                $replacement->fill(['type' => $type, 'prompt' => $data['text'], 'payload' => ['items' => [$fresh]], 'skill_label' => $type->defaultSkillLabel()]);
+                $replacement->save();
+                $placement->activity_id = $replacement->id;
+                $placement->save();
+                AuditLog::record($replacement, 'test.question.updated', ['replaced_activity_id' => $activity->id]);
 
-            $activity->fill([
-                'type' => $type,
-                'prompt' => $data['text'],
-                'payload' => ['items' => [$item]],
-            ]);
+                return $placement->refresh();
+            });
+        }
 
-            // A new kind gets its own label (True / False is told apart from
-            // multiple choice by it); an unchanged kind keeps an AI draft's.
-            if (! $kindUnchanged) {
-                $activity->skill_label = $this->skillLabel($data['kind']);
-            }
-            AuditLog::record($activity, 'test.question.updated');
-            $activity->save();
+        $keep = in_array($activity->type, [ActivityType::Speaking, ActivityType::DialogueOrder, ActivityType::PictureOrder, ActivityType::Writing], true)
+            && $data['options'] === [];
+        $item = $keep ? [...$item, 'question' => $data['text']] : [...$item, ...$fresh, 'id' => $item['id'] ?? 'i1'];
 
-            return $placement->refresh();
-        });
+        return $this->updateActivity($placement, [
+            'prompt' => $data['text'],
+            'payload' => ['items' => [$item]],
+        ]);
     }
 
     /**
@@ -224,6 +281,30 @@ class TestService
      * creates the immutable next version when the payload changes (DATA-11,
      * TEST-09).
      */
+    /**
+     * A new question order: every placement of the test exactly once
+     * (client request 2026-09-29). Answers keep their placement, so the
+     * order learners see changes without touching any stored answer.
+     *
+     * @param  list<int>  $placementIds
+     */
+    public function reorderQuestions(Test $test, array $placementIds): void
+    {
+        DB::transaction(function () use ($test, $placementIds): void {
+            $ids = $test->questions()->pluck('id')->map(static fn (mixed $id): int => (int) $id)->all();
+
+            if (count($placementIds) !== count($ids) || array_diff($placementIds, $ids) !== []) {
+                throw new InvalidArgumentException(__('The order must list every question of this test exactly once.'));
+            }
+
+            foreach ($placementIds as $index => $id) {
+                ActivityPlacement::query()->whereKey($id)->update(['position' => $index + 1]);
+            }
+
+            AuditLog::record($test, 'test.questions.reordered', ['order' => $placementIds]);
+        });
+    }
+
     public function attachMedia(ActivityPlacement $placement, string $kind, ?int $mediaId, User $actor): ActivityPlacement
     {
         return DB::transaction(function () use ($placement, $kind, $mediaId, $actor): ActivityPlacement {
@@ -244,6 +325,7 @@ class TestService
                 unset($item[$kind]);
             } else {
                 $mediaMap[$kind] = $mediaId;
+                // Where the shared question editor reads it, audio included.
                 $item[$kind] = $mediaId;
             }
 
@@ -266,6 +348,33 @@ class TestService
         });
     }
 
+    /**
+     * Delete a test nobody has sat (the caller checks for sittings first,
+     * DATA-10). Its placements go with it; the question activities and their
+     * versions stay, because a lesson may place the same activity and
+     * versions are never destroyed (PRAC-05, DATA-11). A Post-test paired to
+     * it is unpaired, not deleted.
+     */
+    public function delete(Test $test): void
+    {
+        DB::transaction(function () use ($test): void {
+            AuditLog::record($test, 'test.deleted', ['deleted' => [
+                'title' => $test->title,
+                'type' => $test->type->value,
+                'department_id' => $test->department_id,
+                'hotel_id' => $test->hotel_id,
+                'questions' => $test->questions()->count(),
+            ]]);
+
+            ActivityPlacement::query()
+                ->where('placeable_type', $test->getMorphClass())
+                ->where('placeable_id', $test->id)
+                ->delete();
+            Test::query()->where('paired_test_id', $test->id)->update(['paired_test_id' => null]);
+            $test->delete();
+        });
+    }
+
     public function removeQuestion(ActivityPlacement $placement, Test $test): void
     {
         DB::transaction(function () use ($placement, $test): void {
@@ -276,125 +385,127 @@ class TestService
     }
 
     /**
-     * One new item in the shape its type needs (spec 0003 B.9): a speaking
-     * item has no options, an ordering item lists its lines as sentences in
-     * the correct order given.
+     * The type and the one item a short-form question becomes (spec 0003
+     * B.9): options with the correct one marked, a typed blank from the
+     * `___` in the sentence, accepted answers, lines to order.
      *
      * @param  array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}  $data
-     * @param  list<array<string, mixed>>  $options
-     * @return array<string, mixed>
+     * @return array{0: ActivityType, 1: array<string, mixed>}
      */
-    private function newItem(array $data, array $options): array
+    private function legacyItem(array $data): array
     {
-        $media = array_filter(
-            is_array($data['media'] ?? null) ? $data['media'] : [],
-            static fn (mixed $id): bool => is_numeric($id) && (int) $id > 0,
-        );
-        $item = ['id' => 'i1'];
-
-        foreach ($media as $kind => $id) {
-            $item[$kind] = (int) $id;
-        }
+        $text = $data['text'];
+        $options = $data['options'];
+        $correct = $this->correctOption($options);
 
         return match ($data['kind']) {
-            'speaking' => [
-                ...$item,
-                'question' => $data['text'],
-                'situation' => $data['text'],
-                'instruction' => 'Record a short and polite response.',
-                'max_seconds' => max(5, (int) ($data['speaking_seconds'] ?? 30)),
-            ],
-            'writing' => [
-                ...$item,
-                'scenario' => $data['text'],
-                'request_text' => trim((string) ($data['request_text'] ?? '')) ?: $data['text'],
-                'information' => array_values(array_filter($data['information'] ?? [], 'is_string')),
-                'min_words' => 20,
-            ],
-            'short_answer' => [
-                ...$item,
-                'question' => $data['text'],
-                'accepted_answers' => array_values(array_filter($data['accepted_answers'] ?? [], 'is_string')),
-            ],
-            'fill_blank' => [
-                ...$item,
-                'sentence' => $data['text'],
-                'accepted_answers' => array_values(array_filter($data['accepted_answers'] ?? [], 'is_string')),
-                'options' => [],
-            ],
-            'matching' => $this->matchingItem($data, $item),
-            'ordering' => $this->orderingItem($data, $item),
-            'audio' => [
-                ...$item,
-                'question' => $data['text'],
-                'audio_text' => trim((string) ($data['audio_text'] ?? '')) ?: $data['text'],
-                'options' => $options,
-                'correct' => $this->correctOption($data['options']),
-            ],
-            'video' => [
-                ...$item,
-                'question' => $data['text'],
-                'subtitle' => $data['text'],
-                'options' => $options,
-                'correct' => $this->correctOption($data['options']),
-            ],
-            'image', 'multiple_choice', 'true_false' => [
-                ...$item,
-                'question' => $data['text'],
-                'options' => $options,
-                'correct' => $this->correctOption($data['options']),
-            ],
-            default => [
-                ...$item,
-                'question' => $data['text'],
-                'options' => $options,
-                'correct' => $this->correctOption($data['options']),
-            ],
+            'speaking' => [ActivityType::Speaking, ['id' => 'i1', 'question' => $text, 'instruction' => 'Record a short and polite response.', 'max_seconds' => 30]],
+            'writing' => [ActivityType::Writing, ['id' => 'i1', 'question' => $text, 'scenario' => $text, 'min_words' => 10]],
+            'short_answer' => $options === []
+                ? [ActivityType::Writing, ['id' => 'i1', 'question' => $text, 'scenario' => $text, 'min_words' => 10]]
+                : [ActivityType::ShortAnswer, ['id' => 'i1', 'question' => $text, 'accepted' => array_map(static fn (array $option): string => $option['text'], $options)]],
+            'ordering' => [ActivityType::Ordering, self::orderingItem($text, $options)],
+            'fill_blank' => [ActivityType::FillBlank, self::blankItem($text, $options, $correct)],
+            'matching' => [ActivityType::Matching, self::matchingItem($text, $options)],
+            'audio', 'audio_question' => [ActivityType::AudioQuestion, $this->optionItem($text, $options, $data['kind'])],
+            'image', 'image_question' => [ActivityType::ImageQuestion, $this->optionItem($text, $options, $data['kind'])],
+            'video', 'video_question' => [ActivityType::VideoQuestion, $this->optionItem($text, $options, $data['kind'])],
+            default => [ActivityType::MultipleChoice, $this->optionItem($text, $options, $data['kind'])],
         };
     }
 
-    /** @param array<string, mixed> $data @param array<string, mixed> $base */
-    private function matchingItem(array $data, array $base): array
+    /**
+     * @param  list<array{id: string, text: string, correct: bool}>  $options
+     * @return array<string, mixed>
+     */
+    private function optionItem(string $text, array $options, string $kind): array
+    {
+        return [
+            'id' => 'i1',
+            'question' => $text,
+            'option_style' => 'text',
+            'options' => $this->options($options, $kind),
+            'correct' => $kind === 'true_false' && $options === [] ? 'A' : $this->correctOption($options),
+        ];
+    }
+
+    /**
+     * Lines given in the correct order; the learner sees them mixed up
+     * (odd positions first), never in the answer order.
+     *
+     * @param  list<array{id: string, text: string, correct: bool}>  $options
+     * @return array<string, mixed>
+     */
+    private static function orderingItem(string $text, array $options): array
+    {
+        $lines = array_map(
+            static fn (array $option, int $index): array => ['id' => 's'.($index + 1), 'text' => $option['text']],
+            $options,
+            array_keys($options),
+        );
+
+        return [
+            'id' => 'i1',
+            'question' => $text,
+            'sentences' => [
+                ...array_values(array_filter($lines, static fn (int $index): bool => $index % 2 === 1, ARRAY_FILTER_USE_KEY)),
+                ...array_values(array_filter($lines, static fn (int $index): bool => $index % 2 === 0, ARRAY_FILTER_USE_KEY)),
+            ],
+            'order' => array_map(static fn (array $line): string => $line['id'], $lines),
+        ];
+    }
+
+    /**
+     * `___` in the sentence becomes the blank; the correct option is its
+     * accepted word (the other options were only distractors).
+     *
+     * @param  list<array{id: string, text: string, correct: bool}>  $options
+     * @return array<string, mixed>
+     */
+    private static function blankItem(string $text, array $options, ?string $correct): array
+    {
+        $word = '';
+
+        foreach ($options as $option) {
+            if ($option['id'] === $correct) {
+                $word = $option['text'];
+            }
+        }
+
+        $sentence = (string) preg_replace('/_{2,}/', '[[b1]]', $text, 1);
+
+        if (! str_contains($sentence, '[[b1]]')) {
+            $sentence = rtrim($sentence).' [[b1]]';
+        }
+
+        return [
+            'id' => 'i1',
+            'question' => 'Type the missing word.',
+            'sentence' => $sentence,
+            'blanks' => [['id' => 'b1', 'accepted' => $word === '' ? [] : [$word]]],
+        ];
+    }
+
+    /**
+     * Options written `word = match` become the pairs.
+     *
+     * @param  list<array{id: string, text: string, correct: bool}>  $options
+     * @return array<string, mixed>
+     */
+    private static function matchingItem(string $text, array $options): array
     {
         $prompts = [];
         $targets = [];
         $pairs = [];
 
-        foreach (array_values($data['pairs'] ?? []) as $index => $pair) {
-            if (! is_array($pair)) {
-                continue;
-            }
-
-            $promptId = 'p'.($index + 1);
-            $targetId = 't'.($index + 1);
-            $prompts[] = ['id' => $promptId, 'audio_text' => (string) ($pair['left'] ?? '')];
-            $targets[] = ['id' => $targetId, 'label' => (string) ($pair['right'] ?? ''), 'image' => null];
-            $pairs[$promptId] = $targetId;
-        }
-
-        return [...$base, 'prompts' => $prompts, 'targets' => $targets, 'pairs' => $pairs];
-    }
-
-    /** @param array<string, mixed> $data @param array<string, mixed> $base */
-    private function orderingItem(array $data, array $base): array
-    {
-        $options = array_values($data['options'] ?? []);
-        $sentences = [];
-        $order = [];
-
         foreach ($options as $index => $option) {
-            if (! is_array($option)) {
-                continue;
-            }
-
-            $id = 's'.($index + 1);
-            $sentences[] = ['id' => $id, 'text' => (string) ($option['text'] ?? '')];
-            $order[] = $id;
+            $parts = array_map('trim', explode('=', $option['text'], 2));
+            $prompts[] = ['id' => (string) ($index + 1), 'text' => $parts[0]];
+            $targets[] = ['id' => chr(97 + $index), 'text' => $parts[1] ?? ''];
+            $pairs[(string) ($index + 1)] = chr(97 + $index);
         }
 
-        // The learner sees a scrambled list; the saved `order` is the
-        // author's correct sequence (TEST-05/06).
-        return [...$base, 'sentences' => array_reverse($sentences), 'order' => $order];
+        return ['id' => 'i1', 'question' => $text, 'prompts' => $prompts, 'targets' => array_reverse($targets), 'pairs' => $pairs];
     }
 
     /**
@@ -416,39 +527,6 @@ class TestService
         ];
     }
 
-    private function activityType(string $kind): ActivityType
-    {
-        return match ($kind) {
-            'fill_blank' => ActivityType::WordsSentences,
-            'matching' => ActivityType::ListenMatch,
-            'short_answer' => ActivityType::ShortAnswer,
-            'audio' => ActivityType::ListenChoose,
-            'image' => ActivityType::MultipleChoice,
-            'video' => ActivityType::WatchRespond,
-            'speaking' => ActivityType::Speaking,
-            'ordering' => ActivityType::DialogueOrder,
-            'writing' => ActivityType::Writing,
-            default => ActivityType::MultipleChoice,
-        };
-    }
-
-    private function skillLabel(string $kind): string
-    {
-        return match ($kind) {
-            'true_false' => 'True / False',
-            'fill_blank' => 'Vocabulary',
-            'short_answer' => 'Short Answer',
-            'audio' => 'Listening',
-            'image' => 'Image Question',
-            'video' => 'Video',
-            'speaking' => 'Speaking',
-            'ordering' => 'Ordering',
-            'writing' => 'Writing',
-            'matching' => 'Matching',
-            default => 'Multiple Choice',
-        };
-    }
-
     /**
      * @param  list<array{id: string, text: string, correct: bool}>  $options
      * @return list<array<string, mixed>>
@@ -463,23 +541,7 @@ class TestService
         }
 
         return array_map(
-            static function (array $option): array {
-                $normalized = ['id' => $option['id'], 'text' => $option['text']];
-
-                if (is_numeric($option['image_id'] ?? null)) {
-                    $normalized['image'] = (int) $option['image_id'];
-                }
-
-                if (is_numeric($option['audio_id'] ?? null)) {
-                    $normalized['audio'] = (int) $option['audio_id'];
-                }
-
-                if (is_string($option['audio_text'] ?? null) && trim($option['audio_text']) !== '') {
-                    $normalized['audio_text'] = trim($option['audio_text']);
-                }
-
-                return $normalized;
-            },
+            static fn (array $option): array => ['id' => $option['id'], 'text' => $option['text']],
             $options,
         );
     }

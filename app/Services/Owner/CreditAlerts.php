@@ -118,6 +118,7 @@ final class CreditAlerts
             }
 
             Mail::to($admin->email, $admin->name)
+                ->locale($admin->locale ?? 'en')
                 ->queue(new ApiCreditAlertMail($level, $summary, false, $admin->name));
         }
     }

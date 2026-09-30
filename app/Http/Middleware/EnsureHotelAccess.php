@@ -21,7 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  * switched off: the user is logged out and sent to the login page with the
  * same message they would have seen there. Nothing is deleted (DATA-10).
  *
- * Users with no hotel (the Super Admin) pass through untouched.
+ * Users with no hotel pass through, unless they are an individual
+ * subscriber whose own access window is closed.
  */
 class EnsureHotelAccess
 {
@@ -76,17 +77,19 @@ class EnsureHotelAccess
             return __('This account has been deactivated. Please contact your administrator.');
         }
 
-        // An individual subscriber's own access window stands in for the
-        // hotel's contract (SUB-05); their data stays either way (DATA-10).
-        $individual = $hotel === null ? $user->individualSubscription : null;
+        if ($hotel === null) {
+            // An individual subscriber has their own access window instead
+            // of a hotel contract (user request 2026-09-25).
+            $subscription = $user->individualSubscription;
 
-        if ($individual !== null && $individual->isOutsideWindow()) {
-            return $individual->windowState() === 'upcoming'
-                ? __('Your subscription starts on :date.', ['date' => $individual->starts_on?->toFormattedDateString()])
-                : __('Your subscription ended on :date. Contact GHASIDO support to renew it.', ['date' => $individual->ends_on?->toFormattedDateString()]);
+            if ($subscription !== null && $subscription->isOutsideWindow()) {
+                return __('Your subscription is not active right now. Please contact us to renew it.');
+            }
+
+            return null;
         }
 
-        if ($hotel === null || $hotel->allowsAccess()) {
+        if ($hotel->allowsAccess()) {
             return null;
         }
 

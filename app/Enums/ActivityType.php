@@ -3,13 +3,17 @@
 namespace App\Enums;
 
 /**
- * The eleven answerable item types (PRAC-01..03, TEST-05, WRITE-01, spec 0003
- * B.8, B.9).
+ * The answerable item types (PRAC-01..03, TEST-05, WRITE-01, spec 0003 B.8,
+ * B.9; client report 2026-09-29).
  *
  * The same type serves lesson practice and both tests (PRAC-05, WRITE-05):
  * an activity is placed through activity_placements, never duplicated. The
- * payload shape for each case is fixed in spec 0003 B.9 and scored by
- * App\Services\Learning\ActivityScorer.
+ * payload shape for each case is fixed in spec 0003 B.9 (the seven cases
+ * added for the client's ten question types are described on builderTypes())
+ * and scored by App\Services\Learning\ActivityScorer.
+ *
+ * The admin builders offer exactly the ten builderTypes(); the older cases
+ * stay for the activities and attempts already stored with them (DATA-11).
  */
 enum ActivityType: string
 {
@@ -22,9 +26,96 @@ enum ActivityType: string
     case DialogueOrder = 'dialogue_order';
     case PictureOrder = 'picture_order';
     case MultipleChoice = 'multiple_choice';
-    case ShortAnswer = 'short_answer';
     case Speaking = 'speaking';
     case Writing = 'writing';
+    case ShortAnswer = 'short_answer';
+    case FillBlank = 'fill_blank';
+    case Matching = 'matching';
+    case Ordering = 'ordering';
+    case AudioQuestion = 'audio_question';
+    case ImageQuestion = 'image_question';
+    case VideoQuestion = 'video_question';
+
+    /**
+     * The client's ten question types, in the order the Pre/Post-test
+     * builder and the lesson activity chooser list them (client report
+     * 2026-09-29). Every item of these types may carry a prompt `question`,
+     * `image`, `audio` (an uploaded / recorded / library clip id) and
+     * `audio_text` (a sentence played from stored TTS, CTRL-05):
+     *
+     * - multiple_choice / audio_question / image_question / video_question:
+     *   `options: [{id, text, image?, audio?, audio_text?}]`, `option_style`
+     *   text|image, `correct`; the media question needs its audio, image or
+     *   `video` (+ optional `poster`).
+     * - ordering: `sentences: [{id, text, image?}]`, `order`.
+     * - matching: `prompts: [{id, text, image?, audio?, audio_text?}]`,
+     *   `targets: [{id, text, image?}]`, `pairs: {prompt: target}`.
+     * - short_answer: `accepted: [string]`.
+     * - fill_blank: `sentence` with `[[b1]]` tokens, `blanks: [{id,
+     *   accepted: [string]}]`.
+     * - speaking: `expected_text` (what to say, pronunciation check) or an
+     *   open question (AI judged), `max_seconds`.
+     * - writing: `scenario`, `request_text`, `information`, `min_words`,
+     *   `criteria: [{key, label}]` (rubric), `model_answer`.
+     *
+     * @return list<self>
+     */
+    public static function builderTypes(): array
+    {
+        return [
+            self::MultipleChoice,
+            self::Ordering,
+            self::Matching,
+            self::ShortAnswer,
+            self::AudioQuestion,
+            self::ImageQuestion,
+            self::VideoQuestion,
+            self::Speaking,
+            self::FillBlank,
+            self::Writing,
+        ];
+    }
+
+    /**
+     * An older type the builders no longer offer for new activities; its
+     * stored activities stay editable and answerable (DATA-11).
+     */
+    public function isLegacy(): bool
+    {
+        return ! in_array($this, self::builderTypes(), true);
+    }
+
+    /**
+     * The name the admin builders give the type (the client's ten names);
+     * an older type keeps its learner-facing label.
+     */
+    public function builderLabel(?string $locale = null): string
+    {
+        return match ($this) {
+            self::MultipleChoice => __('Multiple Choice', [], $locale),
+            self::Writing => __('Writing Activity', [], $locale),
+            default => $this->label($locale),
+        };
+    }
+
+    /**
+     * The skill a test's result breakdown groups this type under.
+     */
+    public function defaultSkillLabel(): string
+    {
+        return match ($this) {
+            self::ListenChoose, self::BestResponse, self::ListenMatch, self::AudioQuestion => 'Listening',
+            self::LookListen, self::ImageQuestion => 'Visual',
+            self::WatchRespond, self::VideoQuestion => 'Video',
+            self::WordsSentences, self::FillBlank => 'Vocabulary',
+            self::DialogueOrder, self::PictureOrder, self::Ordering => 'Ordering',
+            self::Matching => 'Matching',
+            self::ShortAnswer => 'Short Answer',
+            self::MultipleChoice => 'Multiple Choice',
+            self::Speaking => 'Speaking',
+            self::Writing => 'Writing',
+        };
+    }
 
     public function label(?string $locale = null): string
     {
@@ -38,9 +129,15 @@ enum ActivityType: string
             self::DialogueOrder => __('Put the Dialogue in Order', [], $locale),
             self::PictureOrder => __('Ordering a Conversation', [], $locale),
             self::MultipleChoice => __('Choose the Best Answer', [], $locale),
-            self::ShortAnswer => __('Short Answer', [], $locale),
             self::Speaking => __('Speaking', [], $locale),
             self::Writing => __('Writing', [], $locale),
+            self::ShortAnswer => __('Short Answer', [], $locale),
+            self::FillBlank => __('Fill in the Blank', [], $locale),
+            self::Matching => __('Matching', [], $locale),
+            self::Ordering => __('Ordering', [], $locale),
+            self::AudioQuestion => __('Audio Question', [], $locale),
+            self::ImageQuestion => __('Image Question', [], $locale),
+            self::VideoQuestion => __('Video Question', [], $locale),
         };
     }
 
@@ -59,9 +156,15 @@ enum ActivityType: string
             self::DialogueOrder => __('Listen and put the sentences in the correct order.', [], $locale),
             self::PictureOrder => __('Put the conversation in the correct order.', [], $locale),
             self::MultipleChoice => __('Read or look, then choose the best answer.', [], $locale),
-            self::ShortAnswer => __('Write a short answer using your own words.', [], $locale),
             self::Speaking => __('Record a short spoken answer.', [], $locale),
             self::Writing => __('Write a short reply.', [], $locale),
+            self::ShortAnswer => __('Read the question and type a short answer.', [], $locale),
+            self::FillBlank => __('Type the missing word in each blank.', [], $locale),
+            self::Matching => __('Match each word with its pair.', [], $locale),
+            self::Ordering => __('Put the sentences in the correct order.', [], $locale),
+            self::AudioQuestion => __('Listen, then choose the correct answer.', [], $locale),
+            self::ImageQuestion => __('Look at the picture, then choose the correct answer.', [], $locale),
+            self::VideoQuestion => __('Watch the video, then choose the correct answer.', [], $locale),
         };
     }
 
@@ -73,14 +176,13 @@ enum ActivityType: string
     public function tone(): string
     {
         return match ($this) {
-            self::ListenChoose, self::PictureOrder, self::MultipleChoice => 'brand',
-            self::LookListen, self::DialogueOrder => 'success',
-            self::BestResponse => 'sunset',
-            self::ListenMatch, self::Speaking => 'ai',
-            self::WatchRespond => 'blossom',
-            self::WordsSentences => 'gold',
+            self::ListenChoose, self::PictureOrder, self::MultipleChoice, self::AudioQuestion => 'brand',
+            self::LookListen, self::DialogueOrder, self::Ordering, self::ImageQuestion => 'success',
+            self::BestResponse, self::ShortAnswer => 'sunset',
+            self::ListenMatch, self::Speaking, self::Matching => 'ai',
+            self::WatchRespond, self::VideoQuestion => 'blossom',
+            self::WordsSentences, self::FillBlank => 'gold',
             self::Writing => 'aqua',
-            self::ShortAnswer => 'aqua',
         };
     }
 
@@ -104,6 +206,12 @@ enum ActivityType: string
             self::Speaking => 'Mic',
             self::Writing => 'PenLine',
             self::ShortAnswer => 'TextCursorInput',
+            self::FillBlank => 'Keyboard',
+            self::Matching => 'Link',
+            self::Ordering => 'ListOrdered',
+            self::AudioQuestion => 'Headphones',
+            self::ImageQuestion => 'Image',
+            self::VideoQuestion => 'Video',
         };
     }
 
@@ -129,13 +237,18 @@ enum ActivityType: string
             self::BestResponse,
             self::WatchRespond,
             self::WordsSentences,
-            self::MultipleChoice => AnswerShape::Option,
-            self::ListenMatch => AnswerShape::PairMap,
+            self::MultipleChoice,
+            self::AudioQuestion,
+            self::ImageQuestion,
+            self::VideoQuestion => AnswerShape::Option,
+            self::ListenMatch, self::Matching => AnswerShape::PairMap,
             self::DialogueOrder,
-            self::PictureOrder => AnswerShape::OrderedList,
+            self::PictureOrder,
+            self::Ordering => AnswerShape::OrderedList,
+            self::ShortAnswer => AnswerShape::Typed,
+            self::FillBlank => AnswerShape::Blanks,
             self::Speaking => AnswerShape::Recording,
             self::Writing => AnswerShape::Text,
-            self::ShortAnswer => AnswerShape::Text,
         };
     }
 }

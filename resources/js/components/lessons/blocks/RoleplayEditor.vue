@@ -52,15 +52,19 @@ function toggle(id: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
-            translatable
+            meaning
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
             :rows="2"
         />
-        <LessonsField v-model="attemptsNote" :label="$t('Attempts note')" />
         <LessonsField
-            translatable
+            meaning
+            v-model="attemptsNote"
+            :label="$t('Attempts note')"
+        />
+        <LessonsField
+            meaning
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"

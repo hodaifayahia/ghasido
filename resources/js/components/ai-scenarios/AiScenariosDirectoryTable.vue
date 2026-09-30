@@ -11,6 +11,7 @@ import {
 } from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
+import AiScenariosDeleteDialog from '@/components/ai-scenarios/AiScenariosDeleteDialog.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,23 +35,25 @@ const emit = defineEmits<{
     open: [id: string];
     create: [];
     tutorial: [];
-    delete: [scenario: AiScenarioLibraryItem];
 }>();
 
 const { t, tc } = useI18n();
 
+// Delete (CMS-01): only stored scenarios the viewer may delete; the server
+// authorizes again and keeps learner attempts (ROLE-02, DATA-10).
 const { can } = useCan();
 const manage = can('scenarios.manage');
+const deleteOpen = ref(false);
+const deleteTarget = ref<AiScenarioLibraryItem | null>(null);
 
-/** Sample rows carry slug ids; only stored scenarios can be deleted. */
 function canDelete(scenario: AiScenarioLibraryItem): boolean {
-    return manage && /^\d+$/.test(scenario.id);
+    return manage && scenario.canDelete === true;
 }
 
-// Safe delete: outline only, danger colours. The ::after pad widens the
-// 36px phone button to a 44px tap target (ACC-03).
-const deleteButton =
-    'border-danger/40 text-danger-text hover:bg-danger-tint bg-surface relative inline-flex shrink-0 items-center justify-center rounded-md border after:absolute after:-inset-1 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
+function askDelete(scenario: AiScenarioLibraryItem): void {
+    deleteTarget.value = scenario;
+    deleteOpen.value = true;
+}
 
 const search = ref(props.library.search);
 const department = ref(props.library.department);
@@ -301,8 +304,8 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                 {{ statusLabel(scenario) }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-end">
-                            <div class="flex items-center justify-end gap-2">
+                        <td class="px-5 py-3">
+                            <div class="flex items-center justify-end gap-1.5">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -315,24 +318,25 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                         aria-hidden="true"
                                     />
                                 </Button>
-                                <button
+                                <Button
                                     v-if="canDelete(scenario)"
                                     type="button"
-                                    :class="cn(deleteButton, 'size-8')"
+                                    variant="outline"
+                                    class="border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text bg-surface size-8 shrink-0 rounded-md p-0 shadow-none"
                                     :aria-label="
-                                        $t('Delete :name', {
-                                            name: scenario.title,
+                                        $t('Delete :title', {
+                                            title: scenario.title,
                                         })
                                     "
                                     :title="$t('Delete')"
                                     :data-test="`delete-scenario-${scenario.id}-button`"
-                                    @click="emit('delete', scenario)"
+                                    @click="askDelete(scenario)"
                                 >
                                     <Trash2
                                         class="size-3.5"
                                         aria-hidden="true"
                                     />
-                                </button>
+                                </Button>
                             </div>
                         </td>
                     </tr>
@@ -344,15 +348,14 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
             v-if="filteredScenarios.length"
             class="divide-line divide-y md:hidden"
         >
-            <!-- Delete sits beside the row button, never inside it. -->
             <div
                 v-for="scenario in filteredScenarios"
                 :key="scenario.id"
-                class="hover:bg-brand-50/40 flex items-center transition-colors"
+                class="hover:bg-brand-50/40 flex items-center gap-2 pe-3 transition-colors"
             >
                 <button
                     type="button"
-                    class="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-start"
+                    class="flex min-w-0 flex-1 items-center gap-3 py-3 ps-4 text-start"
                     @click="emit('open', scenario.id)"
                 >
                     <span
@@ -390,11 +393,10 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                 <button
                     v-if="canDelete(scenario)"
                     type="button"
-                    :class="cn(deleteButton, 'me-4 size-9')"
-                    :aria-label="$t('Delete :name', { name: scenario.title })"
-                    :title="$t('Delete')"
-                    :data-test="`delete-scenario-${scenario.id}-card-button`"
-                    @click="emit('delete', scenario)"
+                    class="border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text bg-surface focus-visible:ring-brand-600/15 grid size-10 shrink-0 place-items-center rounded-md border focus-visible:ring-3 focus-visible:outline-none"
+                    :aria-label="$t('Delete :title', { title: scenario.title })"
+                    :data-test="`delete-scenario-${scenario.id}-button`"
+                    @click="askDelete(scenario)"
                 >
                     <Trash2 class="size-4" aria-hidden="true" />
                 </button>
@@ -445,5 +447,9 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                 </Button>
             </div>
         </div>
+        <AiScenariosDeleteDialog
+            v-model:open="deleteOpen"
+            :scenario="deleteTarget"
+        />
     </PanelCard>
 </template>

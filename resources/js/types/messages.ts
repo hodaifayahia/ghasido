@@ -127,6 +127,8 @@ export type MessageAbilities = {
     send: boolean;
     manageTemplates: boolean;
     manageRules: boolean;
+    /** May delete rows of the reminder log (ReminderPolicy::delete). */
+    deleteLogs: boolean;
 };
 
 /**

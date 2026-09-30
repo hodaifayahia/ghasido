@@ -81,6 +81,16 @@ function isGroupActive(item: SidebarNavItem): boolean {
     return visibleChildren(item).some((child) => isActive(child));
 }
 
+function hasBadge(item: SidebarNavItem): boolean {
+    return (item.badge ?? 0) > 0;
+}
+
+function badgeText(item: SidebarNavItem): string {
+    const count = item.badge ?? 0;
+
+    return count > 99 ? '99+' : String(count);
+}
+
 function closeMobileSidebar(): void {
     if (isMobile.value) {
         setOpenMobile(false);
@@ -275,12 +285,33 @@ const subButtonClass = cn(
                             :class="item.iconClass"
                             aria-hidden="true"
                         />
-                        <span :class="item.labelClass">{{
-                            $t(item.title)
-                        }}</span>
+                        <span
+                            :class="
+                                cn(
+                                    hasBadge(item) && 'whitespace-nowrap',
+                                    item.labelClass,
+                                )
+                            "
+                            >{{ $t(item.title) }}</span
+                        >
+                        <!-- A count waiting for the user (e.g. payments to
+                             review): the topbar bell's danger pill. -->
+                        <span
+                            v-if="hasBadge(item)"
+                            class="rounded-pill bg-danger ms-auto me-1.5 inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-1 text-[10.5px] leading-none font-bold tracking-normal text-white tabular-nums group-data-[collapsible=icon]:hidden"
+                        >
+                            <span aria-hidden="true">{{
+                                badgeText(item)
+                            }}</span>
+                            <span class="sr-only">{{
+                                $tc(
+                                    ':count waiting|:count waiting',
+                                    item.badge ?? 0,
+                                )
+                            }}</span>
+                        </span>
                     </Link>
                 </SidebarMenuButton>
-
                 <SidebarMenuButton
                     v-else
                     type="button"
@@ -296,6 +327,12 @@ const subButtonClass = cn(
                     />
                     <span :class="item.labelClass">{{ $t(item.title) }}</span>
                 </SidebarMenuButton>
+                <!-- After the v-if/v-else chain, so it never splits it. On the collapsed icon rail the count becomes a dot. -->
+                <span
+                    v-if="item.href && hasBadge(item)"
+                    aria-hidden="true"
+                    class="rounded-pill bg-danger ring-surface pointer-events-none absolute end-1.5 top-1 hidden size-2.5 ring-2 group-data-[collapsible=icon]:block"
+                />
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

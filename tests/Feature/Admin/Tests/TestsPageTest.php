@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Admin\Tests;
 
-use App\Enums\ActivityType;
 use App\Enums\ContentStatus;
+use App\Enums\Permission;
 use App\Enums\TestType;
 use App\Models\Activity;
 use App\Models\ActivityPlacement;
-use App\Models\Attempt;
 use App\Models\Department;
+use App\Models\Hotel;
 use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\TestAttempt;
@@ -146,7 +146,12 @@ class TestsPageTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_question_bank_results_and_settings_tabs_are_data_backed(): void
+    /**
+     * The Question Bank / Results & Analytics / Settings tabs were removed
+     * from the page (client request 2026-09-29): their props are gone, and
+     * the builder still carries what it needs to save a test.
+     */
+    public function test_the_page_no_longer_ships_the_removed_tabs(): void
     {
         $department = Department::factory()->create(['name' => 'Reception']);
         $test = Test::factory()->pre()->create(['department_id' => $department->id]);
@@ -155,44 +160,122 @@ class TestsPageTest extends TestCase
         $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
 
         $this->actingAs($admin)
-            ->get(route('tests', ['tab' => 'question-bank']))
+            ->get(route('tests', ['tab' => 'question-bank', 'test' => $test]))
+            ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('activeTab', 'question-bank')
-                ->where('questionBank.0.id', $activity->id));
-
-        $this->actingAs($admin)
-            ->get(route('tests', ['tab' => 'settings', 'test' => $test]))
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('activeTab', 'settings')
+                ->component('admin/Tests')
+                ->missing('tabs')
+                ->missing('activeTab')
+                ->missing('questionBank')
+                ->missing('settings')
+                ->missing('results.rows')
+                ->has('results.stats', 2)
+                ->where('builderOpen', true)
                 ->where('editor.id', $test->id)
-                ->where('settings.toggles.0.key', 'shuffle_questions'));
+                ->where('editor.type', TestType::Pre->value)
+                ->where('editor.department', (string) $department->id)
+                ->where('editor.attemptCount', 0)
+                ->has('editor.settings.show_meaning')
+            );
     }
 
-    public function test_each_result_row_shows_only_its_own_ai_judged_answers(): void
+    public function test_an_admin_can_delete_a_test_nobody_has_taken(): void
     {
         $department = Department::factory()->create();
-        $test = Test::factory()->pre()->create(['department_id' => $department->id]);
+        $test = Test::factory()->draft()->create(['department_id' => $department->id, 'title' => 'Old draft']);
+        $post = Test::factory()->create(['department_id' => $department->id, 'type' => TestType::Post, 'paired_test_id' => $test->id]);
+        $activity = Activity::factory()->create(['department_id' => $department->id]);
+        $placement = $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
         $admin = User::factory()->superAdmin()->create();
-        $writing = Activity::factory()->ofType(ActivityType::Writing)->create(['department_id' => $department->id]);
-        $choice = Activity::factory()->create(['department_id' => $department->id]);
-
-        $earlier = TestAttempt::factory()->submitted()->create(['test_id' => $test->id, 'submitted_at' => now()->subHour()]);
-        $later = TestAttempt::factory()->submitted()->create(['test_id' => $test->id]);
-        Attempt::factory()->inTest($earlier)->create(['activity_id' => $writing->id, 'raw_answer' => ['i1' => ['text' => 'Welcome to our hotel.']]]);
-        Attempt::factory()->inTest($earlier)->create(['activity_id' => $choice->id]);
-        Attempt::factory()->inTest($later)->create(['activity_id' => $writing->id, 'raw_answer' => ['i1' => ['text' => 'Your room is ready.']]]);
 
         $this->actingAs($admin)
-            ->get(route('tests', ['tab' => 'results']))
+            ->get(route('tests'))
             ->assertInertia(fn (Assert $page) => $page
-                ->has('results.rows', 2)
-                ->where('results.rows.0.id', $later->id)
-                ->has('results.rows.0.answers', 1)
-                ->where('results.rows.0.answers.0.answerText', 'Your room is ready.')
-                ->where('results.rows.1.id', $earlier->id)
-                // The multiple-choice answer is not AI-judged, so it is left out.
-                ->has('results.rows.1.answers', 1)
-                ->where('results.rows.1.answers.0.answerText', 'Welcome to our hotel.'));
+                ->where('list.items.0.id', (string) $test->id)
+                ->where('list.items.0.attemptCount', 0));
+
+        $this->actingAs($admin)
+            ->delete(route('tests.destroy', $test))
+            ->assertRedirect(route('tests'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertModelMissing($test);
+        $this->assertModelMissing($placement);
+        // The versioned question stays: a lesson may place it too (DATA-11).
+        $this->assertModelExists($activity);
+        // A paired Post-test is unpaired, never deleted with it.
+        $this->assertNull($post->refresh()->paired_test_id);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'test.deleted',
+            'actor_id' => $admin->id,
+            'auditable_type' => $test->getMorphClass(),
+            'auditable_id' => $test->id,
+        ]);
+    }
+
+    /**
+     * A test someone has sat is refused, not cascaded: its attempts hold
+     * learners' answers (DATA-10).
+     */
+    public function test_a_test_with_attempts_is_never_deleted(): void
+    {
+        $test = Test::factory()->pre()->create();
+        $sitting = TestAttempt::factory()->submitted()->create(['test_id' => $test->id]);
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('tests', ['test' => $test]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('list.items.0.attemptCount', 1)
+                ->where('editor.attemptCount', 1));
+
+        $this->actingAs($admin)
+            ->from(route('tests'))
+            ->delete(route('tests.destroy', $test))
+            ->assertRedirect(route('tests'))
+            ->assertInertiaFlash('toast.type', 'error');
+
+        $this->assertModelExists($test);
+        $this->assertModelExists($sitting);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'test.deleted']);
+    }
+
+    public function test_deleting_a_test_needs_tests_manage_and_the_same_hotel(): void
+    {
+        $test = Test::factory()->pre()->create();
+        $employee = User::factory()->employee()->create();
+        $manager = User::factory()->manager()->create();
+
+        $this->actingAs($employee)
+            ->delete(route('tests.destroy', $test))
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->delete(route('tests.destroy', $test))
+            ->assertForbidden();
+
+        // Holding tests.manage is not enough for another hotel's test (ROLE-02).
+        $hotelA = Hotel::factory()->create();
+        $hotelB = Hotel::factory()->create();
+        $foreign = Test::factory()->pre()->create(['hotel_id' => $hotelB->id]);
+        $author = User::factory()->manager()->create(['hotel_id' => $hotelA->id]);
+        $author->givePermissionTo(Permission::TestsView->value, Permission::TestsManage->value);
+
+        $this->actingAs($author)
+            ->delete(route('tests.destroy', $foreign))
+            ->assertForbidden();
+
+        $this->assertModelExists($test);
+        $this->assertModelExists($foreign);
+
+        // ...while the same author may delete their own hotel's test.
+        $own = Test::factory()->pre()->create(['hotel_id' => $hotelA->id]);
+
+        $this->actingAs($author)
+            ->delete(route('tests.destroy', $own))
+            ->assertRedirect(route('tests'));
+
+        $this->assertModelMissing($own);
     }
 
     public function test_question_media_is_attached_as_a_new_activity_version(): void
@@ -217,5 +300,54 @@ class TestsPageTest extends TestCase
         $this->assertSame($media->id, $activity->items()[0]['image']);
         $this->assertSame(2, $activity->current_version);
         $this->assertDatabaseHas('audit_logs', ['action' => 'test.question.media.updated']);
+    }
+
+    public function test_an_uploaded_question_photo_is_shown_instead_of_the_default(): void
+    {
+        // Client report 2026-09-29: the shared editor stores the photo on
+        // the item (`image`), which the builder card did not read.
+        $department = Department::factory()->create();
+        $test = Test::factory()->draft()->create(['department_id' => $department->id]);
+        $admin = User::factory()->superAdmin()->create();
+        $media = MediaAsset::factory()->seed('practice-guest-asking')->create();
+        $activity = Activity::factory()->create(['department_id' => $department->id]);
+        $payload = $activity->payload;
+        $payload['items'][0]['image'] = $media->id;
+        unset($payload['items'][0]['media']);
+        $activity->forceFill(['payload' => $payload])->save();
+        $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
+
+        $this->actingAs($admin)
+            ->get(route('tests', ['test' => $test->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('editor.questions.0.media.image.id', (string) $media->id)
+                ->where('editor.questions.0.media.image.url', $media->url()));
+    }
+
+    public function test_questions_can_be_put_in_a_new_order(): void
+    {
+        $department = Department::factory()->create();
+        $test = Test::factory()->draft()->create(['department_id' => $department->id]);
+        $admin = User::factory()->superAdmin()->create();
+        $first = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 1]);
+        $second = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 2]);
+        $third = $test->questions()->create(['activity_id' => Activity::factory()->create()->id, 'position' => 3]);
+
+        $this->actingAs($admin)
+            ->put(route('tests.questions.reorder', $test), ['order' => [$third->id, $first->id, $second->id]])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame([$third->id, $first->id, $second->id], $test->questions()->pluck('id')->map(fn ($id) => (int) $id)->all());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'test.questions.reordered']);
+
+        // Every question exactly once.
+        $this->actingAs($admin)
+            ->put(route('tests.questions.reorder', $test), ['order' => [$first->id, $second->id]])
+            ->assertSessionHasErrors('order');
+
+        $this->actingAs(User::factory()->employee()->create())
+            ->put(route('tests.questions.reorder', $test), ['order' => [$first->id, $second->id, $third->id]])
+            ->assertForbidden();
     }
 }

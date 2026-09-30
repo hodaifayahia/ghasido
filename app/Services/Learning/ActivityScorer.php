@@ -55,20 +55,13 @@ class ActivityScorer
             $id = $ids[$index];
             $answer = $this->answerFor($rawAnswer, $id, count($items));
 
-            if ($type === ActivityType::WordsSentences && is_array($item['accepted_answers'] ?? null)) {
-                $perItem[$id] = $this->matchesAcceptedText($item, $answer);
-
-                continue;
-            }
-
             $perItem[$id] = match ($type->answerShape()) {
                 AnswerShape::Option => $this->matchesOption($item, $answer),
                 AnswerShape::PairMap => $this->matchesPairs($item, $answer),
                 AnswerShape::OrderedList => $this->matchesOrder($item, $answer),
-                AnswerShape::Text => $type === ActivityType::ShortAnswer
-                    ? $this->matchesAcceptedText($item, $answer)
-                    : null,
-                AnswerShape::Recording => null,
+                AnswerShape::Typed => $this->matchesAccepted($item['accepted'] ?? null, $answer),
+                AnswerShape::Blanks => $this->matchesBlanks($item, $answer),
+                AnswerShape::Recording, AnswerShape::Text => null,
             };
         }
 
@@ -82,7 +75,7 @@ class ActivityScorer
      *
      * @param  array<array-key, mixed>  $rawAnswer
      */
-    private function answerFor(array $rawAnswer, string $id, int $itemCount): mixed
+    public function answerFor(array $rawAnswer, string $id, int $itemCount): mixed
     {
         if (array_key_exists($id, $rawAnswer)) {
             return $rawAnswer[$id];
@@ -140,6 +133,77 @@ class ActivityScorer
     }
 
     /**
+     * A typed answer is right when it equals one of the accepted answers,
+     * ignoring case, spacing and punctuation (client report 2026-09-29).
+     * `{text: "…"}` is accepted as well as a bare string.
+     */
+    private function matchesAccepted(mixed $accepted, mixed $answer): bool
+    {
+        if (is_array($answer) && array_key_exists('text', $answer)) {
+            $answer = $answer['text'];
+        }
+
+        if (! is_array($accepted) || ! is_scalar($answer)) {
+            return false;
+        }
+
+        $given = self::normaliseTyped((string) $answer);
+
+        if ($given === '') {
+            return false;
+        }
+
+        foreach ($accepted as $option) {
+            if (is_scalar($option) && self::normaliseTyped((string) $option) === $given) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fill in the blank: every blank of the sentence must hold one of its
+     * accepted words. The answer maps blank id → typed word.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function matchesBlanks(array $item, mixed $answer): bool
+    {
+        $blanks = $item['blanks'] ?? null;
+
+        if (! is_array($blanks) || $blanks === [] || ! is_array($answer)) {
+            return false;
+        }
+
+        foreach ($blanks as $blank) {
+            if (! is_array($blank) || ! is_scalar($blank['id'] ?? null)) {
+                return false;
+            }
+
+            $id = (string) $blank['id'];
+
+            if (! $this->matchesAccepted($blank['accepted'] ?? null, $answer[$id] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * How a typed answer is compared: lower case, curly quotes made
+     * straight, punctuation and symbols dropped, spaces collapsed.
+     */
+    public static function normaliseTyped(string $text): string
+    {
+        $text = mb_strtolower(str_replace(['’', '‘', '`'], "'", $text));
+        $text = (string) preg_replace('/[\p{P}\p{S}]+/u', ' ', $text);
+
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
      * Order types: the answer is the full list in the expected sequence.
      *
      * @param  array<string, mixed>  $item
@@ -156,32 +220,5 @@ class ActivityScorer
         $givenIds = array_map(static fn (mixed $id): string => is_scalar($id) ? (string) $id : '', array_values($answer));
 
         return $expectedIds === $givenIds;
-    }
-
-    /**
-     * Short-answer questions accept any configured spelling (TEST-05/06).
-     *
-     * @param  array<string, mixed>  $item
-     */
-    private function matchesAcceptedText(array $item, mixed $answer): bool
-    {
-        if (! is_array($answer) || ! is_string($answer['text'] ?? null)) {
-            return false;
-        }
-
-        $given = mb_strtolower(trim($answer['text']));
-        $accepted = $item['accepted_answers'] ?? [];
-
-        if ($given === '' || ! is_array($accepted) || $accepted === []) {
-            return false;
-        }
-
-        foreach ($accepted as $candidate) {
-            if (is_string($candidate) && mb_strtolower(trim($candidate)) === $given) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

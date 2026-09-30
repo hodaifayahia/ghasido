@@ -192,6 +192,59 @@ class ActivityFactory extends Factory
                 ],
                 'min_words' => 20,
             ],
+            ActivityType::AudioQuestion, ActivityType::ImageQuestion, ActivityType::VideoQuestion => [
+                'id' => 'i1',
+                'question' => 'What does the guest need?',
+                'audio_text' => $type === ActivityType::AudioQuestion ? 'Could I have an extra towel, please?' : null,
+                'image' => null,
+                'video' => null,
+                'option_style' => 'text',
+                'options' => [
+                    ['id' => 'a', 'text' => 'A towel', 'image' => null],
+                    ['id' => 'b', 'text' => 'A taxi', 'image' => null],
+                    ['id' => 'c', 'text' => 'The menu', 'image' => null],
+                ],
+                'correct' => 'a',
+            ],
+            ActivityType::ShortAnswer => [
+                'id' => 'i1',
+                'question' => 'What do you give a guest at check-in to open the room?',
+                'accepted' => ['key card', 'room key', 'the key'],
+            ],
+            ActivityType::FillBlank => [
+                'id' => 'i1',
+                'question' => 'Type the missing words.',
+                'sentence' => 'May I see your [[b1]], please? Here is your [[b2]].',
+                'blanks' => [
+                    ['id' => 'b1', 'accepted' => ['passport', 'ID']],
+                    ['id' => 'b2', 'accepted' => ['key', 'room key']],
+                ],
+            ],
+            ActivityType::Matching => [
+                'id' => 'i1',
+                'question' => 'Match each word with its picture.',
+                'prompts' => [
+                    ['id' => '1', 'text' => 'Towel'],
+                    ['id' => '2', 'text' => 'Pillow'],
+                    ['id' => '3', 'text' => 'Room key'],
+                ],
+                'targets' => [
+                    ['id' => 'b', 'text' => 'Pillow', 'image' => null],
+                    ['id' => 'a', 'text' => 'Towel', 'image' => null],
+                    ['id' => 'c', 'text' => 'Room key', 'image' => null],
+                ],
+                'pairs' => ['1' => 'a', '2' => 'b', '3' => 'c'],
+            ],
+            ActivityType::Ordering => [
+                'id' => 'i1',
+                'question' => 'Put the check-in steps in order.',
+                'sentences' => [
+                    ['id' => 's2', 'text' => 'Ask for the booking name.'],
+                    ['id' => 's1', 'text' => 'Greet the guest.'],
+                    ['id' => 's3', 'text' => 'Give the key card.'],
+                ],
+                'order' => ['s1', 's2', 's3'],
+            ],
         };
 
         return ['items' => [$item]];

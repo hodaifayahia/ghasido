@@ -79,15 +79,6 @@ class UserPolicy
             && $this->managesAccount($actor, $employee);
     }
 
-    /**
-     * Safe delete of an employee account: the same reach as editing it;
-     * refused while the account holds any training record.
-     */
-    public function delete(User $actor, User $employee): bool
-    {
-        return $this->update($actor, $employee);
-    }
-
     public function activate(User $actor, User $employee): bool
     {
         return $this->update($actor, $employee);

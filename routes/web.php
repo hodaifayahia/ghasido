@@ -29,9 +29,17 @@ Route::post('contact', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
 
+// The customer's "payment submitted" page (client request 2026-09-27). An
+// unguessable id, so it opens without signing in, and also once signed in.
+Route::get('checkout/payment/{submission}', [CheckoutController::class, 'submitted'])
+    ->whereUuid('submission')
+    ->name('checkout.submitted');
+
 Route::middleware('guest')->group(function () {
     Route::get('checkout/{plan:slug}', [CheckoutController::class, 'show'])->name('checkout.show');
-    Route::post('checkout/{plan:slug}', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::post('checkout/{plan:slug}', [CheckoutController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('checkout.store');
     Route::get('hotel-signup', [HotelSignupController::class, 'create'])->name('hotel-signup');
     Route::post('hotel-signup', [HotelSignupController::class, 'store'])->name('hotel-signup.store');
 });

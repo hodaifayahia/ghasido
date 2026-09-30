@@ -48,12 +48,6 @@ class DepartmentPolicy
             && $this->owns($user, $department);
     }
 
-    /** Safe delete: refused while anything still uses the department. */
-    public function delete(User $user, Department $department): bool
-    {
-        return $this->update($user, $department);
-    }
-
     public function toggle(User $user, Department $department): bool
     {
         return $this->update($user, $department);

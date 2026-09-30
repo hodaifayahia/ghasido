@@ -31,7 +31,7 @@ class SubscriptionsTest extends TestCase
 
     public function test_the_three_seed_plans_have_the_requested_limits_prices_and_point_pool(): void
     {
-        $plans = SubscriptionPlan::query()->orderBy('employee_limit')->get()->keyBy('slug');
+        $plans = SubscriptionPlan::query()->forHotels()->orderBy('employee_limit')->get()->keyBy('slug');
 
         $this->assertSame(['standard', 'gold', 'diamond'], $plans->keys()->all());
         $this->assertSame([4, 7, 15], $plans->pluck('employee_limit')->all());
@@ -54,7 +54,9 @@ class SubscriptionsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('admin/Subscriptions')
-                ->has('plans', 3)
+                // Three hotel plans first, then the three individual plans.
+                ->has('plans', 6)
+                ->where('plans.3.audience', 'individual')
                 ->where('plans.1.name', 'Gold')
                 ->where('plans.1.priceDzd', 20000)
                 ->where('plans.1.pointPool', 21000));

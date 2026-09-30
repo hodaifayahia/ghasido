@@ -3,6 +3,7 @@
 namespace App\Services\Hotels;
 
 use App\Enums\CapacityState;
+use App\Enums\HotelAccessState;
 use App\Enums\HotelStatus;
 use App\Http\Resources\Hotels\HotelOverviewResource;
 use App\Http\Resources\Hotels\HotelRowResource;
@@ -69,7 +70,15 @@ class HotelDirectory
      */
     private function query(string $search, string $status, string $capacity): Builder
     {
-        $query = Hotel::query()->withSeatCounts()->directoryOrder()->search($search);
+        // Requests waiting for approval come first, newest on top, so a
+        // hotel that just bought a plan is seen at once (client request
+        // 2026-09-29); the rest keeps the name order.
+        $query = Hotel::query()
+            ->withSeatCounts()
+            ->orderByRaw('case when access_state = ? then 0 else 1 end', [HotelAccessState::Pending->value])
+            ->orderByRaw('case when access_state = ? then created_at end desc', [HotelAccessState::Pending->value])
+            ->directoryOrder()
+            ->search($search);
 
         $derived = HotelStatus::tryFrom($status);
 

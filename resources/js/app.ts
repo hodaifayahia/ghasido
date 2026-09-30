@@ -24,6 +24,7 @@ void initializeI18n().then(() =>
                 case name === 'Welcome':
                 case name === 'Contact':
                 case name === 'Checkout':
+                case name === 'CheckoutSubmitted':
                     return null;
                 case name.startsWith('auth/'):
                 case name === 'owner/Login':

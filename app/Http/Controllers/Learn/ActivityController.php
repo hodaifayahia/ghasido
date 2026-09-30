@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Learn;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Learn\AnswerActivityRequest;
 use App\Models\ActivityPlacement;
+use App\Models\Attempt;
 use App\Models\Block;
 use App\Models\Lesson;
 use App\Models\User;
@@ -48,6 +49,24 @@ class ActivityController extends Controller
 
         $result = $request->session()->get(self::RESULT_KEY);
         $result = is_array($result) && ($result['placementId'] ?? null) === $placement->id ? $result : null;
+
+        // The page polls a spoken or written answer while it is judged
+        // (PERF-04): `?attempt=` rebuilds the result of the learner's own
+        // answer to this placement, never anyone else's.
+        $attemptId = (int) $request->query('attempt', 0);
+
+        if ($attemptId > 0) {
+            $attempt = Attempt::query()
+                ->whereKey($attemptId)
+                ->where('user_id', $user->id)
+                ->where('placement_id', $placement->id)
+                ->first();
+
+            $result = $attempt === null ? null : [
+                'placementId' => $placement->id,
+                ...$this->recorder->resultFor($attempt),
+            ];
+        }
 
         return Inertia::render('employee/lesson/Activity', [
             'lesson' => $this->blocks->lesson($lesson),

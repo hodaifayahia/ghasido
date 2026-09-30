@@ -102,61 +102,6 @@ class TranslationsTest extends TestCase
         $this->assertDatabaseCount('text_translations', 0);
     }
 
-    public function test_a_builder_field_reads_the_meaning_of_its_text_without_creating_one()
-    {
-        Queue::fake();
-        $admin = User::factory()->superAdmin()->create();
-        TextTranslation::query()->create([
-            'hash' => TextTranslation::hashOf('Welcoming a guest'),
-            'source_text' => 'Welcoming a guest',
-            'arabic' => 'استقبال الضيف',
-            'status' => GenerationStatus::Done,
-            'source' => 'ai',
-        ]);
-
-        // Same key whatever the spacing and case (TextTranslation::hashOf).
-        $this->actingAs($admin)
-            ->postJson(route('translations.lookup'), ['texts' => ['  welcoming   a GUEST ', 'Say hello politely']])
-            ->assertOk()
-            ->assertJsonPath('items.0.arabic', 'استقبال الضيف')
-            ->assertJsonPath('items.0.state', 'ai')
-            ->assertJsonPath('items.1.arabic', null)
-            ->assertJsonPath('items.1.state', 'missing');
-
-        // Looking up never notes a text as requested nor asks the AI.
-        $this->assertDatabaseCount('text_translations', 1);
-        Queue::assertNothingPushed();
-    }
-
-    public function test_a_builder_field_saves_its_meaning_as_json_and_it_reaches_the_learner()
-    {
-        Queue::fake();
-        $admin = User::factory()->superAdmin()->create();
-
-        $this->actingAs($admin)
-            ->putJson(route('translations.save'), ['text' => 'Say hello politely', 'arabic' => 'قل مرحبًا بأدب'])
-            ->assertOk()
-            ->assertJsonPath('text', 'Say hello politely')
-            ->assertJsonPath('arabic', 'قل مرحبًا بأدب')
-            ->assertJsonPath('state', 'manual');
-
-        $this->actingAs(User::factory()->employee()->create())
-            ->postJson(route('meaning'), ['text' => 'Say hello politely'])
-            ->assertOk()
-            ->assertJsonPath('status', 'done')
-            ->assertJsonPath('arabic', 'قل مرحبًا بأدب');
-    }
-
-    public function test_a_learner_or_a_manager_cannot_read_or_write_builder_meanings()
-    {
-        foreach ([User::factory()->employee()->create(), User::factory()->manager()->create()] as $user) {
-            $this->actingAs($user)->postJson(route('translations.lookup'), ['texts' => ['Hello']])->assertForbidden();
-            $this->actingAs($user)->putJson(route('translations.save'), ['text' => 'Hello', 'arabic' => 'مرحبا'])->assertForbidden();
-        }
-
-        $this->assertDatabaseCount('text_translations', 0);
-    }
-
     public function test_the_ai_job_skips_a_meaning_the_admin_wrote_meanwhile()
     {
         $translation = TextTranslation::query()->create([

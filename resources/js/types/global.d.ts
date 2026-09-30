@@ -39,6 +39,8 @@ declare module '@inertiajs/core' {
             owner?: OwnerIdentity;
             /** The interface language and its direction (I18N-02). */
             locale: { current: 'en' | 'ar'; direction: 'ltr' | 'rtl' };
+            /** Payments awaiting review; 0 without subscriptions.manage. */
+            pendingPayments: number;
             [key: string]: unknown;
         };
     }

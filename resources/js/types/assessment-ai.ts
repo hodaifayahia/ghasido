@@ -66,27 +66,3 @@ export type TestQuestionDetail = {
     label: string;
     text: string;
 };
-
-export type TestJudgedCriterion = {
-    key: string;
-    label: string;
-    score: number;
-    comment: string;
-};
-
-export type TestJudgedAnswer = {
-    id: number;
-    type: 'speaking' | 'writing';
-    typeLabel: string;
-    question: string;
-    /** Transcript or written text; null unless the viewer is Super Admin. */
-    answerText: string | null;
-    /** Private recording; Super Admin only (PRIV-04). */
-    recordingUrl: string | null;
-    aiStatus: TestAiJobStatus | null;
-    failedReason: string | null;
-    score: number | null;
-    criteria: TestJudgedCriterion[];
-    summary: string;
-    betterAnswer: string;
-};

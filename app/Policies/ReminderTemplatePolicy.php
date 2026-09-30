@@ -38,7 +38,6 @@ class ReminderTemplatePolicy
         return $this->owns($user);
     }
 
-    /** Safe delete: refused while a rule or a sent reminder uses it. */
     public function delete(User $user, ReminderTemplate $template): bool
     {
         return $this->owns($user);

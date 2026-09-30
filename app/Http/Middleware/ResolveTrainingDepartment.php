@@ -32,19 +32,6 @@ class ResolveTrainingDepartment
     {
         $user = $request->user();
 
-        // An individual subscriber with several departments studies the one
-        // chosen in the session, else their main one (users.department_id);
-        // they are never sent to the chooser (owner request 2026-09-25).
-        if ($user instanceof User && $user->isIndividual()) {
-            $chosen = (int) $request->session()->get('training_department_id', 0);
-
-            if ($chosen > 0 && $chosen !== $user->department_id && $this->departments->canTrainIn($user, $chosen)) {
-                $user->trainingDepartmentId = $chosen;
-            }
-
-            return $next($request);
-        }
-
         // Employees (a department of their own) and every non-manager pass
         // through untouched, so the Super Admin's employee-preview is
         // unchanged.

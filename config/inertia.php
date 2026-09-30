@@ -4,6 +4,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Inertia DevTools
+    |--------------------------------------------------------------------------
+    |
+    | Off unless asked for. Left unset, Inertia turns its request recorder on
+    | whenever APP_ENV is "local", and the recorder walks every prop of every
+    | response: pages with large props (Lessons & Content, AI Scenarios,
+    | Reports) took several times longer (client report 2026-09-29). Set
+    | INERTIA_DEVTOOLS=true in a developer's own .env to use it.
+    |
+    */
+
+    'devtools' => [
+        'enabled' => (bool) env('INERTIA_DEVTOOLS', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Server Side Rendering
     |--------------------------------------------------------------------------
     |

@@ -108,15 +108,16 @@ export type DashboardBriefing = {
 };
 
 /** Super Admin only: this month's employee AI points and estimated API spend. */
+export type DashboardAiSpendTile = {
+    points: number;
+    costUsd: number;
+    priceComplete: boolean;
+};
+
 export type DashboardAiPointSpend = {
-    voiceAgent: {
-        points: number;
-        costUsd: number;
-        priceComplete: boolean;
-    };
-    llm: {
-        points: number;
-        costUsd: number;
-        priceComplete: boolean;
-    };
+    voiceAgent: DashboardAiSpendTile;
+    llm: DashboardAiSpendTile;
+    /** Lesson audio, transcription and pronunciation listening. */
+    speech: DashboardAiSpendTile;
+    images: DashboardAiSpendTile;
 };

@@ -16,6 +16,7 @@ import { watchDebounced } from '@vueuse/core';
 import type { AcceptableValue } from 'reka-ui';
 import { ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
+import LessonsDeleteDialog from '@/components/lessons/LessonsDeleteDialog.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -58,11 +59,20 @@ const emit = defineEmits<{
     filter: [values: LessonDirectoryFilterValues];
     page: [page: number];
     pageSize: [size: number];
-    delete: [lesson: LessonDirectoryRow];
 }>();
 
 const { can } = useCan();
 const manage = can('lessons.manage');
+
+// Delete (CMS-01): shown only where LessonPolicy::destroy allows it; the
+// server authorizes again and keeps learner answers (ROLE-02, DATA-10).
+const deleteOpen = ref(false);
+const deleteTarget = ref<LessonDirectoryRow | null>(null);
+
+function askDelete(lesson: LessonDirectoryRow): void {
+    deleteTarget.value = lesson;
+    deleteOpen.value = true;
+}
 
 const search = ref(props.filters.search);
 const hotel = ref(props.filters.hotel);
@@ -169,11 +179,6 @@ function statusClass(statusValue: LessonDirectoryRow['status']): string {
 
 const iconButton =
     'border-line text-brand-800 hover:bg-brand-50 bg-surface inline-flex items-center justify-center rounded-md border focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45';
-
-// Safe delete: outline only, danger colours. The ::after pad widens the
-// 32px phone button to a 44px tap target (ACC-03).
-const deleteButton =
-    'border-danger/40 text-danger-text hover:bg-danger-tint bg-surface relative inline-flex size-8 shrink-0 items-center justify-center rounded-md border after:absolute after:-inset-1.5 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
 </script>
 
 <template>
@@ -403,15 +408,14 @@ const deleteButton =
                 <table
                     class="w-full min-w-[820px] table-fixed border-collapse text-start"
                 >
-                    <!-- The Action column holds Edit + Delete for admins. -->
                     <colgroup>
-                        <col class="w-[24%]" />
+                        <col class="w-[23%]" />
                         <col class="w-[18%]" />
                         <col class="w-[13%]" />
                         <col class="w-[12%]" />
                         <col class="w-[8%]" />
                         <col class="w-[10%]" />
-                        <col class="w-[15%]" />
+                        <col class="w-[16%]" />
                     </colgroup>
                     <thead class="bg-tint-header">
                         <tr
@@ -507,7 +511,7 @@ const deleteButton =
                                 </span>
                             </td>
                             <td class="px-2 py-2.5 align-middle">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1.5">
                                     <Button
                                         as-child
                                         type="button"
@@ -525,24 +529,25 @@ const deleteButton =
                                             }}
                                         </Link>
                                     </Button>
-                                    <button
-                                        v-if="manage"
+                                    <Button
+                                        v-if="manage && lesson.canDelete"
                                         type="button"
-                                        :class="deleteButton"
+                                        variant="outline"
+                                        class="border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text bg-surface size-8 shrink-0 rounded-md p-0 shadow-none"
                                         :aria-label="
-                                            $t('Delete :name', {
-                                                name: lesson.title,
+                                            $t('Delete :title', {
+                                                title: lesson.title,
                                             })
                                         "
                                         :title="$t('Delete')"
                                         :data-test="`delete-lesson-${lesson.id}-button`"
-                                        @click="emit('delete', lesson)"
+                                        @click="askDelete(lesson)"
                                     >
                                         <Trash2
                                             class="size-3.5"
                                             aria-hidden="true"
                                         />
-                                    </button>
+                                    </Button>
                                 </div>
                             </td>
                         </tr>
@@ -622,7 +627,25 @@ const deleteButton =
                         </p>
                     </div>
 
-                    <div class="mt-3 flex items-center justify-end gap-2">
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button
+                            v-if="manage && lesson.canDelete"
+                            type="button"
+                            :class="
+                                cn(
+                                    iconButton,
+                                    'border-danger/60 text-danger hover:bg-danger-tint hover:text-danger-text min-h-8 gap-1.5 px-2.5 text-[11px] font-semibold',
+                                )
+                            "
+                            :aria-label="
+                                $t('Delete :title', { title: lesson.title })
+                            "
+                            :data-test="`delete-lesson-${lesson.id}-button`"
+                            @click="askDelete(lesson)"
+                        >
+                            <Trash2 class="size-3.5" aria-hidden="true" />
+                            {{ $t('Delete') }}
+                        </button>
                         <Link
                             :href="lesson.url"
                             :class="
@@ -639,19 +662,6 @@ const deleteButton =
                             />
                             {{ manage ? $t('Edit lesson') : $t('View lesson') }}
                         </Link>
-                        <button
-                            v-if="manage"
-                            type="button"
-                            :class="deleteButton"
-                            :aria-label="
-                                $t('Delete :name', { name: lesson.title })
-                            "
-                            :title="$t('Delete')"
-                            :data-test="`delete-lesson-${lesson.id}-card-button`"
-                            @click="emit('delete', lesson)"
-                        >
-                            <Trash2 class="size-3.5" aria-hidden="true" />
-                        </button>
                     </div>
                 </li>
                 <li
@@ -766,5 +776,6 @@ const deleteButton =
                 </button>
             </nav>
         </div>
+        <LessonsDeleteDialog v-model:open="deleteOpen" :lesson="deleteTarget" />
     </PanelCard>
 </template>

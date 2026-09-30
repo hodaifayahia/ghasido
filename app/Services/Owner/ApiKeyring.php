@@ -4,6 +4,7 @@ namespace App\Services\Owner;
 
 use App\Enums\ApiAccount;
 use App\Models\ApiAccountSetting;
+use App\Services\Ai\AiModelSettings;
 use Illuminate\Database\QueryException;
 
 /**
@@ -146,6 +147,11 @@ final class ApiKeyring
 
         $provider = config($slot[1]);
         $provider = is_string($provider) && trim($provider) !== '' ? trim($provider) : 'fake';
+
+        // `openai` pointed at Alibaba's host is the Qwen account.
+        if ($slot[1] === 'services.ai.provider') {
+            $provider = AiModelSettings::aiProviderLabel($provider);
+        }
 
         return in_array($provider, $slot[2], true);
     }

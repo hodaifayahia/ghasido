@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import {
     Bot,
+    ClipboardCheck,
+    Eye,
+    Hourglass,
     MicOff,
     Pencil,
     Plus,
     Power,
     Search,
-    Trash2,
     UserRound,
 } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
+import { formatSubmitted } from '@/components/hotels/paymentFormat';
 import { intlLocale, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type {
+    IndividualApprovalState,
     IndividualFilters,
     IndividualPagination,
     IndividualRow,
@@ -32,6 +36,8 @@ type Props = {
     filters: IndividualFilters;
     pagination: IndividualPagination;
     canManage: boolean;
+    /** Waiting for their payment to be approved (client request 2026-09-27). */
+    pendingCount: number;
 };
 
 const props = defineProps<Props>();
@@ -41,8 +47,8 @@ const { t, tc } = useI18n();
 const emit = defineEmits<{
     add: [];
     edit: [row: IndividualRow];
+    review: [row: IndividualRow];
     toggle: [row: IndividualRow];
-    delete: [row: IndividualRow];
     filter: [filters: IndividualFilters];
     page: [page: number];
 }>();
@@ -127,8 +133,43 @@ function pointsPercent(row: IndividualRow): number {
     return Math.min(100, Math.round((row.aiPointsUsed / row.aiPoints) * 100));
 }
 
+/** Bought online and not approved yet, or rejected (2026-09-27). */
+function awaitsDecision(row: IndividualRow): boolean {
+    return row.approvalState !== 'approved';
+}
+
+const approvalTone: Record<IndividualApprovalState, string> = {
+    pending: 'bg-warning-tint text-warning-text',
+    approved: 'bg-success-tint text-success-text',
+    rejected: 'bg-danger-tint text-danger-text',
+};
+
+const approvalText: Record<IndividualApprovalState, string> = {
+    pending: tk('Awaiting approval'),
+    approved: tk('Approved'),
+    rejected: tk('Rejected'),
+};
+
+function approvalLine(row: IndividualRow): string {
+    if (row.approvalState === 'rejected') {
+        return row.rejectionReason ?? t('Rejected');
+    }
+
+    const sent = row.payment?.submittedAt ?? null;
+
+    if (row.planName && sent) {
+        return t(':plan · sent :date', {
+            plan: row.planName,
+            date: formatSubmitted(sent),
+        });
+    }
+
+    return row.planName ?? t('Waiting for the payment to be checked');
+}
+
 const states = [
     { value: 'all', label: tk('All') },
+    { value: 'pending', label: tk('Pending') },
     { value: 'inactive', label: tk('Inactive') },
     { value: 'ended', label: tk('Ended') },
 ];
@@ -154,8 +195,38 @@ const states = [
             </Button>
         </template>
 
+        <div
+            v-if="pendingCount > 0 && state !== 'pending'"
+            class="border-warning/35 bg-warning-tint mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border px-3 py-2"
+            data-test="individuals-pending-callout"
+        >
+            <Hourglass
+                class="text-warning size-4 shrink-0"
+                aria-hidden="true"
+            />
+            <p
+                class="text-warning-text min-w-0 flex-1 text-[12.5px] font-medium"
+            >
+                {{
+                    tc(
+                        ':count person is waiting for their payment to be approved.|:count people are waiting for their payment to be approved.',
+                        pendingCount,
+                    )
+                }}
+            </p>
+            <button
+                type="button"
+                class="text-brand-700 hover:bg-surface/70 focus-visible:ring-brand-600/15 min-h-9 rounded-md px-2.5 text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
+                @click="onState('pending')"
+            >
+                {{ $t('Show them') }}
+            </button>
+        </div>
+
         <div class="flex flex-wrap items-center gap-2 px-4 pb-3">
-            <label class="relative min-w-0 flex-1 sm:max-w-xs">
+            <label
+                class="relative min-w-0 flex-1 basis-full sm:max-w-xs sm:basis-auto"
+            >
                 <span class="sr-only">{{
                     $t('Search individual subscribers')
                 }}</span>
@@ -191,7 +262,20 @@ const states = [
                     "
                     @click="onState(option.value)"
                 >
-                    {{ $t(option.label) }}
+                    <span class="inline-flex items-center gap-1.5">
+                        {{ $t(option.label) }}
+                        <span
+                            v-if="
+                                option.value === 'pending' && pendingCount > 0
+                            "
+                            class="bg-warning-tint text-warning-text rounded-pill inline-grid h-5 min-w-5 place-items-center px-1.5 text-[10.5px] font-bold tabular-nums"
+                        >
+                            {{ pendingCount }}
+                            <span class="sr-only">{{
+                                $t('awaiting approval')
+                            }}</span>
+                        </span>
+                    </span>
                 </button>
             </div>
         </div>
@@ -209,11 +293,11 @@ const states = [
                     }}
                 </caption>
                 <colgroup>
-                    <col class="w-[25%]" />
-                    <col class="w-[15%]" />
-                    <col class="w-[21%]" />
-                    <col class="w-[19%]" />
-                    <col class="w-[20%]" />
+                    <col class="w-[23%]" />
+                    <col class="w-[13%]" />
+                    <col class="w-[22%]" />
+                    <col class="w-[18%]" />
+                    <col class="w-[24%]" />
                 </colgroup>
                 <thead
                     class="bg-app text-ink-slate text-[11px] tracking-wide uppercase"
@@ -275,13 +359,35 @@ const states = [
                                 {{ row.department }}
                             </span>
                             <span
-                                v-if="row.status === 'inactive'"
+                                v-if="
+                                    row.status === 'inactive' &&
+                                    !awaitsDecision(row)
+                                "
                                 class="bg-app text-ink-slate mt-1 inline-flex rounded-[5px] px-2 py-0.5 text-[10px] font-semibold"
                             >
                                 {{ $t('Inactive') }}
                             </span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td v-if="awaitsDecision(row)" class="px-4 py-3">
+                            <span
+                                :class="
+                                    cn(
+                                        'inline-flex rounded-[5px] px-2 py-0.5 text-[10.5px] font-semibold',
+                                        approvalTone[row.approvalState],
+                                    )
+                                "
+                                :data-test="`individual-approval-${row.id}`"
+                            >
+                                {{ $t(approvalText[row.approvalState]) }}
+                            </span>
+                            <span
+                                class="text-ink-slate mt-1 block truncate text-[11.5px]"
+                                :title="approvalLine(row)"
+                            >
+                                {{ approvalLine(row) }}
+                            </span>
+                        </td>
+                        <td v-else class="px-4 py-3">
                             <span
                                 :class="
                                     cn(
@@ -296,6 +402,12 @@ const states = [
                                 class="text-ink-slate mt-1 block text-[11.5px]"
                             >
                                 {{ accessLine(row) }}
+                            </span>
+                            <span
+                                v-if="row.planName"
+                                class="text-ink-muted mt-0.5 block truncate text-[11px]"
+                            >
+                                {{ $t('Plan: :name', { name: row.planName }) }}
                             </span>
                         </td>
                         <td class="px-4 py-3">
@@ -339,10 +451,56 @@ const states = [
                                 {{ $t('AI not included') }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-end">
+                        <td class="py-3 ps-2 pe-4 text-end">
                             <div
-                                v-if="canManage"
-                                class="flex flex-wrap justify-end gap-1.5"
+                                v-if="canManage && awaitsDecision(row)"
+                                class="flex justify-end gap-1.5"
+                            >
+                                <Button
+                                    v-if="row.approvalState === 'pending'"
+                                    type="button"
+                                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-9 gap-1.5 rounded-md px-2.5 text-[12px] font-semibold text-white active:scale-[.97]"
+                                    :data-test="`review-individual-${row.id}`"
+                                    @click="emit('review', row)"
+                                >
+                                    <ClipboardCheck
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                    {{ $t('Review & approve') }}
+                                </Button>
+                                <Button
+                                    v-else
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-ink h-9 gap-1.5 rounded-md px-2.5"
+                                    :data-test="`review-individual-${row.id}`"
+                                    @click="emit('review', row)"
+                                >
+                                    <Eye class="size-3.5" aria-hidden="true" />
+                                    {{ $t('Details') }}
+                                </Button>
+                                <Button
+                                    v-if="row.approvalState !== 'pending'"
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-ink size-9 rounded-md p-0"
+                                    :aria-label="
+                                        $t('Edit :name', { name: row.name })
+                                    "
+                                    :title="$t('Edit')"
+                                    :data-test="`edit-individual-${row.id}`"
+                                    @click="emit('edit', row)"
+                                >
+                                    <Pencil
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </div>
+                            <div
+                                v-else-if="canManage"
+                                class="flex justify-end gap-1.5"
                             >
                                 <Button
                                     type="button"
@@ -389,19 +547,6 @@ const states = [
                                 >
                                     <Power class="size-4" aria-hidden="true" />
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    class="border-danger text-danger-text hover:bg-danger-tint bg-surface size-9 rounded-md p-0"
-                                    :aria-label="
-                                        $t('Delete :name', { name: row.name })
-                                    "
-                                    :title="$t('Delete')"
-                                    :data-test="`delete-individual-${row.id}`"
-                                    @click="emit('delete', row)"
-                                >
-                                    <Trash2 class="size-4" aria-hidden="true" />
-                                </Button>
                             </div>
                         </td>
                     </tr>
@@ -440,6 +585,18 @@ const states = [
                         </p>
                     </div>
                     <span
+                        v-if="awaitsDecision(row)"
+                        :class="
+                            cn(
+                                'inline-flex shrink-0 rounded-[5px] px-2 py-0.5 text-[10.5px] font-semibold',
+                                approvalTone[row.approvalState],
+                            )
+                        "
+                    >
+                        {{ $t(approvalText[row.approvalState]) }}
+                    </span>
+                    <span
+                        v-else
                         :class="
                             cn(
                                 'inline-flex shrink-0 rounded-[5px] px-2 py-0.5 text-[10.5px] font-semibold',
@@ -456,7 +613,15 @@ const states = [
                         }}
                     </span>
                 </div>
-                <p class="text-ink-slate text-[12px]">{{ accessLine(row) }}</p>
+                <p
+                    v-if="awaitsDecision(row)"
+                    class="text-ink-slate line-clamp-2 text-[12px]"
+                >
+                    {{ approvalLine(row) }}
+                </p>
+                <p v-else class="text-ink-slate text-[12px]">
+                    {{ accessLine(row) }}
+                </p>
                 <p class="text-ink-slate text-[12px]">
                     <template v-if="row.aiEnabled">
                         {{
@@ -482,13 +647,45 @@ const states = [
                     </template>
                     <template v-else>{{ $t('AI not included') }}</template>
                 </p>
-                <!-- Three actions share one row down to 360px: icon over a
-                     short label, each at least 44px tall (ACC-03). -->
-                <div v-if="canManage" class="grid grid-cols-3 gap-2">
+                <div
+                    v-if="canManage && awaitsDecision(row)"
+                    class="grid grid-flow-col grid-cols-[minmax(0,1fr)] gap-2"
+                >
+                    <Button
+                        v-if="row.approvalState === 'pending'"
+                        type="button"
+                        class="bg-brand-600 shadow-btn hover:bg-brand-700 h-11 gap-1.5 rounded-md text-[13px] font-semibold text-white active:scale-[.97]"
+                        @click="emit('review', row)"
+                    >
+                        <ClipboardCheck class="size-4" aria-hidden="true" />
+                        {{ $t('Review & approve') }}
+                    </Button>
+                    <Button
+                        v-else
+                        type="button"
+                        variant="outline"
+                        class="border-line text-ink h-11 gap-1.5 rounded-md"
+                        @click="emit('review', row)"
+                    >
+                        <Eye class="size-4" aria-hidden="true" />
+                        {{ $t('Details') }}
+                    </Button>
+                    <Button
+                        v-if="row.approvalState !== 'pending'"
+                        type="button"
+                        variant="outline"
+                        class="border-line text-ink size-11 rounded-md p-0"
+                        :aria-label="$t('Edit :name', { name: row.name })"
+                        @click="emit('edit', row)"
+                    >
+                        <Pencil class="size-4" aria-hidden="true" />
+                    </Button>
+                </div>
+                <div v-else-if="canManage" class="grid grid-cols-2 gap-2">
                     <Button
                         type="button"
                         variant="outline"
-                        class="border-line text-ink h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1"
+                        class="border-line text-ink h-11 gap-1.5 rounded-md"
                         @click="emit('edit', row)"
                     >
                         <Pencil class="size-3.5" aria-hidden="true" />
@@ -499,7 +696,7 @@ const states = [
                         variant="outline"
                         :class="
                             cn(
-                                'border-line h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1',
+                                'border-line h-11 gap-1.5 rounded-md',
                                 row.status === 'active'
                                     ? 'text-danger-text hover:bg-danger-tint'
                                     : 'text-success-text hover:bg-success-tint',
@@ -513,17 +710,6 @@ const states = [
                                 ? $t('Deactivate')
                                 : $t('Activate')
                         }}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="border-danger text-danger-text hover:bg-danger-tint bg-surface h-auto min-h-11 min-w-0 flex-col gap-1 rounded-md px-1 py-1.5 text-[11.5px] leading-tight whitespace-normal has-[>svg]:px-1"
-                        :aria-label="$t('Delete :name', { name: row.name })"
-                        :data-test="`delete-individual-${row.id}-card`"
-                        @click="emit('delete', row)"
-                    >
-                        <Trash2 class="size-4" aria-hidden="true" />
-                        {{ $t('Delete') }}
                     </Button>
                 </div>
             </li>

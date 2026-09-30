@@ -142,7 +142,7 @@ class ContentTree
             // the largest section (every block with its audio and media), so
             // the directory, which never renders them, does not ship them.
             'lessonBlocks' => fn (): array => $builderOpen && $lesson !== null ? $this->blocks->forLesson($lesson) : [],
-            'scenarios' => fn (): array => $this->scenarios($departmentId, $hotelKey, $hotelId, $lesson),
+            'scenarios' => fn (): array => $this->scenarios($departmentId, $hotelKey, $hotelId),
             'blockTypes' => array_map(fn (BlockType $type): array => [
                 'value' => $type->value,
                 'label' => $type->heading(),
@@ -248,7 +248,9 @@ class ContentTree
     {
         return $this->courseScope($hotelKey, $hotelId)
             ->where('department_id', $departmentId)
-            ->with(['units.lessons'])
+            // A lesson removed by "Delete" keeps its answers but leaves the
+            // builder tree (CMS-01, DATA-10).
+            ->with(['units.lessons' => fn ($lessons) => $lessons->notArchived()])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -399,7 +401,7 @@ class ContentTree
             ['id' => 'video', 'label' => __('Video'), 'icon' => 'video', 'tone' => 'danger', 'type' => BlockType::Video->value],
             ['id' => 'practice', 'label' => __('Practice Activity'), 'icon' => 'practice', 'tone' => 'warning', 'type' => BlockType::Practice->value],
             ['id' => 'roleplay', 'label' => __('AI Role-play'), 'icon' => 'roleplay', 'tone' => 'brand', 'type' => BlockType::AiRoleplay->value],
-            ['id' => 'quiz', 'label' => __('Quiz / Test'), 'icon' => 'quiz', 'tone' => 'ai', 'type' => BlockType::Practice->value],
+            ['id' => 'quiz', 'label' => __('Quiz / Test'), 'icon' => 'quiz', 'tone' => 'ai', 'type' => BlockType::Quiz->value],
             ['id' => 'download', 'label' => __('Downloadable File'), 'icon' => 'download', 'tone' => 'azure', 'type' => null],
             ['id' => 'note', 'label' => __('Note / Tip'), 'icon' => 'note', 'tone' => 'gold', 'type' => BlockType::Note->value],
         ];
@@ -469,8 +471,14 @@ class ContentTree
             ->paginate($filters['perPage'], ['*'], 'directoryPage')
             ->withQueryString();
 
+        // The delete dialog says up front whether learners answered the
+        // lesson, so the admin knows it will be kept for reports (DATA-10).
+        $learnerRecords = app(LessonService::class)->learnerRecordCounts(
+            array_values(array_map(static fn (Lesson $lesson): int => $lesson->id, $page->getCollection()->all())),
+        );
+
         return [
-            'rows' => array_values($page->getCollection()->map(function (Lesson $lesson): array {
+            'rows' => array_values($page->getCollection()->map(function (Lesson $lesson) use ($user, $learnerRecords): array {
                 $course = $lesson->course;
                 $unit = $lesson->unit;
                 $departmentName = $course === null ? null : $course->department->name;
@@ -493,6 +501,8 @@ class ContentTree
                     // reorder the actual steps (LESSON-01, LESSON-02, CMS-01).
                     'steps' => (int) $lesson->visible_blocks_count,
                     'url' => route('lessons.edit', $lesson),
+                    'canDelete' => $user->can('destroy', $lesson),
+                    'learnerRecords' => $learnerRecords[$lesson->id] ?? 0,
                 ];
             })->all()),
             'stats' => $this->directoryStats($user),
@@ -560,7 +570,7 @@ class ContentTree
      */
     private function directoryBase(User $user): Builder
     {
-        $query = Lesson::query();
+        $query = Lesson::query()->notArchived();
 
         if ($user->hotel_id === null) {
             if (! $user->hasRole('super_admin')) {
@@ -785,19 +795,9 @@ class ContentTree
     /**
      * @return list<array{id: int, title: string, description: string|null, difficulty: string, icon: string, status: string}>
      */
-    private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId, ?Lesson $lesson = null): array
+    private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId): array
     {
-        // An open lesson decides the scope, whatever the URL filters say, so
-        // the picker offers exactly what BlockService::syncScenarios accepts.
-        $course = $lesson?->course;
-
-        if ($lesson !== null && $course !== null) {
-            $departmentId = $course->department_id;
-            $hotelId = $lesson->hotel_id;
-            $hotelKey = $hotelId === null ? self::SHARED : (string) $hotelId;
-        }
-
-        $query = AiScenario::query()->where('department_id', $departmentId)->orderBy('title');
+        $query = AiScenario::query()->notArchived()->where('department_id', $departmentId)->orderBy('title');
 
         if ($hotelKey === self::SHARED) {
             $query->whereNull('hotel_id');

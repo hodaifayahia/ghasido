@@ -5,17 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\GenerationStatus;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Jobs\TranslateText;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Test;
 use App\Models\TextTranslation;
 use App\Models\User;
+use App\Services\Ai\AiLimitReached;
 use App\Services\Meaning\MeaningTexts;
 use App\Services\Meaning\MeaningTranslations;
+use App\Services\Owner\ApiCredit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -92,12 +96,8 @@ class TranslationsController extends Controller
         ]);
     }
 
-    /**
-     * Write or correct one meaning by hand; the AI never replaces it. The
-     * builders' Translation button (user request 2026-09-26) calls this as
-     * JSON, so a save never reloads the editor and loses unsaved typing.
-     */
-    public function save(Request $request, MeaningTranslations $translations): RedirectResponse|JsonResponse
+    /** Write or correct one meaning by hand; the AI never replaces it. */
+    public function save(Request $request, MeaningTranslations $translations): RedirectResponse
     {
         $admin = $this->authorizeEditor($request);
 
@@ -114,42 +114,9 @@ class TranslationsController extends Controller
 
         $translations->write($translation, (string) $data['arabic'], $admin);
 
-        if ($request->expectsJson() && ! $request->hasHeader('X-Inertia')) {
-            return response()->json($this->row($text, $translation->refresh()));
-        }
-
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Meaning saved.')]);
 
         return back();
-    }
-
-    /**
-     * The current meaning of each text a builder shows, for its Translation
-     * buttons (user request 2026-09-26). Read-only: an unknown text is only
-     * reported missing, never queued for the AI or noted as requested.
-     */
-    public function lookup(Request $request): JsonResponse
-    {
-        $this->authorizeEditor($request);
-
-        $data = $request->validate([
-            'texts' => ['required', 'array', 'max:200'],
-            'texts.*' => ['nullable', 'string', 'max:'.TextTranslation::MAX_LENGTH],
-        ]);
-
-        /** @var list<string|null> $texts */
-        $texts = array_values($data['texts']);
-        $rows = TextTranslation::query()
-            ->whereIn('hash', array_map(fn (?string $text): string => TextTranslation::hashOf((string) $text), $texts))
-            ->get()
-            ->keyBy('hash');
-
-        return response()->json([
-            'items' => array_map(
-                fn (?string $text): array => $this->row((string) $text, $rows->get(TextTranslation::hashOf((string) $text))),
-                $texts,
-            ),
-        ]);
     }
 
     /**
@@ -175,6 +142,109 @@ class TranslationsController extends Controller
         ]);
 
         return back();
+    }
+
+    /**
+     * The meaning of the texts an editor is typing (client request
+     * 2026-09-29: a "Translate meaning to Arabic" button above every English
+     * field of the test and lesson builders). A read: POST only so a long
+     * batch of field texts fits in the body.
+     */
+    public function lookup(Request $request): JsonResponse
+    {
+        $this->authorizeEditor($request);
+
+        $data = $request->validate([
+            'texts' => ['required', 'array', 'max:200'],
+            'texts.*' => ['nullable', 'string', 'max:'.TextTranslation::MAX_LENGTH],
+        ]);
+
+        /** @var list<string|null> $texts */
+        $texts = array_values($data['texts']);
+        $normalised = array_map(fn (?string $text): string => TextTranslation::normalise((string) $text), $texts);
+
+        $rows = TextTranslation::query()
+            ->whereIn('hash', array_map(TextTranslation::hashOf(...), array_filter($normalised, fn (string $text): bool => $text !== '')))
+            ->get()
+            ->keyBy('hash');
+
+        return response()->json([
+            'items' => array_map(
+                fn (string $text): array => $this->row($text, $text === '' ? null : $rows->get(TextTranslation::hashOf($text))),
+                $normalised,
+            ),
+        ]);
+    }
+
+    /**
+     * Draft one field's meaning with AI. It runs right after the response
+     * (a server with no queue worker still finishes it) and the button polls
+     * lookup meanwhile (PERF-04). A meaning written by hand is never
+     * replaced: the call returns it unchanged.
+     */
+    public function draft(Request $request): JsonResponse
+    {
+        $admin = $this->authorizeEditor($request);
+
+        $data = $request->validate([
+            'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
+        ]);
+
+        $text = TextTranslation::normalise((string) $data['text']);
+
+        abort_if($text === '' || preg_match('/\p{L}/u', $text) !== 1, 422, __('There is nothing to translate.'));
+
+        $translation = TextTranslation::query()->firstOrNew(['hash' => TextTranslation::hashOf($text)]);
+
+        if ($translation->exists && $translation->source === MeaningTranslations::SOURCE_MANUAL) {
+            return response()->json(['item' => $this->row($text, $translation)]);
+        }
+
+        // The owner's AI credit is checked before anything is spent (D7a).
+        try {
+            app(ApiCredit::class)->assertCapabilities('ai');
+        } catch (AiLimitReached $e) {
+            return response()->json(['message' => $e->getMessage()], 429);
+        }
+
+        $translation->fill([
+            'source_text' => $translation->source_text ?? $text,
+            'status' => GenerationStatus::Pending,
+            'source' => MeaningTranslations::SOURCE_AI,
+            'failed_reason' => null,
+            'requested_by' => $translation->requested_by ?? $admin->id,
+        ])->save();
+
+        // Straight to the bus: bypasses the unique lock a queued draft of
+        // the same row may still hold on a server with no worker. The job
+        // meters the call itself (API-03).
+        Bus::dispatchAfterResponse(new TranslateText($translation->id));
+
+        return response()->json(['item' => $this->row($text, $translation)], 202);
+    }
+
+    /** Save one field's meaning as written by hand (JSON twin of save()). */
+    public function write(Request $request, MeaningTranslations $translations): JsonResponse
+    {
+        $admin = $this->authorizeEditor($request);
+
+        $data = $request->validate([
+            'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
+            'arabic' => ['required', 'string', 'max:3000'],
+        ]);
+
+        $text = TextTranslation::normalise((string) $data['text']);
+
+        abort_if($text === '', 422, __('There is nothing to translate.'));
+
+        $translation = TextTranslation::query()->firstOrNew(
+            ['hash' => TextTranslation::hashOf($text)],
+            ['source_text' => $text, 'status' => GenerationStatus::Pending, 'source' => MeaningTranslations::SOURCE_MANUAL],
+        );
+
+        $translations->write($translation, (string) $data['arabic'], $admin);
+
+        return response()->json(['item' => $this->row($text, $translation)]);
     }
 
     private function authorizeEditor(Request $request): User

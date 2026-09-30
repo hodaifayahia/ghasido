@@ -62,8 +62,8 @@ enum TestQuestionSkill: string
         return match ($type) {
             ActivityType::Speaking => self::Speaking,
             ActivityType::Writing => self::Writing,
-            ActivityType::DialogueOrder, ActivityType::PictureOrder => self::Ordering,
-            ActivityType::BestResponse, ActivityType::ListenChoose, ActivityType::LookListen, ActivityType::ListenMatch => self::Listening,
+            ActivityType::DialogueOrder, ActivityType::PictureOrder, ActivityType::Ordering => self::Ordering,
+            ActivityType::BestResponse, ActivityType::ListenChoose, ActivityType::LookListen, ActivityType::ListenMatch, ActivityType::AudioQuestion => self::Listening,
             default => self::MultipleChoice,
         };
     }

@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 /**
- * Automation rules: add, edit, switch on or off (REM-03; spec 0003 Part D).
+ * Automation rules: add, edit, switch on or off, delete (REM-03; spec 0003
+ * Part D).
  */
 class AutomationRuleController extends Controller
 {
@@ -51,6 +52,20 @@ class AutomationRuleController extends Controller
             'message' => $rule->is_active
                 ? __(':rule is active.', ['rule' => $rule->name])
                 : __(':rule is paused.', ['rule' => $rule->name]),
+        ]);
+
+        return back();
+    }
+
+    public function destroy(AutomationRule $rule, AutomationRuleService $rules): RedirectResponse
+    {
+        Gate::authorize('delete', $rule);
+
+        $rules->delete($rule);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':rule was deleted.', ['rule' => $rule->name]),
         ]);
 
         return back();

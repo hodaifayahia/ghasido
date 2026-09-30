@@ -2,15 +2,15 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Bot, CalendarClock, UserCheck, UsersRound } from '@lucide/vue';
 import { ref } from 'vue';
-import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import IndividualFormDialog from '@/components/individuals/IndividualFormDialog.vue';
+import IndividualReviewDialog from '@/components/individuals/IndividualReviewDialog.vue';
 import IndividualsListPanel from '@/components/individuals/IndividualsListPanel.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
 import { dashboard, individuals, subscriptions } from '@/routes';
-import { destroy, toggle } from '@/routes/individuals';
+import { toggle } from '@/routes/individuals';
 import type {
     IndividualDefaults,
     IndividualFilters,
@@ -40,7 +40,6 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: tk('Dashboard'), href: dashboard() },
-            { title: tk('Subscriptions'), href: subscriptions() },
             { title: tk('Individuals'), href: individuals() },
         ],
     },
@@ -52,27 +51,35 @@ const canManage = can('subscriptions.manage');
 const dialogOpen = ref(false);
 const selected = ref<IndividualRow | null>(null);
 
+// Bought online and waiting for the payment to be checked (client request
+// 2026-09-27): the review shows the contact, payment and receipt.
+const reviewOpen = ref(false);
+const reviewing = ref<IndividualRow | null>(null);
+
 function add(): void {
     selected.value = null;
     dialogOpen.value = true;
 }
 
 function edit(row: IndividualRow): void {
+    reviewOpen.value = false;
     selected.value = row;
     dialogOpen.value = true;
 }
 
-function toggleRow(row: IndividualRow): void {
-    router.post(toggle.url(row.id), {}, { preserveScroll: true });
+function review(row: IndividualRow): void {
+    reviewing.value = row;
+    reviewOpen.value = true;
 }
 
-const deleteOpen = ref(false);
-const deleting = ref<IndividualRow | null>(null);
+function toggleRow(row: IndividualRow): void {
+    // The server refuses the switch until the purchase is approved (409).
+    if (row.approvalState !== 'approved') {
+        review(row);
+        return;
+    }
 
-/** Safe delete: the server refuses while learner data depends on the row. */
-function remove(row: IndividualRow): void {
-    deleting.value = row;
-    deleteOpen.value = true;
+    router.post(toggle.url(row.id), {}, { preserveScroll: true });
 }
 
 function visit(query: Record<string, string | number>): void {
@@ -168,14 +175,22 @@ function goToPage(page: number): void {
             :filters="filters"
             :pagination="pagination"
             :can-manage="canManage"
+            :pending-count="stats.pending"
             @add="add"
             @edit="edit"
+            @review="review"
             @toggle="toggleRow"
-            @delete="remove"
             @filter="filter"
             @page="goToPage"
         />
     </div>
+
+    <IndividualReviewDialog
+        v-model:open="reviewOpen"
+        :individual="reviewing"
+        :can-manage="canManage"
+        @edit="edit"
+    />
 
     <IndividualFormDialog
         v-if="canManage"
@@ -183,13 +198,5 @@ function goToPage(page: number): void {
         :individual="selected"
         :departments="departments"
         :defaults="defaults"
-    />
-
-    <DeleteRowDialog
-        v-if="canManage"
-        v-model:open="deleteOpen"
-        :url="deleting ? destroy.url(deleting.id) : null"
-        :name="deleting?.name ?? ''"
-        :kind="$t('individual subscriber')"
     />
 </template>

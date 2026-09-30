@@ -62,15 +62,6 @@ class HotelPolicy
             && $this->belongsTo($user, $hotel);
     }
 
-    /**
-     * Safe delete (owner decision 2026-09-27): who may archive may delete;
-     * the delete itself is refused while anything depends on the hotel.
-     */
-    public function delete(User $user, Hotel $hotel): bool
-    {
-        return $this->archive($user, $hotel);
-    }
-
     public function manageContract(User $user, Hotel $hotel): bool
     {
         return $this->update($user, $hotel);

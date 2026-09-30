@@ -1,6 +1,6 @@
 #!/bin/bash
 # Read-only: AI usage per feature on the live database (spec 0007 sizing).
-APP=/home/u673635734/domains/ghasido.com/guesvia
+APP=/home/u673635734/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia
 cd "$APP" || exit 1
 php -r '
 $db = new PDO("sqlite:database/database.sqlite", null, null, [PDO::SQLITE_ATTR_OPEN_FLAGS => PDO::SQLITE_OPEN_READONLY]);

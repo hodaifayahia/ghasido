@@ -8,19 +8,24 @@ use App\Http\Requests\Admin\Lessons\UpdateLessonRequest;
 use App\Models\Lesson;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
 /**
- * Lessons: create, autosave, publish, duplicate, archive (CMS-01, CMS-05,
+ * Lessons: create, autosave, publish, duplicate, archive, delete (CMS-01, CMS-05,
  * LESSON-02, BLD-07, BLD-08). LessonPolicy authorizes; LessonService writes.
  */
 class LessonController extends Controller
 {
     public function store(StoreLessonRequest $request, LessonService $lessons): RedirectResponse
     {
-        $unit = $request->unit();
-        $lesson = $lessons->createLesson($unit, $request->title(), $request->withDefaultBlocks());
+        $lesson = DB::transaction(function () use ($request, $lessons) {
+            $unit = $request->unit($lessons);
+
+            return $lessons->createLesson($unit, $request->title(), $request->withDefaultBlocks());
+        });
+        $unit = $lesson->unit()->firstOrFail();
         $course = $unit->course()->firstOrFail();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was created as a draft.', ['title' => $lesson->title])]);
@@ -103,6 +108,26 @@ class LessonController extends Controller
         $lessons->archiveLesson($lesson);
 
         Inertia::flash('toast', ['type' => 'info', 'message' => __(':title was archived. Nothing was deleted.', ['title' => $lesson->title])]);
+
+        return back();
+    }
+
+    /**
+     * "Delete" in the Lesson Directory (CMS-01). A lesson no learner has
+     * touched is deleted; one with learner rows is removed from the library
+     * and from learners while every answer stays (DATA-10). Authorized here,
+     * not by hiding the button (ROLE-02, SEC-01).
+     */
+    public function destroy(Lesson $lesson, LessonService $lessons): RedirectResponse
+    {
+        Gate::authorize('destroy', $lesson);
+
+        $title = $lesson->title;
+        $deleted = $lessons->deleteLesson($lesson);
+
+        Inertia::flash('toast', $deleted
+            ? ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]
+            : ['type' => 'success', 'message' => __(':title was removed from the library. Learner answers were kept for reports.', ['title' => $title])]);
 
         return back();
     }

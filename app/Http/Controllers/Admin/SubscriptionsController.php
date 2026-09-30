@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\Permission;
+use App\Enums\PlanAudience;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Subscriptions\UpdateSubscriptionPlanRequest;
 use App\Models\AuditLog;
 use App\Models\Hotel;
-use App\Models\SubscriptionCatalogSetting;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
-use App\Models\User;
 use App\Services\Subscriptions\HotelAiPointTopUpService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -29,8 +28,13 @@ final class SubscriptionsController extends Controller
     {
         Gate::authorize(Permission::SubscriptionsManage->value);
 
-        $plans = SubscriptionPlan::query()->orderBy('employee_limit')->orderBy('id')->get();
-        $individualPricing = SubscriptionCatalogSetting::query()->findOrFail(1);
+        $plans = SubscriptionPlan::query()
+            ->withCount('individualSubscriptions')
+            ->orderBy('audience')
+            ->orderBy('employee_limit')
+            ->orderBy('price_dzd')
+            ->orderBy('id')
+            ->get();
         $hotels = Hotel::query()
             ->notArchived()
             ->with('subscriptionPlan')
@@ -39,16 +43,13 @@ final class SubscriptionsController extends Controller
             ->get();
 
         return Inertia::render('admin/Subscriptions', [
-            // Learners with no hotel, managed on their own page (Individuals).
-            'individualCount' => User::query()->whereNull('hotel_id')->whereHas('individualSubscription')->count(),
-            'individualPricing' => [
-                'priceDzd' => $individualPricing->individual_price_dzd,
-                'priceUsd' => $individualPricing->individual_price_usd,
-            ],
             'plans' => $plans->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
+                // Hotel plans are sized by seats; individual plans by the
+                // learner's monthly AI points (client request 2026-09-27).
+                'audience' => $plan->audience->value,
                 'employeeLimit' => $plan->employee_limit,
                 'priceDzd' => $plan->price_dzd,
                 'priceUsd' => $plan->price_usd,
@@ -62,6 +63,7 @@ final class SubscriptionsController extends Controller
                 'aiActionPoints' => $plan->ai_action_points,
                 'isActive' => $plan->is_active,
                 'hotelCount' => $plan->hotels()->count(),
+                'subscriberCount' => (int) ($plan->individual_subscriptions_count ?? 0),
                 'pointPool' => $plan->pointsPool(),
             ])->values()->all(),
             'hotels' => $hotels->map(fn (Hotel $hotel): array => [
@@ -73,7 +75,7 @@ final class SubscriptionsController extends Controller
                 'usedEmployees' => $hotel->active_employees_count ?? $hotel->usedSeats(),
                 'employeeLimit' => $hotel->subscriptionPlan->employee_limit ?? 0,
             ])->values()->all(),
-            'activePlans' => $plans->where('is_active', true)->map(fn (SubscriptionPlan $plan): array => [
+            'activePlans' => $plans->where('is_active', true)->filter(fn (SubscriptionPlan $plan): bool => ! $plan->isIndividual())->map(fn (SubscriptionPlan $plan): array => [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'employeeLimit' => $plan->employee_limit,
@@ -108,43 +110,13 @@ final class SubscriptionsController extends Controller
         return back();
     }
 
-    /** Save the public, per-person individual subscription prices. */
-    public function updateIndividualPricing(Request $request): RedirectResponse
-    {
-        Gate::authorize(Permission::SubscriptionsManage->value);
-
-        $data = $request->validate([
-            'individual_price_dzd' => ['required', 'integer', 'min:0', 'max:1000000000'],
-            'individual_price_usd' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
-        ]);
-
-        $settings = SubscriptionCatalogSetting::query()->findOrFail(1);
-        $settings->fill([
-            'individual_price_dzd' => (int) $data['individual_price_dzd'],
-            'individual_price_usd' => round((float) $data['individual_price_usd'], 2),
-            'updated_by' => $request->user('web')?->id,
-        ]);
-
-        DB::transaction(function () use ($settings): void {
-            AuditLog::record($settings, 'subscription.individual_pricing_updated');
-            $settings->save();
-        });
-
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => __('Individual subscription prices were saved.'),
-        ]);
-
-        return back();
-    }
-
     public function assignPlan(Request $request, SubscriptionService $subscriptions): RedirectResponse
     {
         Gate::authorize(Permission::SubscriptionsManage->value);
 
         $data = $request->validate([
             'hotel_id' => ['required', 'integer', 'exists:hotels,id'],
-            'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)],
+            'plan_id' => ['required', 'integer', Rule::exists('subscription_plans', 'id')->where('is_active', true)->where('audience', PlanAudience::Hotel->value)],
         ]);
         $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail((int) $data['hotel_id']);
         $plan = SubscriptionPlan::query()->findOrFail((int) $data['plan_id']);

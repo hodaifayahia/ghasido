@@ -78,6 +78,21 @@ class LessonPolicy
     }
 
     /**
+     * "Delete" from the directory table (CMS-01). Shared content reaches
+     * every hotel, so only a platform level admin (no hotel of their own)
+     * may delete it; a hotel admin deletes their own hotel's rows only
+     * (ROLE-02). Learner answers are never deleted either way (DATA-10).
+     */
+    public function destroy(User $user, Lesson $lesson): bool
+    {
+        if (! $this->update($user, $lesson)) {
+            return false;
+        }
+
+        return $lesson->hotel_id !== null || $user->hotel_id === null;
+    }
+
+    /**
      * An admin side reader may see shared content and their own hotel's, never
      * another hotel's (ROLE-02). A user with no hotel sees the shared rows.
      */

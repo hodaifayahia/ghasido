@@ -1,29 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('New GHASIDO contact message') }}</title>
-</head>
-<body style="margin: 0; padding: 24px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.6;">
-    <div style="max-width: 560px; margin: 0 auto;">
-        <p style="margin: 0 0 16px;">{{ __('A visitor sent a message from the Contact Us page.') }}</p>
-
-        <p style="margin: 0 0 4px;"><strong>{{ __('Name') }}:</strong> {{ $contact->name }}</p>
-        <p style="margin: 0 0 4px;"><strong>{{ __('Email') }}:</strong> {{ $contact->email }}</p>
+<x-mail-frame
+    :title="__('New GHASIDO contact message')"
+    :eyebrow="__('Contact Us')"
+    :preheader="\Illuminate\Support\Str::limit($contact->name.': '.$contact->message, 120)"
+    :signoff="false"
+>
+    <x-mail.p>{{ __('A visitor sent a message from the Contact Us page.') }}</x-mail.p>
+    <x-mail.details>
+        <x-mail.detail :label="__('Name')">{{ $contact->name }}</x-mail.detail>
+        <x-mail.detail :label="__('Email')" :last="! $contact->phone && ! $contact->organisation && ! $contact->employees"><a href="mailto:{{ $contact->email }}" style="color: #0b5cff; text-decoration: none;">{{ $contact->email }}</a></x-mail.detail>
         @if ($contact->phone)
-            <p style="margin: 0 0 4px;"><strong>{{ __('Phone') }}:</strong> {{ $contact->phone }}</p>
+            <x-mail.detail :label="__('Phone')" :last="! $contact->organisation && ! $contact->employees">{{ $contact->phone }}</x-mail.detail>
         @endif
         @if ($contact->organisation)
-            <p style="margin: 0 0 4px;"><strong>{{ __('Hotel or organisation') }}:</strong> {{ $contact->organisation }}</p>
+            <x-mail.detail :label="__('Hotel or organisation')" :last="! $contact->employees">{{ $contact->organisation }}</x-mail.detail>
         @endif
         @if ($contact->employees)
-            <p style="margin: 0 0 4px;"><strong>{{ __('Team size') }}:</strong> {{ $contact->employees }}</p>
+            <x-mail.detail :label="__('Team size')" :last="true">{{ $contact->employees }}</x-mail.detail>
         @endif
-
-        <p style="margin: 16px 0; white-space: pre-line;">{{ $contact->message }}</p>
-
-        @include('mail.partials.signature')
-    </div>
-</body>
-</html>
+    </x-mail.details>
+    <x-mail.p><strong>{{ __('Message') }}</strong></x-mail.p>
+    <x-mail.note dir="auto">{!! nl2br(e($contact->message)) !!}</x-mail.note>
+    <x-mail.button :href="'mailto:'.$contact->email" :fallback="false">{{ __('Reply to :name', ['name' => $contact->name]) }}</x-mail.button>
+    <x-mail.p :muted="true" :last="true">{{ __('Replying to this email answers the visitor directly.') }}</x-mail.p>
+</x-mail-frame>

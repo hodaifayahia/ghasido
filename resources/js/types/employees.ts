@@ -109,8 +109,7 @@ export type EmployeeRowAction =
     | 'remind'
     | 'reset-password'
     | 'activate'
-    | 'deactivate'
-    | 'delete';
+    | 'deactivate';
 
 /** The Bulk Actions panel's choices (`select-action` is the placeholder). */
 export type EmployeeBulkAction = 'activate' | 'deactivate' | 'remind';

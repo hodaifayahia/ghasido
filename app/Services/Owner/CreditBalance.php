@@ -87,7 +87,7 @@ final readonly class CreditBalance
     public function remainingUsd(): ?float
     {
         return match ($this->mode()) {
-            'units' => round($this->creditUsd * ($this->unitShareLeft() ?? 0.0), 2),
+            'units' => round($this->creditUsd * ($this->unitShareLeft() ?? 0.0), 4),
             'dollars' => round(max(0.0, $this->creditUsd - $this->costUsd), 4),
             default => null,
         };

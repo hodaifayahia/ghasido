@@ -20,7 +20,7 @@ final class QuestionImport
     public const array OPTION_COLUMNS = ['option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'option_f'];
 
     /** Question kinds an import may create; media questions need a file first. */
-    private const array KINDS = ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'speaking', 'ordering'];
+    private const array KINDS = ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'writing', 'speaking', 'ordering'];
 
     private const array ALIASES = [
         'mcq' => 'multiple_choice',
@@ -37,8 +37,8 @@ final class QuestionImport
         'blank' => 'fill_blank',
         'vocabulary' => 'fill_blank',
         'short_answer' => 'short_answer',
-        'writing' => 'short_answer',
-        'open' => 'short_answer',
+        'writing' => 'writing',
+        'open' => 'writing',
         'speaking' => 'speaking',
         'oral' => 'speaking',
         'ordering' => 'ordering',
@@ -206,7 +206,9 @@ final class QuestionImport
             }
         }
 
-        if (in_array($kind, ['short_answer', 'speaking'], true)) {
+        // A short answer's options are its accepted answers (any of them is
+        // right); without any it is an open writing task judged by the AI.
+        if (in_array($kind, ['writing', 'speaking'], true)) {
             $options = [];
         }
 

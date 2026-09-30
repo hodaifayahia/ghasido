@@ -1,24 +1,22 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import DeleteRowDialog from '@/components/common/DeleteRowDialog.vue';
+import { Plus } from '@lucide/vue';
+import { ref } from 'vue';
 import DepartmentFormDialog from '@/components/departments/DepartmentFormDialog.vue';
 import DepartmentsDirectoryPanel from '@/components/departments/DepartmentsDirectoryPanel.vue';
 import type { DepartmentFilterValues } from '@/components/departments/DepartmentsDirectoryPanel.vue';
-import DepartmentsSidebarPanel from '@/components/departments/DepartmentsSidebarPanel.vue';
-import type { DepartmentQuickAction } from '@/components/departments/DepartmentsSidebarPanel.vue';
 import DepartmentsStatsRow from '@/components/departments/DepartmentsStatsRow.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
+import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
-import { useI18n } from '@/composables/useI18n';
 import {
     dashboard,
     departments as departmentsRoute,
     hotels as hotelsRoute,
     lessonsContent,
 } from '@/routes';
-import { destroy, toggle } from '@/routes/departments';
+import { toggle } from '@/routes/departments';
 import type {
     DepartmentFilters,
     DepartmentMetric,
@@ -57,7 +55,6 @@ defineOptions({
 });
 
 const { can } = useCan();
-const { t } = useI18n();
 const canManage = can('departments.manage');
 
 // ------------------------------------------------------------ navigation
@@ -159,14 +156,6 @@ function openContent(department: DepartmentRecord): void {
 
 const formOpen = ref(false);
 const formDepartment = ref<DepartmentRecord | null>(null);
-const deleteOpen = ref(false);
-const deleteDepartment = ref<DepartmentRecord | null>(null);
-
-const deleteUrl = computed(() =>
-    deleteDepartment.value === null
-        ? null
-        : destroy.url(deleteDepartment.value.id),
-);
 
 function openCreate(): void {
     formDepartment.value = null;
@@ -212,31 +201,6 @@ function onAction(
         case 'archive':
         case 'restore':
             postToggle(department);
-            return;
-        case 'delete':
-            deleteDepartment.value = department;
-            deleteOpen.value = true;
-    }
-}
-
-function onQuick(action: DepartmentQuickAction): void {
-    switch (action) {
-        case 'create':
-            openCreate();
-            return;
-        case 'hotels':
-            // Seats are allocated per hotel, from the hotel's own screen.
-            router.get(hotelsRoute().url);
-            return;
-        case 'content':
-            if (props.overview !== null) {
-                openContent(props.overview);
-            }
-            return;
-        case 'edit':
-            if (props.overview !== null) {
-                openEdit(props.overview);
-            }
     }
 }
 </script>
@@ -245,35 +209,50 @@ function onQuick(action: DepartmentQuickAction): void {
     <Head :title="$t('Departments')" />
 
     <div class="flex min-w-0 flex-col gap-2.5 px-4 pt-5 pb-5 md:px-6">
-        <PageHeader
-            :title="$t('Departments')"
-            :description="
-                $t(
-                    'Configure department scope, seat quotas and content coverage across your hotel portfolio.',
-                )
-            "
-            class="mb-1"
-        >
-            <template #accent>
-                <ScriptAccent />
-            </template>
-        </PageHeader>
+        <div class="relative">
+            <PageHeader
+                :title="$t('Departments')"
+                :description="
+                    $t(
+                        'Configure department scope, seat quotas and content coverage across your hotel portfolio.',
+                    )
+                "
+                class="mb-1"
+            >
+                <template #accent>
+                    <ScriptAccent />
+                </template>
+            </PageHeader>
+
+            <!-- Create Department sits beside the title, as on Hotels: the
+                 Quick Actions panel that held it was removed (client request
+                 2026-09-29). -->
+            <Button
+                v-if="canManage"
+                type="button"
+                class="bg-brand-600 shadow-btn hover:bg-brand-700 mt-3 h-10 gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97] md:absolute md:end-44 md:top-0 md:mt-0"
+                data-test="add-department-button"
+                @click="openCreate"
+            >
+                <Plus class="size-4" aria-hidden="true" />
+                {{ $t('Create Department') }}
+            </Button>
+        </div>
 
         <DepartmentsStatsRow :stats="stats" />
 
-        <div class="grid min-w-0 gap-3 xl:grid-cols-4 xl:items-start">
+        <!-- Full width: Department Overview, Hotel Coverage and Quick
+             Actions were removed (client request 2026-09-29). -->
+        <div class="grid min-w-0 gap-3">
             <DepartmentsDirectoryPanel
                 :filters="filters"
                 :departments="departments"
                 :pagination="pagination"
                 :loading="loading"
-                class="xl:col-span-3"
                 @filter="applyFilters"
                 @page="goToPage"
                 @action="onAction"
             />
-
-            <DepartmentsSidebarPanel :overview="overview" @quick="onQuick" />
         </div>
     </div>
 
@@ -282,12 +261,5 @@ function onQuick(action: DepartmentQuickAction): void {
         v-model:open="formOpen"
         :department="formDepartment"
         :hotel-options="hotelOptions"
-    />
-    <DeleteRowDialog
-        v-if="canManage"
-        v-model:open="deleteOpen"
-        :url="deleteUrl"
-        :name="deleteDepartment?.name ?? ''"
-        :kind="t('department')"
     />
 </template>

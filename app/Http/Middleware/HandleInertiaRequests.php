@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\HotelAiPointTopUpRequest;
+use App\Models\PaymentSubmission;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Learning\JourneyService;
@@ -66,6 +68,21 @@ class HandleInertiaRequests extends Middleware
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->get() ?? collect();
+        // Payments sent from the checkout wait for whoever manages
+        // subscriptions (client request 2026-09-27).
+        $managesPayments = $user?->can(Permission::SubscriptionsManage->value) ?? false;
+        $pendingPayments = $managesPayments ? PaymentSubmission::query()->pending()->count() : 0;
+        $paymentItems = $managesPayments
+            ? PaymentSubmission::query()
+                ->pending()
+                ->with('hotel')
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+            : collect();
+        $unreadPayments = $managesPayments
+            ? PaymentSubmission::query()->pending()->whereNull('read_at')->count()
+            : 0;
         $topUpRequests = $user?->hasRole(Role::SuperAdmin->value)
             ? HotelAiPointTopUpRequest::query()
                 ->where('status', 'pending')
@@ -108,6 +125,22 @@ class HandleInertiaRequests extends Middleware
                 'read' => $topUpRequest->read_at !== null,
                 'readUrl' => route('subscriptions.ai-point-top-up-requests.read', ['topUpRequest' => $topUpRequest]),
             ]))
+            ->concat($paymentItems->map(fn (PaymentSubmission $payment): array => [
+                // Kept apart from reminder and recharge ids.
+                'id' => -1_000_000 - $payment->id,
+                'channel' => 'in_app',
+                'subject' => __('New payment from :customer', [
+                    'customer' => $payment->hotel->name ?? $payment->payer_name,
+                ]),
+                'body' => __(':plan plan · :method. Check the receipt and approve the account.', [
+                    'plan' => $payment->plan_name,
+                    'method' => $payment->methodLabel(),
+                ]),
+                'sentAt' => $payment->created_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => $payment->read_at !== null,
+                'readUrl' => route('payments.read', ['payment' => $payment]),
+            ]))
             ->sortByDesc('sentAt')
             ->values();
 
@@ -148,28 +181,25 @@ class HandleInertiaRequests extends Middleware
                 'current' => app()->getLocale(),
                 'direction' => Locales::direction(app()->getLocale()),
             ],
+            // The Payments nav badge (client request 2026-09-27).
+            'pendingPayments' => $pendingPayments,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // The global topbar notification menu (REM-08, AIL-01): this user's
             // recent reminders plus outstanding Super Admin recharge requests.
             'notifications' => [
                 'unread' => $notifications->whereNull('read_at')->count()
-                    + $unreadTopUpRequests,
+                    + $unreadTopUpRequests
+                    + $unreadPayments,
                 'items' => $notificationItems->all(),
             ],
             // The employee journey's gates and figures (JOURNEY-01..05, PROG-05;
             // spec 0003 Part E). Null for every non-learner: the learner shell
             // reads it. A manager training as an employee gets it too, once
             // they have chosen a department (client decision 2026-09-23).
-            //
-            // Both are closures, resolved when the page renders: share() runs
-            // before the route middleware, and ResolveTrainingDepartment only
-            // then sets the department a manager or an individual subscriber
-            // is training in. Computed here, they missed that choice.
-            'journey' => fn (): ?array => $this->journeyFor($user),
-            // The training department switcher (client decision 2026-09-23):
-            // null unless a manager, or an individual subscriber with several
-            // departments, is on a learner route.
-            'trainingContext' => fn (): ?array => $this->trainingContextFor($request, $user),
+            'journey' => $this->journeyFor($user),
+            // The manager's training department switcher (client decision
+            // 2026-09-23): null unless a manager is on a learner route.
+            'trainingContext' => $this->trainingContextFor($request, $user),
         ];
     }
 
@@ -206,8 +236,7 @@ class HandleInertiaRequests extends Middleware
      */
     private function trainingContextFor(Request $request, ?User $user): ?array
     {
-        // A manager, or an individual subscriber with several departments.
-        if ($user === null || ! $request->routeIs('learn.*') || ! $this->training->switches($user)) {
+        if ($user === null || ! $user->hasRole(Role::Manager->value) || ! $request->routeIs('learn.*')) {
             return null;
         }
 

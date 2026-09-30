@@ -14,8 +14,8 @@ import {
 import { computed, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsBlockList from '@/components/lessons/LessonsBlockList.vue';
-import FieldMeaningButton from '@/components/translations/FieldMeaningButton.vue';
 import LessonsMediaPicker from '@/components/lessons/LessonsMediaPicker.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import LessonsMaterialsTab from '@/components/lessons/tabs/LessonsMaterialsTab.vue';
 import LessonsPreviewTab from '@/components/lessons/tabs/LessonsPreviewTab.vue';
 import LessonsQuizTab from '@/components/lessons/tabs/LessonsQuizTab.vue';
@@ -229,8 +229,6 @@ const toolbarButton =
 
         <LessonsRoleplayTab
             v-else-if="activeTab === 'roleplay'"
-            :lesson-id="editor.id"
-            :read-only="!manage"
             :blocks="lessonBlocks"
             :lessons="lessonDirectory"
             :scenarios="scenarios"
@@ -239,8 +237,8 @@ const toolbarButton =
 
         <LessonsQuizTab
             v-else-if="activeTab === 'quiz'"
-            :blocks="lessonBlocks"
             :lesson-id="editor.id"
+            :blocks="lessonBlocks"
             :library="library"
             :read-only="!manage"
         />
@@ -249,20 +247,23 @@ const toolbarButton =
              the column past its panel. -->
         <div v-else class="grid grid-cols-[minmax(0,1fr)] gap-4">
             <div class="grid gap-1.5">
-                <div class="flex items-center justify-between gap-3">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <label
-                            for="lesson-title"
-                            class="text-brand-900 text-[12px] font-semibold"
-                        >
-                            {{ $t('Lesson Title *') }}
-                        </label>
-                        <FieldMeaningButton
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-2"
+                >
+                    <label
+                        for="lesson-title"
+                        class="text-brand-900 text-[12px] font-semibold whitespace-nowrap"
+                    >
+                        {{ $t('Lesson Title *') }}
+                    </label>
+                    <span
+                        class="text-ink-faint ms-auto flex items-center gap-2 text-[11px] font-medium"
+                    >
+                        <MeaningFieldButton
+                            v-if="manage"
                             :text="title"
-                            :read-only="!manage"
+                            :label="$t('Lesson title')"
                         />
-                    </div>
-                    <span class="text-ink-faint text-[11px] font-medium">
                         <span
                             v-if="saveHint !== ''"
                             :class="
@@ -340,16 +341,20 @@ const toolbarButton =
             </div>
 
             <div class="grid gap-1.5">
-                <div class="flex flex-wrap items-center gap-2">
+                <div
+                    class="flex flex-wrap items-center justify-between gap-x-2"
+                >
                     <label
                         for="lesson-introduction"
                         class="text-brand-900 text-[12px] font-semibold"
                     >
                         {{ $t('Lesson Introduction *') }}
                     </label>
-                    <FieldMeaningButton
+                    <MeaningFieldButton
+                        v-if="manage"
                         :text="introduction"
-                        :read-only="!manage"
+                        :label="$t('Lesson introduction')"
+                        class="-me-1.5"
                     />
                 </div>
 
@@ -447,10 +452,11 @@ const toolbarButton =
                         <span class="text-ink min-w-0 flex-1 text-[13px]">
                             {{ objective }}
                         </span>
-                        <FieldMeaningButton
+                        <MeaningFieldButton
+                            v-if="manage"
                             compact
                             :text="objective"
-                            :read-only="!manage"
+                            :label="$t('Lesson objective')"
                         />
                         <button
                             v-if="manage"

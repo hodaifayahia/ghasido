@@ -38,13 +38,12 @@ class AutomationRulePolicy
     /**
      * Switch a rule on or off without opening the editor.
      */
-    /** Safe delete: refused once the rule has sent a reminder. */
-    public function delete(User $user, AutomationRule $rule): bool
+    public function toggle(User $user, AutomationRule $rule): bool
     {
-        return $this->update($user, $rule);
+        return $this->owns($user);
     }
 
-    public function toggle(User $user, AutomationRule $rule): bool
+    public function delete(User $user, AutomationRule $rule): bool
     {
         return $this->owns($user);
     }

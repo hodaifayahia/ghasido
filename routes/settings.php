@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\LandingPageController;
 use App\Http\Controllers\Settings\AiModelsController;
 use App\Http\Controllers\Settings\AiUsageController;
+use App\Http\Controllers\Settings\MailSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Services\Ai\AiModelSettings;
@@ -52,6 +53,17 @@ Route::middleware(['auth', 'can:manage-ai-models'])->group(function () {
     // AIL-04; spec 0005 §4.3). The prices behind it are the platform
     // owner's, edited on the owner console (spec 0007, D8).
     Route::get('settings/ai-usage', [AiUsageController::class, 'index'])->name('ai-usage.index');
+});
+
+// Settings → Email: the SMTP mailbox every email is sent from, Super Admin
+// only (client request 2026-09-29, ROLE-01). The gate is repeated in the
+// controller.
+Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
+    Route::get('settings/email', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
+    Route::patch('settings/email', [MailSettingsController::class, 'update'])->name('mail-settings.update');
+    Route::post('settings/email/test', [MailSettingsController::class, 'test'])
+        ->middleware('throttle:10,1')
+        ->name('mail-settings.test');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

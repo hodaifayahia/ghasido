@@ -75,11 +75,38 @@ class AiModelPrice extends Model
             return $prices[$model];
         }
 
+        // The id as the owner typed it may differ from the one the provider
+        // reported only in case or in a vendor prefix (`Qwen3.8-Flash`,
+        // `qwen/qwen3.8-flash`): try each spelling of the id, exact rows
+        // before patterns, so such usage is not left at $0 (API-03).
+        $candidates = array_values(array_unique(array_filter([
+            $model,
+            strtolower($model),
+            self::withoutVendor($model),
+            strtolower(self::withoutVendor($model)),
+        ], fn (string $id): bool => $id !== '')));
+
+        $exact = [];
+
+        foreach ($prices as $id => $price) {
+            $id = strtolower(self::withoutVendor((string) $id));
+
+            if (! str_ends_with($id, '*')) {
+                $exact[$id] ??= $price;
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (isset($exact[strtolower($candidate)])) {
+                return $exact[strtolower($candidate)];
+            }
+        }
+
         $best = null;
         $bestLength = -1;
 
         foreach ($prices as $pattern => $price) {
-            $pattern = (string) $pattern;
+            $pattern = strtolower(self::withoutVendor((string) $pattern));
 
             if (! str_ends_with($pattern, '*')) {
                 continue;
@@ -87,13 +114,25 @@ class AiModelPrice extends Model
 
             $prefix = substr($pattern, 0, -1);
 
-            if (str_starts_with($model, $prefix) && strlen($prefix) > $bestLength) {
-                $best = $price;
-                $bestLength = strlen($prefix);
+            foreach ($candidates as $candidate) {
+                if (str_starts_with(strtolower($candidate), $prefix) && strlen($prefix) > $bestLength) {
+                    $best = $price;
+                    $bestLength = strlen($prefix);
+                }
             }
         }
 
         return $best;
+    }
+
+    /**
+     * A model id without a leading `vendor/` or `models/` path.
+     */
+    private static function withoutVendor(string $model): string
+    {
+        $slash = strrpos($model, '/');
+
+        return $slash === false ? $model : substr($model, $slash + 1);
     }
 
     /**

@@ -81,5 +81,4 @@ export type DepartmentRowAction =
     | 'edit'
     | 'content'
     | 'archive'
-    | 'restore'
-    | 'delete';
+    | 'restore';

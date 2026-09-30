@@ -18,14 +18,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { cn } from '@/lib/utils';
 import type { TestListItem, TestsList, TestsSelectOption } from '@/types';
 
-const props = defineProps<{
-    list: TestsList;
-}>();
+const props = withDefaults(
+    defineProps<{
+        list: TestsList;
+        /** Shows the per-row Delete action (tests.manage). */
+        canDelete?: boolean;
+    }>(),
+    { canDelete: false },
+);
 
 const { t } = useI18n();
 
@@ -34,19 +38,6 @@ const emit = defineEmits<{
     create: [];
     delete: [item: TestListItem];
 }>();
-
-const { can } = useCan();
-const manage = can('tests.manage');
-
-/** Only stored tests (numeric ids) can be deleted. */
-function canDelete(item: TestListItem): boolean {
-    return manage && /^\d+$/.test(item.id);
-}
-
-// Safe delete: outline only, danger colours. The ::after pad widens the
-// 36px phone button to a 44px tap target (ACC-03).
-const deleteButton =
-    'border-danger/40 text-danger-text hover:bg-danger-tint bg-surface relative inline-flex shrink-0 items-center justify-center rounded-md border after:absolute after:-inset-1 focus-visible:border-brand-600 focus-visible:ring-brand-600/15 focus-visible:ring-3 focus-visible:outline-none';
 
 const search = ref(props.list.search);
 const hotel = ref(props.list.hotel);
@@ -229,7 +220,9 @@ function statusClass(item: TestListItem): string {
                         <th class="px-3 py-3">{{ $t('Questions') }}</th>
                         <th class="px-3 py-3">{{ $t('Time') }}</th>
                         <th class="px-3 py-3">{{ $t('Status') }}</th>
-                        <th class="px-5 py-3 text-end">{{ $t('Open') }}</th>
+                        <th class="px-5 py-3 text-end">
+                            {{ $t('Actions') }}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -313,8 +306,8 @@ function statusClass(item: TestListItem): string {
                                 {{ statusLabel(item) }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-end">
-                            <div class="flex items-center justify-end gap-2">
+                        <td class="px-5 py-3">
+                            <div class="flex items-center justify-end gap-1">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -323,28 +316,24 @@ function statusClass(item: TestListItem): string {
                                 >
                                     {{ $t('Open') }}
                                     <ArrowRight
-                                        class="size-3.5"
+                                        class="size-3.5 rtl:rotate-180"
                                         aria-hidden="true"
                                     />
                                 </Button>
-                                <button
-                                    v-if="canDelete(item)"
+                                <Button
+                                    v-if="canDelete"
                                     type="button"
-                                    :class="cn(deleteButton, 'size-8')"
+                                    variant="ghost"
+                                    class="text-danger-text hover:bg-danger-tint hover:text-danger-text size-8 p-0"
                                     :aria-label="
-                                        $t('Delete :name', {
-                                            name: item.title,
-                                        })
+                                        $t('Delete :name', { name: item.title })
                                     "
                                     :title="$t('Delete')"
                                     :data-test="`delete-test-${item.id}-button`"
                                     @click="emit('delete', item)"
                                 >
-                                    <Trash2
-                                        class="size-3.5"
-                                        aria-hidden="true"
-                                    />
-                                </button>
+                                    <Trash2 class="size-4" aria-hidden="true" />
+                                </Button>
                             </div>
                         </td>
                     </tr>
@@ -353,15 +342,14 @@ function statusClass(item: TestListItem): string {
         </div>
 
         <div v-if="filteredItems.length" class="divide-line divide-y md:hidden">
-            <!-- Delete sits beside the row button, never inside it. -->
             <div
                 v-for="item in filteredItems"
                 :key="item.id"
-                class="hover:bg-brand-50/40 flex items-center transition-colors"
+                class="flex items-center gap-1 pe-2"
             >
                 <button
                     type="button"
-                    class="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-start"
+                    class="hover:bg-brand-50/40 flex min-w-0 flex-1 items-center gap-3 py-3 ps-4 text-start transition-colors"
                     @click="emit('open', item.id)"
                 >
                     <span
@@ -414,21 +402,21 @@ function statusClass(item: TestListItem): string {
                         </span>
                     </span>
                     <ArrowRight
-                        class="text-brand-700 size-4 shrink-0"
+                        class="text-brand-700 size-4 shrink-0 rtl:rotate-180"
                         aria-hidden="true"
                     />
                 </button>
-                <button
-                    v-if="canDelete(item)"
+                <Button
+                    v-if="canDelete"
                     type="button"
-                    :class="cn(deleteButton, 'me-4 size-9')"
+                    variant="ghost"
+                    class="text-danger-text hover:bg-danger-tint hover:text-danger-text size-11 shrink-0 p-0"
                     :aria-label="$t('Delete :name', { name: item.title })"
-                    :title="$t('Delete')"
-                    :data-test="`delete-test-${item.id}-card-button`"
+                    :data-test="`delete-test-${item.id}-mobile-button`"
                     @click="emit('delete', item)"
                 >
                     <Trash2 class="size-4" aria-hidden="true" />
-                </button>
+                </Button>
             </div>
         </div>
 

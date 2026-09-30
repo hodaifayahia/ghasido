@@ -9,6 +9,7 @@ import GenericEditor from '@/components/lessons/blocks/GenericEditor.vue';
 import LexiconEditor from '@/components/lessons/blocks/LexiconEditor.vue';
 import ListenRepeatEditor from '@/components/lessons/blocks/ListenRepeatEditor.vue';
 import PracticeEditor from '@/components/lessons/blocks/PracticeEditor.vue';
+import QuizEditor from '@/components/lessons/blocks/QuizEditor.vue';
 import RoleplayEditor from '@/components/lessons/blocks/RoleplayEditor.vue';
 import SituationEditor from '@/components/lessons/blocks/SituationEditor.vue';
 import VideoEditor from '@/components/lessons/blocks/VideoEditor.vue';
@@ -77,6 +78,7 @@ const editors: Record<BlockTypeKey, Component> = {
     dialogue: DialogueEditor,
     video: VideoEditor,
     practice: PracticeEditor,
+    quiz: QuizEditor,
     ai_roleplay: RoleplayEditor,
     complete: CompleteEditor,
     text: GenericEditor,
@@ -101,17 +103,6 @@ const roleplayBindings = computed(() =>
               },
           }
         : {},
-);
-
-/**
- * Every rejected field except the title (shown under its input): settings,
- * the scenario picker (`scenario_ids`, `scenario_ids.0`…) and the lists. A
- * save that fails must never look like nothing happened.
- */
-const otherError = computed(
-    () =>
-        Object.entries(errors.value).find(([key]) => key !== 'title')?.[1] ??
-        null,
 );
 
 const description = computed(
@@ -165,7 +156,7 @@ function save(): void {
     >
         <div class="mt-2 grid gap-4">
             <LessonsField
-                translatable
+                meaning
                 v-model="title"
                 :label="$t('Step title (optional)')"
                 :placeholder="typeOption?.label ?? block.label"
@@ -188,11 +179,11 @@ function save(): void {
             />
 
             <p
-                v-if="otherError"
+                v-if="errors.settings"
                 class="text-danger-text bg-danger-tint rounded-md px-3 py-2 text-[12.5px]"
                 role="alert"
             >
-                {{ otherError }}
+                {{ errors.settings }}
             </p>
 
             <div

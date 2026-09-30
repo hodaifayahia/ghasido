@@ -68,31 +68,6 @@ export async function getJson<T>(url: string): Promise<T> {
     return (await response.json()) as T;
 }
 
-/** A JSON body (not a form upload), e.g. the Translation buttons' calls. */
-export async function sendJson<T>(
-    method: 'POST' | 'PUT',
-    url: string,
-    body: unknown,
-): Promise<T> {
-    const response = await fetch(url, {
-        method,
-        body: JSON.stringify(body),
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-XSRF-TOKEN': xsrfToken(),
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'same-origin',
-    });
-
-    if (!response.ok) {
-        throw await toError(response);
-    }
-
-    return (await response.json()) as T;
-}
-
 export async function postJson<T>(url: string, body: FormData): Promise<T> {
     const response = await fetch(url, {
         method: 'POST',

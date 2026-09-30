@@ -7,6 +7,7 @@ import PanelCard from '@/components/common/PanelCard.vue';
 import TransText from '@/components/common/TransText.vue';
 
 import InputError from '@/components/InputError.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -43,17 +44,26 @@ defineOptions({
 });
 
 const department = ref(props.departmentId ?? '');
-const courseId = ref(String(props.courses[0]?.id ?? ''));
-const unitId = ref(String(props.courses[0]?.units[0]?.id ?? ''));
+// Course and unit are optional, and a new one can be typed here (client
+// request 2026-09-29). NONE = the department's "General" course / the
+// course's first unit; NEW = create one with the typed title.
+const NONE = 'none';
+const NEW = 'new';
+const courseId = ref(String(props.courses[0]?.id ?? NONE));
+const unitId = ref(String(props.courses[0]?.units[0]?.id ?? NONE));
+const newCourseTitle = ref('');
+const newUnitTitle = ref('');
+const lessonTitle = ref('');
 const withBlocks = ref(true);
 
 const course = computed(() =>
     props.courses.find((row) => String(row.id) === courseId.value),
 );
 const units = computed(() => course.value?.units ?? []);
+const isId = (value: string): boolean => /^\d+$/.test(value);
 
 watch(courseId, () => {
-    unitId.value = String(units.value[0]?.id ?? '');
+    unitId.value = String(units.value[0]?.id ?? NONE);
 });
 
 function onDepartment(value: string): void {
@@ -106,7 +116,24 @@ function onDepartment(value: string): void {
                     class="grid gap-5"
                     v-slot="{ errors, processing }"
                 >
-                    <input type="hidden" name="unit_id" :value="unitId" />
+                    <!-- Course and unit are optional (client request
+                         2026-09-29): without them the lesson goes into the
+                         department's "General" course. -->
+                    <input
+                        type="hidden"
+                        name="department_id"
+                        :value="department"
+                    />
+                    <input
+                        type="hidden"
+                        name="course_id"
+                        :value="isId(courseId) ? courseId : ''"
+                    />
+                    <input
+                        type="hidden"
+                        name="unit_id"
+                        :value="isId(unitId) ? unitId : ''"
+                    />
                     <input
                         type="hidden"
                         name="blank"
@@ -150,13 +177,25 @@ function onDepartment(value: string): void {
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-course"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Course') }}
-                            <span class="text-danger-text">*</span>
-                        </label>
+                            <label
+                                for="create-course"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Course') }}
+                                <span class="text-ink-muted font-normal">{{
+                                    $t('(optional)')
+                                }}</span>
+                            </label>
+                            <MeaningFieldButton
+                                v-if="courseId === NEW"
+                                :text="newCourseTitle"
+                                :label="$t('New course title')"
+                                class="-me-1.5"
+                            />
+                        </div>
                         <Select v-model="courseId">
                             <SelectTrigger
                                 id="create-course"
@@ -168,6 +207,9 @@ function onDepartment(value: string): void {
                                 />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
+                                <SelectItem :value="NONE" class="text-[13px]">
+                                    {{ $t('None (use “General”)') }}
+                                </SelectItem>
                                 <SelectItem
                                     v-for="row in courses"
                                     :key="row.id"
@@ -176,27 +218,60 @@ function onDepartment(value: string): void {
                                 >
                                     {{ row.title }}
                                 </SelectItem>
+                                <SelectItem
+                                    :value="NEW"
+                                    class="text-brand-700 text-[13px] font-semibold"
+                                >
+                                    {{ $t('+ New course…') }}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
+                        <Input
+                            v-if="courseId === NEW"
+                            v-model="newCourseTitle"
+                            name="new_course_title"
+                            required
+                            maxlength="120"
+                            :placeholder="$t('New course title')"
+                            :aria-label="$t('New course title')"
+                            data-test="lesson-create-new-course"
+                            class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
+                        />
+                        <InputError :message="errors.new_course_title" />
                         <p
                             v-if="courses.length === 0"
-                            class="text-warning text-[12px]"
+                            class="text-ink-muted text-[12px]"
                         >
                             {{
-                                $t('No course exists for this department yet.')
+                                $t(
+                                    'No course yet: the lesson goes into a “General” course for this department. You can move it later.',
+                                )
                             }}
                         </p>
+                        <InputError :message="errors.course_id" />
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-unit"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Unit') }}
-                            <span class="text-danger-text">*</span>
-                        </label>
-                        <Select v-model="unitId" :disabled="units.length === 0">
+                            <label
+                                for="create-unit"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Unit') }}
+                                <span class="text-ink-muted font-normal">{{
+                                    $t('(optional)')
+                                }}</span>
+                            </label>
+                            <MeaningFieldButton
+                                v-if="unitId === NEW"
+                                :text="newUnitTitle"
+                                :label="$t('New unit title')"
+                                class="-me-1.5"
+                            />
+                        </div>
+                        <Select v-model="unitId">
                             <SelectTrigger
                                 id="create-unit"
                                 class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
@@ -207,6 +282,13 @@ function onDepartment(value: string): void {
                                 />
                             </SelectTrigger>
                             <SelectContent class="border-line shadow-pop">
+                                <SelectItem :value="NONE" class="text-[13px]">
+                                    {{
+                                        courseId === NEW || units.length === 0
+                                            ? $t('None (use “General”)')
+                                            : $t('None (first unit)')
+                                    }}
+                                </SelectItem>
                                 <SelectItem
                                     v-for="unit in units"
                                     :key="unit.id"
@@ -215,21 +297,50 @@ function onDepartment(value: string): void {
                                 >
                                     {{ unit.title }}
                                 </SelectItem>
+                                <SelectItem
+                                    :value="NEW"
+                                    class="text-brand-700 text-[13px] font-semibold"
+                                >
+                                    {{ $t('+ New unit…') }}
+                                </SelectItem>
                             </SelectContent>
                         </Select>
+                        <Input
+                            v-if="unitId === NEW"
+                            v-model="newUnitTitle"
+                            name="new_unit_title"
+                            required
+                            maxlength="120"
+                            :placeholder="$t('New unit title')"
+                            :aria-label="$t('New unit title')"
+                            data-test="lesson-create-new-unit"
+                            class="border-line text-ink bg-surface h-10 rounded-md text-[13px] shadow-none"
+                        />
+                        <InputError :message="errors.new_unit_title" />
                         <InputError :message="errors.unit_id" />
+                        <InputError :message="errors.department_id" />
                     </div>
 
                     <div class="grid gap-1.5">
-                        <label
-                            for="create-lesson-title"
-                            class="text-brand-900 text-[12px] font-semibold"
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-x-2"
                         >
-                            {{ $t('Lesson title') }}
-                            <span class="text-danger-text">*</span>
-                        </label>
+                            <label
+                                for="create-lesson-title"
+                                class="text-brand-900 text-[12px] font-semibold"
+                            >
+                                {{ $t('Lesson title') }}
+                                <span class="text-danger-text">*</span>
+                            </label>
+                            <MeaningFieldButton
+                                :text="lessonTitle"
+                                :label="$t('Lesson title')"
+                                class="-me-1.5"
+                            />
+                        </div>
                         <Input
                             id="create-lesson-title"
+                            v-model="lessonTitle"
                             name="title"
                             required
                             maxlength="120"
@@ -267,7 +378,7 @@ function onDepartment(value: string): void {
                         </Button>
                         <Button
                             type="submit"
-                            :disabled="processing || unitId === ''"
+                            :disabled="processing || department === ''"
                             class="bg-brand-600 hover:bg-brand-700 shadow-btn h-10 gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white"
                             data-test="submit-create-lesson"
                         >

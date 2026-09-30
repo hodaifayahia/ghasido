@@ -32,12 +32,18 @@ class MediaService
     public const int THUMB_WIDTH = 320;
 
     /**
-     * @param  array{alt_text: string|null, library: MediaLibrary, category: string|null, label: string|null}  $data
+     * @param  array{alt_text: string|null, library: MediaLibrary, category: string|null, label: string|null, kind?: MediaKind|null}  $data
      */
     public function upload(UploadedFile $file, array $data, User $actor): MediaAsset
     {
         $mime = $file->getMimeType() ?? $file->getClientMimeType();
         $kind = MediaKind::fromMime($mime);
+
+        // A voice clip recorded in the browser is a WebM / MP4 container
+        // that reads as video: the slot that asked for audio decides.
+        if (($data['kind'] ?? null) === MediaKind::Audio && $kind === MediaKind::Video) {
+            $kind = MediaKind::Audio;
+        }
         $extension = strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? 'bin'));
         $now = now();
         $directory = sprintf('content/%s/%s/%s', $kind->value, $now->format('Y'), $now->format('m'));
@@ -233,7 +239,6 @@ class MediaService
         return [
             'id' => (string) $asset->id,
             'label' => $asset->label ?? $asset->original_name ?? basename($asset->path),
-            'kind' => $asset->kind->value,
             'url' => $asset->url(),
             'thumbUrl' => $asset->variantUrl('thumb'),
             'alt' => $asset->alt_text ?? '',

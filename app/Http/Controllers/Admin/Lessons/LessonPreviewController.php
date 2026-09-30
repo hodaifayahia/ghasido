@@ -54,7 +54,7 @@ class LessonPreviewController extends Controller
         return Inertia::render('employee/lesson/Step', [
             'lesson' => $this->presenter->lesson($lesson),
             'steps' => $steps,
-            'block' => $this->presenter->present($block, $user, preview: true),
+            'block' => $this->presenter->present($block, $user),
             'prevUrl' => $neighbours['prev'] === null ? null : route('lessons.preview', ['lesson' => $lesson, 'block' => $neighbours['prev']]),
             'nextUrl' => $neighbours['next'] === null ? null : route('lessons.preview', ['lesson' => $lesson, 'block' => $neighbours['next']]),
             'completeUrl' => route('lessons.preview.next', ['lesson' => $lesson, 'block' => $block]),

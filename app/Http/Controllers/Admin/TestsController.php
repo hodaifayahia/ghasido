@@ -16,9 +16,7 @@ use App\Http\Requests\Admin\Tests\StoreTestRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestQuestionMediaRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestQuestionRequest;
 use App\Http\Requests\Admin\Tests\UpdateTestRequest;
-use App\Models\Activity;
 use App\Models\ActivityPlacement;
-use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Hotel;
@@ -26,21 +24,22 @@ use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
+use App\Services\Content\BlockShaper;
 use App\Services\Content\MediaService;
+use App\Services\Learning\ActivityPresenter;
 use App\Services\Tests\QuestionImport;
 use App\Services\Tests\TestAudio;
 use App\Services\Tests\TestQuestionGenerator;
 use App\Services\Tests\TestService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -77,28 +76,16 @@ class TestsController extends Controller
             Gate::authorize('view', $selected);
         }
 
+        // The page is the test library and the builder only: the old Question
+        // Bank / Results & Analytics / Settings tabs were removed at the
+        // client's request (2026-09-29). Results live in Reports & Export.
         return Inertia::render('admin/Tests', [
-            'tabs' => [
-                ['key' => 'tests', 'label' => __('Tests')],
-                ['key' => 'question-bank', 'label' => __('Question Bank')],
-                ['key' => 'results', 'label' => __('Results & Analytics')],
-                ['key' => 'settings', 'label' => __('Settings')],
-            ],
-            'activeTab' => $this->activeTab($request),
             'builderOpen' => $selected !== null,
             'stats' => $this->stats($viewer),
             'list' => $this->listPayload($request, $tests, $viewer),
             'editor' => $this->editor($selected, $request, $viewer),
-            'preview' => $this->preview($selected),
+            'preview' => $this->preview($selected, $viewer),
             'media' => $this->media($viewer, $media),
-            'questionBank' => $this->questionBank(
-                $viewer,
-                array_map(
-                    static fn (mixed $id): int => (int) $id,
-                    $this->scopeToReach(Test::query(), $viewer)->pluck('id')->all(),
-                ),
-            ),
-            'settings' => $this->settings($selected),
             'results' => $this->results($selected, $viewer),
         ]);
     }
@@ -145,13 +132,54 @@ class TestsController extends Controller
         return back();
     }
 
+    /**
+     * Delete a test that nobody has sat yet (client request 2026-09-29).
+     *
+     * A test with any sitting is refused, never cascaded: its attempts hold
+     * the learners' answers, which are research data and are never deleted
+     * (DATA-10). `test_attempts.test_id` is also `restrictOnDelete`, and the
+     * content model has no archived state for tests, so refusing is the only
+     * safe answer. The question activities stay: they are versioned rows a
+     * lesson may also use (PRAC-05, DATA-11); only this test's placements go.
+     */
+    public function destroy(Test $test, TestService $tests): RedirectResponse
+    {
+        Gate::authorize('delete', $test);
+
+        $sittings = $test->attempts()->count();
+
+        if ($sittings > 0) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => trans_choice(
+                    ':title cannot be deleted: :count employee has already taken it, and their answers are kept.|:title cannot be deleted: :count employees have already taken it, and their answers are kept.',
+                    $sittings,
+                    ['title' => $test->title, 'count' => $sittings],
+                ),
+            ]);
+
+            return back();
+        }
+
+        $title = $test->title;
+        $tests->delete($test);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]);
+
+        return to_route('tests');
+    }
+
     public function storeQuestion(StoreTestQuestionRequest $request, Test $test, TestService $tests): RedirectResponse
     {
         Gate::authorize('update', $test);
 
         /** @var User $actor */
         $actor = $request->user();
-        $tests->addQuestion($test, $request->questionData(), $actor);
+        if ($request->isActivity()) {
+            $tests->addActivity($test, $request->activityData(), $actor);
+        } else {
+            $tests->addQuestion($test, $request->questionData(), $actor);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question added.')]);
 
@@ -205,7 +233,11 @@ class TestsController extends Controller
         Gate::authorize('update', $test);
         abort_unless($placement->placeable_type === $test->getMorphClass() && (int) $placement->placeable_id === (int) $test->id, 404);
 
-        $tests->updateQuestion($placement, $request->questionData());
+        if ($request->isActivity()) {
+            $tests->updateActivity($placement, $request->activityData());
+        } else {
+            $tests->updateQuestion($placement, $request->questionData());
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Question saved as a new version.')]);
 
@@ -316,6 +348,27 @@ class TestsController extends Controller
         return back();
     }
 
+    /**
+     * Put the test's questions in a new order (client request 2026-09-29).
+     */
+    public function reorderQuestions(Request $request, Test $test, TestService $tests): RedirectResponse
+    {
+        Gate::authorize('update', $test);
+
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*' => ['integer', 'distinct'],
+        ]);
+
+        try {
+            $tests->reorderQuestions($test, array_values(array_map('intval', $data['order'])));
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['order' => $exception->getMessage()]);
+        }
+
+        return back();
+    }
+
     public function destroyQuestion(Request $request, Test $test, ActivityPlacement $placement, TestService $tests): RedirectResponse
     {
         Gate::authorize('update', $test);
@@ -335,7 +388,7 @@ class TestsController extends Controller
     {
         $query = Test::query()
             ->with(['department:id,name', 'hotel:id,name'])
-            ->withCount('questions')
+            ->withCount(['questions', 'attempts'])
             ->orderBy('id');
         $this->scopeToReach($query, $viewer);
         $term = trim((string) $request->query('search', ''));
@@ -407,11 +460,13 @@ class TestsController extends Controller
         return [
             'id' => (string) $test->id,
             'title' => $test->title,
-            'department' => $test->department->name,
+            'department' => $test->department->name ?? __('All departments'),
             'hotel' => $hotel === null ? __('All Hotels') : $hotel->name,
             'meta' => __(':questions questions · :minutes', ['questions' => (int) $test->questions_count, 'minutes' => $minutes === null ? __('No time limit') : $minutes.' min']),
             'type' => $test->type->value,
             'questionCount' => (int) $test->questions_count,
+            // Sittings (any status): a test with any cannot be deleted (DATA-10).
+            'attemptCount' => (int) $test->attempts_count,
             'timeLimit' => $minutes,
             'status' => $test->status === ContentStatus::Published ? 'active' : 'draft',
             'crop' => $this->thumbCrop(((int) $test->id) % 7),
@@ -459,42 +514,23 @@ class TestsController extends Controller
                 ['value' => TestType::Pre->value, 'label' => TestType::Pre->label()],
                 ['value' => TestType::Post->value, 'label' => TestType::Post->label()],
             ],
-            'department' => $selected === null ? $newDepartment : (string) $selected->department_id,
-            'departments' => $departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+            'department' => $selected === null ? $newDepartment : (string) ($selected->department_id ?? 'all'),
+            'departments' => [
+                // A test every department sits unless it has its own.
+                ['value' => 'all', 'label' => __('All departments')],
+                ...$departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+            ],
             'hotel' => (string) ($selected === null ? '' : $selected->hotel_id),
             'timeLimit' => (string) (($settings['time_limit_seconds'] ?? null) ? (int) round(((int) $settings['time_limit_seconds']) / 60) : ''),
             'questionCount' => (string) ($selected?->questions->count() ?? 0),
+            'attemptCount' => $selected === null ? 0 : $selected->attempts()->count(),
             'description' => $description,
             'descriptionCount' => strlen($description).'/300',
-            'kinds' => [
-                ['value' => 'multiple_choice', 'label' => __('Multiple Choice')],
-                ['value' => 'true_false', 'label' => __('True / False')],
-                ['value' => 'fill_blank', 'label' => __('Fill in the Blank')],
-                ['value' => 'matching', 'label' => __('Matching')],
-                ['value' => 'short_answer', 'label' => __('Short Answer')],
-                ['value' => 'audio', 'label' => __('Audio Question')],
-                ['value' => 'image', 'label' => __('Image Question')],
-                ['value' => 'video', 'label' => __('Video Question')],
-                ['value' => 'speaking', 'label' => __('Speaking')],
-                ['value' => 'ordering', 'label' => __('Ordering')],
-                ['value' => 'writing', 'label' => __('Writing Activity')],
-            ],
-            'activeKind' => 'multiple_choice',
-            // The per-question type menu also names the two kinds only an AI
-            // draft creates, so such a question shows its real type.
-            'questionKinds' => [
-                ['value' => 'multiple_choice', 'label' => __('Multiple Choice')],
-                ['value' => 'true_false', 'label' => __('True / False')],
-                ['value' => 'fill_blank', 'label' => __('Fill in the Blank')],
-                ['value' => 'matching', 'label' => __('Matching')],
-                ['value' => 'short_answer', 'label' => __('Short Answer')],
-                ['value' => 'audio', 'label' => __('Audio Question')],
-                ['value' => 'image', 'label' => __('Image Question')],
-                ['value' => 'video', 'label' => __('Video Question')],
-                ['value' => 'speaking', 'label' => __('Speaking')],
-                ['value' => 'ordering', 'label' => __('Ordering')],
-                ['value' => 'writing', 'label' => __('Writing Activity')],
-            ],
+            // Exactly the client's ten question types, the same ten the
+            // lesson activity chooser offers (client report 2026-09-29).
+            'kinds' => $this->kinds(),
+            'activeKind' => ActivityType::MultipleChoice->value,
+            'questionKinds' => $this->kinds(),
             'ai' => $this->aiPanel($selected),
             'questions' => $selected === null ? [] : $selected->questions->map(fn (ActivityPlacement $placement, int $index): array => $this->question($placement, $index + 1))->values()->all(),
             'settings' => [
@@ -522,43 +558,31 @@ class TestsController extends Controller
     {
         $activity = $placement->activity;
         $item = $activity?->items()[0] ?? [];
-        $kind = $activity === null ? 'multiple_choice' : TestService::kindFor($activity->type, $activity->skill_label);
+        $kind = $activity === null ? 'multiple_choice' : TestService::kindFor($activity->type);
         $options = is_array($item['options'] ?? null) ? $item['options'] : [];
         $correct = (string) ($item['correct'] ?? '');
         $storedMedia = is_array($item['media'] ?? null) ? $item['media'] : [];
         $media = [];
 
         foreach (['image', 'audio', 'video'] as $mediaKind) {
-            $mediaId = $storedMedia[$mediaKind] ?? $item[$mediaKind] ?? null;
+            // The shared question editor stores the media on the item
+            // itself (`image`, `audio`, `video`); older questions kept it
+            // in `media` (client report 2026-09-29: an uploaded photo showed
+            // the default one).
+            $mediaId = $item[$mediaKind] ?? $storedMedia[$mediaKind] ?? null;
 
             if (is_int($mediaId) || (is_string($mediaId) && ctype_digit($mediaId))) {
-                $media[$mediaKind] = $this->mediaReference((int) $mediaId, $mediaKind);
+                $asset = MediaAsset::query()->find((int) $mediaId);
+                $media[$mediaKind] = $asset === null ? null : [
+                    'id' => (string) $asset->id,
+                    'label' => $asset->label ?? $asset->original_name ?? ucfirst($mediaKind),
+                    'url' => $asset->url(),
+                    'thumbUrl' => $asset->variantUrl('thumb'),
+                    'alt' => $asset->alt_text ?? '',
+                ];
             } else {
                 $media[$mediaKind] = null;
             }
-        }
-
-        $targets = collect(is_array($item['targets'] ?? null) ? $item['targets'] : [])->keyBy(static fn (array $target): string => (string) ($target['id'] ?? ''));
-        $prompts = collect(is_array($item['prompts'] ?? null) ? $item['prompts'] : [])->keyBy(static fn (array $prompt): string => (string) ($prompt['id'] ?? ''));
-        $pairs = is_array($item['pairs'] ?? null) ? $item['pairs'] : [];
-        $matchingPairs = [];
-
-        foreach ($pairs as $promptId => $targetId) {
-            $matchingPairs[] = [
-                'left' => (string) ($prompts->get((string) $promptId)['audio_text'] ?? ''),
-                'right' => (string) ($targets->get((string) $targetId)['label'] ?? ''),
-            ];
-        }
-
-        $kindOptions = $options;
-        if ($kind === 'ordering' && is_array($item['sentences'] ?? null)) {
-            $sentences = collect($item['sentences'])->keyBy(static fn (array $sentence): string => (string) ($sentence['id'] ?? ''));
-            $kindOptions = collect($item['order'] ?? array_keys($sentences->all()))
-                ->map(static fn (string $id, int $index): array => [
-                    'id' => chr(65 + $index),
-                    'text' => (string) ($sentences->get($id)['text'] ?? ''),
-                    'correct' => false,
-                ])->values()->all();
         }
 
         return [
@@ -567,24 +591,18 @@ class TestsController extends Controller
             'kind' => $kind,
             'text' => (string) ($item['question'] ?? $activity->prompt),
             'imageCrop' => $this->thumbCrop($index),
-            'options' => array_values(array_map(fn (array $option): array => [
+            'options' => array_values(array_map(static fn (array $option): array => [
                 'id' => (string) ($option['id'] ?? ''),
                 'text' => (string) ($option['text'] ?? $option['label'] ?? ''),
                 'correct' => (string) ($option['id'] ?? '') === $correct,
-                'imageId' => is_numeric($option['image'] ?? null) ? (int) $option['image'] : null,
-                'image' => is_numeric($option['image'] ?? null) ? $this->mediaReference((int) $option['image'], 'image') : null,
-                'audioId' => is_numeric($option['audio'] ?? null) ? (int) $option['audio'] : null,
-                'audio' => is_numeric($option['audio'] ?? null) ? $this->mediaReference((int) $option['audio'], 'audio') : null,
-                'audioText' => is_string($option['audio_text'] ?? null) ? $option['audio_text'] : null,
-            ], $kindOptions)),
-            'pairs' => $matchingPairs,
-            'acceptedAnswers' => array_values(array_filter(is_array($item['accepted_answers'] ?? null) ? $item['accepted_answers'] : [], 'is_string')),
-            'audioText' => (string) ($item['audio_text'] ?? ''),
-            'requestText' => (string) ($item['request_text'] ?? ''),
-            'information' => array_values(array_filter(is_array($item['information'] ?? null) ? $item['information'] : [], 'is_string')),
-            'speakingSeconds' => (int) ($item['max_seconds'] ?? 30),
+            ], $options)),
             'media' => $media,
-            'typeLabel' => $activity?->type->label() ?? __('Question'),
+            'typeLabel' => $activity?->type->builderLabel() ?? __('Question'),
+            // What the shared activity editor opens with: the activity, and
+            // the media and stored audio its item names (MED-02, TTS-02).
+            'activity' => $activity === null ? null : app(BlockShaper::class)->activityRow($activity, $placement),
+            'mediaMap' => $activity === null ? (object) [] : (object) app(BlockShaper::class)->mediaMap(app(BlockShaper::class)->mediaIdsIn($activity->payload ?? [])),
+            'audioMap' => $activity === null ? (object) [] : (object) app(BlockShaper::class)->audioMap(app(TestAudio::class)->scriptsOf($activity)),
             'aiDraft' => Test::isAiDraft($placement),
             'releaseUrl' => route('tests.questions.release', ['test' => $placement->placeable_id, 'placement' => $placement->id]),
             'details' => $this->questionDetails($item),
@@ -598,7 +616,7 @@ class TestsController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function preview(?Test $selected): array
+    private function preview(?Test $selected, User $viewer): array
     {
         $questions = $selected === null
             ? []
@@ -612,6 +630,12 @@ class TestsController extends Controller
             'options' => array_map(static fn (array $option): array => ['id' => $option['id'], 'text' => $option['text']], $question['options'] ?? []),
             'media' => $question['media'] ?? ['image' => null, 'audio' => null, 'video' => null],
             'questions' => $questions,
+            // The builder's Preview tab renders each question exactly as the
+            // learner's test runner does: test mode, so no correct answers,
+            // no listening scripts and no correctness colours (TEST-03).
+            'activities' => $selected === null
+                ? []
+                : $selected->questions->values()->map(fn (ActivityPlacement $placement): array => app(ActivityPresenter::class)->present($placement, $viewer, ActivityPresenter::MODE_TEST))->all(),
         ];
     }
 
@@ -647,31 +671,11 @@ class TestsController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function settings(?Test $selected): array
-    {
-        $settings = $selected === null ? [] : ($selected->settings ?? []);
-
-        return [
-            'toggles' => [
-                ['key' => 'shuffle_questions', 'label' => __('Show questions in random order'), 'checked' => (bool) ($settings['shuffle_questions'] ?? false)],
-                ['key' => 'shuffle_options', 'label' => __('Show options in random order'), 'checked' => (bool) ($settings['shuffle_options'] ?? false)],
-                ['key' => 'single_attempt', 'label' => __('Allow only one attempt'), 'checked' => (bool) ($settings['single_attempt'] ?? false)],
-                ['key' => 'show_results', 'label' => __('Show results immediately after completion'), 'checked' => ($settings['results_visibility'] ?? ResultsVisibility::Hidden->value) !== ResultsVisibility::Hidden->value],
-                ['key' => 'show_answers', 'label' => __('Show correct answers'), 'checked' => (bool) ($settings['show_answers'] ?? false)],
-                ['key' => 'motivational_message', 'label' => __('Add motivational message at the end'), 'checked' => (bool) ($settings['motivational_message'] ?? false)],
-                ['key' => 'show_meaning', 'label' => __('Allow Show Meaning (Arabic) on questions'), 'checked' => (bool) ($settings['show_meaning'] ?? true)],
-            ],
-            'passMark' => (string) ($settings['pass_score'] ?? ''),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function results(?Test $selected, User $viewer): array
     {
+        // The builder's "Recent Results" summary card; the full result list
+        // and the AI-judged answers live in Reports & Export.
         $query = TestAttempt::query()
-            ->with(['user:id,name,username', 'test:id,title,type'])
             ->whereNotNull('submitted_at')
             ->when($selected !== null, fn (Builder $builder) => $builder->where('test_id', $selected->id))
             ->when($selected === null, function (Builder $builder) use ($viewer): void {
@@ -679,7 +683,6 @@ class TestsController extends Controller
             })
             ->latest('submitted_at');
         $attempts = $query->limit(25)->get();
-        $judged = $this->judgedAttempts($attempts->modelKeys());
         $completed = $attempts->count();
         $average = $attempts->avg(function (TestAttempt $attempt): float {
             return (float) ($attempt->max_score ?: 0) > 0 ? ((float) $attempt->score / (float) $attempt->max_score) * 100 : 0;
@@ -690,72 +693,7 @@ class TestsController extends Controller
                 ['key' => 'completed', 'value' => $completed, 'label' => __('Employees Completed'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'brand'],
                 ['key' => 'average', 'value' => (int) round((float) $average), 'unit' => '%', 'label' => __('Average Score'), 'detail' => $selected?->type->label() ?? __('Test'), 'tone' => 'success'],
             ],
-            'rows' => $attempts->map(function (TestAttempt $attempt) use ($viewer, $judged): array {
-                $summary = $attempt->scoreSummary();
-                // Transcripts and recordings: Super Admin only (ROLE-04, PRIV-04).
-                $answers = $this->judgedAnswers($judged->get($attempt->id, new BaseCollection), $viewer->hasRole('super_admin'));
-
-                return [
-                    'id' => $attempt->id,
-                    'employee' => $attempt->user->name ?? $attempt->user->username ?? __('Unknown employee'),
-                    'test' => $attempt->test->title ?? __('Test'),
-                    'type' => $attempt->test->type->label(),
-                    'score' => $summary['percent'] === null ? '—' : $summary['percent'].'%',
-                    'submittedAt' => $attempt->submitted_at?->format('d M Y, H:i') ?? '—',
-                    'answers' => $answers,
-                ];
-            })->values()->all(),
         ];
-    }
-
-    /**
-     * @param  array<int, int>  $reachableTestIds
-     * @return list<array<string, mixed>>
-     */
-    private function questionBank(User $viewer, array $reachableTestIds): array
-    {
-        $query = Activity::query()
-            ->with(['department:id,name', 'hotel:id,name'])
-            ->with(['placements' => function (Relation $placements) use ($reachableTestIds): void {
-                $placements
-                    ->where('placeable_type', (new Test)->getMorphClass())
-                    ->whereIn('placeable_id', $reachableTestIds)
-                    ->with('placeable');
-            }])
-            ->withCount('placements')
-            ->whereHas('placements', fn (Builder $placements): Builder => $placements->where('placeable_type', (new Test)->getMorphClass()))
-            ->orderByDesc('id');
-
-        if ($viewer->hotel_id === null && ! $viewer->hasRole('super_admin')) {
-            $query->whereNull('activities.hotel_id');
-        } elseif ($viewer->hotel_id !== null) {
-            $query->where(function (Builder $scope) use ($viewer): void {
-                $scope->whereNull('activities.hotel_id')->orWhere('activities.hotel_id', $viewer->hotel_id);
-            });
-        }
-
-        return array_values($query->limit(100)->get()->map(function (Activity $activity): array {
-            $item = $activity->items()[0] ?? [];
-            $department = $activity->department;
-            $sourceTest = $activity->placements->first()?->placeable;
-
-            return [
-                'id' => $activity->id,
-                'title' => (string) ($activity->title ?? __('Untitled question')),
-                'kind' => $activity->type->value,
-                'kindLabel' => $activity->type->label(),
-                'prompt' => (string) ($item['question'] ?? $activity->prompt),
-                'department' => (string) ($department === null ? __('All Departments') : $department->name),
-                'uses' => (int) $activity->placements_count,
-                'version' => $activity->current_version,
-                'sourceTest' => $sourceTest instanceof Test
-                    ? $sourceTest->title
-                    : null,
-                'openUrl' => $sourceTest instanceof Test
-                    ? route('tests', ['test' => $sourceTest->id])
-                    : null,
-            ];
-        })->all());
     }
 
     /**
@@ -831,6 +769,19 @@ class TestsController extends Controller
         ];
     }
 
+    /**
+     * The client's ten question types, as the builder lists them.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    private function kinds(): array
+    {
+        return array_map(
+            static fn (ActivityType $type): array => ['value' => $type->value, 'label' => $type->builderLabel()],
+            ActivityType::builderTypes(),
+        );
+    }
+
     private function assertOnTest(Test $test, ActivityPlacement $placement): void
     {
         abort_unless($placement->placeable_type === $test->getMorphClass() && (int) $placement->placeable_id === (int) $test->id, 404);
@@ -880,91 +831,6 @@ class TestsController extends Controller
         ];
     }
 
-    /**
-     * The AI-judged answers (speaking and writing) of the listed sittings,
-     * grouped by sitting: one query for the whole results table instead of
-     * one per row.
-     *
-     * @param  array<int, int>  $testAttemptIds
-     * @return BaseCollection<int, BaseCollection<int, Attempt>>
-     */
-    private function judgedAttempts(array $testAttemptIds): BaseCollection
-    {
-        if ($testAttemptIds === []) {
-            return new BaseCollection;
-        }
-
-        /** @var BaseCollection<int, BaseCollection<int, Attempt>> $grouped */
-        $grouped = Attempt::query()
-            ->with(['activity:id,type,prompt', 'activityVersion', 'responseMedia'])
-            ->whereIn('test_attempt_id', $testAttemptIds)
-            ->whereHas('activity', fn (Builder $activity): Builder => $activity->whereIn('type', [ActivityType::Speaking->value, ActivityType::Writing->value]))
-            ->orderBy('id')
-            ->get()
-            ->toBase()
-            ->groupBy('test_attempt_id');
-
-        return $grouped;
-    }
-
-    /**
-     * The AI-judged answers of one sitting (speaking and writing): the
-     * structured verdict for everyone who may see results, the transcript
-     * and recording for the Super Admin only (ROLE-04, PRIV-04, AIE-04).
-     *
-     * @param  BaseCollection<int, Attempt>  $rows
-     * @return list<array<string, mixed>>
-     */
-    private function judgedAnswers(BaseCollection $rows, bool $fullAccess): array
-    {
-        return array_values($rows->map(function (Attempt $row) use ($fullAccess): array {
-            $feedback = is_array($row->ai_feedback) ? $row->ai_feedback : [];
-            $criteria = is_array($feedback['criteria'] ?? null) ? $feedback['criteria'] : [];
-            $item = $row->activityVersion?->items()[0] ?? [];
-            $raw = $row->raw_answer ?? [];
-            $written = null;
-
-            foreach ($raw as $value) {
-                if (is_array($value) && is_string($value['text'] ?? null)) {
-                    $written = $value['text'];
-                }
-            }
-
-            $isSpeaking = $row->activity->type === ActivityType::Speaking;
-
-            return [
-                'id' => $row->id,
-                'type' => $row->activity->type->value,
-                'typeLabel' => $row->activity->type->label(),
-                'question' => (string) ($item['question'] ?? $row->activity->prompt),
-                'answerText' => $isSpeaking ? ($fullAccess ? $row->transcript : null) : ($fullAccess ? $written : null),
-                'recordingUrl' => $isSpeaking && $fullAccess ? $row->responseMedia?->url() : null,
-                'aiStatus' => $row->ai_status?->value,
-                'failedReason' => $row->ai_failed_reason,
-                'score' => $row->score === null ? null : (float) $row->score,
-                'criteria' => array_map(
-                    static fn (string $key, mixed $entry): array => [
-                        'key' => $key,
-                        'label' => ucfirst(str_replace('_', ' ', $key)),
-                        'score' => is_array($entry) ? (int) ($entry['score'] ?? 0) : 0,
-                        'comment' => is_array($entry) ? (string) ($entry['comment'] ?? '') : '',
-                    ],
-                    array_keys($criteria),
-                    $criteria,
-                ),
-                'summary' => (string) ($feedback['summary'] ?? ''),
-                'betterAnswer' => (string) ($feedback['better_answer'] ?? ''),
-            ];
-        })->all());
-    }
-
-    private function activeTab(Request $request): string
-    {
-        $tab = (string) $request->query('tab', 'tests');
-
-        return in_array($tab, ['tests', 'question-bank', 'results', 'settings'], true) ? $tab : 'tests';
-    }
-
     private function timeLimitMinutes(Test $test): ?int
     {
         $seconds = $test->settings['time_limit_seconds'] ?? null;
@@ -1004,24 +870,6 @@ class TestsController extends Controller
             'y' => 282 + (int) round(($index % 7) * 66.6),
             'width' => 46,
             'height' => 47,
-        ];
-    }
-
-    /** @return array{id: string, label: string, url: string, thumbUrl: string, alt: string}|null */
-    private function mediaReference(int $id, string $kind): ?array
-    {
-        $asset = MediaAsset::query()->find($id);
-
-        if ($asset === null || $asset->kind->value !== $kind) {
-            return null;
-        }
-
-        return [
-            'id' => (string) $asset->id,
-            'label' => $asset->label ?? $asset->original_name ?? ucfirst($kind),
-            'url' => $asset->url(),
-            'thumbUrl' => $asset->variantUrl('thumb'),
-            'alt' => $asset->alt_text ?? '',
         ];
     }
 }

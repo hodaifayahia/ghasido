@@ -2,13 +2,23 @@
 
 namespace App\Http\Requests\Admin\Tests;
 
+use App\Enums\ActivityType;
 use App\Enums\Permission;
+use App\Models\ActivityPlacement;
 use App\Models\Test;
+use App\Services\Content\ActivityPayloadValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Add one reusable activity to a test (PRAC-05, TEST-05, TEST-06).
+ *
+ * Two shapes are accepted. The shared activity editor sends the activity
+ * itself: `type` (one of the client's ten, client report 2026-09-29),
+ * `prompt` and a one-item `payload` checked by ActivityPayloadValidator
+ * exactly like a lesson activity. The older short form (`kind`, `text`,
+ * `options`) is still read for callers that send it.
  */
 class StoreTestQuestionRequest extends FormRequest
 {
@@ -20,54 +30,102 @@ class StoreTestQuestionRequest extends FormRequest
     }
 
     /**
+     * Does the request carry an activity from the shared editor?
+     */
+    public function isActivity(): bool
+    {
+        return $this->has('payload');
+    }
+
+    /**
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
+        if ($this->isActivity()) {
+            return [
+                'type' => [$this->typeIsFixed() ? 'prohibited' : 'required', Rule::enum(ActivityType::class)->only(ActivityType::builderTypes())],
+                'title' => ['nullable', 'string', 'max:120'],
+                'prompt' => ['required', 'string', 'max:500'],
+                'payload' => ['required', 'array'],
+                // A test question is one item (spec 0003 B.9).
+                'payload.items' => ['required', 'array', 'size:1'],
+                'payload.items.*' => ['array'],
+                'payload.items.*.id' => ['required', 'string', 'max:20'],
+            ];
+        }
+
         return [
-            'kind' => ['required', Rule::in(['multiple_choice', 'true_false', 'fill_blank', 'matching', 'short_answer', 'audio', 'image', 'video', 'speaking', 'ordering', 'writing'])],
+            'kind' => ['required', 'string', 'max:40'],
             'text' => ['required', 'string', 'max:500'],
             'options' => ['sometimes', 'array', 'max:12'],
             'options.*.id' => ['required_with:options', 'string', 'max:20'],
             'options.*.text' => ['required_with:options', 'string', 'max:300'],
             'options.*.correct' => ['sometimes', 'boolean'],
-            'options.*.image_id' => ['nullable', 'integer', Rule::exists('media_assets', 'id')->where('kind', 'image')],
-            'options.*.audio_id' => ['nullable', 'integer', Rule::exists('media_assets', 'id')->where('kind', 'audio')],
-            'options.*.audio_text' => ['nullable', 'string', 'max:300'],
-            'pairs' => ['sometimes', 'array', 'max:12'],
-            'pairs.*.left' => ['required_with:pairs', 'string', 'max:300'],
-            'pairs.*.right' => ['required_with:pairs', 'string', 'max:300'],
-            'accepted_answers' => ['sometimes', 'array', 'max:12'],
-            'accepted_answers.*' => ['required_with:accepted_answers', 'string', 'max:300'],
-            'audio_text' => ['nullable', 'string', 'max:500'],
-            'request_text' => ['nullable', 'string', 'max:1000'],
-            'information' => ['sometimes', 'array', 'max:12'],
-            'information.*' => ['string', 'max:300'],
-            'speaking_seconds' => ['nullable', 'integer', 'min:5', 'max:180'],
-            'media' => ['sometimes', 'array'],
-            'media.image' => ['nullable', 'integer', 'exists:media_assets,id'],
-            'media.audio' => ['nullable', 'integer', 'exists:media_assets,id'],
-            'media.video' => ['nullable', 'integer', 'exists:media_assets,id'],
         ];
     }
 
     /**
-     * Readable names for the builder's error toast ("The answer text field
-     * is required", not "options.2.text").
+     * The payload must be answerable and scorable for its type.
      *
-     * @return array<string, string>
+     * @return list<callable(Validator): void>
      */
-    public function attributes(): array
+    public function after(): array
     {
         return [
-            'text' => __('question text'),
-            'options.*.text' => __('answer text'),
-            'options.*.id' => __('answer'),
+            function (Validator $validator): void {
+                $type = $this->activityType();
+                $payload = $this->input('payload');
+
+                if (! $this->isActivity() || $type === null || ! is_array($payload) || $validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                foreach (ActivityPayloadValidator::errors($type, $payload) as $key => $message) {
+                    $validator->errors()->add($key, $message);
+                }
+            },
         ];
     }
 
     /**
-     * @return array<string, mixed>
+     * The type being written: the posted one for a new question, the
+     * stored one for an edit (the type never changes, DATA-11).
+     */
+    public function activityType(): ?ActivityType
+    {
+        $placement = $this->route('placement');
+
+        if ($placement instanceof ActivityPlacement) {
+            return $placement->activity?->type;
+        }
+
+        return ActivityType::tryFrom((string) $this->input('type'));
+    }
+
+    /**
+     * @return array{type: ActivityType, prompt: string, title: string|null, payload: array<string, mixed>}
+     */
+    public function activityData(): array
+    {
+        $type = $this->activityType() ?? ActivityType::MultipleChoice;
+        $title = $this->validated('title');
+
+        /** @var array<string, mixed> $payload */
+        $payload = (array) $this->input('payload');
+
+        return [
+            'type' => $type,
+            'prompt' => trim((string) $this->validated('prompt')),
+            'title' => is_string($title) ? $title : null,
+            // Authored content round-trips verbatim; validated() would keep
+            // only each item's id (DATA-11).
+            'payload' => ['items' => array_values((array) ($payload['items'] ?? []))],
+        ];
+    }
+
+    /**
+     * @return array{kind: string, text: string, options: list<array{id: string, text: string, correct: bool}>}
      */
     public function questionData(): array
     {
@@ -76,9 +134,6 @@ class StoreTestQuestionRequest extends FormRequest
                 'id' => (string) $option['id'],
                 'text' => trim((string) $option['text']),
                 'correct' => (bool) ($option['correct'] ?? false),
-                'image_id' => isset($option['image_id']) ? (int) $option['image_id'] : null,
-                'audio_id' => isset($option['audio_id']) ? (int) $option['audio_id'] : null,
-                'audio_text' => trim((string) ($option['audio_text'] ?? '')),
             ],
             $this->validated('options', []),
         ));
@@ -87,16 +142,11 @@ class StoreTestQuestionRequest extends FormRequest
             'kind' => (string) $this->validated('kind'),
             'text' => trim((string) $this->validated('text')),
             'options' => $options,
-            'pairs' => array_values(array_map(static fn (array $pair): array => [
-                'left' => trim((string) $pair['left']),
-                'right' => trim((string) $pair['right']),
-            ], $this->validated('pairs', []))),
-            'accepted_answers' => array_values(array_filter(array_map('trim', $this->validated('accepted_answers', [])), static fn (string $answer): bool => $answer !== '')),
-            'audio_text' => trim((string) $this->validated('audio_text', '')),
-            'request_text' => trim((string) $this->validated('request_text', '')),
-            'information' => array_values(array_filter(array_map('trim', $this->validated('information', [])), static fn (string $line): bool => $line !== '')),
-            'speaking_seconds' => (int) ($this->validated('speaking_seconds') ?? 30),
-            'media' => array_map(static fn (mixed $id): ?int => is_numeric($id) && (int) $id > 0 ? (int) $id : null, $this->validated('media', [])),
         ];
+    }
+
+    protected function typeIsFixed(): bool
+    {
+        return false;
     }
 }

@@ -75,13 +75,12 @@ const iconButtonClass =
         <!-- Keep sidebar access on narrow screens; notification and account
              actions stay available across the app. -->
         <SidebarTrigger
-            class="text-brand-800 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/40 size-11 focus-visible:ring-2 [&_svg:not([class*='size-'])]:size-5"
-            :title="
-                isMobile || state === 'collapsed'
-                    ? t('Open sidebar')
-                    : t('Close sidebar')
+            :class="
+                cn(
+                    'text-brand-800 hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/40 size-11 focus-visible:ring-2 [&_svg:not([class*=\'size-\'])]:size-5',
+                    state === 'expanded' && !isMobile && 'xl:hidden',
+                )
             "
-            data-test="sidebar-toggle"
         />
         <Link
             v-if="isMobile"

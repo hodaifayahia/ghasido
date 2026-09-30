@@ -32,7 +32,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property TestType $type
- * @property int $department_id
+ * @property int|null $department_id null = all departments
  * @property int|null $hotel_id
  * @property int|null $paired_test_id
  * @property string $title
@@ -168,7 +168,8 @@ class Test extends Model
 
         $query
             ->where('status', ContentStatus::Published->value)
-            ->where('department_id', $departmentId)
+            // Their department's test, or one for all departments (null).
+            ->where(fn (Builder $inner) => $inner->where('department_id', $departmentId)->orWhereNull('department_id'))
             ->where(function (Builder $inner) use ($user): void {
                 $inner->whereNull('hotel_id');
 
@@ -244,6 +245,45 @@ class Test extends Model
     public function shufflesQuestions(): bool
     {
         return (bool) ($this->setting('shuffle_questions') ?? false);
+    }
+
+    /**
+     * Show each option-based question's options in a per-sitting order
+     * (TestRunner::presentOptions). Option ids never change, so a stored
+     * raw answer still names the same option (TEST-06).
+     */
+    public function shufflesOptions(): bool
+    {
+        return (bool) ($this->setting('shuffle_options') ?? false);
+    }
+
+    /**
+     * Only one sitting may be submitted: once one is, the learner cannot
+     * start another (TestController::start).
+     */
+    public function isSingleAttempt(): bool
+    {
+        return (bool) ($this->setting('single_attempt') ?? false);
+    }
+
+    /**
+     * List each question with the learner's and the correct answer on the
+     * result page, and only there, and only when results are visible at all
+     * (TEST-03, TEST-04).
+     */
+    public function showsAnswers(): bool
+    {
+        return (bool) ($this->setting('show_answers') ?? false)
+            && $this->resultsVisibility() !== ResultsVisibility::Hidden;
+    }
+
+    /**
+     * End the sitting with a short encouraging message, whatever the
+     * results visibility.
+     */
+    public function showsMotivationalMessage(): bool
+    {
+        return (bool) ($this->setting('motivational_message') ?? false);
     }
 
     /**

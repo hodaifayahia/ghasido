@@ -81,7 +81,7 @@ function removeItem(index: number): void {
 <template>
     <div class="grid gap-4">
         <LessonsField
-            translatable
+            meaning
             v-model="subtitle"
             :label="$t('Subtitle')"
             type="textarea"
@@ -90,10 +90,12 @@ function removeItem(index: number): void {
         <div class="grid gap-4 md:grid-cols-2">
             <div class="grid gap-2">
                 <LessonsField
+                    meaning
                     v-model="listenTitle"
                     :label="$t('Listen step title')"
                 />
                 <LessonsField
+                    meaning
                     v-model="listenText"
                     :label="$t('Listen step text')"
                     type="textarea"
@@ -102,10 +104,12 @@ function removeItem(index: number): void {
             </div>
             <div class="grid gap-2">
                 <LessonsField
+                    meaning
                     v-model="repeatTitle"
                     :label="$t('Repeat step title')"
                 />
                 <LessonsField
+                    meaning
                     v-model="repeatText"
                     :label="$t('Repeat step text')"
                     type="textarea"
@@ -114,15 +118,24 @@ function removeItem(index: number): void {
             </div>
         </div>
         <div class="grid gap-4 md:grid-cols-3">
-            <LessonsField v-model="recordLabel" :label="$t('Record label')" />
             <LessonsField
+                meaning
+                v-model="recordLabel"
+                :label="$t('Record label')"
+            />
+            <LessonsField
+                meaning
                 v-model="recordingLabel"
                 :label="$t('Recording label')"
             />
-            <LessonsField v-model="successText" :label="$t('Success text')" />
+            <LessonsField
+                meaning
+                v-model="successText"
+                :label="$t('Success text')"
+            />
         </div>
         <LessonsField
-            translatable
+            meaning
             v-model="tip"
             :label="$t('Tip')"
             type="textarea"
