@@ -63,6 +63,12 @@ const visibleItems = computed((): SidebarNavItem[] =>
 );
 
 function isActive(item: SidebarNavItem): boolean {
+    // An entry may say itself whether it is current (the learner's journey
+    // stage, client request 2026-09-30); otherwise the URL decides.
+    if (item.isActive !== undefined) {
+        return item.isActive;
+    }
+
     const hrefs = item.href ? [item.href, ...(item.activeFor ?? [])] : [];
 
     return hrefs.some((href) => isCurrentUrl(href));

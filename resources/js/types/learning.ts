@@ -505,3 +505,26 @@ export type HelperLanguage = {
     /** Null for anyone who is not a learner. */
     updateUrl: string | null;
 };
+
+// ------------------------------------------------------------ learning path
+
+/** Home's level track and modules timeline (client request 2026-09-30). */
+export type LearningPathStepState = 'done' | 'current' | 'next';
+
+export type LearningPath = {
+    level: EnglishLevelValue | null;
+    levelLabel: string | null;
+    department: string | null;
+    levels: { value: string; label: string; state: LearningPathStepState }[];
+    modules: {
+        id: number;
+        title: string;
+        lessonsCompleted: number;
+        lessonsTotal: number;
+        percent: number;
+        state: LearningPathStepState;
+    }[];
+    modulesCompleted: number;
+    modulesTotal: number;
+    postTest: { unlocked: boolean; submitted: boolean };
+};

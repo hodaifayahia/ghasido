@@ -59,6 +59,9 @@ class LessonCreateController extends Controller
             'courses' => $courses->map(fn (Course $course): array => [
                 'id' => $course->id,
                 'title' => $course->title,
+                // Null = every level (client request 2026-09-30).
+                'level' => $course->level?->value,
+                'levelLabel' => $course->level?->label(),
                 'units' => $course->units->map(fn ($unit): array => [
                     'id' => $unit->id,
                     'title' => $unit->title,

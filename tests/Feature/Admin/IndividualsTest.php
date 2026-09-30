@@ -26,7 +26,7 @@ class IndividualsTest extends TestCase
 
     public function test_the_super_admin_sees_the_individuals_page(): void
     {
-        $individual = User::factory()->employee()->create(['hotel_id' => null]);
+        $individual = User::factory()->employee()->create(['hotel_id' => null, 'english_level' => 'advanced']);
         IndividualSubscription::factory()->for($individual)->create();
 
         $this->actingAs(User::factory()->superAdmin()->create())
@@ -35,7 +35,9 @@ class IndividualsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('admin/Individuals')
                 ->has('individuals', 1)
-                ->where('individuals.0.id', $individual->id));
+                ->where('individuals.0.id', $individual->id)
+                // The learner's level (client request 2026-09-30).
+                ->where('individuals.0.level', 'Advanced'));
     }
 
     public function test_the_super_admin_adds_an_individual_with_several_departments(): void

@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import HomeCard from '@/components/learning/home/HomeCard.vue';
 import HomeGoodToKnowCard from '@/components/learning/home/HomeGoodToKnowCard.vue';
 import HomePhotoCard from '@/components/learning/home/HomePhotoCard.vue';
+import LearningPathCard from '@/components/learning/home/LearningPathCard.vue';
 import HomeRememberCard from '@/components/learning/home/HomeRememberCard.vue';
 import CoachCard from '@/components/learning/CoachCard.vue';
 import JourneyStepper from '@/components/learning/JourneyStepper.vue';
@@ -18,6 +19,7 @@ import type {
     ContinueLesson,
     HomeTest,
     JourneyState,
+    LearningPath,
     MediaRef,
     PreTestFactIcon,
     PreTestIntro,
@@ -41,6 +43,8 @@ type Props = {
     photo: MediaRef | null;
     streak: StreakSummary;
     coach: CoachSummary;
+    /** Level track and modules timeline (client request 2026-09-30). */
+    path: LearningPath;
 };
 
 const props = defineProps<Props>();
@@ -130,7 +134,7 @@ const continueFacts = computed((): Fact[] => {
                 :paragraphs="intro.paragraphs ?? []"
                 emphasis="not a pass or fail test"
                 :facts="intro.facts ?? []"
-                class="mt-[34px]"
+                class="mt-[22px]"
             >
                 <template #primary>
                     <Link
@@ -202,7 +206,7 @@ const continueFacts = computed((): Fact[] => {
                     ),
                 ]"
                 :facts="continueFacts"
-                class="mt-[34px]"
+                class="mt-[22px]"
             >
                 <template #primary>
                     <Link
@@ -239,7 +243,19 @@ const continueFacts = computed((): Fact[] => {
         </div>
 
         <div class="relative flex min-w-0 flex-col">
-            <HomePhotoCard :photo="photo" :quote="intro.script" />
+            <!-- photo_20's receptionist for the test intro; afterwards the
+                 learner's path (level + modules) takes its place (client
+                 request 2026-09-30). -->
+            <HomePhotoCard
+                v-if="showIntro"
+                :photo="photo"
+                :quote="intro.script"
+            />
+            <LearningPathCard
+                v-else
+                :path="path"
+                class="min-[1100px]:ms-[19px] min-[1100px]:me-[11px] min-[1100px]:mt-[22px]"
+            />
 
             <!-- The test's own "Good to know" and "Remember" belong to its
                  intro (photo_20); once it is done the learner's momentum

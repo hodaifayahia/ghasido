@@ -85,6 +85,9 @@ export type LessonCreateUnit = {
 export type LessonCreateCourse = {
     id: number;
     title: string;
+    /** Null = every level (client request 2026-09-30). */
+    level: string | null;
+    levelLabel: string | null;
     units: LessonCreateUnit[];
 };
 

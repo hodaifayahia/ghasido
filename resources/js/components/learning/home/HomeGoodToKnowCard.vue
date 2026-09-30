@@ -52,6 +52,7 @@ const props = defineProps<Props>();
                     aria-hidden="true"
                 />
                 <MeaningText
+                    compact
                     as="span"
                     :text="item"
                     class="text-ink-slate block text-[13px] leading-5"

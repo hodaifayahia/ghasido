@@ -69,11 +69,28 @@ class StoreLessonRequest extends FormRequest
         ];
     }
 
-    /** The unit the lesson goes into, creating the fallback when needed. */
+    /**
+     * The unit the lesson goes into, creating the fallback when needed.
+     *
+     * A lesson is made for one level (client request 2026-09-30). Choosing
+     * a course (or a unit of one) made for another level puts the lesson in
+     * the same course for the chosen level: a course with the same title,
+     * department and hotel at that level, created on first use.
+     */
     public function unit(LessonService $lessons): Unit
     {
         if ($this->filled('unit_id') && ! $this->filled('new_course_title') && ! $this->filled('new_unit_title')) {
-            return Unit::query()->findOrFail($this->integer('unit_id'));
+            $unit = Unit::query()->findOrFail($this->integer('unit_id'));
+            $course = $unit->course()->firstOrFail();
+
+            if (! $this->differentLevel($course)) {
+                return $unit;
+            }
+
+            $sibling = $this->levelCourse($course, $lessons);
+
+            return $sibling->units()->where('title', $unit->title)->orderBy('id')->first()
+                ?? $lessons->createUnit($sibling, $unit->title);
         }
 
         $course = match (true) {
@@ -81,6 +98,10 @@ class StoreLessonRequest extends FormRequest
             $this->filled('course_id') => Course::query()->findOrFail($this->integer('course_id')),
             default => $this->defaultCourse($lessons),
         };
+
+        if ($this->differentLevel($course)) {
+            $course = $this->levelCourse($course, $lessons);
+        }
 
         if ($this->filled('new_unit_title')) {
             return $lessons->createUnit($course, trim((string) $this->input('new_unit_title')));
@@ -115,6 +136,40 @@ class StoreLessonRequest extends FormRequest
             'hotel_id' => $user->hotel_id,
             'description' => null,
             'tone' => 'brand',
+            'level' => $this->level(),
+        ], $user);
+    }
+
+    private function differentLevel(Course $course): bool
+    {
+        return $this->level() !== null && $course->level?->value !== $this->level();
+    }
+
+    /** The same course (title, department, hotel) for the chosen level. */
+    private function levelCourse(Course $course, LessonService $lessons): Course
+    {
+        /** @var User $user */
+        $user = $this->user();
+        abort_unless($user->can('create', Course::class), 403);
+
+        $existing = Course::query()
+            ->where('department_id', $course->department_id)
+            ->where('title', $course->title)
+            ->where('level', $this->level())
+            ->when(
+                $course->hotel_id === null,
+                fn ($query) => $query->whereNull('hotel_id'),
+                fn ($query) => $query->where('hotel_id', $course->hotel_id),
+            )
+            ->orderBy('id')
+            ->first();
+
+        return $existing ?? $lessons->createCourse([
+            'title' => $course->title,
+            'department_id' => $course->department_id,
+            'hotel_id' => $course->hotel_id,
+            'description' => $course->description,
+            'tone' => $course->tone,
             'level' => $this->level(),
         ], $user);
     }

@@ -40,6 +40,7 @@ const props = defineProps<Props>();
                 {{ title }}
             </h2>
             <MeaningText
+                compact
                 :text="text"
                 class="text-ink-slate text-sm leading-5"
                 wrapper-class="mt-2.5"

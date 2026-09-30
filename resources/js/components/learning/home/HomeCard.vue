@@ -77,17 +77,19 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
                 {{ eyebrow }}
             </p>
             <MeaningText
+                compact
                 as="h2"
                 :text="heading"
-                class="font-heading text-ink-cobalt text-[35px] leading-[41px] font-bold tracking-[-0.02em]"
+                class="font-heading text-ink-cobalt text-[33px] leading-[39px] font-bold tracking-[-0.02em]"
                 wrapper-class="mt-[11px]"
             />
             <MeaningText
+                compact
                 v-for="(paragraph, index) in paragraphs"
                 :key="index"
                 :text="paragraph"
-                class="text-ink-dusk text-[17.5px] leading-[25px]"
-                :wrapper-class="index === 0 ? 'mt-[11px]' : 'mt-[9px]'"
+                class="text-ink-dusk text-[16.5px] leading-[23px]"
+                :wrapper-class="index === 0 ? 'mt-[9px]' : 'mt-[7px]'"
             >
                 <template v-for="(part, i) in parts(paragraph)" :key="i">
                     <strong v-if="part.bold" class="font-semibold">{{
@@ -99,7 +101,7 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
 
             <hr class="border-line mt-2.5" />
 
-            <ul class="mt-[17px] flex list-none flex-col gap-[11px]">
+            <ul class="mt-[14px] flex list-none flex-col gap-[8px]">
                 <li
                     v-for="fact in facts"
                     :key="fact.label"
@@ -121,6 +123,7 @@ function parts(paragraph: string): { text: string; bold: boolean }[] {
                             {{ fact.label }}
                         </span>
                         <MeaningText
+                            compact
                             as="span"
                             :text="fact.text"
                             class="text-ink-slate block text-[12.5px] leading-[18px]"

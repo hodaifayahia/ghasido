@@ -15,10 +15,15 @@ type Props = {
     shown: boolean;
     state: MeaningState;
     controls?: string;
+    /** 24px chip for dense copy; the tap area stays 44px (ACC-03). */
+    compact?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = withDefaults(defineProps<Props>(), { controls: undefined });
+const props = withDefaults(defineProps<Props>(), {
+    controls: undefined,
+    compact: false,
+});
 
 const emit = defineEmits<{ toggle: [] }>();
 
@@ -40,7 +45,10 @@ const helper = useHelperLanguage();
         :title="shown ? $t('Hide meaning') : $t('Show meaning')"
         :class="
             cn(
-                'focus-visible:ring-brand-600/30 relative inline-grid size-8 shrink-0 place-items-center rounded-full align-middle transition-colors duration-150 before:absolute before:-inset-1.5 focus-visible:ring-3 focus-visible:outline-none active:scale-[.95] motion-reduce:transition-none',
+                'focus-visible:ring-brand-600/30 relative inline-grid shrink-0 place-items-center rounded-full align-middle transition-colors duration-150 before:absolute focus-visible:ring-3 focus-visible:outline-none active:scale-[.95] motion-reduce:transition-none',
+                compact
+                    ? 'size-6 before:-inset-2.5'
+                    : 'size-8 before:-inset-1.5',
                 shown
                     ? 'bg-brand-600 text-white'
                     : 'bg-brand-50 text-brand-700 hover:bg-brand-100',
@@ -51,9 +59,18 @@ const helper = useHelperLanguage();
     >
         <LoaderCircle
             v-if="state === 'loading' && shown"
-            class="size-4 animate-spin motion-reduce:animate-none"
+            :class="
+                cn(
+                    'animate-spin motion-reduce:animate-none',
+                    compact ? 'size-3.5' : 'size-4',
+                )
+            "
             aria-hidden="true"
         />
-        <Languages v-else class="size-4" aria-hidden="true" />
+        <Languages
+            v-else
+            :class="compact ? 'size-3.5' : 'size-4'"
+            aria-hidden="true"
+        />
     </button>
 </template>

@@ -13,6 +13,7 @@ use App\Services\Learning\JourneyService;
 use App\Services\Learning\LearnerCoach;
 use App\Services\Learning\LessonNavigator;
 use App\Services\Learning\PayloadResolver;
+use App\Services\Learning\ProgressService;
 use App\Services\Learning\StreakService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,6 +63,8 @@ class HomeController extends Controller
                 'url' => $this->navigator->stepUrl($target['lesson'], $target['block']),
             ],
             'journey' => $this->journey->summary($user),
+            // Level and modules timeline (client request 2026-09-30).
+            'path' => app(ProgressService::class)->learningPath($user),
             'streak' => $this->streaks->summary($user),
             'coach' => $this->coach->present($user),
             // The client's receptionist photo from the seed manifest

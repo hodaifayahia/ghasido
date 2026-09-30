@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import {
     Select,
@@ -17,24 +18,32 @@ import { cn } from '@/lib/utils';
  */
 type Props = {
     name?: string;
+    /** Offer "All levels" (default); false when a level must be chosen. */
+    allowAll?: boolean;
     id?: string;
     class?: HTMLAttributes['class'];
     triggerClass?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    name: undefined,
+    id: undefined,
+    class: undefined,
+    triggerClass: undefined,
+    allowAll: true,
+});
 
 /** '' = every level. */
 const level = defineModel<string>({ default: '' });
 
 const ALL = 'all';
 
-const options = [
-    { value: ALL, label: tk('All levels') },
+const options = computed(() => [
+    ...(props.allowAll ? [{ value: ALL, label: tk('All levels') }] : []),
     { value: 'beginner', label: tk('Beginner') },
     { value: 'intermediate', label: tk('Intermediate') },
     { value: 'advanced', label: tk('Advanced') },
-];
+]);
 
 function onChange(value: unknown): void {
     if (typeof value === 'string') {
@@ -60,7 +69,7 @@ function onChange(value: unknown): void {
                 "
                 data-test="level-select"
             >
-                <SelectValue />
+                <SelectValue :placeholder="$t('Choose a level')" />
             </SelectTrigger>
             <SelectContent class="border-line shadow-pop">
                 <SelectItem

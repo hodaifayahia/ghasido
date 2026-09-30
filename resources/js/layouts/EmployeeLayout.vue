@@ -112,11 +112,39 @@ const pitch = 'gap-[clamp(2.5px,calc(var(--sb-unit)*1.41),11px)]';
 const accountPitch = 'gap-[clamp(3px,calc(var(--sb-unit)*1.8),14px)]';
 const page = usePage();
 
+// Pre-test → Training → Post-test → Certificate follow where the learner
+// is, not the URL: only the current stage is marked, and Home's URL never
+// lights "Pre-test" once it is done (client request 2026-09-30).
+const stage = computed((): number => {
+    const journey = page.props.journey;
+
+    if (!journey) {
+        return 0;
+    }
+
+    if (!journey.lessonsUnlocked) {
+        return 1;
+    }
+
+    if (!journey.postTestUnlocked) {
+        return 2;
+    }
+
+    return journey.certificateAvailable ? 4 : 3;
+});
+
+const stagedJourneyItems = computed((): SidebarNavItem[] =>
+    journeyItems.map((item, index) => ({
+        ...item,
+        isActive: stage.value === index + 1,
+    })),
+);
+
 const nav = computed((): SidebarNav => ({
     homeHref: home(),
     contentClass: 'pt-[clamp(10px,calc(var(--sb-unit)*3.7),29px)]',
     main: { items: mainItems, class: pitch },
-    journey: { items: journeyItems, class: pitch },
+    journey: { items: stagedJourneyItems.value, class: pitch },
     account: { items: accountItems, class: accountPitch },
     separatorClass:
         'mt-[clamp(8px,calc(var(--sb-unit)*4.2),33px)] mb-[clamp(5px,calc(var(--sb-unit)*1.92),15px)]',

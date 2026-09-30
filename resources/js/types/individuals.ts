@@ -11,6 +11,8 @@ export type IndividualRow = {
     email: string | null;
     /** One or more; the first is their main department. */
     departmentIds: string[];
+    /** The learner's level label, or null before they choose one. */
+    level: string | null;
     /** Their department names, main one first. */
     department: string;
     status: 'active' | 'inactive';

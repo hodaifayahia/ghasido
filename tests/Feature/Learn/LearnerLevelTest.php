@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Learning\JourneyService;
 use App\Services\Platform\PlatformSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -158,5 +159,27 @@ class LearnerLevelTest extends TestCase
         $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'advanced'])->assertRedirect();
 
         $this->assertSame(EnglishLevel::Advanced, $learner->fresh()?->english_level);
+    }
+
+    public function test_home_shows_the_level_track_and_the_modules_timeline()
+    {
+        $this->withoutVite();
+        $learner = $this->learner(['english_level' => EnglishLevel::Intermediate]);
+        $lesson = $this->publishedLesson([BlockType::Situation]);
+        $course = $lesson->course()->firstOrFail();
+        Course::factory()->forDepartment($this->department->id)->published()->create(['level' => EnglishLevel::Beginner]);
+
+        $this->actingAs($learner)
+            ->get(route('learn.home'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('path.level', 'intermediate')
+                ->where('path.levels.0.state', 'done')
+                ->where('path.levels.1.state', 'current')
+                ->where('path.levels.2.state', 'next')
+                ->has('path.modules', 1)
+                ->where('path.modules.0.id', $course->id)
+                ->where('path.modules.0.state', 'current')
+                ->where('path.modulesCompleted', 0));
     }
 }

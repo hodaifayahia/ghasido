@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin\Lessons;
 
 use App\Enums\ContentStatus;
+use App\Enums\EnglishLevel;
 use App\Models\AuditLog;
 use App\Models\Course;
 use App\Models\Department;
@@ -231,5 +232,29 @@ class LessonWritesTest extends TestCase
 
         $this->assertDatabaseHas('courses', ['id' => $this->course->id, 'status' => 'draft']);
         $this->assertDatabaseHas('lessons', ['id' => $this->lesson->id]);
+    }
+
+    public function test_a_lesson_for_another_level_goes_into_the_same_course_for_that_level()
+    {
+        // The fixture course is for every level; the lesson is for Advanced.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), ['unit_id' => $this->unit->id, 'title' => 'Handling VIP guests', 'level' => 'advanced'])
+            ->assertSessionHasNoErrors();
+
+        $lesson = Lesson::query()->where('title', 'Handling VIP guests')->firstOrFail();
+        $course = $lesson->course()->firstOrFail();
+
+        $this->assertNotSame($this->course->id, $course->id);
+        $this->assertSame($this->course->title, $course->title);
+        $this->assertSame($this->course->department_id, $course->department_id);
+        $this->assertSame(EnglishLevel::Advanced, $course->level);
+
+        // A second Advanced lesson reuses that course, not a third one.
+        $this->actingAs($this->owner)
+            ->post(route('lessons.store'), ['course_id' => $this->course->id, 'title' => 'Upselling', 'level' => 'advanced'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($course->id, Lesson::query()->where('title', 'Upselling')->firstOrFail()->course_id);
+        $this->assertSame(2, Course::query()->where('title', $this->course->title)->count());
     }
 }

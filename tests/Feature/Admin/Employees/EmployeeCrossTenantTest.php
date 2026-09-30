@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin\Employees;
 
 use App\Enums\AccountStatus;
+use App\Enums\EnglishLevel;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Hotel;
@@ -237,5 +238,17 @@ class EmployeeCrossTenantTest extends TestCase
     private function payload(array $payload, Hotel $hotel): array
     {
         return $payload + ['hotel_id' => $hotel->id, 'department_id' => $this->reception->id];
+    }
+
+    public function test_a_manager_sees_each_employees_level()
+    {
+        $this->myEmployee->forceFill(['english_level' => EnglishLevel::Intermediate])->save();
+
+        $this->actingAs($this->manager)
+            ->get(route('employees'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('employees.0.id', $this->myEmployee->id)
+                ->where('employees.0.level', 'Intermediate'));
     }
 }

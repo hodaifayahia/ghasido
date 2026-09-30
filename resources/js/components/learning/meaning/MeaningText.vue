@@ -18,6 +18,8 @@ type Props = {
     class?: HTMLAttributes['class'];
     wrapperClass?: HTMLAttributes['class'];
     panelClass?: HTMLAttributes['class'];
+    /** A 24px Show Meaning chip, for dense copy such as Home's card. */
+    compact?: boolean;
 };
 
 // Extra attributes (an id for aria-labelledby) belong on the text itself.
@@ -29,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
     class: undefined,
     wrapperClass: undefined,
     panelClass: undefined,
+    compact: false,
 });
 
 const id = `meaning-${useId()}`;
@@ -47,7 +50,8 @@ const meaning = useMeaning(() => props.text ?? '');
                 :shown="meaning.shown.value"
                 :state="meaning.state.value"
                 :controls="id"
-                class="ms-2 -mt-0.5"
+                :compact="compact"
+                :class="compact ? 'ms-1.5 -mt-0.5' : 'ms-2 -mt-0.5'"
                 @toggle="meaning.toggle()"
             />
         </component>

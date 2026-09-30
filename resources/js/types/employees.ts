@@ -50,6 +50,8 @@ export type EmployeeRecord = {
     username: string;
     hotel: string;
     department: string;
+    /** The learner's level label, or null before they choose one. */
+    level: string | null;
     /** Display value: the address, or a dash when none is on file. */
     email: string;
     progress: number;

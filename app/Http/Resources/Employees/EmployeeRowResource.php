@@ -43,6 +43,8 @@ class EmployeeRowResource extends JsonResource
             'username' => (string) $user->username,
             'hotel' => $user->hotel->name ?? '—',
             'department' => $user->department->name ?? '—',
+            // The learner's chosen level (client request 2026-09-30).
+            'level' => $user->english_level?->label(),
             'email' => $user->email ?? '—',
             'progress' => EmployeeDirectory::progressOf($user),
             'status' => $status->value,

@@ -396,6 +396,13 @@ function remindTitle(employee: EmployeeRecord): string {
                                 <span class="block truncate">{{
                                     employee.department
                                 }}</span>
+                                <span
+                                    class="text-ai block truncate text-[10.5px] font-semibold"
+                                    data-test="employee-level"
+                                    >{{
+                                        employee.level ?? $t('Level not chosen')
+                                    }}</span
+                                >
                             </td>
                             <td
                                 class="text-ink-muted px-2 py-[6px] align-middle"
@@ -568,6 +575,12 @@ function remindTitle(employee: EmployeeRecord): string {
                                 $t('Department:')
                             }}</span>
                             {{ employee.department }}
+                        </p>
+                        <p>
+                            <span class="text-brand-900 font-medium">{{
+                                $t('Level:')
+                            }}</span>
+                            {{ employee.level ?? $t('Level not chosen') }}
                         </p>
                         <p>
                             <span class="text-brand-900 font-medium">{{

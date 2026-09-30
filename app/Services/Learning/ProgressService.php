@@ -2,6 +2,7 @@
 
 namespace App\Services\Learning;
 
+use App\Enums\EnglishLevel;
 use App\Models\Block;
 use App\Models\BlockCompletion;
 use App\Models\Course;
@@ -113,6 +114,62 @@ class ProgressService
         }
 
         return $rows;
+    }
+
+    /**
+     * The learner's path on Home (client request 2026-09-30): their level on
+     * the Beginner → Intermediate → Advanced track, and the modules (the
+     * courses of their department and level) in order with how many
+     * lessons of each are done, ending with the Post-test.
+     *
+     * @return array<string, mixed>
+     */
+    public function learningPath(User $user): array
+    {
+        $modules = $this->courseProgress($user);
+        $current = $user->english_level;
+        $order = EnglishLevel::cases();
+        $currentIndex = $current === null ? -1 : array_search($current, $order, true);
+
+        $foundCurrent = false;
+        $steps = [];
+
+        foreach ($modules as $module) {
+            $done = $module['lessonsTotal'] > 0 && $module['lessonsCompleted'] >= $module['lessonsTotal'];
+            $state = $done ? 'done' : ($foundCurrent ? 'next' : 'current');
+            $foundCurrent = $foundCurrent || ! $done;
+
+            $steps[] = [
+                'id' => $module['id'],
+                'title' => $module['title'],
+                'lessonsCompleted' => $module['lessonsCompleted'],
+                'lessonsTotal' => $module['lessonsTotal'],
+                'percent' => $module['percent'],
+                'state' => $state,
+            ];
+        }
+
+        $completed = count(array_filter($steps, fn (array $step): bool => $step['state'] === 'done'));
+
+        return [
+            'level' => $current?->value,
+            'levelLabel' => $current?->label(),
+            'department' => $user->department->name ?? null,
+            'levels' => array_map(fn (EnglishLevel $level, int $index): array => [
+                'value' => $level->value,
+                'label' => $level->label(),
+                'state' => $currentIndex === false || $currentIndex < 0
+                    ? 'next'
+                    : ($index < $currentIndex ? 'done' : ($index === $currentIndex ? 'current' : 'next')),
+            ], $order, array_keys($order)),
+            'modules' => $steps,
+            'modulesCompleted' => $completed,
+            'modulesTotal' => count($steps),
+            'postTest' => [
+                'unlocked' => $this->journey->postTestUnlocked($user),
+                'submitted' => $this->journey->postTestSubmitted($user),
+            ],
+        ];
     }
 
     private function allVisibleBlocksDone(User $user, Lesson $lesson): bool

@@ -218,6 +218,8 @@ class IndividualsController extends Controller
             'department' => $subscription->departments->isEmpty()
                 ? ($user->department->name ?? '—')
                 : $subscription->departments->pluck('name')->implode(', '),
+            // The learner's chosen level (client request 2026-09-30).
+            'level' => $user->english_level?->label(),
             'status' => $user->status->value,
             'windowState' => $subscription->windowState(),
             'startsOn' => $subscription->starts_on?->toDateString(),

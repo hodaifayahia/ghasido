@@ -240,7 +240,11 @@ const inputClass =
 
                 <div class="grid gap-1.5">
                     <Label :class="labelClass">{{ $t('Level') }}</Label>
-                    <LevelSelect v-model="level" name="level" />
+                    <LevelSelect
+                        v-model="level"
+                        name="level"
+                        :allow-all="false"
+                    />
                     <p class="text-ink-slate text-[12px]">
                         {{
                             $t(
@@ -426,7 +430,9 @@ const inputClass =
                 </Button>
                 <Button
                     type="submit"
-                    :disabled="processing"
+                    :disabled="
+                        processing || (kind === 'course' && level === '')
+                    "
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-add-button"
                 >

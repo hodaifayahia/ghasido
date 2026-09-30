@@ -4274,5 +4274,19 @@
     "The test could not start. Please try again.": "تعذّر بدء الاختبار. حاول مرة أخرى.",
     "The test could not start (error :status). Please try again.": "تعذّر بدء الاختبار (خطأ :status). حاول مرة أخرى.",
     "The test could not start: no connection. Please try again.": "تعذّر بدء الاختبار: لا يوجد اتصال. حاول مرة أخرى.",
-    "Save this scenario first (Scenario details → Save), then come back to test it.": "احفظ هذا السيناريو أولاً (تفاصيل السيناريو ← حفظ)، ثم عد لاختباره."
+    "Save this scenario first (Scenario details → Save), then come back to test it.": "احفظ هذا السيناريو أولاً (تفاصيل السيناريو ← حفظ)، ثم عد لاختباره.",
+    "(your level)": "(مستواك)",
+    ":done of :total lessons": ":done من :total دروس",
+    ":done of :total modules completed": "أكملت :done من :total وحدات",
+    "Choose a level": "اختر مستوى",
+    "English levels": "مستويات الإنجليزية",
+    "Level not chosen": "لم يُختر المستوى",
+    "Level:": "المستوى:",
+    "Modules": "الوحدات",
+    "Modules completed": "الوحدات المكتملة",
+    "No modules for your level yet.": "لا توجد وحدات لمستواك بعد.",
+    "Ready for you": "جاهز لك",
+    "This course is for another level: the lesson goes into the same course for :level (created if needed).": "هذه الدورة لمستوى آخر: سيُضاف الدرس إلى الدورة نفسها لمستوى :level (تُنشأ إن لم تكن موجودة).",
+    "Unlocks when every module is done": "يُفتح عند إكمال كل الوحدات",
+    "Your learning path": "مسار تعلّمك"
 }

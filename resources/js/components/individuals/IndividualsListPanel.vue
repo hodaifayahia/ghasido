@@ -359,6 +359,12 @@ const states = [
                                 {{ row.department }}
                             </span>
                             <span
+                                class="text-ai block truncate text-[11px] font-semibold"
+                                data-test="individual-level"
+                            >
+                                {{ row.level ?? $t('Level not chosen') }}
+                            </span>
+                            <span
                                 v-if="
                                     row.status === 'inactive' &&
                                     !awaitsDecision(row)
@@ -581,7 +587,8 @@ const states = [
                             {{ row.name }}
                         </p>
                         <p class="text-ink-slate truncate text-[11.5px]">
-                            @{{ row.username }} · {{ row.department }}
+                            @{{ row.username }} · {{ row.department }} ·
+                            {{ row.level ?? $t('Level not chosen') }}
                         </p>
                     </div>
                     <span

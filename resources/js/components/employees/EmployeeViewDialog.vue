@@ -39,6 +39,10 @@ const rows = computed<Row[]>(() => {
         { label: tk('Username'), value: employee.username },
         { label: tk('Hotel'), value: employee.hotel },
         { label: tk('Department'), value: employee.department },
+        {
+            label: tk('Level'),
+            value: employee.level ?? t('Level not chosen'),
+        },
         { label: tk('Email'), value: employee.email },
         { label: tk('Pre-test'), value: score(employee.preTestScore) },
         { label: tk('Post-test'), value: score(employee.postTestScore) },

@@ -54,7 +54,7 @@ const active = computed((): number => {
         :aria-label="$t('Your training journey')"
         :class="
             cn(
-                'relative z-10 grid w-full list-none grid-cols-4 xl:ms-2 xl:w-[552px] xl:max-w-none',
+                'relative z-10 grid w-full max-w-[484px] list-none grid-cols-4',
                 props.class,
             )
         "

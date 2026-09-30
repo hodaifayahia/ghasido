@@ -24,6 +24,7 @@ import { store as storeLesson } from '@/routes/lessons';
 import type { LessonCreateCourse, LessonFilterOption } from '@/types';
 import { tk } from '@/lib/i18n';
 import LevelSelect from '@/components/common/LevelSelect.vue';
+import { useI18n } from '@/composables/useI18n';
 
 type Props = {
     departments: LessonFilterOption[];
@@ -57,13 +58,30 @@ const newUnitTitle = ref('');
 const lessonTitle = ref('');
 // Department + level decide who sees the lesson (client decision
 // 2026-09-30); an existing course brings its own level.
+const { t } = useI18n();
 const level = ref('');
+const levelLabels: Record<string, string> = {
+    beginner: tk('Beginner'),
+    intermediate: tk('Intermediate'),
+    advanced: tk('Advanced'),
+};
+const levelLabel = computed(() => t(levelLabels[level.value] ?? ''));
 const withBlocks = ref(true);
 
 const course = computed(() =>
     props.courses.find((row) => String(row.id) === courseId.value),
 );
-const units = computed(() => course.value?.units ?? []);
+// A course made for another level gets its same-name copy for the chosen
+// level on save (client request 2026-09-30), so its units are not offered.
+const otherLevelCourse = computed(
+    () =>
+        course.value !== undefined &&
+        level.value !== '' &&
+        (course.value.level ?? null) !== level.value,
+);
+const units = computed(() =>
+    otherLevelCourse.value ? [] : (course.value?.units ?? []),
+);
 const isId = (value: string): boolean => /^\d+$/.test(value);
 
 watch(courseId, () => {
@@ -180,21 +198,32 @@ function onDepartment(value: string): void {
                         </Select>
                     </div>
 
-                    <div
-                        v-if="courseId === NONE || courseId === NEW"
-                        class="grid gap-1.5"
-                    >
+                    <div class="grid gap-1.5">
                         <label
                             for="create-level"
                             class="text-brand-900 text-[12px] font-semibold"
                         >
                             {{ $t('Level') }}
+                            <span class="text-danger-text">*</span>
                         </label>
                         <LevelSelect
                             id="create-level"
                             v-model="level"
                             name="level"
+                            :allow-all="false"
                         />
+                        <p
+                            v-if="otherLevelCourse"
+                            class="text-brand-700 text-[12px]"
+                            data-test="lesson-create-level-copy"
+                        >
+                            {{
+                                $t(
+                                    'This course is for another level: the lesson goes into the same course for :level (created if needed).',
+                                    { level: levelLabel },
+                                )
+                            }}
+                        </p>
                         <InputError :message="errors.level" />
                     </div>
 
@@ -239,6 +268,13 @@ function onDepartment(value: string): void {
                                     class="text-[13px]"
                                 >
                                     {{ row.title }}
+                                    <span
+                                        class="text-ink-muted ms-1 text-[11.5px]"
+                                        >·
+                                        {{
+                                            row.levelLabel ?? $t('All levels')
+                                        }}</span
+                                    >
                                 </SelectItem>
                                 <SelectItem
                                     :value="NEW"
@@ -400,7 +436,9 @@ function onDepartment(value: string): void {
                         </Button>
                         <Button
                             type="submit"
-                            :disabled="processing || department === ''"
+                            :disabled="
+                                processing || department === '' || level === ''
+                            "
                             class="bg-brand-600 hover:bg-brand-700 shadow-btn h-10 gap-2 rounded-md px-4 text-[12.5px] font-semibold text-white"
                             data-test="submit-create-lesson"
                         >
