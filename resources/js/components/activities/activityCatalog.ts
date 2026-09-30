@@ -549,6 +549,8 @@ export type PairDraft = {
     prompt: string;
     promptImage: number | null;
     promptAudio: number | null;
+    /** Play the word's pronunciation (`audio_text` = the word). */
+    promptSpeak: boolean;
     target: string;
     image: number | null;
 };
@@ -695,6 +697,7 @@ export function blankDraft(type: ActivityTypeSpec, id: string): ItemDraft {
                       prompt: '',
                       promptImage: null,
                       promptAudio: null,
+                      promptSpeak: false,
                       target: '',
                       image: null,
                   }))
@@ -780,6 +783,9 @@ export function draftFromItem(
                 prompt: str(prompt[promptKey]),
                 promptImage: num(prompt.image),
                 promptAudio: num(prompt.audio),
+                promptSpeak:
+                    type.matching !== 'legacy' &&
+                    str(prompt.audio_text).trim() !== '',
                 target: str(target?.[targetKey]),
                 image: num(target?.image),
             };
@@ -813,7 +819,7 @@ export function draftFromItem(
             id: str(entry.id),
             text: str(entry[textKey]),
             image: num(entry.image),
-            speak: false,
+            speak: str(entry.audio_text).trim() !== '',
         }));
     }
 
@@ -961,6 +967,9 @@ export function itemFromDraft(
                       text: pair.prompt.trim(),
                       image: pair.promptImage,
                       audio: pair.promptAudio,
+                      ...(pair.promptSpeak && pair.prompt.trim() !== ''
+                          ? { audio_text: pair.prompt.trim() }
+                          : {}),
                   },
         );
         item.targets = scramble(targets);
@@ -983,6 +992,9 @@ export function itemFromDraft(
                         : `s${index + 1}`,
                 [textKey]: line.text.trim(),
                 ...(image ? { image: line.image } : {}),
+                ...(line.speak && line.text.trim() !== ''
+                    ? { audio_text: line.text.trim() }
+                    : {}),
             }));
 
         item[listKey] = scramble(entries);

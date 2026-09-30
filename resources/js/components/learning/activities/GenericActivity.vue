@@ -147,6 +147,9 @@ type Ordered = {
     caption?: string;
     image?: MediaRef | null;
     text_audio?: AudioPair;
+    /** The admin's 🔊 pronunciation (client request 2026-09-30). */
+    audio_text?: string;
+    audio_text_audio?: AudioPair;
 };
 
 function orderable(item: ActivityItem): Ordered[] {
@@ -901,10 +904,14 @@ function letter(index: number): string {
                         wrapper-class="flex-1"
                     />
                     <AudioButton
-                        v-if="entry.text_audio"
+                        v-if="entry.text_audio || entry.audio_text_audio"
                         size="sm"
-                        :src="entry.text_audio.normal"
-                        :text="entry.text"
+                        :src="
+                            entry.text_audio?.normal ??
+                            entry.audio_text_audio?.normal ??
+                            null
+                        "
+                        :text="entry.text ?? entry.audio_text"
                     />
                     <button
                         type="button"

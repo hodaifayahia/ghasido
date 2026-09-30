@@ -4288,5 +4288,9 @@
     "Ready for you": "جاهز لك",
     "This course is for another level: the lesson goes into the same course for :level (created if needed).": "هذه الدورة لمستوى آخر: سيُضاف الدرس إلى الدورة نفسها لمستوى :level (تُنشأ إن لم تكن موجودة).",
     "Unlocks when every module is done": "يُفتح عند إكمال كل الوحدات",
-    "Your learning path": "مسار تعلّمك"
+    "Your learning path": "مسار تعلّمك",
+    "Allow Show Meaning on questions": "السماح بإظهار المعنى في الأسئلة",
+    "Employees can tap to read a question’s meaning in their helper language (Arabic, French…).": "يمكن للموظفين النقر لقراءة معنى السؤال بلغتهم المساعدة (العربية، الفرنسية…).",
+    "Play the pronunciation of line :number": "تشغيل نطق السطر :number",
+    "Play the pronunciation of word :number": "تشغيل نطق الكلمة :number"
 }

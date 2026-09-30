@@ -228,6 +228,7 @@ function addPair(): void {
             prompt: '',
             promptImage: null,
             promptAudio: null,
+            promptSpeak: false,
             target: '',
             image: null,
         });
@@ -311,11 +312,18 @@ function audioTexts(value: string | undefined): string[] {
         : [];
 }
 
-const spokenOptions = computed(() =>
-    draft.value.options
+const spokenOptions = computed(() => [
+    ...draft.value.options
         .filter((option) => option.speak && option.text.trim() !== '')
         .map((option) => option.text.trim()),
-);
+    // Ordering lines and matching words with 🔊 (client request 2026-09-30).
+    ...draft.value.lines
+        .filter((line) => line.speak && line.text.trim() !== '')
+        .map((line) => line.text.trim()),
+    ...draft.value.pairs
+        .filter((pair) => pair.promptSpeak && pair.prompt.trim() !== '')
+        .map((pair) => pair.prompt.trim()),
+]);
 
 const legacyPairAudio = computed(() =>
     props.spec.matching === 'legacy'
@@ -729,6 +737,35 @@ const pictureAnswers = computed(
                                 :text="pair.prompt"
                                 :label="$t('Word')"
                             />
+                            <button
+                                v-if="spec.matching === 'flexible' && !readOnly"
+                                type="button"
+                                :aria-pressed="pair.promptSpeak"
+                                :aria-label="
+                                    $t(
+                                        'Play the pronunciation of word :number',
+                                        {
+                                            number: index + 1,
+                                        },
+                                    )
+                                "
+                                :title="$t('Pronunciation')"
+                                :data-test="`activity-pair-${index + 1}-speak`"
+                                :class="
+                                    cn(
+                                        smallButton,
+                                        pair.promptSpeak &&
+                                            'bg-brand-50 text-brand-600',
+                                    )
+                                "
+                                @click="
+                                    setPair(index, {
+                                        promptSpeak: !pair.promptSpeak,
+                                    })
+                                "
+                            >
+                                <Volume2 class="size-4" aria-hidden="true" />
+                            </button>
                         </div>
                         <div class="flex min-w-0 items-center gap-1">
                             <input
@@ -959,6 +996,29 @@ const pictureAnswers = computed(
                         :label="$t('Line :number', { number: index + 1 })"
                     />
                     <template v-if="!readOnly">
+                        <button
+                            v-if="!spec.legacy"
+                            type="button"
+                            :aria-pressed="line.speak"
+                            :aria-label="
+                                $t('Play the pronunciation of line :number', {
+                                    number: index + 1,
+                                })
+                            "
+                            :title="$t('Pronunciation')"
+                            :data-test="`activity-line-${index + 1}-speak`"
+                            :class="
+                                cn(
+                                    smallButton,
+                                    line.speak && 'bg-brand-50 text-brand-600',
+                                )
+                            "
+                            @click="
+                                setEntry('lines', index, { speak: !line.speak })
+                            "
+                        >
+                            <Volume2 class="size-4" aria-hidden="true" />
+                        </button>
                         <button
                             v-if="spec.ordering.image && !spec.legacy"
                             type="button"

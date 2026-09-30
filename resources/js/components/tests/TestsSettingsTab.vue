@@ -64,9 +64,9 @@ const groups: Group[] = [
         toggles: [
             {
                 key: 'show_meaning',
-                label: tk('Allow Show Meaning (Arabic) on questions'),
+                label: tk('Allow Show Meaning on questions'),
                 hint: tk(
-                    'Employees can tap to read the Arabic meaning of a question.',
+                    'Employees can tap to read a question’s meaning in their helper language (Arabic, French…).',
                 ),
             },
         ],

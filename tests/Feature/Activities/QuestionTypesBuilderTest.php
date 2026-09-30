@@ -312,4 +312,38 @@ class QuestionTypesBuilderTest extends TestCase
             ->assertJsonPath('images.0.id', (string) $this->media['video'])
             ->assertJsonCount(1, 'images');
     }
+
+    public function test_ordering_lines_and_matching_words_keep_their_pronunciation()
+    {
+        // 🔊 on each line and word (client request 2026-09-30): stored as
+        // `audio_text`, so the audio is generated once and played from file.
+        $ordering = [
+            'id' => 'i1', 'question' => 'Put the check-in in order.', 'sentences' => [
+                ['id' => 's2', 'text' => 'Ask for the booking name.', 'audio_text' => 'Ask for the booking name.'],
+                ['id' => 's1', 'text' => 'Greet the guest.', 'audio_text' => 'Greet the guest.'],
+            ], 'order' => ['s1', 's2'],
+        ];
+        $matching = [
+            'id' => 'i1', 'question' => 'Match the words.', 'prompts' => [
+                ['id' => '1', 'text' => 'Towel', 'image' => null, 'audio' => null, 'audio_text' => 'Towel'],
+                ['id' => '2', 'text' => 'Pillow', 'image' => null, 'audio' => null],
+            ], 'targets' => [
+                ['id' => 'b', 'text' => 'Oreiller', 'image' => null],
+                ['id' => 'a', 'text' => 'Serviette', 'image' => null],
+            ], 'pairs' => ['1' => 'a', '2' => 'b'],
+        ];
+
+        foreach (['ordering' => $ordering, 'matching' => $matching] as $type => $item) {
+            $this->actingAs($this->owner)
+                ->post(route('tests.questions.store', $this->test), $this->question($type, $item))
+                ->assertSessionHasNoErrors();
+        }
+
+        $items = $this->test->questions()->with('activity')->get()
+            ->map(fn ($question) => $question->activity?->items()[0])
+            ->all();
+
+        $this->assertSame('Greet the guest.', $items[0]['sentences'][1]['audio_text']);
+        $this->assertSame('Towel', $items[1]['prompts'][0]['audio_text']);
+    }
 }
