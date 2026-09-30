@@ -264,6 +264,33 @@
     --animate-welcome-float: welcome-float 7s ease-in-out infinite;
     --animate-welcome-bar: welcome-bar 5s linear both;
     --animate-welcome-exit: welcome-exit 420ms var(--ease-brand) both;
+    /* Public landing page (user request 2026-09-26): floating badges and
+       slowly drifting glow blobs. Section entrances are `v-reveal`, see
+       the `[data-reveal]` rules further down. */
+    --animate-landing-float: landing-float 6s ease-in-out infinite;
+    --animate-landing-float-slow: landing-float 7.5s ease-in-out infinite;
+    --animate-landing-drift: landing-drift 16s ease-in-out infinite alternate;
+    /* Half a cycle ahead, so two blobs in one section never move in step. */
+    --animate-landing-drift-offset: landing-drift 16s ease-in-out -8s infinite
+        alternate;
+
+    @keyframes landing-float {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+        50% {
+            transform: translate3d(0, -8px, 0);
+        }
+    }
+    @keyframes landing-drift {
+        from {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+        to {
+            transform: translate3d(-48px, 36px, 0) scale(1.12);
+        }
+    }
 
     @keyframes welcome-mark {
         0% {
@@ -632,6 +659,113 @@
    this stylesheet loads; keep the two in sync. */
 .dark body {
     background-image: none;
+}
+
+/* Scroll reveals, set by the v-reveal directive (resources/js/directives/
+   vReveal.ts). Each keyframe names only its `from` state, so an element
+   eases back to its own opacity and transform (a 70%-opacity decoration
+   ends at 70%). Unlayered on purpose: the hidden state has to beat the
+   `opacity-*` utilities. Every variant sets its own name and duration so a
+   nested reveal never inherits its parent's. */
+@media screen and (prefers-reduced-motion: no-preference) {
+    [data-reveal]:not([data-revealed]) {
+        opacity: 0;
+    }
+
+    [data-reveal][data-revealed] {
+        animation: var(--reveal-name) var(--reveal-duration) var(--ease-brand)
+            var(--reveal-delay, 0ms) backwards;
+    }
+
+    [data-reveal='up'] {
+        --reveal-name: reveal-up;
+        --reveal-duration: 760ms;
+    }
+    [data-reveal='fade'] {
+        --reveal-name: reveal-fade;
+        --reveal-duration: 900ms;
+    }
+    [data-reveal='zoom'] {
+        --reveal-name: reveal-zoom;
+        --reveal-duration: 900ms;
+    }
+    [data-reveal='start'] {
+        --reveal-name: reveal-start;
+        --reveal-duration: 900ms;
+    }
+    [data-reveal='end'] {
+        --reveal-name: reveal-end;
+        --reveal-duration: 900ms;
+    }
+    [data-reveal='pop'] {
+        --reveal-name: reveal-pop;
+        --reveal-duration: 620ms;
+    }
+    [data-reveal='tilt'] {
+        --reveal-name: reveal-tilt;
+        --reveal-duration: 1000ms;
+    }
+    [data-reveal='rise'] {
+        --reveal-name: reveal-rise;
+        --reveal-duration: 1000ms;
+    }
+}
+
+/* `start` / `end` reveals slide along the reading direction. */
+[dir='rtl'] {
+    --reveal-dir: -1;
+}
+
+@keyframes reveal-up {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 28px, 0);
+    }
+}
+@keyframes reveal-fade {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes reveal-zoom {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(0.94);
+    }
+}
+@keyframes reveal-start {
+    from {
+        opacity: 0;
+        transform: translate3d(calc(var(--reveal-dir, 1) * -44px), 0, 0);
+    }
+}
+@keyframes reveal-end {
+    from {
+        opacity: 0;
+        transform: translate3d(calc(var(--reveal-dir, 1) * 44px), 0, 0);
+    }
+}
+@keyframes reveal-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+    65% {
+        opacity: 1;
+        transform: scale(1.06);
+    }
+}
+@keyframes reveal-tilt {
+    from {
+        opacity: 0;
+        transform: rotate(-5deg) scale(0.94);
+    }
+}
+@keyframes reveal-rise {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 72px, 0) rotate(-5deg);
+    }
 }
 
 /* Honour prefers-reduced-motion (desgin/10-design-system.md §10.4).
