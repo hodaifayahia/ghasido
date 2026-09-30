@@ -155,8 +155,22 @@ function saveFromSidebar(settings: AiScenarioSavePayload['settings']): void {
     editorPanel.value?.save(settings);
 }
 
+// "Test Scenario" from the editor tests the scenario being edited, not the
+// first one in the list (client report 2026-09-30).
 function openPreview(): void {
-    selectTab('preview');
+    activeTab.value = 'preview';
+    router.get(
+        aiScenarios.url({
+            query: {
+                tab: 'preview',
+                ...(props.editor.id
+                    ? { scenario: String(props.editor.id) }
+                    : {}),
+            },
+        }),
+        {},
+        { preserveScroll: true, replace: true },
+    );
 }
 
 function openInstructions(): void {
@@ -167,11 +181,11 @@ function selectTab(tab: AiScenarioTabKey): void {
     if (activeTab.value === tab) return;
 
     activeTab.value = tab;
-    router.get(aiScenarios.url({ query: { tab } }), {
-        preserveScroll: true,
-        preserveState: true,
-        replace: true,
-    });
+    router.get(
+        aiScenarios.url({ query: { tab } }),
+        {},
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
 }
 
 let generationTimer: ReturnType<typeof setInterval> | null = null;
@@ -366,7 +380,15 @@ defineOptions({
         />
 
         <template v-else-if="activeTab === 'preview'">
-            <div class="flex justify-end">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                    :href="aiScenarios.url()"
+                    class="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-600/15 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none md:min-h-0"
+                    data-test="preview-back-to-scenario-library"
+                >
+                    <ArrowLeft class="size-3.5" aria-hidden="true" />
+                    {{ $t('Back to Scenario Library') }}
+                </Link>
                 <Button
                     type="button"
                     variant="outline"

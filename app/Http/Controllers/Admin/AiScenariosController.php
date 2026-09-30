@@ -1012,7 +1012,7 @@ class AiScenariosController extends Controller
         $scenarios = $models->map(fn (AiScenario $scenario): array => [
             'value' => (string) $scenario->id,
             'label' => $scenario->title,
-            'department' => $scenario->department->name,
+            'department' => $scenario->department->name ?? __('Unknown Department'),
             'level' => Str::headline($scenario->difficulty->value),
             'situation' => $scenario->situation,
             'aiRole' => $scenario->ai_role,
@@ -1024,7 +1024,10 @@ class AiScenariosController extends Controller
         ])->all();
 
         $attempt = $this->activePreview($request);
-        $firstId = $models->first()?->id;
+        // "Test Scenario" from the editor names the scenario to test; any
+        // other visit starts on the first one (client report 2026-09-30).
+        $asked = $request->integer('scenario');
+        $firstId = $models->contains('id', $asked) ? $asked : $models->first()?->id;
 
         return [
             'scenarios' => $scenarios,
