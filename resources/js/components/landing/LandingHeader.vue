@@ -36,7 +36,7 @@ const mobileMenuOpen = ref(false);
         @keydown.esc="mobileMenuOpen = false"
     >
         <div
-            class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-2.5 sm:px-8 lg:px-10"
+            class="mx-auto flex max-w-7xl items-center justify-between gap-2 px-5 py-2.5 sm:gap-4 sm:px-8 lg:px-10"
         >
             <Link href="/" :aria-label="$t('GHASIDO home')" class="shrink-0">
                 <img
@@ -44,7 +44,7 @@ const mobileMenuOpen = ref(false);
                     :alt="$t('GHASIDO — English for hotel staff')"
                     width="600"
                     height="180"
-                    class="h-11 w-auto object-contain sm:h-13"
+                    class="h-10 w-auto object-contain sm:h-13"
                 />
             </Link>
 
@@ -90,7 +90,7 @@ const mobileMenuOpen = ref(false);
                 >
             </nav>
 
-            <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div class="flex shrink-0 items-center gap-1 sm:gap-3">
                 <LanguageToggle compact class="hidden sm:inline-flex" />
                 <InstallAppButton variant="nav" class="hidden sm:inline-flex" />
                 <Link
@@ -105,7 +105,7 @@ const mobileMenuOpen = ref(false);
                 </Link>
                 <Button
                     as-child
-                    class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 h-11 rounded-md px-4 text-[12px] font-semibold sm:px-5 sm:text-[13px]"
+                    class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 h-11 rounded-md px-2 text-[12px] font-semibold sm:px-5 sm:text-[13px]"
                 >
                     <a :href="`${anchorBase}#pricing`">
                         {{ content.navigation.get_started }}

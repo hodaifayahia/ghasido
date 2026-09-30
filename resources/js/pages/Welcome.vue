@@ -186,9 +186,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 />
 
                 <div
-                    class="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-10 lg:py-22"
+                    class="relative mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-10 lg:py-22"
                 >
-                    <div class="relative z-10 max-w-xl">
+                    <div class="relative z-10 max-w-xl min-w-0">
                         <span
                             v-reveal
                             class="border-brand-200 bg-surface text-brand-700 shadow-card rounded-pill inline-flex items-center gap-2 border px-3.5 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
@@ -267,7 +267,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
 
                     <figure
                         v-reveal:end="200"
-                        class="relative mx-auto w-full max-w-[720px] pb-10 sm:pb-14 lg:ms-auto"
+                        class="relative mx-auto w-full max-w-[720px] min-w-0 pb-10 sm:pb-14 lg:ms-auto"
                     >
                         <div
                             class="bg-brand-200/60 absolute -inset-3 rotate-1 rounded-xl"
