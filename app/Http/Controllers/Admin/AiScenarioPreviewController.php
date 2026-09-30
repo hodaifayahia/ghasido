@@ -54,7 +54,7 @@ class AiScenarioPreviewController extends Controller
 
         GenerateRoleplayReply::dispatch($attempt->id);
 
-        return $this->backToPreview($attempt);
+        return $this->backToPreview($request, $attempt);
     }
 
     /**
@@ -65,7 +65,7 @@ class AiScenarioPreviewController extends Controller
         $this->assertOwnedPreview($request, $attempt);
 
         if (! $attempt->status->acceptsTurns() || $attempt->pending_reply) {
-            return $this->backToPreview($attempt);
+            return $this->backToPreview($request, $attempt);
         }
 
         $validated = $request->validate([
@@ -77,7 +77,7 @@ class AiScenarioPreviewController extends Controller
 
         GenerateRoleplayReply::dispatch($attempt->id);
 
-        return $this->backToPreview($attempt);
+        return $this->backToPreview($request, $attempt);
     }
 
     /**
@@ -91,7 +91,7 @@ class AiScenarioPreviewController extends Controller
             $this->roleplay->end($attempt);
         }
 
-        return $this->backToPreview($attempt);
+        return $this->backToPreview($request, $attempt);
     }
 
     /**
@@ -102,9 +102,12 @@ class AiScenarioPreviewController extends Controller
     {
         $this->assertOwnedPreview($request, $attempt);
 
+        $scenarioId = $attempt->ai_scenario_id;
         $attempt->delete();
 
-        return to_route('ai-scenarios', ['tab' => 'preview']);
+        return $request->boolean('editor')
+            ? to_route('ai-scenarios', ['tab' => 'scenarios', 'scenario' => $scenarioId, 'section' => 'test'])
+            : to_route('ai-scenarios', ['tab' => 'preview']);
     }
 
     private function admin(Request $request): User
@@ -123,8 +126,14 @@ class AiScenarioPreviewController extends Controller
         );
     }
 
-    private function backToPreview(RoleplayAttempt $attempt): RedirectResponse
+    /**
+     * A test started from the scenario editor's Test tab stays in the
+     * editor (client request 2026-09-30); the Preview & Test page otherwise.
+     */
+    private function backToPreview(Request $request, RoleplayAttempt $attempt): RedirectResponse
     {
-        return to_route('ai-scenarios', ['tab' => 'preview', 'preview' => $attempt->id]);
+        return $request->boolean('editor')
+            ? to_route('ai-scenarios', ['tab' => 'scenarios', 'scenario' => $attempt->ai_scenario_id, 'section' => 'test', 'preview' => $attempt->id])
+            : to_route('ai-scenarios', ['tab' => 'preview', 'preview' => $attempt->id]);
     }
 }

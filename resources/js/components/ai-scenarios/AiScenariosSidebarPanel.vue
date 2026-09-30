@@ -25,10 +25,12 @@ import type {
 type Props = {
     preview: AiScenarioPreview;
     settings: AiScenarioSettings;
+    /** The sample conversation card; the editor's Test tab replaces it. */
+    showExample?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { showExample: true });
 
 const emit = defineEmits<{
     preview: [];
@@ -116,6 +118,7 @@ function settingsPayload(): AiScenarioSavePayload['settings'] {
 <template>
     <div :class="cn('flex min-w-0 flex-col gap-3', props.class)">
         <section
+            v-if="showExample"
             class="border-line bg-surface shadow-card rounded-lg border p-3"
         >
             <div class="flex items-center justify-between gap-3">

@@ -31,10 +31,19 @@ import type { AiScenarioPreviewTest } from '@/types';
 
 type Props = {
     previewTest: AiScenarioPreviewTest;
+    /**
+     * Inside the scenario editor's Test tab: only the scenario being edited,
+     * no picker, and every action returns to the editor (client request
+     * 2026-09-30).
+     */
+    locked?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { locked: false });
+
+/** Tells the server to send the admin back to the editor, not Preview & Test. */
+const origin = computed(() => (props.locked ? { editor: 1 } : {}));
 
 const attempt = computed(() => props.previewTest.attempt);
 const selected = ref(props.previewTest.selected);
@@ -103,7 +112,7 @@ function start(): void {
 
     router.post(
         props.previewTest.startUrl,
-        { scenario: Number(selected.value) },
+        { scenario: Number(selected.value), ...origin.value },
         {
             preserveScroll: true,
             preserveState: true,
@@ -123,7 +132,7 @@ function send(): void {
 
     router.post(
         active.messageUrl,
-        { text },
+        { text, ...origin.value },
         {
             preserveScroll: true,
             preserveState: true,
@@ -138,7 +147,7 @@ function end(): void {
     if (active !== null) {
         router.post(
             active.endUrl,
-            {},
+            { ...origin.value },
             { preserveScroll: true, preserveState: true },
         );
     }
@@ -149,6 +158,7 @@ function reset(): void {
 
     if (active !== null) {
         router.delete(active.resetUrl, {
+            data: origin.value,
             preserveScroll: true,
             preserveState: true,
         });
@@ -184,7 +194,11 @@ function titleCase(value: string): string {
                     <h2
                         class="font-heading text-brand-800 text-base font-semibold"
                     >
-                        {{ $t('Preview & Test') }}
+                        {{
+                            locked
+                                ? $t('Test this scenario')
+                                : $t('Preview & Test')
+                        }}
                     </h2>
                     <p class="text-ink-slate mt-0.5 text-[12.5px]">
                         {{
@@ -197,7 +211,7 @@ function titleCase(value: string): string {
             </div>
 
             <template v-if="attempt === null">
-                <div class="grid gap-1.5">
+                <div v-if="!locked" class="grid gap-1.5">
                     <label class="text-brand-900 text-[12px] font-semibold">
                         {{ $t('Scenario') }}
                     </label>

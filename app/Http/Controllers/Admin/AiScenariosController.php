@@ -242,6 +242,10 @@ class AiScenariosController extends Controller
             ],
             'activeTab' => $activeTab,
             'builderOpen' => $builderOpen,
+            // The editor's own tabs (client request 2026-09-30).
+            'editorSection' => in_array($request->query('section'), ['details', 'settings', 'test', 'voice'], true)
+                ? (string) $request->query('section')
+                : 'details',
             'stats' => $this->stats($viewer),
             'library' => [
                 'search' => '',
