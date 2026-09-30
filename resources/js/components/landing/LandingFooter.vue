@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { Mail, MessageCircleMore, Phone } from '@lucide/vue';
 import { computed } from 'vue';
+import { vReveal } from '@/directives/vReveal';
 import { contact, dashboard, login } from '@/routes';
 import type { LandingPageContent } from '@/types';
 
@@ -36,7 +37,7 @@ const whatsappHref = computed(() => {
         <div
             class="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-[1fr_auto] lg:px-10"
         >
-            <div class="max-w-sm">
+            <div v-reveal:fade class="max-w-sm">
                 <img
                     src="/brand/ghasido-logo.png"
                     alt="GHASIDO"
@@ -49,6 +50,7 @@ const whatsappHref = computed(() => {
                 </p>
             </div>
             <div
+                v-reveal:fade="120"
                 class="text-ink-indigo flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] font-semibold"
             >
                 <a :href="`${anchorBase}#ai`" class="hover:text-brand-600">{{
