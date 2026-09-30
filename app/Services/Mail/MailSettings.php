@@ -84,11 +84,15 @@ final class MailSettings
 
     /**
      * Whether queued emails go out at once instead of waiting for a queue
-     * worker. Only a saved row can turn it on; .env alone never does.
+     * worker. On unless the Super Admin saved it off (client report
+     * 2026-09-30): the form shows it ticked before the first save, and a
+     * host with no worker must never leave emails waiting forever.
      */
     public function immediate(): bool
     {
-        return $this->row()?->send_immediately === true;
+        $row = $this->row();
+
+        return $row === null || $row->send_immediately;
     }
 
     /**
@@ -262,20 +266,37 @@ final class MailSettings
      */
     private function transport(MailSetting $row): array
     {
+        return $this->smtpConfig(
+            $row->host ?? self::DEFAULT_HOST,
+            $row->port ?? self::DEFAULT_PORT,
+            $row->encryption,
+            $row->username,
+            $row->secret(),
+        );
+    }
+
+    /**
+     * config('mail.mailers.smtp') for any mailbox: the stored one, or the
+     * values typed on Settings → Email and not saved yet (the test).
+     *
+     * @return array<string, mixed>
+     */
+    public function smtpConfig(string $host, int $port, string $encryption, ?string $username, ?string $password): array
+    {
         $appHost = parse_url((string) $this->config->get('app.url', 'http://localhost'), PHP_URL_HOST);
 
         return [
             'transport' => 'smtp',
-            'scheme' => $row->encryption === 'ssl' ? 'smtps' : 'smtp',
+            'scheme' => $encryption === 'ssl' ? 'smtps' : 'smtp',
             'url' => null,
-            'host' => $row->host ?? self::DEFAULT_HOST,
-            'port' => $row->port ?? self::DEFAULT_PORT,
-            'username' => $row->username,
-            'password' => $row->secret(),
+            'host' => $host,
+            'port' => $port,
+            'username' => $username,
+            'password' => $password,
             'timeout' => self::TIMEOUT,
             'local_domain' => is_string($appHost) && $appHost !== '' ? $appHost : null,
-            'auto_tls' => $row->encryption !== 'none',
-            'require_tls' => $row->encryption === 'tls',
+            'auto_tls' => $encryption !== 'none',
+            'require_tls' => $encryption === 'tls',
         ];
     }
 

@@ -50,6 +50,7 @@ final class MailDelivery
                 'mail' => $what,
                 'error' => self::redact($exception->getMessage()),
             ]);
+            app(MailLogger::class)->failed(null, null, $what, $exception);
 
             return $push($connection);
         }
@@ -68,6 +69,7 @@ final class MailDelivery
             str_contains($message, 'getaddrinfo') || str_contains($message, 'name or service not known') || str_contains($message, 'php_network_getaddresses') || str_contains($message, 'no such host') => __('The mail server name could not be found. Check the SMTP host.'),
             str_contains($message, 'connection refused') => __('The mail server refused the connection. Check the host and port (Hostinger: smtp.hostinger.com, port 465 with SSL or 587 with TLS).'),
             str_contains($message, 'timed out') || str_contains($message, 'timeout') => __('The mail server did not answer in time (connection timed out). The host or port may be wrong, or the hosting blocks this port.'),
+            str_contains($message, 'certificate verify failed') || str_contains($message, 'peer certificate') => __('The mail server\'s security certificate does not match the host name. Use the provider\'s SMTP host (Hostinger: smtp.hostinger.com), not mail.your-domain.'),
             str_contains($message, 'ssl') || str_contains($message, 'tls') || str_contains($message, 'certificate') || str_contains($message, 'crypto') => __('The secure connection failed. Check that the encryption matches the port: SSL for 465, TLS for 587.'),
             str_contains($message, '553') || str_contains($message, '550') || str_contains($message, 'sender') || str_contains($message, 'not owned') => __('The mail server refused the From address. It must be the same mailbox as the SMTP username.'),
             str_contains($message, 'expected response code') || str_contains($message, 'unable to connect') || str_contains($message, 'connection could not be established') => __('Could not talk to the mail server. Check the host, port and encryption.'),

@@ -4,8 +4,12 @@ namespace App\Providers;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Services\Mail\MailLogger;
 use App\Services\Mail\MailSettings;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Mail\MailManager;
+use Illuminate\Mail\SendQueuedMailable;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -38,6 +42,18 @@ class MailSettingsServiceProvider extends ServiceProvider
         // Settings → Email: the Super Admin only (ROLE-01, SEC-01). Written
         // out, like manage-ai-models, so it stands without Gate::before.
         Gate::define('manage-mail-settings', fn (User $user): bool => $user->hasRole(Role::SuperAdmin->value));
+
+        // Settings → Email's "Recent emails" (client report 2026-09-30).
+        Event::listen(MessageSent::class, fn (MessageSent $event) => $this->app->make(MailLogger::class)->sent($event));
+
+        Event::listen(JobFailed::class, function (JobFailed $event): void {
+            $payload = $event->job->payload();
+
+            if (($payload['data']['commandName'] ?? null) === SendQueuedMailable::class) {
+                $name = $payload['displayName'] ?? null;
+                $this->app->make(MailLogger::class)->failed(null, null, is_string($name) ? $name : null, $event->exception);
+            }
+        });
 
         Event::listen(JobProcessing::class, function (): void {
             $settings = $this->app->make(MailSettings::class);

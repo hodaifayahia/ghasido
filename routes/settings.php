@@ -65,6 +65,9 @@ Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
     Route::post('settings/email/test', [MailSettingsController::class, 'test'])
         ->middleware('throttle:10,1')
         ->name('mail-settings.test');
+    Route::post('settings/email/send-waiting', [MailSettingsController::class, 'flush'])
+        ->middleware('throttle:10,1')
+        ->name('mail-settings.flush');
 });
 
 // Settings → Learning: the level-up threshold, Super Admin only (client

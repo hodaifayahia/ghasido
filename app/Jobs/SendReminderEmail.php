@@ -6,6 +6,7 @@ use App\Enums\ReminderStatus;
 use App\Mail\ReminderMail;
 use App\Models\Reminder;
 use App\Services\Mail\MailDelivery;
+use App\Services\Mail\MailLogger;
 use App\Services\Reminders\ReminderService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -111,6 +112,7 @@ class SendReminderEmail implements ShouldQueue
                 'error' => MailDelivery::redact($exception->getMessage()),
             ]);
             $reminder->markFailed(MailDelivery::explain($exception));
+            app(MailLogger::class)->failed($user->email, $reminder->subject, ReminderMail::class, $exception);
 
             return;
         }
@@ -124,5 +126,6 @@ class SendReminderEmail implements ShouldQueue
     public function failed(?Throwable $exception): void
     {
         $this->reminder->markFailed($exception?->getMessage() ?? 'unknown');
+        app(MailLogger::class)->failed(null, $this->reminder->subject, ReminderMail::class, $exception ?? 'unknown');
     }
 }

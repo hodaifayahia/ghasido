@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     FileText,
+    History,
     KeyRound,
     Mail,
     Send,
@@ -13,6 +14,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import EmailField from '@/components/settings/EmailField.vue';
 import EmailModeOption from '@/components/settings/EmailModeOption.vue';
+import EmailRecentList from '@/components/settings/EmailRecentList.vue';
 import EmailSettingsCard from '@/components/settings/EmailSettingsCard.vue';
 import EmailTestResult from '@/components/settings/EmailTestResult.vue';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,8 @@ import { tk } from '@/lib/i18n';
 import { edit, test, update } from '@/routes/mail-settings';
 import type {
     MailEncryption,
+    MailLogRow,
+    MailQueueCounts,
     MailSettingsPayload,
     MailSettingsValues,
 } from '@/types';
@@ -43,6 +47,8 @@ import type {
 type Props = {
     settings: MailSettingsPayload;
     defaultTestTo: string;
+    queue: MailQueueCounts;
+    recent: MailLogRow[];
 };
 
 const props = defineProps<Props>();
@@ -120,11 +126,20 @@ function save(): void {
     });
 }
 
+// "Port 587 with TLS works": put it in the form; the admin then saves.
+function applySuggestion(suggestion: {
+    port: number;
+    encryption: MailEncryption;
+}): void {
+    form.encryption = suggestion.encryption;
+    form.port = suggestion.port;
+}
+
 function sendTest(): void {
     testing.value = true;
     router.post(
         test.url(),
-        { to: testTo.value },
+        { ...form, to: testTo.value },
         {
             preserveScroll: true,
             onError: (bag) => {
@@ -410,7 +425,7 @@ function sendTest(): void {
             :title="$t('Send a test email')"
             :description="
                 $t(
-                    'Sends one email with the saved settings and shows the mail server\'s answer. Save your changes first.',
+                    'Checks the mail server step by step with the settings above (saved or not), then sends one email and shows the server\'s answer.',
                 )
             "
         >
@@ -443,7 +458,22 @@ function sendTest(): void {
                 </Button>
             </form>
 
-            <EmailTestResult :result="settings.lastTest" />
+            <EmailTestResult
+                :result="settings.lastTest"
+                @apply="applySuggestion"
+            />
+        </EmailSettingsCard>
+
+        <EmailSettingsCard
+            :icon="History"
+            :title="$t('Recent emails')"
+            :description="
+                $t(
+                    'Every email the platform tried to send, and the mail server\'s answer.',
+                )
+            "
+        >
+            <EmailRecentList :rows="recent" :queue="queue" />
         </EmailSettingsCard>
     </div>
 </template>

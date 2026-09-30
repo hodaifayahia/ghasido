@@ -6,6 +6,7 @@ use App\Jobs\SendReminderEmail;
 use App\Mail\HotelApprovedMail;
 use App\Models\AuditLog;
 use App\Models\Hotel;
+use App\Models\MailLog;
 use App\Models\MailSetting;
 use App\Models\Reminder;
 use App\Models\User;
@@ -272,9 +273,15 @@ class MailSettingsTest extends TestCase
     {
         $reminder = Reminder::factory()->create();
 
+        // Nothing saved yet: immediate, like the ticked box on the form.
+        $this->assertSame('sync', (new SendReminderEmail($reminder))->connection);
+
+        $row = $this->storeRow(['send_immediately' => false]);
+        $this->freshSettings();
+
         $this->assertNull((new SendReminderEmail($reminder))->connection);
 
-        $this->storeRow(['send_immediately' => true]);
+        $row->update(['send_immediately' => true]);
         $this->freshSettings();
 
         $job = new SendReminderEmail($reminder);
@@ -309,9 +316,119 @@ class MailSettingsTest extends TestCase
 
         $result = MailSetting::query()->sole()->last_test;
         $this->assertSame('failed', $result['status'] ?? null);
-        $this->assertStringContainsString('refused the connection', (string) $result['message']);
+        $this->assertStringContainsString('Port 1 could not be reached', (string) $result['message']);
         $this->assertNotEmpty($result['detail']);
+        $this->assertSame(['server' => 'ok', 'port' => 'failed', 'login' => 'skipped'], collect($result['steps'])->pluck('status', 'key')->all());
         $this->assertStringNotContainsString('Mailbox-Secret-42', (string) json_encode($result));
+    }
+
+    public function test_the_test_uses_the_form_on_screen_before_it_is_saved()
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $this->storeRow(['mailer' => 'log']);
+
+        $this->actingAs($admin)
+            ->post(route('mail-settings.test'), [
+                'to' => 'someone@gmail.com',
+                'mailer' => 'smtp',
+                'host' => '127.0.0.1',
+                'port' => 1,
+                'encryption' => 'ssl',
+                'username' => 'contact@ghasido.com',
+                'password' => 'Typed-Not-Saved-7',
+            ])
+            ->assertRedirect();
+
+        $row = MailSetting::query()->sole();
+        $this->assertSame('log', $row->mailer, 'the test never saves the form');
+        $this->assertSame('failed', $row->last_test['status'] ?? null);
+        $this->assertTrue($row->last_test['unsaved'] ?? false);
+        $this->assertStringNotContainsString('Typed-Not-Saved-7', (string) json_encode($row->last_test));
+    }
+
+    public function test_the_test_says_when_no_password_is_saved_or_typed()
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $this->storeRow(['mailer' => 'smtp', 'password' => null]);
+
+        $this->actingAs($admin)
+            ->post(route('mail-settings.test'), ['to' => 'someone@gmail.com'])
+            ->assertRedirect();
+
+        $result = MailSetting::query()->sole()->last_test;
+        $this->assertSame('failed', $result['status'] ?? null);
+        $this->assertSame('password', $result['steps'][0]['key'] ?? null);
+    }
+
+    public function test_every_email_lands_in_recent_emails()
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $this->storeRow(['mailer' => 'log']);
+
+        $this->actingAs($admin)
+            ->post(route('mail-settings.test'), ['to' => 'someone@gmail.com'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('mail_logs', ['to' => 'someone@gmail.com', 'status' => MailLog::LOGGED, 'mailable' => 'TestEmailMail']);
+
+        $this->actingAs($admin)
+            ->get(route('mail-settings.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('recent.0.to', 'someone@gmail.com')
+                ->where('queue', ['waiting' => 0, 'failed' => 0]));
+    }
+
+    public function test_waiting_emails_are_sent_now_on_request()
+    {
+        config(['queue.default' => 'database']);
+        $this->storeRow(['mailer' => 'log', 'send_immediately' => false]);
+        $this->freshSettings();
+
+        $manager = User::factory()->manager()->create();
+        Mail::to('manager@example.com')->queue(new HotelApprovedMail(Hotel::factory()->create(), $manager));
+        dispatch(function (): void {});
+        $this->assertDatabaseCount('jobs', 2);
+
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('mail-settings.edit'))
+            ->assertInertia(fn (Assert $page) => $page->where('queue.waiting', 1));
+
+        $this->actingAs($admin)
+            ->post(route('mail-settings.flush'))
+            ->assertRedirect();
+
+        // The email left; the other job still waits for its worker.
+        $this->assertDatabaseCount('jobs', 1);
+        $this->assertDatabaseHas('mail_logs', ['to' => 'manager@example.com', 'status' => MailLog::LOGGED]);
+    }
+
+    public function test_a_waiting_email_that_fails_again_is_kept_for_the_next_try()
+    {
+        config(['queue.default' => 'database']);
+        $this->storeRow(['mailer' => 'smtp', 'host' => '127.0.0.1', 'port' => 1, 'send_immediately' => false]);
+        $this->freshSettings();
+
+        $manager = User::factory()->manager()->create();
+        Mail::to('manager@example.com')->queue(new HotelApprovedMail(Hotel::factory()->create(), $manager));
+
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->post(route('mail-settings.flush'))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 1);
+        $this->assertDatabaseHas('mail_logs', ['status' => MailLog::FAILED]);
+    }
+
+    public function test_only_the_super_admin_may_send_waiting_emails()
+    {
+        $this->actingAs(User::factory()->manager()->create())
+            ->post(route('mail-settings.flush'))
+            ->assertForbidden();
     }
 
     public function test_the_test_email_needs_a_valid_address()
