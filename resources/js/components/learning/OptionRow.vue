@@ -51,7 +51,7 @@ const frame = computed(() => {
         :for="inputId"
         :class="
             cn(
-                'shadow-card ease-brand has-focus-visible:ring-brand-600/40 flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border px-4 py-2 transition-colors duration-150 has-focus-visible:ring-3 motion-reduce:transition-none',
+                'shadow-card ease-brand has-focus-visible:ring-brand-600/40 flex min-h-14 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-colors duration-150 has-focus-visible:ring-3 motion-reduce:transition-none sm:gap-3 sm:px-4',
                 frame,
                 disabled && 'cursor-default',
                 props.class,

@@ -10,6 +10,7 @@ import { toUrl } from '@/lib/utils';
 import { edit as editAiModels } from '@/routes/ai-models';
 import { index as aiUsage } from '@/routes/ai-usage';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editHelperLanguage } from '@/routes/helper-language';
 import { edit as editLearningSettings } from '@/routes/learning-settings';
 import { edit as editMailSettings } from '@/routes/mail-settings';
 import { edit as editProfile } from '@/routes/profile';
@@ -37,6 +38,11 @@ const sidebarNavItems = computed((): NavItem[] => [
     {
         title: tk('Appearance'),
         href: editAppearance(),
+    },
+    // Every role picks its Show Meaning language (client request 2026-10-01).
+    {
+        title: tk('Helper language'),
+        href: editHelperLanguage(),
     },
     ...(page.props.auth.user?.role === 'super_admin'
         ? [

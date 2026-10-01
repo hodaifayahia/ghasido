@@ -6,7 +6,9 @@ import { t } from '@/lib/i18n';
 import { draft, lookup, write } from '@/routes/translations';
 
 /*
- * The Arabic meaning of an English field an admin is typing (client request
+ * The meaning of an English field an admin is typing, in any helper
+ * language (Arabic, French or one the Super Admin added; client request
+ * 2026-10-01). Originally Arabic only (client request
  * 2026-09-29: "Translate meaning to Arabic" above every English field of the
  * test and lesson builders). Meanings are stored per distinct text
  * (`text_translations`, looked up by a hash of the text), so the same store
@@ -27,9 +29,17 @@ export type FieldMeaning = {
 
 type Row = {
     text: string;
+    translation?: string | null;
     arabic: string | null;
     state: FieldMeaningState;
 };
+
+/**
+ * The language the builders' translation fields edit, shared by every field
+ * on the page: pick French once and every field shows French. Empty until a
+ * field sets the user's own helper language as the start.
+ */
+export const editingLocale = ref('');
 
 export type UseFieldMeaningReturn = {
     /** The stored meaning of the current text; null until looked up. */
@@ -44,7 +54,7 @@ export type UseFieldMeaningReturn = {
 };
 
 const store = reactive(new Map<string, FieldMeaning>());
-const queued = new Map<string, string>();
+const queued = new Map<string, { text: string; locale: string }>();
 const polling = new Set<string>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -56,8 +66,15 @@ export function meaningKey(text: string): string {
     return text.trim().replace(/\s+/gu, ' ').toLowerCase();
 }
 
-function remember(row: Row, key = meaningKey(row.text)): void {
-    store.set(key, { state: row.state, arabic: row.arabic });
+function storeKey(locale: string, text: string): string {
+    return `${locale}|${meaningKey(text)}`;
+}
+
+function remember(row: Row, key: string): void {
+    store.set(key, {
+        state: row.state,
+        arabic: row.translation ?? row.arabic,
+    });
 }
 
 async function flush(): Promise<void> {
@@ -70,25 +87,35 @@ async function flush(): Promise<void> {
         schedule();
     }
 
-    if (batch.length === 0) {
-        return;
-    }
+    // One request per language.
+    const byLocale = new Map<string, [string, string][]>();
+    batch.forEach(([key, { text, locale }]) => {
+        byLocale.set(locale, [...(byLocale.get(locale) ?? []), [key, text]]);
+    });
 
-    const body = new FormData();
-    batch.forEach(([, text]) => body.append('texts[]', text));
+    await Promise.all(
+        [...byLocale.entries()].map(async ([locale, rows]) => {
+            const body = new FormData();
+            body.append('language', locale);
+            rows.forEach(([, text]) => body.append('texts[]', text));
 
-    try {
-        const reply = await postJson<{ items: Row[] }>(lookup.url(), body);
-        reply.items.forEach((row, index) => {
-            const key = batch[index]?.[0];
+            try {
+                const reply = await postJson<{ items: Row[] }>(
+                    lookup.url(),
+                    body,
+                );
+                reply.items.forEach((row, index) => {
+                    const key = rows[index]?.[0];
 
-            if (key !== undefined) {
-                remember(row, key);
+                    if (key !== undefined) {
+                        remember(row, key);
+                    }
+                });
+            } catch {
+                // The badge stays blank; opening the button looks it up again.
             }
-        });
-    } catch {
-        // The badge stays blank; opening the button looks it up again.
-    }
+        }),
+    );
 }
 
 function schedule(): void {
@@ -99,20 +126,24 @@ function schedule(): void {
     }
 }
 
-function ask(text: string, force = false): void {
-    const key = meaningKey(text);
-
-    if (key === '' || (!force && store.has(key))) {
+function ask(text: string, locale: string, force = false): void {
+    if (meaningKey(text) === '') {
         return;
     }
 
-    queued.set(key, text);
+    const key = storeKey(locale, text);
+
+    if (!force && store.has(key)) {
+        return;
+    }
+
+    queued.set(key, { text, locale });
     schedule();
 }
 
 /** Follow a draft running on the server until it is done or failed. */
-function follow(text: string): void {
-    const key = meaningKey(text);
+function follow(text: string, locale: string): void {
+    const key = storeKey(locale, text);
 
     if (polling.has(key)) {
         return;
@@ -124,6 +155,7 @@ function follow(text: string): void {
     const tick = async (): Promise<void> => {
         polls += 1;
         const body = new FormData();
+        body.append('language', locale);
         body.append('texts[]', text);
 
         try {
@@ -170,19 +202,22 @@ function messageOf(e: unknown): string {
     return t('The request failed. Please try again.');
 }
 
-export function useFieldMeaning(text: () => string): UseFieldMeaningReturn {
+export function useFieldMeaning(
+    text: () => string,
+    locale: () => string = () => 'ar',
+): UseFieldMeaningReturn {
     const busy = ref(false);
     const error = ref('');
 
-    const key = computed(() => meaningKey(text()));
-    const empty = computed(() => key.value === '');
+    const key = computed(() => storeKey(locale(), text()));
+    const empty = computed(() => meaningKey(text()) === '');
     const meaning = computed(() => store.get(key.value) ?? null);
 
     const stop = watchDebounced(
         key,
         () => {
             error.value = '';
-            ask(text());
+            ask(text(), locale());
         },
         { debounce: 400, immediate: true },
     );
@@ -199,15 +234,17 @@ export function useFieldMeaning(text: () => string): UseFieldMeaningReturn {
         busy.value = true;
         error.value = '';
 
+        const language = locale();
         const body = new FormData();
+        body.append('language', language);
         body.append('text', value);
 
         try {
             const reply = await postJson<{ item: Row }>(draft.url(), body);
-            remember(reply.item, meaningKey(value));
+            remember(reply.item, storeKey(language, value));
 
             if (reply.item.state === 'drafting') {
-                follow(value);
+                follow(value, language);
             }
         } catch (e) {
             error.value = messageOf(e);
@@ -226,13 +263,15 @@ export function useFieldMeaning(text: () => string): UseFieldMeaningReturn {
         busy.value = true;
         error.value = '';
 
+        const language = locale();
         const body = new FormData();
+        body.append('language', language);
         body.append('text', value);
-        body.append('arabic', arabic);
+        body.append('translation', arabic);
 
         try {
             const reply = await postJson<{ item: Row }>(write.url(), body);
-            remember(reply.item, meaningKey(value));
+            remember(reply.item, storeKey(language, value));
 
             return true;
         } catch (e) {
@@ -252,12 +291,12 @@ export function useFieldMeaning(text: () => string): UseFieldMeaningReturn {
         }
 
         if (meaning.value?.state === 'drafting') {
-            follow(value);
+            follow(value, locale());
 
             return;
         }
 
-        ask(value, true);
+        ask(value, locale(), true);
     }
 
     return { meaning, empty, busy, error, draftWithAi, save, refresh };

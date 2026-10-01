@@ -740,7 +740,13 @@ function letter(index: number): string {
                         :state="rowState(item, option.id)"
                         @select="answers[item.id] = $event"
                     >
-                        <span class="flex items-center gap-3">
+                        <!-- On a phone the picture shrinks and the sound
+                             button sits above the word, so the word keeps
+                             its own width and never slides under the Show
+                             Meaning button (client report 2026-10-01). -->
+                        <span
+                            class="flex min-w-0 items-center gap-2.5 sm:gap-3"
+                        >
                             <img
                                 v-if="option.image"
                                 :src="option.image.url"
@@ -751,18 +757,24 @@ function letter(index: number): string {
                                     cn(
                                         'shrink-0 rounded-sm object-cover',
                                         pictureOptions(item)
-                                            ? 'size-24 md:size-28'
-                                            : 'size-16',
+                                            ? 'size-16 sm:size-24 md:size-28'
+                                            : 'size-14 sm:size-16',
                                     )
                                 "
                             />
-                            <AudioButton
-                                v-if="option.audio_text_audio"
-                                size="sm"
-                                :src="option.audio_text_audio.normal"
-                                :text="option.audio_text"
-                            />
-                            <span>{{ wording(option) }}</span>
+                            <span
+                                class="flex min-w-0 flex-1 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3"
+                            >
+                                <AudioButton
+                                    v-if="option.audio_text_audio"
+                                    size="sm"
+                                    :src="option.audio_text_audio.normal"
+                                    :text="option.audio_text"
+                                />
+                                <span class="min-w-0 break-words">{{
+                                    wording(option)
+                                }}</span>
+                            </span>
                         </span>
                     </OptionRow>
                 </MeaningRow>

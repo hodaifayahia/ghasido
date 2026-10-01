@@ -27,7 +27,23 @@ final class HelperLanguages
         ['code' => 'fr', 'name' => 'French', 'native' => 'Français', 'dir' => 'ltr', 'active' => true],
     ];
 
+    /**
+     * The flag shown next to each language (client request 2026-10-01), by
+     * language code: Arabic carries Algeria's, the client's market.
+     */
+    public const array FLAGS = [
+        'ar' => 'dz', 'fr' => 'fr', 'en' => 'gb', 'es' => 'es', 'de' => 'de',
+        'it' => 'it', 'tr' => 'tr', 'id' => 'id', 'pt' => 'pt', 'ru' => 'ru',
+        'nl' => 'nl', 'zh' => 'cn', 'ja' => 'jp',
+    ];
+
     public function __construct(private readonly PlatformSettings $settings) {}
+
+    /** The country flag of a language, or null when there is none. */
+    public static function flag(string $code): ?string
+    {
+        return self::FLAGS[strtolower($code)] ?? null;
+    }
 
     /**
      * Every language, active or not.
@@ -134,21 +150,45 @@ final class HelperLanguages
     }
 
     /**
-     * For the learner's own chooser (shared prop).
+     * For the language chooser (shared prop): flag, own name and English
+     * name of each active language.
      *
-     * @return list<array{value: string, label: string, dir: string}>
+     * @return list<array{value: string, label: string, dir: string, name: string, native: string, flag: string|null}>
      */
     public function options(): array
     {
+        return array_map(fn (array $language): array => $this->option($language), $this->active());
+    }
+
+    /**
+     * Every language, switched off or not, for the builders' translation
+     * field: a translation can be written before a language goes live.
+     *
+     * @return list<array{value: string, label: string, dir: string, name: string, native: string, flag: string|null, active: bool}>
+     */
+    public function editorOptions(): array
+    {
         return array_map(
-            fn (array $language): array => [
-                'value' => $language['code'],
-                'label' => $language['native'] !== $language['name']
-                    ? $language['native'].' ('.$language['name'].')'
-                    : $language['name'],
-                'dir' => $language['dir'],
-            ],
-            $this->active(),
+            fn (array $language): array => [...$this->option($language), 'active' => $language['active']],
+            $this->all(),
         );
+    }
+
+    /**
+     * @param  array{code: string, name: string, native: string, dir: string, active: bool}  $language
+     * @return array{value: string, label: string, dir: string, name: string, native: string, flag: string|null}
+     */
+    private function option(array $language): array
+    {
+        return [
+            'value' => $language['code'],
+            'label' => $language['native'] !== $language['name']
+                ? $language['native'].' ('.$language['name'].')'
+                : $language['name'],
+            'dir' => $language['dir'],
+            'name' => $language['name'],
+            'native' => $language['native'],
+            'flag' => self::flag($language['code']),
+        ];
     }
 }

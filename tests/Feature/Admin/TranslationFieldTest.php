@@ -97,6 +97,29 @@ class TranslationFieldTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'meaning.updated']);
     }
 
+    public function test_the_field_button_writes_and_reads_any_helper_language()
+    {
+        $admin = User::factory()->superAdmin()->create();
+
+        // The builders pick the language above the text box (client
+        // request 2026-10-01): French goes to French, not to Arabic.
+        $this->actingAs($admin)
+            ->postJson(route('translations.write'), ['text' => 'Room service', 'language' => 'fr', 'translation' => 'Service en chambre'])
+            ->assertOk()
+            ->assertJsonPath('item.translation', 'Service en chambre');
+
+        $this->assertDatabaseHas('text_translations', ['locale' => 'fr', 'translation' => 'Service en chambre']);
+        $this->assertDatabaseMissing('text_translations', ['locale' => 'ar']);
+
+        $this->actingAs($admin)
+            ->postJson(route('translations.lookup'), ['texts' => ['Room service'], 'language' => 'fr'])
+            ->assertJsonPath('items.0.translation', 'Service en chambre');
+
+        $this->actingAs($admin)
+            ->postJson(route('translations.lookup'), ['texts' => ['Room service'], 'language' => 'ar'])
+            ->assertJsonPath('items.0.state', 'missing');
+    }
+
     public function test_an_empty_text_cannot_be_drafted()
     {
         $admin = User::factory()->superAdmin()->create();

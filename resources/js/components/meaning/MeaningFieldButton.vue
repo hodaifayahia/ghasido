@@ -16,13 +16,16 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
+import { usePage } from '@inertiajs/vue3';
+import LanguageFlag from '@/components/meaning/LanguageFlag.vue';
 import type { FieldMeaningState } from '@/composables/useFieldMeaning';
-import { useFieldMeaning } from '@/composables/useFieldMeaning';
+import { editingLocale, useFieldMeaning } from '@/composables/useFieldMeaning';
 import { t, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 /**
- * "Translate meaning to Arabic" (client request 2026-09-29): a small button
+ * "Translate meaning" (client request 2026-09-29; every helper language
+ * since 2026-10-01, with a flag row above the text box): a small button
  * above any English field of the test and lesson builders. It shows whether
  * the field's current text has a meaning and opens a popover (a bottom
  * sheet below 768px) to draft it with AI, correct it and save it. Saved
@@ -41,8 +44,41 @@ type Props = {
 
 const props = withDefaults(defineProps<Props>(), { compact: false });
 
+// Every helper language, on or off: a translation may be written before a
+// language goes live. The choice is shared by every field on the page.
+const page = usePage();
+const languages = computed(() => page.props.helperLanguage?.all ?? []);
+
+if (editingLocale.value === '') {
+    editingLocale.value = page.props.helperLanguage?.code ?? 'ar';
+}
+
+const locale = computed(() =>
+    languages.value.some((language) => language.value === editingLocale.value)
+        ? editingLocale.value
+        : (languages.value[0]?.value ?? 'ar'),
+);
+const current = computed(
+    () =>
+        languages.value.find((language) => language.value === locale.value) ??
+        null,
+);
+const currentDir = computed(() =>
+    current.value?.dir === 'rtl' ? 'rtl' : 'ltr',
+);
+const currentName = computed(() => current.value?.name ?? 'Arabic');
+
 const { meaning, empty, busy, error, draftWithAi, save, refresh } =
-    useFieldMeaning(() => props.text);
+    useFieldMeaning(
+        () => props.text,
+        () => locale.value,
+    );
+
+function pickLanguage(code: string): void {
+    editingLocale.value = code;
+    edited.value = false;
+    savedFlash.value = false;
+}
 
 const id = useId();
 const open = ref(false);
@@ -99,6 +135,13 @@ watch(
     { immediate: true },
 );
 
+// Another language picked: show that language's meaning.
+watch(locale, () => {
+    edited.value = false;
+    arabic.value = meaning.value?.arabic ?? '';
+    refresh();
+});
+
 watch(open, (value) => {
     if (value) {
         edited.value = false;
@@ -126,7 +169,7 @@ const canSave = computed(
 const triggerLabel = computed(() =>
     empty.value
         ? t('Type the English text first, then translate its meaning.')
-        : t('Translate meaning to Arabic: :field', { field: props.label }),
+        : t('Translate meaning: :field', { field: props.label }),
 );
 
 const stateTitle = computed(() =>
@@ -177,7 +220,7 @@ const triggerClass = computed(() =>
                 aria-hidden="true"
             />
         </span>
-        <span v-if="!compact">{{ $t('Translate meaning to Arabic') }}</span>
+        <span v-if="!compact">{{ $t('Translate meaning') }}</span>
         <span v-if="state !== null" class="sr-only">
             ({{ $t(badgeText[state]) }})
         </span>
@@ -199,12 +242,61 @@ const triggerClass = computed(() =>
                 </p>
             </div>
 
+            <div class="grid gap-1.5">
+                <span
+                    class="text-ink-slate text-[11px] font-semibold tracking-[0.02em] uppercase"
+                >
+                    {{ $t('Language') }}
+                </span>
+                <div
+                    class="flex flex-wrap gap-1.5"
+                    role="radiogroup"
+                    :aria-label="$t('Language')"
+                >
+                    <button
+                        v-for="language in languages"
+                        :key="language.value"
+                        type="button"
+                        role="radio"
+                        :aria-checked="locale === language.value"
+                        :data-test="`field-meaning-language-${language.value}`"
+                        :class="
+                            cn(
+                                'focus-visible:ring-brand-600/15 inline-flex min-h-11 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] font-semibold transition-colors focus-visible:ring-3 focus-visible:outline-none md:min-h-8',
+                                locale === language.value
+                                    ? 'border-brand-600 bg-brand-50 text-brand-800'
+                                    : 'border-line bg-surface text-ink hover:border-brand-300',
+                            )
+                        "
+                        @click="pickLanguage(language.value)"
+                    >
+                        <LanguageFlag
+                            :flag="language.flag"
+                            :code="language.value"
+                            class="h-3.5 w-5"
+                        />
+                        <span :lang="language.value" :dir="language.dir">{{
+                            language.native
+                        }}</span>
+                        <span
+                            v-if="!language.active"
+                            class="text-ink-faint text-[10.5px] font-medium"
+                            >({{ $t('off') }})</span
+                        >
+                    </button>
+                </div>
+            </div>
+
             <label class="grid gap-1">
                 <span class="flex items-center justify-between gap-2">
                     <span
                         class="text-ink-slate text-[11px] font-semibold tracking-[0.02em] uppercase"
                     >
-                        {{ $t('Arabic meaning') }}
+                        {{
+                            $t('Meaning in :language', {
+                                language: $t(currentName),
+                            })
+                        }}
                     </span>
                     <span
                         v-if="state !== null"
@@ -221,13 +313,24 @@ const triggerClass = computed(() =>
                 <textarea
                     :value="arabic"
                     rows="3"
-                    dir="rtl"
-                    lang="ar"
+                    :dir="currentDir"
+                    :lang="locale"
                     maxlength="3000"
                     :disabled="state === 'drafting'"
-                    placeholder="المعنى بالعربية"
+                    :placeholder="
+                        $t('Meaning in :language', {
+                            language: $t(currentName),
+                        })
+                    "
                     data-test="field-meaning-arabic"
-                    class="border-line text-ink bg-surface placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 font-arabic w-full resize-y rounded-sm border px-3 py-2 text-end text-[14px] leading-[1.8] focus-visible:ring-3 focus-visible:outline-none disabled:opacity-60"
+                    :class="
+                        cn(
+                            'border-line text-ink bg-surface placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 w-full resize-y rounded-sm border px-3 py-2 text-start text-[14px] focus-visible:ring-3 focus-visible:outline-none disabled:opacity-60',
+                            locale === 'ar'
+                                ? 'font-arabic leading-[1.8]'
+                                : 'leading-[1.6]',
+                        )
+                    "
                     @input="onInput"
                 />
             </label>
@@ -318,7 +421,7 @@ const triggerClass = computed(() =>
         data-test="field-meaning-button"
     >
         <Languages class="size-3.5" aria-hidden="true" />
-        <span v-if="!compact">{{ $t('Translate meaning to Arabic') }}</span>
+        <span v-if="!compact">{{ $t('Translate meaning') }}</span>
     </button>
 
     <template v-else-if="isPhone">
@@ -345,7 +448,7 @@ const triggerClass = computed(() =>
                     <SheetTitle
                         class="font-heading text-brand-900 text-[17px] font-semibold"
                     >
-                        {{ $t('Translate meaning to Arabic') }}
+                        {{ $t('Translate meaning') }}
                     </SheetTitle>
                     <SheetDescription class="text-ink-slate text-[12.5px]">
                         {{ label }}
@@ -376,14 +479,14 @@ const triggerClass = computed(() =>
                 align="end"
                 :side-offset="6"
                 :collision-padding="16"
-                :aria-label="$t('Translate meaning to Arabic')"
+                :aria-label="$t('Translate meaning')"
                 class="border-line bg-surface shadow-pop data-[state=open]:animate-in data-[state=open]:fade-in-0 z-50 w-[22rem] max-w-[calc(100vw-32px)] rounded-lg border p-4 motion-reduce:animate-none"
                 @open-auto-focus.prevent
             >
                 <p
                     class="font-heading text-brand-900 mb-3 text-[14px] font-semibold"
                 >
-                    {{ $t('Translate meaning to Arabic') }}
+                    {{ $t('Translate meaning') }}
                     <span class="text-ink-slate block text-[12px] font-normal">
                         {{ label }}
                     </span>

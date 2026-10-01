@@ -212,7 +212,7 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * @return array{code: string, name: string, dir: string, options: list<array{value: string, label: string, dir: string}>, updateUrl: string|null}|null
+     * @return array{code: string, name: string, dir: string, flag: string|null, chosen: bool, options: list<array{value: string, label: string, dir: string, name: string, native: string, flag: string|null}>, all: list<array{value: string, label: string, dir: string, name: string, native: string, flag: string|null, active: bool}>, updateUrl: string}|null
      */
     private function helperLanguageFor(?User $user): ?array
     {
@@ -227,8 +227,15 @@ class HandleInertiaRequests extends Middleware
             'code' => $code,
             'name' => $languages->name($code),
             'dir' => $languages->direction($code),
+            'flag' => HelperLanguages::flag($code),
+            // False until the user picks one: the app then asks once, with
+            // flags, on sign-in (client request 2026-10-01).
+            'chosen' => $languages->isActive($user->meaning_locale),
             'options' => $languages->options(),
-            'updateUrl' => $this->journeyFor($user) !== null ? route('learn.helper-language.update') : null,
+            // Every language, on or off, for the builders' translation
+            // field (client request 2026-10-01). A handful of rows.
+            'all' => $languages->editorOptions(),
+            'updateUrl' => route('helper-language.update'),
         ];
     }
 

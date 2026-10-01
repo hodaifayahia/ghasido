@@ -4319,5 +4319,10 @@
     "{0} No email was waiting.|{1} 1 waiting email was sent.|[2,*] :count waiting emails were sent.": "{0} لم تكن هناك رسائل منتظرة.|{1} أُرسلت رسالة منتظرة واحدة.|[2,*] أُرسلت :count رسائل منتظرة.",
     "The AI service has run out of quota, so the call ends here. Please tell your administrator.": "نفدت حصة خدمة الذكاء الاصطناعي، لذلك تنتهي المكالمة هنا. يُرجى إبلاغ المسؤول.",
     "Your learning journey": "رحلتك التعليمية",
-    "Your answers, voice recordings and progress help us support your learning and prepare your training reports. They are saved as part of your training.": "تساعدنا إجاباتك وتسجيلاتك الصوتية وتقدّمك على دعم تعلّمك وإعداد تقارير تدريبك. وتُحفظ كجزء من تدريبك."
+    "Your answers, voice recordings and progress help us support your learning and prepare your training reports. They are saved as part of your training.": "تساعدنا إجاباتك وتسجيلاتك الصوتية وتقدّمك على دعم تعلّمك وإعداد تقارير تدريبك. وتُحفظ كجزء من تدريبك.",
+    "Choose your helper language": "اختر لغة المساعدة",
+    "The language Show Meaning uses to explain English words and sentences. You can change it at any time.": "اللغة التي يستعملها «إظهار المعنى» لشرح الكلمات والجمل الإنجليزية. يمكنك تغييرها في أي وقت.",
+    "Translate meaning": "ترجمة المعنى",
+    "Translate meaning: :field": "ترجمة المعنى: :field",
+    "When you tap Show Meaning, English is explained in this language. You can change it any time in Settings.": "عند الضغط على «إظهار المعنى» يُشرح النص الإنجليزي بهذه اللغة. يمكنك تغييرها في أي وقت من الإعدادات."
 }

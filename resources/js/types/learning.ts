@@ -497,13 +497,28 @@ export type TestReviewRow = {
 // -------------------------------------------------------- helper language
 
 /** The Show Meaning language (client request 2026-09-30; shared prop). */
+export type HelperLanguageOption = {
+    value: string;
+    label: string;
+    dir: string;
+    /** English name ("French") and own name ("Français"). */
+    name: string;
+    native: string;
+    /** Country code of the flag in /flags, or null when there is none. */
+    flag: string | null;
+};
+
 export type HelperLanguage = {
     code: string;
     name: string;
     dir: 'ltr' | 'rtl';
-    options: { value: string; label: string; dir: string }[];
-    /** Null for anyone who is not a learner. */
-    updateUrl: string | null;
+    flag: string | null;
+    /** False until the user picks one; the app then asks once on sign-in. */
+    chosen: boolean;
+    options: HelperLanguageOption[];
+    /** Every language, on or off, for the builders' translation field. */
+    all: (HelperLanguageOption & { active: boolean })[];
+    updateUrl: string;
 };
 
 // ------------------------------------------------------------ learning path

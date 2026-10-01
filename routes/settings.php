@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\LandingPageController;
 use App\Http\Controllers\Settings\AiModelsController;
 use App\Http\Controllers\Settings\AiUsageController;
+use App\Http\Controllers\Settings\HelperLanguageController;
 use App\Http\Controllers\Settings\LearningSettingsController;
 use App\Http\Controllers\Settings\MailSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -16,6 +17,10 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+
+    // The Show Meaning language, for every role (client request 2026-10-01).
+    Route::get('settings/helper-language', [HelperLanguageController::class, 'edit'])->name('helper-language.edit');
+    Route::put('settings/helper-language', [HelperLanguageController::class, 'update'])->name('helper-language.update');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // Public landing copy is editable by the platform owner (ADM-02, SEC-01).

@@ -101,6 +101,9 @@ class ReportsPageTest extends TestCase
 
     public function test_filters_search_and_pager_run_on_the_server()
     {
+        // Mid-month, so "2 days ago" is never last month (it was on the
+        // 1st and 2nd of every month).
+        $this->travelTo(now()->startOfMonth()->addDays(14)->setTime(12, 0));
         $world = ReportsWorld::build();
 
         $this->index(['search' => 'bob'])
