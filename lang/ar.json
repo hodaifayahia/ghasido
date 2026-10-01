@@ -4317,5 +4317,7 @@
     "Use it": "استخدمه",
     "Written to the log only": "كُتبت في السجل فقط",
     "{0} No email was waiting.|{1} 1 waiting email was sent.|[2,*] :count waiting emails were sent.": "{0} لم تكن هناك رسائل منتظرة.|{1} أُرسلت رسالة منتظرة واحدة.|[2,*] أُرسلت :count رسائل منتظرة.",
-    "The AI service has run out of quota, so the call ends here. Please tell your administrator.": "نفدت حصة خدمة الذكاء الاصطناعي، لذلك تنتهي المكالمة هنا. يُرجى إبلاغ المسؤول."
+    "The AI service has run out of quota, so the call ends here. Please tell your administrator.": "نفدت حصة خدمة الذكاء الاصطناعي، لذلك تنتهي المكالمة هنا. يُرجى إبلاغ المسؤول.",
+    "Your learning journey": "رحلتك التعليمية",
+    "Your answers, voice recordings and progress help us support your learning and prepare your training reports. They are saved as part of your training.": "تساعدنا إجاباتك وتسجيلاتك الصوتية وتقدّمك على دعم تعلّمك وإعداد تقارير تدريبك. وتُحفظ كجزء من تدريبك."
 }

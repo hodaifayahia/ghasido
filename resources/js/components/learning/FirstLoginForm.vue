@@ -234,12 +234,12 @@ const levelHints: Record<string, string> = {
                     id="research-notice"
                     class="font-heading text-brand-700 text-base font-semibold"
                 >
-                    {{ $t('About your data') }}
+                    {{ $t('Your learning journey') }}
                 </h2>
                 <p class="text-ink-graphite text-sm leading-6">
                     {{
                         $t(
-                            'Your answers, recordings and progress are recorded so your trainer can follow your training, and are used for research on English training for hotel staff. Personal details are limited to your name, username, email, hotel and department.',
+                            'Your answers, voice recordings and progress help us support your learning and prepare your training reports. They are saved as part of your training.',
                         )
                     }}
                 </p>
