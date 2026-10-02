@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\HelperLanguageRequestRules;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -16,6 +17,8 @@ use Illuminate\Validation\Rules\Password;
  */
 class HotelSignupRequest extends FormRequest
 {
+    use HelperLanguageRequestRules;
+
     public function authorize(): bool
     {
         return true;
@@ -67,6 +70,7 @@ class HotelSignupRequest extends FormRequest
                 Password::min(8),
                 'max:72',
             ],
+            ...$this->helperLanguageRules(),
         ];
     }
 

@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\PaymentSubmission;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Services\Meaning\RequestedHelperLanguages;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -187,6 +188,11 @@ class PaymentsController extends Controller
             'accountState' => $hotel !== null ? $hotel->access_state->value : $individual?->approval_state->value,
             'hotelId' => $hotel?->id,
             'individualId' => $individualUser?->id,
+            // The helper languages asked for at sign-up (client request
+            // 2026-10-01), with a shortcut to translate into each.
+            'helperLanguages' => app(RequestedHelperLanguages::class)->describe(
+                $individualUser ?? ($hotel !== null ? User::query()->where('hotel_id', $hotel->id)->orderBy('id')->first() : null),
+            ),
         ];
     }
 }

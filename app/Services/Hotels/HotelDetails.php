@@ -14,6 +14,7 @@ use App\Models\PaymentSubmission;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Employees\EmployeeDirectory;
+use App\Services\Meaning\RequestedHelperLanguages;
 use App\Services\Reports\ReportPopulation;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -124,7 +125,7 @@ final class HotelDetails
     }
 
     /**
-     * @return array{pending: bool, canApprove: bool, requester: array{name: string, email: string|null, phone: string|null}|null, payments: list<array<string, mixed>>}
+     * @return array{pending: bool, canApprove: bool, helperLanguages: list<array<string, mixed>>, requester: array{name: string, email: string|null, phone: string|null}|null, payments: list<array<string, mixed>>}
      */
     private function approval(Hotel $hotel, User $viewer): array
     {
@@ -140,9 +141,14 @@ final class HotelDetails
                 ->first()
             : null;
 
+        // The helper languages the hotel asked for when it signed up (client
+        // request 2026-10-01), shown until its learners are served.
+        $firstManager = $requester ?? User::query()->where('hotel_id', $hotel->id)->orderBy('id')->first();
+
         return [
             'pending' => $pending,
             'canApprove' => $pending && $viewer->can(Permission::HotelsApprove->value),
+            'helperLanguages' => app(RequestedHelperLanguages::class)->describe($firstManager),
             'requester' => $requester === null ? null : [
                 'name' => $requester->name,
                 'email' => $requester->email,

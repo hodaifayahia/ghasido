@@ -508,6 +508,18 @@ export type HelperLanguageOption = {
     flag: string | null;
 };
 
+/** A helper language a customer asked for at sign-up (client request 2026-10-01). */
+export type RequestedHelperLanguage = {
+    code: string | null;
+    name: string;
+    native: string | null;
+    flag: string | null;
+    /** On the list and switched on: learners can pick it. */
+    offered: boolean;
+    /** The Translations page in this language; null when not on the list. */
+    translationsUrl: string | null;
+};
+
 export type HelperLanguage = {
     code: string;
     name: string;

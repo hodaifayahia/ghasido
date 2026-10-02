@@ -21,6 +21,7 @@ import {
     whatsappUrl,
 } from '@/components/hotels/paymentFormat';
 import PaymentEmailDialog from '@/components/payments/PaymentEmailDialog.vue';
+import RequestedLanguagesList from '@/components/meaning/RequestedLanguagesList.vue';
 import PaymentReceiptViewer from '@/components/payments/PaymentReceiptViewer.vue';
 import PaymentStatusPill from '@/components/payments/PaymentStatusPill.vue';
 import PaymentTypeChip from '@/components/payments/PaymentTypeChip.vue';
@@ -349,6 +350,10 @@ const contactClass =
                             class="shadow-card"
                         />
                     </div>
+
+                    <RequestedLanguagesList
+                        :languages="payment.helperLanguages ?? []"
+                    />
 
                     <!-- Reach the customer -->
                     <section

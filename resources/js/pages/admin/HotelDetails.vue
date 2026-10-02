@@ -17,6 +17,7 @@ import { computed } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
+import RequestedLanguagesList from '@/components/meaning/RequestedLanguagesList.vue';
 import HotelApprovalPanel from '@/components/hotels/HotelApprovalPanel.vue';
 import HotelPaymentsHistory from '@/components/hotels/HotelPaymentsHistory.vue';
 import {
@@ -204,6 +205,8 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
             :hotel-name="hotel.name"
             :approval="approval"
         />
+
+        <RequestedLanguagesList :languages="approval.helperLanguages ?? []" />
 
         <div class="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
             <StatCard

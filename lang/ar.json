@@ -4324,5 +4324,15 @@
     "The language Show Meaning uses to explain English words and sentences. You can change it at any time.": "اللغة التي يستعملها «إظهار المعنى» لشرح الكلمات والجمل الإنجليزية. يمكنك تغييرها في أي وقت.",
     "Translate meaning": "ترجمة المعنى",
     "Translate meaning: :field": "ترجمة المعنى: :field",
-    "When you tap Show Meaning, English is explained in this language. You can change it any time in Settings.": "عند الضغط على «إظهار المعنى» يُشرح النص الإنجليزي بهذه اللغة. يمكنك تغييرها في أي وقت من الإعدادات."
+    "When you tap Show Meaning, English is explained in this language. You can change it any time in Settings.": "عند الضغط على «إظهار المعنى» يُشرح النص الإنجليزي بهذه اللغة. يمكنك تغييرها في أي وقت من الإعدادات.",
+    ":manager from :city asked to join. Review it in Hotels.": "طلب :manager من :city الانضمام. راجع الطلب في الفنادق.",
+    "Add the language": "أضف اللغة",
+    "Another language (optional)": "لغة أخرى (اختياري)",
+    "For example: Turkish, Spanish": "مثلاً: التركية، الإسبانية",
+    "Helper languages asked for": "لغات المساعدة المطلوبة",
+    "New hotel request: :hotel": "طلب فندق جديد: :hotel",
+    "New message from :name": "رسالة جديدة من :name",
+    "Not offered yet": "غير متوفرة بعد",
+    "Translate lessons": "ترجمة الدروس",
+    "Which languages would help your team understand English? Show Meaning explains lessons in them. Optional.": "ما اللغات التي تساعد فريقك على فهم الإنجليزية؟ يشرح «إظهار المعنى» الدروس بها. اختياري."
 }

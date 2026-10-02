@@ -1,3 +1,5 @@
+import type { RequestedHelperLanguage } from './learning';
+
 export type HotelMetricKey =
     | 'totalHotels'
     | 'activeContracts'
@@ -190,6 +192,8 @@ export type HotelApproval = {
     pending: boolean;
     /** Pending, and the viewer may approve hotels. */
     canApprove: boolean;
+    /** Asked for at sign-up (client request 2026-10-01). */
+    helperLanguages: RequestedHelperLanguage[];
     requester: {
         name: string;
         email: string | null;

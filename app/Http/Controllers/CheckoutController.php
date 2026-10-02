@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckoutRequest;
 use App\Models\Department;
+use App\Models\Hotel;
 use App\Models\PaymentSubmission;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Services\Hotels\HotelService;
 use App\Services\Landing\LandingPageContentStore;
+use App\Services\Meaning\HelperLanguages;
+use App\Services\Meaning\RequestedHelperLanguages;
 use App\Services\Payments\PaymentNotifier;
 use App\Services\Payments\PaymentSubmissionService;
 use App\Services\Subscriptions\IndividualSubscriptionService;
@@ -51,6 +55,8 @@ final class CheckoutController extends Controller
                     ->values()
                     ->all()
                 : [],
+            // "Which languages would help you?" (client request 2026-10-01).
+            'helperLanguages' => app(HelperLanguages::class)->options(),
             'proofTypes' => CheckoutRequest::PROOF_TYPES,
             'proofMaxKb' => CheckoutRequest::proofMaxKb(),
             // DZD for Algeria, USD for international customers (client
@@ -66,12 +72,13 @@ final class CheckoutController extends Controller
         IndividualSubscriptionService $individuals,
         PaymentSubmissionService $payments,
         PaymentNotifier $notifier,
+        RequestedHelperLanguages $helperLanguages,
     ): RedirectResponse {
         abort_unless($plan->is_active, 404);
 
         $method = $request->paymentMethod();
 
-        $submission = DB::transaction(function () use ($request, $plan, $hotels, $individuals, $payments, $method): PaymentSubmission {
+        $submission = DB::transaction(function () use ($request, $plan, $hotels, $individuals, $payments, $method, $helperLanguages): PaymentSubmission {
             $account = $plan->isIndividual()
                 ? $individuals->requestAccess($request->individualData(), $plan, $request->departmentId(), $request->currency())
                 : $hotels->requestAccess(
@@ -79,6 +86,16 @@ final class CheckoutController extends Controller
                     $request->managerData(),
                     $request->input('region') === 'intl' ? 'intl' : 'dz',
                 );
+
+            // The helper languages asked for, on the account that asked
+            // (client request 2026-10-01).
+            $requester = $account instanceof Hotel
+                ? User::query()->where('hotel_id', $account->id)->orderBy('id')->first()
+                : $account->user;
+
+            if ($requester !== null) {
+                $helperLanguages->apply($requester, $request->requestedHelperLanguages());
+            }
 
             // Always recorded: the receipt and/or reference, and the method
             // when one is set up (null before any is).

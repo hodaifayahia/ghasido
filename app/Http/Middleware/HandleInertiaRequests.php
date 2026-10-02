@@ -3,8 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Enums\EnglishLevel;
+use App\Enums\HotelAccessState;
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Models\ContactMessage;
+use App\Models\Hotel;
 use App\Models\HotelAiPointTopUpRequest;
 use App\Models\PaymentSubmission;
 use App\Models\Reminder;
@@ -15,6 +18,7 @@ use App\Services\Meaning\HelperLanguages;
 use App\Services\Subscriptions\AiPointsBalanceService;
 use App\Support\Locales;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -98,6 +102,23 @@ class HandleInertiaRequests extends Middleware
                 ->whereNull('read_at')
                 ->count()
             : 0;
+        // New hotel requests sent without a payment (the free sign-up form)
+        // and new contact messages ring the bell too (client report
+        // 2026-10-01: "a request came and the bell said nothing"). A hotel
+        // request with a payment already shows as the payment.
+        $hotelRequests = $user?->can(Permission::HotelsApprove->value)
+            ? Hotel::query()
+                ->withoutGlobalScopes()
+                ->where('access_state', HotelAccessState::Pending->value)
+                ->whereDoesntHave('paymentSubmissions')
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+            : collect();
+        $contactMessages = $user?->can(Permission::LandingManage->value)
+            ? ContactMessage::query()->whereNull('read_at')->orderByDesc('created_at')->limit(10)->get()
+            : collect();
+
         $notificationItems = $notifications
             ->map(fn (Reminder $reminder): array => [
                 'id' => $reminder->id,
@@ -141,6 +162,29 @@ class HandleInertiaRequests extends Middleware
                 'expiresAt' => null,
                 'read' => $payment->read_at !== null,
                 'readUrl' => route('payments.read', ['payment' => $payment]),
+            ]))
+            ->concat($hotelRequests->map(fn (Hotel $hotel): array => [
+                'id' => -2_000_000 - $hotel->id,
+                'channel' => 'in_app',
+                'subject' => __('New hotel request: :hotel', ['hotel' => $hotel->name]),
+                'body' => __(':manager from :city asked to join. Review it in Hotels.', [
+                    'manager' => $hotel->manager_name,
+                    'city' => $hotel->city,
+                ]),
+                'sentAt' => $hotel->created_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => $hotel->request_read_at !== null,
+                'readUrl' => route('hotels.request-seen', ['hotel' => $hotel]),
+            ]))
+            ->concat($contactMessages->map(fn (ContactMessage $message): array => [
+                'id' => -3_000_000 - $message->id,
+                'channel' => 'in_app',
+                'subject' => __('New message from :name', ['name' => $message->name]),
+                'body' => Str::limit($message->message, 140),
+                'sentAt' => $message->created_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => false,
+                'readUrl' => route('contact-messages.seen', ['contactMessage' => $message]),
             ]))
             ->sortByDesc('sentAt')
             ->values();
@@ -190,7 +234,9 @@ class HandleInertiaRequests extends Middleware
             'notifications' => [
                 'unread' => $notifications->whereNull('read_at')->count()
                     + $unreadTopUpRequests
-                    + $unreadPayments,
+                    + $unreadPayments
+                    + $hotelRequests->whereNull('request_read_at')->count()
+                    + $contactMessages->count(),
                 'items' => $notificationItems->all(),
             ],
             // The employee journey's gates and figures (JOURNEY-01..05, PROG-05;

@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import { tk } from '@/lib/i18n';
 import HotelSignupController from '@/actions/App/Http/Controllers/HotelSignupController';
 import TransText from '@/components/common/TransText.vue';
 import InputError from '@/components/InputError.vue';
+import HelperLanguagesField from '@/components/meaning/HelperLanguagesField.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
+import type { HelperLanguageOption } from '@/types';
+
+type Props = {
+    /** Offered helper languages (client request 2026-10-01). */
+    helperLanguages?: HelperLanguageOption[];
+};
+
+withDefaults(defineProps<Props>(), { helperLanguages: () => [] });
+
+const languages = ref<string[]>([]);
+const otherLanguage = ref('');
 
 defineOptions({
     layout: {
@@ -137,6 +150,16 @@ defineOptions({
                 />
             </div>
         </div>
+
+        <HelperLanguagesField
+            v-if="helperLanguages.length > 0"
+            v-model:languages="languages"
+            v-model:other="otherLanguage"
+            class="mt-1"
+            :options="helperLanguages"
+            :error="errors.helper_languages"
+            :other-error="errors.helper_language_other"
+        />
 
         <Button
             type="submit"

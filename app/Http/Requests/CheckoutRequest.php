@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\HelperLanguageRequestRules;
 use App\Models\Department;
 use App\Models\SubscriptionPaymentMethod;
 use App\Models\SubscriptionPlan;
@@ -23,6 +24,8 @@ use Illuminate\Validation\Rules\Password;
  */
 class CheckoutRequest extends FormRequest
 {
+    use HelperLanguageRequestRules;
+
     /** The receipt formats accepted, and their size cap in kilobytes. */
     public const array PROOF_TYPES = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
 
@@ -83,6 +86,8 @@ class CheckoutRequest extends FormRequest
             'proof' => ['nullable', 'required_without:reference', File::types(self::PROOF_TYPES)->max(self::proofMaxKb())],
             'reference' => ['nullable', 'required_without:proof', 'string', 'max:120'],
         ];
+
+        $rules += $this->helperLanguageRules();
 
         if (self::acceptsPayments()) {
             $rules['payment_method_id'] = ['required', 'integer', Rule::exists(SubscriptionPaymentMethod::class, 'id')->where('is_active', true)];

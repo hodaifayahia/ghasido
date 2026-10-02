@@ -17,6 +17,7 @@ import type { Currency } from '@/components/checkout/money';
 import PaymentDetails from '@/components/checkout/PaymentDetails.vue';
 import PaymentMethodPicker from '@/components/checkout/PaymentMethodPicker.vue';
 import ProofUpload from '@/components/checkout/ProofUpload.vue';
+import HelperLanguagesField from '@/components/meaning/HelperLanguagesField.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Input } from '@/components/ui/input';
 import { t } from '@/lib/i18n';
@@ -25,6 +26,7 @@ import { store } from '@/routes/checkout';
 import type {
     CheckoutDepartmentOption,
     CheckoutPlan,
+    HelperLanguageOption,
     LandingPageContent,
     LandingPaymentMethod,
 } from '@/types';
@@ -45,10 +47,13 @@ type Props = {
     proofTypes?: string[];
     proofMaxKb?: number;
     region: 'dz' | 'intl';
+    /** Offered helper languages (client request 2026-10-01). */
+    helperLanguages?: HelperLanguageOption[];
 };
 
 const props = withDefaults(defineProps<Props>(), {
     departments: () => [],
+    helperLanguages: () => [],
     proofTypes: () => ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
     proofMaxKb: 5120,
 });
@@ -82,6 +87,8 @@ const form = useForm({
         : null) as number | null,
     proof: null as File | null,
     reference: '',
+    helper_languages: [] as string[],
+    helper_language_other: '',
 });
 
 const selectedMethodIndex = computed(() =>
@@ -268,6 +275,8 @@ function submit(): void {
 
         return {
             region: data.region,
+            helper_languages: data.helper_languages,
+            helper_language_other: data.helper_language_other,
             phone: data.phone,
             password: data.password,
             password_confirmation: data.password_confirmation,
@@ -822,6 +831,16 @@ function submit(): void {
                                 </fieldset>
                             </div>
                         </div>
+
+                        <HelperLanguagesField
+                            v-if="helperLanguages.length > 0"
+                            v-model:languages="form.helper_languages"
+                            v-model:other="form.helper_language_other"
+                            class="mt-7"
+                            :options="helperLanguages"
+                            :error="form.errors.helper_languages"
+                            :other-error="form.errors.helper_language_other"
+                        />
                     </CheckoutSection>
 
                     <template v-if="acceptsPayment">

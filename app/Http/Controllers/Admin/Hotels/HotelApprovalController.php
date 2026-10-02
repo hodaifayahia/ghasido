@@ -48,4 +48,14 @@ class HotelApprovalController extends Controller
 
         return back();
     }
+
+    /** The bell's new hotel request was opened (client report 2026-10-01). */
+    public function seen(Hotel $hotel): RedirectResponse
+    {
+        if ($hotel->request_read_at === null) {
+            $hotel->forceFill(['request_read_at' => now()])->save();
+        }
+
+        return back();
+    }
 }

@@ -35,4 +35,6 @@ Route::middleware(Permission::HotelsManage->middleware())->group(function () {
 Route::middleware(Permission::HotelsApprove->middleware())->group(function () {
     Route::post('hotels/{hotel}/approve', [HotelApprovalController::class, 'approve'])->name('hotels.approve');
     Route::post('hotels/{hotel}/reject', [HotelApprovalController::class, 'reject'])->name('hotels.reject');
+    // A new hotel request seen in the bell (client report 2026-10-01).
+    Route::post('hotels/{hotel}/request-seen', [HotelApprovalController::class, 'seen'])->name('hotels.request-seen');
 });

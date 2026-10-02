@@ -2,6 +2,7 @@
  * Payments sent from the checkout (client request 2026-09-27): the admin
  * list at /payments (Admin\PaymentsController).
  */
+import type { RequestedHelperLanguage } from './learning';
 export type PaymentStatus = 'pending' | 'confirmed' | 'rejected';
 
 export type PaymentStatusFilter = PaymentStatus | 'all';
@@ -43,6 +44,8 @@ export type PaymentRow = {
     accountState: string | null;
     hotelId: number | null;
     individualId: number | null;
+    /** Asked for at sign-up (client request 2026-10-01). */
+    helperLanguages: RequestedHelperLanguage[];
 };
 
 export type PaymentFilters = {
