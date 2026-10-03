@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
 import {
     Archive,
+    Trash2,
     CalendarPlus,
     Check,
     EllipsisVertical,
@@ -69,6 +71,11 @@ type Item = {
  * rendered; the server checks every one again regardless (spec 0002,
  * contracts and seats child, step 6; ROLE-01).
  */
+const page = usePage();
+const isSuperAdmin = computed(
+    () => page.props.auth.user?.role === 'super_admin',
+);
+
 const items = computed<Item[]>(() => {
     const manage = can('hotels.manage');
     const approve = can('hotels.approve');
@@ -142,6 +149,18 @@ const items = computed<Item[]>(() => {
             action: 'archive',
             label: tk('Archive'),
             icon: Archive,
+            destructive: true,
+            group: 'end',
+        });
+    }
+
+    // An archived hotel can be deleted for good, by the Super Admin only
+    // (client request 2026-10-02).
+    if (state === 'archived' && isSuperAdmin.value) {
+        list.push({
+            action: 'delete',
+            label: tk('Delete hotel'),
+            icon: Trash2,
             destructive: true,
             group: 'end',
         });

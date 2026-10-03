@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
 /**
@@ -23,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Collection<int, ContactReply> $replies
  */
 #[Fillable(['name', 'email', 'phone', 'organisation', 'employees', 'message', 'ip', 'read_at', 'user_id', 'topic'])]
 class ContactMessage extends Model
@@ -34,5 +38,17 @@ class ContactMessage extends Model
     protected function casts(): array
     {
         return ['read_at' => 'datetime'];
+    }
+
+    /** @return HasMany<ContactReply, $this> */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(ContactReply::class)->orderBy('id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

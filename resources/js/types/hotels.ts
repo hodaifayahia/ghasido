@@ -162,7 +162,8 @@ export type HotelRowAction =
     | 'extend'
     | 'pause'
     | 'resume'
-    | 'archive';
+    | 'archive'
+    | 'delete';
 
 /** One payment sent with a hotel's online purchase (client request 2026-09-27). */
 export type HotelApprovalPayment = {

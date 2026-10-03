@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import ConfirmRemoveDialog from '@/components/common/ConfirmRemoveDialog.vue';
 import HotelDepartmentsDialog from '@/components/hotels/HotelDepartmentsDialog.vue';
 import HotelExtendDialog from '@/components/hotels/HotelExtendDialog.vue';
 import HotelFormDialog from '@/components/hotels/HotelFormDialog.vue';
@@ -15,7 +16,7 @@ import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
 import { Button } from '@/components/ui/button';
 import { dashboard, hotels as hotelsRoute } from '@/routes';
-import { approve, pause, resume, show } from '@/routes/hotels';
+import { approve, pause, remove, resume, show } from '@/routes/hotels';
 import type {
     HotelFilters,
     HotelMetric,
@@ -224,7 +225,32 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
             return;
         case 'extend':
             extendOpen.value = true;
+            return;
+        case 'delete':
+            removeOpen.value = true;
     }
+}
+
+const removeOpen = ref(false);
+const removing = ref(false);
+
+function removeHotel(): void {
+    const hotel = actionHotel.value;
+
+    if (hotel === null) {
+        return;
+    }
+
+    removing.value = true;
+    router.delete(remove(hotel.id).url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            removeOpen.value = false;
+        },
+        onFinish: () => {
+            removing.value = false;
+        },
+    });
 }
 </script>
 
@@ -292,4 +318,18 @@ function onAction(action: HotelRowAction, hotel: HotelRecord): void {
         />
         <HotelExtendDialog v-model:open="extendOpen" :hotel="actionHotel" />
     </template>
+
+    <ConfirmRemoveDialog
+        v-if="actionHotel"
+        v-model:open="removeOpen"
+        :title="$t('Delete :name?', { name: actionHotel.name })"
+        :description="
+            $t(
+                'The hotel leaves every list and all its accounts are closed for good; their usernames and emails can be used again. Answers stay in the reports, anonymously. This cannot be undone.',
+            )
+        "
+        :confirm-text="actionHotel.name"
+        :busy="removing"
+        @confirm="removeHotel"
+    />
 </template>
