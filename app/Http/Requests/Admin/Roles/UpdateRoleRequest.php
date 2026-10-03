@@ -37,6 +37,19 @@ class UpdateRoleRequest extends FormRequest
     {
         $role = $this->route('role');
         $roleId = $role instanceof Role ? $role->getKey() : null;
+        $builtIn = array_column(RoleEnum::cases(), 'value');
+
+        // A built-in role keeps its name and the controller ignores the
+        // field, so the form sending it back unchanged ("manager") must not
+        // fail as "reserved" (client report 2026-10-02: the Hotel Manager's
+        // permissions could not be saved).
+        if ($role instanceof Role && in_array($role->name, $builtIn, true)) {
+            return [
+                'name' => ['sometimes', 'nullable', 'string'],
+                'permissions' => ['array'],
+                'permissions.*' => ['string', Rule::in(Permission::names())],
+            ];
+        }
 
         return [
             'name' => [
@@ -44,7 +57,7 @@ class UpdateRoleRequest extends FormRequest
                 'string',
                 'max:60',
                 'regex:/^[A-Za-z0-9 _-]+$/',
-                Rule::notIn(array_column(RoleEnum::cases(), 'value')),
+                Rule::notIn($builtIn),
                 Rule::unique('roles', 'name')->ignore($roleId),
             ],
             'permissions' => ['array'],

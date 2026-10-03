@@ -41,8 +41,9 @@ class UserPolicy
      */
     public function create(User $actor): bool
     {
-        // Adding an account is its own capability: a Manager holds
-        // EmployeesManage (edit) but not EmployeesCreate (client decision).
+        // Adding an account is its own capability, which the Super Admin can
+        // give or take per role (a Manager holds it by default since the
+        // client request of 2026-10-02).
         return $actor->can(Permission::EmployeesCreate->value);
     }
 

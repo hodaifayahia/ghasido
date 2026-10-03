@@ -53,14 +53,14 @@ enum Role: string
                 Permission::ReportsExport,
             ],
             self::Manager => [
-                // Managers may open their own hotel and EDIT its existing
-                // employee accounts, but by client decision they may not add
-                // accounts (no EmployeesCreate), build content, or open
-                // Reports & Export (no ReportsView/Export). This narrows the
-                // manager row of SUB-02 and REP-08.
+                // Managers open their own hotel, add and edit its employee
+                // accounts within the plan's seats (SUB-02; client request
+                // 2026-10-02 reversed the earlier "edit only" decision), but
+                // may not build content or open Reports & Export (REP-08).
                 Permission::HotelsView,
                 Permission::DepartmentsView,
                 Permission::EmployeesView,
+                Permission::EmployeesCreate,
                 Permission::EmployeesManage,
                 Permission::AiPointsManage,
                 Permission::LessonsView,

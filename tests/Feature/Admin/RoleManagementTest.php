@@ -136,6 +136,25 @@ class RoleManagementTest extends TestCase
         $this->assertFalse($refreshed->hasPermissionTo(Permission::EmployeesManage->value));
     }
 
+    public function test_a_system_role_saves_when_the_form_sends_its_own_name_back()
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $manager = Role::findByName(RoleEnum::Manager->value);
+
+        // The edit dialog sends the fixed name "manager" with the
+        // permissions (client report 2026-10-02: "reserved" error).
+        $this->actingAs($superAdmin)
+            ->put(route('roles.update', $manager), [
+                'name' => RoleEnum::Manager->value,
+                'permissions' => [Permission::EmployeesView->value, Permission::EmployeesCreate->value],
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->forgetCache();
+        $this->assertTrue(Role::findByName(RoleEnum::Manager->value)->hasPermissionTo(Permission::EmployeesCreate->value));
+    }
+
     public function test_a_reserved_system_name_cannot_be_used_for_a_new_role()
     {
         $this->actingAs(User::factory()->superAdmin()->create())

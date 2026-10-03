@@ -81,10 +81,10 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue($admin->can(PermissionEnum::DepartmentsManage->value));
         $this->assertFalse($manager->can(PermissionEnum::DepartmentsManage->value));
 
-        // Adding an account is its own capability: an Admin holds it, a Manager
-        // may edit but not add (client decision narrowing SUB-02).
+        // Adding an account is its own capability: Admin and Manager hold it
+        // by default (client request 2026-10-02), within their own hotel.
         $this->assertTrue($admin->can(PermissionEnum::EmployeesCreate->value));
-        $this->assertFalse($manager->can(PermissionEnum::EmployeesCreate->value));
+        $this->assertTrue($manager->can(PermissionEnum::EmployeesCreate->value));
     }
 
     public function test_a_manager_can_no_longer_open_or_export_reports(): void

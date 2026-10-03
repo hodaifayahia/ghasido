@@ -167,19 +167,26 @@ class EmployeeCrossTenantTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->has('employees', 1));
     }
 
-    public function test_a_manager_cannot_add_employees_at_all()
+    public function test_a_manager_adds_employees_to_their_own_hotel_only()
     {
-        // Adding an account is EmployeesCreate, which a manager does not hold
-        // (client decision narrowing SUB-02): creating even in their own hotel
-        // and quota is a 403, before any seat check. The seat limit itself is
-        // covered for the Super Admin in EmployeeActionsTest.
+        // A manager adds accounts in their own hotel and seats (client
+        // request 2026-10-02); another hotel stays a 403 (ROLE-02).
         $this->actingAs($this->manager)
             ->post(route('employees.store'), $this->payload([
                 'name' => 'Third', 'username' => 'mine.three', 'password' => 'Secret-Pass-12', 'status' => 'active',
             ], $this->mine))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(User::query()->where('username', 'mine.three')->where('hotel_id', $this->mine->id)->exists());
+
+        $this->actingAs($this->manager)
+            ->post(route('employees.store'), $this->payload([
+                'name' => 'Intruder', 'username' => 'theirs.three', 'password' => 'Secret-Pass-12', 'status' => 'active',
+            ], $this->theirs))
             ->assertForbidden();
 
-        $this->assertFalse(User::query()->where('username', 'mine.three')->exists());
+        $this->assertFalse(User::query()->where('username', 'theirs.three')->exists());
     }
 
     public function test_a_manager_may_manage_their_own_employees()

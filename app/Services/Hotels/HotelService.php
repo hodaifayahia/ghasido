@@ -9,7 +9,9 @@ use App\Enums\Role;
 use App\Mail\AccountRejectedMail;
 use App\Mail\HotelApprovedMail;
 use App\Models\AuditLog;
+use App\Models\Department;
 use App\Models\Hotel;
+use App\Models\SeatQuota;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Payments\PaymentSubmissionService;
@@ -148,6 +150,10 @@ class HotelService
 
             // The payment sent from the checkout is confirmed with it.
             $this->payments->settle($hotel, PaymentStatus::Confirmed, $approver);
+
+            // The plan's seats come with the approval, so the manager can add
+            // employees straight away (client report 2026-10-02).
+            $this->openPlanSeats($hotel);
 
             $manager = $this->requestedManager($hotel);
 
@@ -336,6 +342,44 @@ class HotelService
     /**
      * The manager account that came with a public hotel request, if one exists.
      */
+    /**
+     * A hotel approved with no department seats gets every active shared
+     * department, each allowed up to the plan's employee limit. The plan's
+     * total limit still caps the whole hotel (SeatQuotaService); the Super
+     * Admin narrows a department afterwards on the hotel's page (SUB-01).
+     */
+    private function openPlanSeats(Hotel $hotel): void
+    {
+        if (SeatQuota::query()->withoutGlobalScopes()->where('hotel_id', $hotel->id)->exists()) {
+            return;
+        }
+
+        $limit = (int) ($hotel->subscriptionPlan()->value('employee_limit') ?? 0);
+
+        if ($limit <= 0) {
+            return;
+        }
+
+        $departments = Department::query()
+            ->whereNull('hotel_id')
+            ->where('is_active', true)
+            ->pluck('id');
+
+        foreach ($departments as $departmentId) {
+            SeatQuota::query()->withoutGlobalScopes()->create([
+                'hotel_id' => $hotel->id,
+                'department_id' => $departmentId,
+                'allowed_seats' => $limit,
+            ]);
+        }
+
+        if ($departments->isNotEmpty()) {
+            AuditLog::recordQuotaChange($hotel, 'hotel.plan_seats_opened', $departments
+                ->mapWithKeys(fn (int $id): array => [$id => ['from' => 0, 'to' => $limit]])
+                ->all());
+        }
+    }
+
     private function requestedManager(Hotel $hotel): ?User
     {
         return User::query()
