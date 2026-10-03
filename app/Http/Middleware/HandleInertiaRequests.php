@@ -179,7 +179,9 @@ class HandleInertiaRequests extends Middleware
             ->concat($contactMessages->map(fn (ContactMessage $message): array => [
                 'id' => -3_000_000 - $message->id,
                 'channel' => 'in_app',
-                'subject' => __('New message from :name', ['name' => $message->name]),
+                'subject' => $message->user_id !== null
+                    ? __('Support request from :name', ['name' => $message->name.($message->organisation ? ' · '.$message->organisation : '')])
+                    : __('New message from :name', ['name' => $message->name]),
                 'body' => Str::limit($message->message, 140),
                 'sentAt' => $message->created_at?->toIso8601String() ?? '',
                 'expiresAt' => null,

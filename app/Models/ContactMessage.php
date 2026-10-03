@@ -18,13 +18,18 @@ use Illuminate\Support\Carbon;
  * @property string|null $employees
  * @property string $message
  * @property string|null $ip
+ * @property int|null $user_id the signed-in user who wrote from Help, if any
+ * @property string|null $topic problem | extension | question | other
  * @property Carbon|null $read_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'phone', 'organisation', 'employees', 'message', 'ip', 'read_at'])]
+#[Fillable(['name', 'email', 'phone', 'organisation', 'employees', 'message', 'ip', 'read_at', 'user_id', 'topic'])]
 class ContactMessage extends Model
 {
+    /** What a signed-in user writes about, from Help (client request 2026-10-02). */
+    public const array TOPICS = ['problem', 'extension', 'question', 'other'];
+
     /** @return array<string, string> */
     protected function casts(): array
     {

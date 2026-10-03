@@ -17,6 +17,7 @@ import type { Component } from 'vue';
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import PanelCard from '@/components/common/PanelCard.vue';
+import HelpContactCard from '@/components/help/HelpContactCard.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { useCan } from '@/composables/useCan';
 import { tk } from '@/lib/i18n';
@@ -426,6 +427,8 @@ function visibleActions(guide: HelpGuide): HelpAction[] {
                 )
             "
         />
+
+        <HelpContactCard />
 
         <div class="grid min-w-0 gap-3 xl:grid-cols-2">
             <PanelCard

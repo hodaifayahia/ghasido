@@ -10,7 +10,9 @@ use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MeaningController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\SupportMessageController;
 use App\Http\Controllers\WelcomeSeenController;
+use App\Services\Landing\LandingPageContentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -50,13 +52,25 @@ Route::middleware('guest')->group(function () {
 // admin.php: User never implements MustVerifyEmail, so it guarded nothing.
 Route::middleware(['auth', 'hotel.access'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
-    Route::get('help', function (Request $request) {
+    Route::get('help', function (Request $request, LandingPageContentStore $content) {
         $page = $request->user('web')?->hasRole(Role::Employee->value)
             ? 'employee/Help'
             : 'Help';
 
-        return Inertia::render($page);
+        // How to reach the GHASIDO team (client request 2026-10-02).
+        $support = (array) data_get($content->current(), 'support', []);
+
+        return Inertia::render($page, [
+            'support' => [
+                'whatsapp' => (string) ($support['whatsapp_number'] ?? ''),
+                'phone' => (string) ($support['phone'] ?? ''),
+                'email' => (string) ($support['email'] ?? ''),
+            ],
+        ]);
     })->name('help');
+    Route::post('help/message', [SupportMessageController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('help.message');
     Route::post('notifications/{reminder}/read', [MessagesController::class, 'read'])
         ->name('notifications.read');
 
