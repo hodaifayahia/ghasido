@@ -25,6 +25,8 @@ type AppAccount = {
     email: string | null;
     status: string;
     role: UserRole | null;
+    hotelId: number | null;
+    hotelName: string | null;
     isCurrentUser: boolean;
 };
 
@@ -39,6 +41,8 @@ type Props = {
         links: { url: string | null; label: string; active: boolean }[];
     };
     roles: UserRole[];
+    /** Where a Hotel Admin or a hotel-bound custom role works. */
+    hotels: { value: number; label: string }[];
 };
 
 const props = defineProps<Props>();
@@ -200,6 +204,13 @@ function editUser(account: AppAccount): void {
                                     {{ account.role?.label ?? $t('No role') }}
                                 </span>
                                 <span
+                                    v-if="account.hotelName"
+                                    class="text-brand-700 block truncate text-[10px] font-semibold"
+                                    :title="account.hotelName"
+                                >
+                                    {{ account.hotelName }}
+                                </span>
+                                <span
                                     class="text-ink-slate hidden text-[10px] sm:block"
                                 >
                                     {{
@@ -308,5 +319,6 @@ function editUser(account: AppAccount): void {
         v-model:open="modalOpen"
         :account="selectedAccount"
         :roles="roles"
+        :hotels="hotels"
     />
 </template>

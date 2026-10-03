@@ -38,6 +38,9 @@ class StoreUserRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', Password::min(8), 'max:72'],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
+            // The hotel a Hotel Admin (or a hotel-bound custom role) works
+            // for (client report 2026-10-02); none for platform staff.
+            'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
         ];
     }
 
@@ -51,10 +54,10 @@ class StoreUserRequest extends FormRequest
         ];
     }
 
-    /** @return array{name: string, username: string, email: string|null, password: string, role_id: int} */
+    /** @return array{name: string, username: string, email: string|null, password: string, role_id: int, hotel_id: int|null} */
     public function accountData(): array
     {
-        /** @var array{name: string, username: string, email?: string|null, password: string, role_id: int|string} $data */
+        /** @var array{name: string, username: string, email?: string|null, password: string, role_id: int|string, hotel_id?: int|string|null} $data */
         $data = $this->validated();
 
         return [
@@ -63,6 +66,7 @@ class StoreUserRequest extends FormRequest
             'email' => $data['email'] ?? null,
             'password' => $data['password'],
             'role_id' => (int) $data['role_id'],
+            'hotel_id' => isset($data['hotel_id']) ? (int) $data['hotel_id'] : null,
         ];
     }
 }

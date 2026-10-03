@@ -9,12 +9,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Users\StoreUserRequest;
 use App\Http\Requests\Admin\Users\UpdateUserRequest;
 use App\Models\AuditLog;
+use App\Models\Hotel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
@@ -30,11 +32,12 @@ class UsersController extends Controller
         $actor = request()->user();
 
         $accounts = User::query()
-            ->with('roles.permissions')
-            // Only the people who run the platform (client request
-            // 2026-09-29): super admins, admins and custom back-office
-            // roles. Hotel managers and learners are managed from the hotel.
-            ->whereNull('hotel_id')
+            ->with(['roles.permissions', 'hotel'])
+            // The people who run the platform or a hotel's back office
+            // (client requests 2026-09-29, 2026-10-02): super admins, hotel
+            // admins and custom roles. Hotel managers and learners are
+            // managed from the hotel. A hotel-bound actor sees their hotel's.
+            ->when($actor->hotel_id !== null, fn ($query) => $query->where('hotel_id', $actor->hotel_id))
             ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value]))
             // …and holding a back-office role: an account with no role at
             // all has no access to run anything.
@@ -47,12 +50,22 @@ class UsersController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'role' => $this->roleRecord($user->roles->first()),
+                'hotelId' => $user->hotel_id,
+                'hotelName' => $user->hotel?->name,
                 'status' => $user->status->value,
                 'isCurrentUser' => $user->is(auth()->user()),
             ]);
 
         return Inertia::render('admin/Users', [
             'accounts' => $accounts,
+            // Where a Hotel Admin or a hotel-bound custom role works.
+            'hotels' => Hotel::query()
+                ->notArchived()
+                ->when($actor->hotel_id !== null, fn ($query) => $query->whereKey($actor->hotel_id))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Hotel $hotel): array => ['value' => $hotel->id, 'label' => $hotel->name])
+                ->all(),
             'roles' => Role::query()
                 ->with('permissions')
                 ->withCount('permissions')
@@ -78,8 +91,9 @@ class UsersController extends Controller
         $data = $request->accountData();
         $role = Role::query()->findOrFail((int) $data['role_id']);
         $this->assertAssignableRole($request->user('web'), $role);
+        $hotelId = $this->hotelFor($request->user('web'), $role, $data['hotel_id']);
 
-        $account = DB::transaction(function () use ($request, $data, $role): User {
+        $account = DB::transaction(function () use ($request, $data, $role, $hotelId): User {
             $user = new User;
             $user->fill([
                 'name' => $data['name'],
@@ -89,6 +103,7 @@ class UsersController extends Controller
                 'status' => AccountStatus::Active,
                 'created_by' => $request->user()->id,
             ]);
+            $user->hotel_id = $hotelId;
             $user->save();
             $user->syncRoles([$role->name]);
 
@@ -114,8 +129,11 @@ class UsersController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         Gate::authorize(Permission::UsersManage->value);
-        // Hotel managers and learners belong to their hotel, not this page.
-        abort_if($user->hotel_id !== null || $user->hasAnyRole([RoleEnum::Employee->value, RoleEnum::Manager->value]), 404);
+        // Hotel managers and learners belong to their hotel, not this page;
+        // a hotel-bound actor edits their own hotel's accounts only.
+        $actor = $request->user('web');
+        abort_if($user->hasAnyRole([RoleEnum::Employee->value, RoleEnum::Manager->value]), 404);
+        abort_if($actor->hotel_id !== null && $user->hotel_id !== $actor->hotel_id, 404);
         abort_if(
             $user->hasRole(RoleEnum::SuperAdmin->value)
                 && ! $request->user('web')?->hasRole(RoleEnum::SuperAdmin->value),
@@ -126,6 +144,7 @@ class UsersController extends Controller
         $data = $request->accountChanges();
         $role = Role::query()->findOrFail((int) $data['role_id']);
         $this->assertAssignableRole($request->user('web'), $role);
+        $hotelId = $this->hotelFor($request->user('web'), $role, $data['hotel_id']);
 
         if ($user->is($request->user()) && $data['status'] !== AccountStatus::Active->value) {
             abort(422, __('You cannot deactivate your own account.'));
@@ -140,7 +159,7 @@ class UsersController extends Controller
 
         abort_if($wasLastActiveSuperAdmin, 422, __('Keep at least one active Super Admin account.'));
 
-        DB::transaction(function () use ($user, $data, $role): void {
+        DB::transaction(function () use ($user, $data, $role, $hotelId): void {
             $oldRole = $user->roles()->value('name');
             $user->fill([
                 'name' => $data['name'],
@@ -148,6 +167,7 @@ class UsersController extends Controller
                 'email' => $data['email'],
                 'status' => AccountStatus::from($data['status']),
             ]);
+            $user->hotel_id = $hotelId;
             $user->syncRoles([$role->name]);
             AuditLog::record($user, 'user.updated', [
                 'role' => ['from' => $oldRole, 'to' => $role->name],
@@ -183,6 +203,30 @@ class UsersController extends Controller
         abort_if($role->name === RoleEnum::Manager->value, 422, __('Hotel managers are managed on their hotel’s page.'));
 
         abort_unless($actor !== null && $this->canAssignRole($actor, $role), 403, __('You cannot grant access beyond your own permissions.'));
+    }
+
+    /**
+     * The hotel an account works for. A Hotel Admin needs one; the Super
+     * Admin works for none; a custom role may be either. A hotel-bound actor
+     * can only give their own hotel (ROLE-02).
+     */
+    private function hotelFor(?User $actor, Role $role, ?int $hotelId): ?int
+    {
+        if ($role->name === RoleEnum::SuperAdmin->value) {
+            return null;
+        }
+
+        if ($actor?->hotel_id !== null) {
+            return $actor->hotel_id;
+        }
+
+        if ($role->name === RoleEnum::Admin->value && $hotelId === null) {
+            throw ValidationException::withMessages([
+                'hotel_id' => __('Choose the hotel this Hotel Admin works for.'),
+            ]);
+        }
+
+        return $hotelId;
     }
 
     private function canAssignRole(User $actor, Role $role): bool

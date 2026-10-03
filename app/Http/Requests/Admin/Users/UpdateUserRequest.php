@@ -43,14 +43,17 @@ class UpdateUserRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', 'string', Password::min(8), 'max:72'],
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
+            // The hotel a Hotel Admin (or a hotel-bound custom role) works
+            // for (client report 2026-10-02); none for platform staff.
+            'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
             'status' => ['required', Rule::enum(AccountStatus::class)],
         ];
     }
 
-    /** @return array{name: string, username: string, email: string|null, password: string|null, role_id: int, status: string} */
+    /** @return array{name: string, username: string, email: string|null, password: string|null, role_id: int, status: string, hotel_id: int|null} */
     public function accountChanges(): array
     {
-        /** @var array{name: string, username: string, email?: string|null, password?: string|null, role_id: int|string, status: string} $data */
+        /** @var array{name: string, username: string, email?: string|null, password?: string|null, role_id: int|string, status: string, hotel_id?: int|string|null} $data */
         $data = $this->validated();
 
         return [
@@ -59,6 +62,7 @@ class UpdateUserRequest extends FormRequest
             'email' => $data['email'] ?? null,
             'password' => ($data['password'] ?? null) ?: null,
             'role_id' => (int) $data['role_id'],
+            'hotel_id' => isset($data['hotel_id']) ? (int) $data['hotel_id'] : null,
             'status' => $data['status'],
         ];
     }

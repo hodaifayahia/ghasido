@@ -73,4 +73,68 @@ class UsersListTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['username' => 'new.manager']);
     }
+
+    public function test_a_hotel_admin_is_given_a_hotel_and_listed_with_it(): void
+    {
+        // Client report 2026-10-02: "there is a Hotel Admin role but no way
+        // to give it to someone".
+        $owner = User::factory()->superAdmin()->create();
+        $hotel = Hotel::factory()->active()->create(['name' => 'Blue Coast']);
+        $adminRole = Role::findByName(RoleEnum::Admin->value);
+
+        $payload = [
+            'name' => 'Hotel Boss',
+            'username' => 'hotel.boss',
+            'email' => 'boss@bluecoast.test',
+            'role_id' => $adminRole->id,
+            'password' => 'SecretPass123',
+        ];
+
+        // A Hotel Admin without a hotel is refused, in plain words.
+        $this->actingAs($owner)->post(route('users.store'), $payload)->assertSessionHasErrors('hotel_id');
+
+        $this->actingAs($owner)
+            ->post(route('users.store'), [...$payload, 'hotel_id' => $hotel->id])
+            ->assertSessionHasNoErrors();
+
+        $boss = User::query()->where('username', 'hotel.boss')->firstOrFail();
+        $this->assertSame($hotel->id, $boss->hotel_id);
+        $this->assertTrue($boss->hasRole(RoleEnum::Admin->value));
+
+        $this->actingAs($owner)
+            ->get(route('users'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('accounts.data', fn ($rows) => collect($rows)->contains(fn ($row) => $row['username'] === 'hotel.boss' && $row['hotelName'] === 'Blue Coast'))
+                ->where('hotels.0.label', 'Blue Coast'));
+    }
+
+    public function test_a_custom_role_can_be_given_with_or_without_a_hotel(): void
+    {
+        $owner = User::factory()->superAdmin()->create();
+        $hotel = Hotel::factory()->active()->create();
+        $custom = Role::create(['name' => 'Front office lead', 'guard_name' => 'web']);
+
+        $this->actingAs($owner)
+            ->post(route('users.store'), [
+                'name' => 'Lead One',
+                'username' => 'lead.one',
+                'role_id' => $custom->id,
+                'hotel_id' => $hotel->id,
+                'password' => 'SecretPass123',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($owner)
+            ->post(route('users.store'), [
+                'name' => 'Lead Two',
+                'username' => 'lead.two',
+                'role_id' => $custom->id,
+                'password' => 'SecretPass123',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($hotel->id, User::query()->where('username', 'lead.one')->value('hotel_id'));
+        $this->assertNull(User::query()->where('username', 'lead.two')->value('hotel_id'));
+        $this->assertTrue(User::query()->where('username', 'lead.one')->firstOrFail()->hasRole('Front office lead'));
+    }
 }
