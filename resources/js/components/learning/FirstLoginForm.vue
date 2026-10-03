@@ -226,8 +226,18 @@ const levelHints: Record<string, string> = {
                 </Label>
             </div>
 
+            <!-- The confirmation stands out, and turns red when it was
+                 forgotten (client report 2026-10-02: "I did not notice I
+                 had to tick it"). -->
             <section
-                class="bg-brand-50 flex flex-col gap-3 rounded-md p-4"
+                :class="
+                    cn(
+                        'bg-brand-50 flex flex-col gap-3 rounded-md border-2 p-4 transition-colors',
+                        errors.research_notice_acknowledged
+                            ? 'border-danger bg-danger-tint animate-shake motion-reduce:animate-none'
+                            : 'border-transparent',
+                    )
+                "
                 aria-labelledby="research-notice"
             >
                 <h2
@@ -243,20 +253,39 @@ const levelHints: Record<string, string> = {
                         )
                     }}
                 </p>
-                <div class="flex items-start gap-3">
+                <label
+                    for="research_notice_acknowledged"
+                    :class="
+                        cn(
+                            'bg-surface flex min-h-14 cursor-pointer items-center gap-3 rounded-md border-2 px-3.5 py-3',
+                            errors.research_notice_acknowledged
+                                ? 'border-danger'
+                                : 'border-brand-300 hover:border-brand-600',
+                        )
+                    "
+                >
                     <Checkbox
                         id="research_notice_acknowledged"
                         name="research_notice_acknowledged"
                         required
-                        class="mt-0.5 size-5"
+                        :aria-invalid="
+                            errors.research_notice_acknowledged
+                                ? true
+                                : undefined
+                        "
+                        :class="
+                            cn(
+                                'size-6 shrink-0 border-2',
+                                errors.research_notice_acknowledged
+                                    ? 'border-danger'
+                                    : 'border-brand-600',
+                            )
+                        "
                     />
-                    <Label
-                        for="research_notice_acknowledged"
-                        class="text-ink leading-6 font-normal"
-                    >
+                    <span class="text-ink text-[15px] leading-6 font-semibold">
                         {{ $t('I have read this notice.') }}
-                    </Label>
-                </div>
+                    </span>
+                </label>
                 <InputError :message="errors.research_notice_acknowledged" />
             </section>
         </template>
