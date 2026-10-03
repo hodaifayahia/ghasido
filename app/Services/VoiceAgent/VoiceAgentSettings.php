@@ -66,6 +66,24 @@ final class VoiceAgentSettings
     /** Deepgram Aura-2 English voices offered in the picker. */
     public const AURA_VOICES = ['thalia', 'andromeda', 'helena', 'apollo', 'arcas', 'aries', 'asteria', 'luna', 'orion', 'zeus'];
 
+    /**
+     * How each voice sounds, so the Super Admin can match a voice to the
+     * scenario's guest mood (client request 2026-10-02). The mood itself
+     * (angry, impatient…) comes from the guest's words, set per scenario.
+     */
+    public const AURA_VOICE_TRAITS = [
+        'thalia' => 'female, clear, energetic',
+        'andromeda' => 'female, casual, expressive',
+        'helena' => 'female, warm, caring',
+        'apollo' => 'male, confident, casual',
+        'arcas' => 'male, smooth, natural',
+        'aries' => 'male, warm, energetic',
+        'asteria' => 'female, confident, brisk',
+        'luna' => 'female, friendly, young',
+        'orion' => 'male, calm, polite',
+        'zeus' => 'male, deep, firm',
+    ];
+
     /** listen model => Deepgram listen API version. */
     public const LISTEN_MODELS = ['flux-general-en' => 'v2', 'nova-3' => 'v1'];
 
@@ -354,7 +372,7 @@ final class VoiceAgentSettings
                 'speakProviders' => self::SPEAK_PROVIDERS,
                 'voices' => array_map(static fn (string $voice): array => [
                     'value' => 'aura-2-'.$voice.'-en',
-                    'label' => ucfirst($voice),
+                    'label' => ucfirst($voice).' ('.__(self::AURA_VOICE_TRAITS[$voice]).')',
                 ], self::AURA_VOICES),
                 'thinkModes' => self::THINK_MODES,
                 'thinkProviders' => self::THINK_PROVIDERS,

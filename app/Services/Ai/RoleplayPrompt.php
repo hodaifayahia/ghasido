@@ -3,6 +3,7 @@
 namespace App\Services\Ai;
 
 use App\Enums\EnglishLevel;
+use App\Enums\GuestMood;
 use App\Models\AiScenario;
 use App\Models\RoleplayAttempt;
 use App\Services\Scenarios\ScenarioConfiguration;
@@ -65,6 +66,7 @@ final class RoleplayPrompt
             // was written (client report 2026-10-02).
             'Situation: '.trim(filled(trim((string) $scenario->situation)) ? (string) $scenario->situation : strip_tags((string) $scenario->description)),
             'Your character (the guest): '.trim($scenario->ai_role),
+            GuestMood::fromSettings($scenario->settings)->prompt(),
             'The learner\'s role (the employee): '.trim($scenario->employee_role),
             'The employee\'s objective: '.trim($scenario->objective),
         ];

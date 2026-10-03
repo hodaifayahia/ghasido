@@ -209,4 +209,30 @@ class AiScenarioActionsTest extends TestCase
 
         $this->assertStringContainsString('Situation: A guest asks for a late checkout.', RoleplayPrompt::brief($scenario));
     }
+
+    public function test_a_scenario_can_have_a_difficult_guest()
+    {
+        // Client request 2026-10-02: "the characters are all nice people".
+        $scenario = AiScenario::factory()->create(['department_id' => $this->department->id]);
+
+        $this->actingAs($this->owner)
+            ->patch(route('ai-scenarios.update', $scenario), [
+                'title' => 'Noisy room',
+                'department_id' => $this->department->id,
+                'difficulty' => 'advanced',
+                'guest_mood' => 'angry',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $scenario->refresh();
+        $this->assertSame('angry', $scenario->settings['guest_mood'] ?? null);
+
+        $brief = RoleplayPrompt::brief($scenario);
+        $this->assertStringContainsString('upset and angry', $brief);
+        $this->assertStringContainsString('never insult', $brief);
+
+        $this->actingAs($this->owner)
+            ->patch(route('ai-scenarios.update', $scenario), ['title' => 'Noisy room', 'department_id' => $this->department->id, 'difficulty' => 'advanced', 'guest_mood' => 'furious'])
+            ->assertSessionHasErrors('guest_mood');
+    }
 }

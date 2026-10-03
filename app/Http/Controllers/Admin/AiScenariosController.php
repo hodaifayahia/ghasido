@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\GuestMood;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Scenarios\StoreAiScenarioRequest;
 use App\Http\Requests\Admin\Scenarios\UpdateAiScenarioRequest;
@@ -799,6 +800,8 @@ class AiScenariosController extends Controller
             'situation' => $scenario->situation,
             'objective' => $scenario->objective,
             'openingLine' => app(VoiceAgentSettings::class)->scenarioOverrides($scenario)['greeting'] ?? '',
+            'guestMood' => GuestMood::fromSettings($scenario->settings)->value,
+            'guestMoods' => GuestMood::options(),
             'usefulPhrases' => $scenario->useful_phrases ?? [],
             'aiStatus' => $scenario->ai_status?->value,
             'aiDraft' => $scenario->ai_draft,

@@ -55,6 +55,7 @@ const guestRole = ref(props.editor.guestRole);
 const employeeRole = ref(props.editor.employeeRole);
 const objective = ref(props.editor.objective ?? '');
 const openingLine = ref(props.editor.openingLine ?? '');
+const guestMood = ref(props.editor.guestMood ?? 'friendly');
 const goals = ref([...props.editor.objectives]);
 const newObjective = ref('');
 const addingObjective = ref(false);
@@ -75,6 +76,7 @@ watch(
         employeeRole.value = editor.employeeRole;
         objective.value = editor.objective ?? '';
         openingLine.value = editor.openingLine ?? '';
+        guestMood.value = editor.guestMood ?? 'friendly';
         goals.value = [...editor.objectives];
         clearCoverPreview();
         newObjective.value = '';
@@ -84,10 +86,15 @@ watch(
 );
 
 function onSelect(
-    target: 'department' | 'level',
+    target: 'department' | 'level' | 'mood',
     value: AcceptableValue,
 ): void {
     if (typeof value !== 'string') {
+        return;
+    }
+
+    if (target === 'mood') {
+        guestMood.value = value;
         return;
     }
 
@@ -110,6 +117,7 @@ function save(settings?: AiScenarioSavePayload['settings']): void {
         employee_role: employeeRole.value.trim(),
         objective: objective.value.trim(),
         opening_line: openingLine.value.trim(),
+        guest_mood: guestMood.value,
         goals: goals.value.map((goal) => goal.trim()).filter(Boolean),
         useful_phrases: props.editor.usefulPhrases ?? [],
         ...(settings ? { settings } : {}),
@@ -660,6 +668,40 @@ onBeforeUnmount(clearCoverPreview);
                         class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-[96px] w-full resize-y rounded-md border px-3 py-2 text-[12.5px] leading-[1.5] focus-visible:ring-3 focus-visible:outline-none"
                     />
                 </section>
+            </div>
+
+            <div v-if="editor.guestMoods?.length" class="grid gap-1.5">
+                <label class="text-brand-900 text-[12px] font-semibold">
+                    {{ $t('Guest mood') }}
+                </label>
+                <Select
+                    :model-value="guestMood"
+                    @update:model-value="onSelect('mood', $event)"
+                >
+                    <SelectTrigger
+                        class="border-line text-ink bg-surface h-10 rounded-md px-3 text-[12.5px] shadow-none"
+                        data-test="scenario-guest-mood"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent class="border-line shadow-pop">
+                        <SelectItem
+                            v-for="option in editor.guestMoods"
+                            :key="option.value"
+                            :value="option.value"
+                            class="text-[13px]"
+                        >
+                            {{ option.label }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <p class="text-ink-slate text-[11px] leading-4">
+                    {{
+                        $t(
+                            'A difficult guest stays realistic and never insults anyone; they calm down when the employee handles them well. Pick a voice that fits in Voice call settings.',
+                        )
+                    }}
+                </p>
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">

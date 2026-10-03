@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Scenarios;
 
+use App\Enums\GuestMood;
 use App\Enums\Permission;
 use App\Enums\ScenarioDifficulty;
 use App\Models\AiScenario;
@@ -41,6 +42,9 @@ class UpdateAiScenarioRequest extends FormRequest
             // The guest's first line in a call (client report 2026-10-02:
             // every call opened with the same staff-like greeting).
             'opening_line' => ['nullable', 'string', 'max:200'],
+            // How the guest behaves: friendly, angry, impatient… (client
+            // request 2026-10-02).
+            'guest_mood' => ['nullable', Rule::enum(GuestMood::class)],
             'settings' => ['sometimes', 'array'],
             'settings.attempts_allowed' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'settings.feedback_style' => ['sometimes', 'string', 'max:50'],
@@ -84,8 +88,12 @@ class UpdateAiScenarioRequest extends FormRequest
         $scenario = $this->route('scenario');
         $current = $scenario instanceof AiScenario && is_array($scenario->settings) ? $scenario->settings : [];
 
-        if (array_key_exists('settings', $data) || array_key_exists('opening_line', $data)) {
+        if (array_key_exists('settings', $data) || array_key_exists('opening_line', $data) || array_key_exists('guest_mood', $data)) {
             $settings = array_replace($current, is_array($data['settings'] ?? null) ? $data['settings'] : []);
+
+            if (array_key_exists('guest_mood', $data)) {
+                $settings['guest_mood'] = $data['guest_mood'] ?? GuestMood::Friendly->value;
+            }
 
             if (array_key_exists('opening_line', $data)) {
                 $voice = is_array($settings['voice_agent'] ?? null) ? $settings['voice_agent'] : [];
@@ -97,7 +105,7 @@ class UpdateAiScenarioRequest extends FormRequest
             $data['settings'] = $settings;
         }
 
-        unset($data['opening_line']);
+        unset($data['opening_line'], $data['guest_mood']);
 
         return $data;
     }

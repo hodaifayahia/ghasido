@@ -89,6 +89,9 @@ export type AiScenarioEditor = {
     objective?: string;
     /** The guest's first line in a call; empty uses the default. */
     openingLine?: string;
+    /** How the guest behaves: friendly, angry, impatient… */
+    guestMood?: string;
+    guestMoods?: AiScenarioSelectOption[];
     usefulPhrases?: string[];
     aiStatus?: 'pending' | 'running' | 'done' | 'failed' | null;
     aiDraft?: Record<string, unknown> | null;
@@ -119,6 +122,7 @@ export type AiScenarioSavePayload = {
     employee_role: string;
     objective: string;
     opening_line?: string;
+    guest_mood?: string;
     goals: string[];
     useful_phrases: string[];
     settings?: {
