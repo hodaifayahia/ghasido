@@ -5,6 +5,7 @@ import type {
     TrainingContext,
 } from '@/types/auth';
 import type { HelperLanguage, LearnerLevel } from '@/types/learning';
+import type { LocaleOption } from '@/lib/i18n';
 import type { NotificationData } from '@/types/notifications';
 import type { OwnerIdentity } from '@/types/owner';
 
@@ -43,7 +44,11 @@ declare module '@inertiajs/core' {
             /** Only on the owner console's routes (spec 0007). */
             owner?: OwnerIdentity;
             /** The interface language and its direction (I18N-02). */
-            locale: { current: 'en' | 'ar'; direction: 'ltr' | 'rtl' };
+            locale: {
+                current: string;
+                direction: 'ltr' | 'rtl';
+                available: LocaleOption[];
+            };
             /** Payments awaiting review; 0 without subscriptions.manage. */
             pendingPayments: number;
             unreadInbox: number;

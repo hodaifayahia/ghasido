@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\I18n\InterfaceLanguages;
 use App\Support\Locales;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +20,7 @@ final class LocaleController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'locale' => ['required', 'string', Rule::in(Locales::SUPPORTED)],
+            'locale' => ['required', 'string', Rule::in(InterfaceLanguages::codes())],
         ]);
 
         $user = $request->user('web');
@@ -28,5 +30,18 @@ final class LocaleController extends Controller
         }
 
         return back()->withCookie(cookie()->forever(Locales::COOKIE, $data['locale']));
+    }
+
+    /**
+     * An added language's strings for the browser (client request
+     * 2026-10-03); English and Arabic ship in the bundle instead.
+     */
+    public function messages(string $code): JsonResponse
+    {
+        abort_unless(Locales::isSupported($code), 404);
+
+        return response()
+            ->json((object) InterfaceLanguages::messages($code))
+            ->header('Cache-Control', 'no-cache');
     }
 }

@@ -13,6 +13,7 @@ use App\Services\Ai\AiModelSettings;
 use App\Services\Ai\AnthropicAiProvider;
 use App\Services\Ai\FakeAiProvider;
 use App\Services\Ai\OpenAiCompatibleAiProvider;
+use App\Services\I18n\DatabaseTranslationLoader;
 use App\Services\Images\DashScopeImageProvider;
 use App\Services\Images\FakeImageProvider;
 use App\Services\Meaning\HelperLanguages;
@@ -27,6 +28,7 @@ use App\Services\Tts\FakeTtsProvider;
 use App\Services\Tts\OpenAiCompatibleTtsProvider;
 use App\Services\Tts\TtsSettings;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -45,6 +47,10 @@ class AppServiceProvider extends ServiceProvider
         // request or queued job, so a key or recharge saved now applies to
         // the next job without restarting workers.
         $this->app->scoped(ApiKeyring::class);
+
+        // `__()` also reads the interface languages added in Settings
+        // (client request 2026-10-03).
+        $this->app->extend('translation.loader', fn (Loader $loader): Loader => new DatabaseTranslationLoader($loader));
         $this->app->scoped(ApiCredit::class);
         $this->app->scoped(PlatformSettings::class);
         $this->app->scoped(HelperLanguages::class);

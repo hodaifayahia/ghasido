@@ -9,6 +9,7 @@ use App\Contracts\AiUsageInfo;
 use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
 use App\Contracts\DashboardBriefingDraft;
+use App\Contracts\InterfaceTranslationDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
 use App\Contracts\PronunciationCoaching;
@@ -345,6 +346,11 @@ class AiJobsTest extends TestCase
             }
 
             public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft
+            {
+                throw new RuntimeException('provider down');
+            }
+
+            public function translateInterfaceStrings(array $strings, string $language): InterfaceTranslationDraft
             {
                 throw new RuntimeException('provider down');
             }

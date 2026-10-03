@@ -27,4 +27,53 @@ trait BuildsTranslationPrompts
             'content' => "English text:\n".trim($english),
         ]];
     }
+
+    /**
+     * The system prompt for a batch of interface strings (client request
+     * 2026-10-03).
+     */
+    protected function interfaceTranslationSystemPrompt(string $language): string
+    {
+        return 'You translate the user interface of GHASIDO, a web platform that teaches English to hotel staff, from English into '.trim($language).'. '
+            .'Each value is one interface string: a button, a label, a heading or a short message. Translate it naturally and concisely, as a professional app in that language would say it. '
+            .'Rules: keep every placeholder that starts with a colon exactly as written (for example :name, :count, :hotel); keep the | separators and range markers such as {0}, [2,10] and [11,*] exactly; keep GHASIDO, AI, brand names, emails, URLs and numbers unchanged; never add explanations. '
+            .'You receive a JSON object of id → English text. Respond with ONLY a JSON object of this exact shape: {"translations": {"<id>": "<translation>"}} containing every id.';
+    }
+
+    /**
+     * @param  array<string, string>  $strings
+     * @return list<array{role: string, content: string}>
+     */
+    protected function interfaceTranslationMessages(array $strings): array
+    {
+        return [[
+            'role' => 'user',
+            'content' => (string) json_encode((object) $strings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, string>  $strings
+     * @return array<string, string>
+     */
+    protected function interfaceTranslations(array $data, array $strings): array
+    {
+        $translations = $data['translations'] ?? [];
+        $texts = [];
+
+        if (! is_array($translations)) {
+            return [];
+        }
+
+        foreach (array_keys($strings) as $id) {
+            $value = $translations[$id] ?? null;
+
+            if (is_string($value) && trim($value) !== '') {
+                $texts[(string) $id] = trim($value);
+            }
+        }
+
+        return $texts;
+    }
 }

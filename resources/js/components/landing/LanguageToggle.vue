@@ -20,10 +20,12 @@ const props = defineProps<Props>();
 
 const { t, locale, switchLocale } = useI18n();
 
+// From Arabic or an added language (client request 2026-10-03) it goes
+// back to English; from English to Arabic.
 const other = computed(() =>
-    locale.value === 'ar'
-        ? { value: 'en' as const, name: 'English', dir: 'ltr' }
-        : { value: 'ar' as const, name: 'العربية', dir: 'rtl' },
+    locale.value !== 'en'
+        ? { value: 'en', name: 'English', dir: 'ltr' }
+        : { value: 'ar', name: 'العربية', dir: 'rtl' },
 );
 </script>
 

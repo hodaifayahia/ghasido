@@ -137,4 +137,13 @@ interface AiProvider
      * name ("Arabic", "French"…), from HelperLanguages.
      */
     public function translateText(string $english, string $language = 'Arabic'): TextTranslationDraft;
+
+    /**
+     * Translate a batch of the platform's own interface strings — buttons,
+     * labels, messages — into another interface language (client request
+     * 2026-10-03). Placeholders such as `:name` stay as they are.
+     *
+     * @param  array<string, string>  $strings  id → English text
+     */
+    public function translateInterfaceStrings(array $strings, string $language): InterfaceTranslationDraft;
 }

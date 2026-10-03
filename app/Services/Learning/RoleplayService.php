@@ -157,6 +157,14 @@ class RoleplayService
     {
         @set_time_limit(180);
 
+        // On the sync queue (tests, a console call) there is no response to
+        // wait for: run it now, or it would never run at all.
+        if (config('queue.default') === 'sync') {
+            GenerateRoleplayReply::dispatch($attemptId);
+
+            return;
+        }
+
         GenerateRoleplayReply::dispatchAfterResponse($attemptId);
     }
 }

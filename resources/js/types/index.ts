@@ -28,3 +28,4 @@ export * from './translations';
 export * from './payments';
 export * from './mail-settings';
 export * from './inbox';
+export * from './interfaceLanguages';

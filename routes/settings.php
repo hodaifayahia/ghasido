@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\LandingPageController;
 use App\Http\Controllers\Settings\AiModelsController;
 use App\Http\Controllers\Settings\AiUsageController;
 use App\Http\Controllers\Settings\HelperLanguageController;
+use App\Http\Controllers\Settings\InterfaceLanguagesController;
 use App\Http\Controllers\Settings\LearningSettingsController;
 use App\Http\Controllers\Settings\MailSettingsController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -61,6 +62,19 @@ Route::middleware(['auth', 'can:manage-ai-models'])->group(function () {
     // AIL-04; spec 0005 §4.3). The prices behind it are the platform
     // owner's, edited on the owner console (spec 0007, D8).
     Route::get('settings/ai-usage', [AiUsageController::class, 'index'])->name('ai-usage.index');
+
+    // Settings → Interface languages: add any language to the top menu,
+    // translated by AI or by hand (client request 2026-10-03).
+    Route::get('settings/interface-languages', [InterfaceLanguagesController::class, 'index'])->name('interface-languages.index');
+    Route::post('settings/interface-languages', [InterfaceLanguagesController::class, 'store'])->name('interface-languages.store');
+    Route::patch('settings/interface-languages/{language}', [InterfaceLanguagesController::class, 'update'])->name('interface-languages.update');
+    Route::delete('settings/interface-languages/{language}', [InterfaceLanguagesController::class, 'destroy'])->name('interface-languages.destroy');
+    Route::post('settings/interface-languages/{language}/generate', [InterfaceLanguagesController::class, 'generate'])
+        ->middleware('throttle:60,1')
+        ->name('interface-languages.generate');
+    Route::patch('settings/interface-languages/{language}/strings', [InterfaceLanguagesController::class, 'updateString'])->name('interface-languages.strings.update');
+    Route::get('settings/interface-languages/{language}/export', [InterfaceLanguagesController::class, 'export'])->name('interface-languages.export');
+    Route::post('settings/interface-languages/{language}/import', [InterfaceLanguagesController::class, 'import'])->name('interface-languages.import');
 });
 
 // Settings → Email: the SMTP mailbox every email is sent from, Super Admin

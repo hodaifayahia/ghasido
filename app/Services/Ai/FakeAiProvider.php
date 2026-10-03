@@ -10,6 +10,7 @@ use App\Contracts\ChecksConnection;
 use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
 use App\Contracts\DashboardBriefingDraft;
+use App\Contracts\InterfaceTranslationDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
 use App\Contracts\PronunciationCoaching;
@@ -182,6 +183,14 @@ final class FakeAiProvider implements AiProvider, ChecksConnection
             text: $language === 'Arabic'
                 ? sprintf('(ترجمة تجريبية) %s', trim($english))
                 : sprintf('(%s draft) %s', $language, trim($english)),
+            usage: AiUsageInfo::none(),
+        );
+    }
+
+    public function translateInterfaceStrings(array $strings, string $language): InterfaceTranslationDraft
+    {
+        return new InterfaceTranslationDraft(
+            texts: array_map(fn (string $english): string => sprintf('[%s] %s', $language, $english), $strings),
             usage: AiUsageInfo::none(),
         );
     }

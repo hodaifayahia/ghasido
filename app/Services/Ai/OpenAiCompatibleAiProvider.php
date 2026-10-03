@@ -10,6 +10,7 @@ use App\Contracts\ChecksConnection;
 use App\Contracts\CoachingSummary;
 use App\Contracts\CourseOutline;
 use App\Contracts\DashboardBriefingDraft;
+use App\Contracts\InterfaceTranslationDraft;
 use App\Contracts\LessonDraft;
 use App\Contracts\LexiconDraft;
 use App\Contracts\PronunciationCoaching;
@@ -212,6 +213,16 @@ final class OpenAiCompatibleAiProvider implements AiProvider, ChecksConnection
         return new TextTranslationDraft(
             // "arabic" is what the prompt asked for before other languages.
             text: $this->string($data, 'translation', $this->string($data, 'arabic', '')),
+            usage: $result['usage'],
+        );
+    }
+
+    public function translateInterfaceStrings(array $strings, string $language): InterfaceTranslationDraft
+    {
+        $result = $this->complete($this->interfaceTranslationSystemPrompt($language), $this->interfaceTranslationMessages($strings));
+
+        return new InterfaceTranslationDraft(
+            texts: $this->interfaceTranslations($this->decodeJson($result['text']), $strings),
             usage: $result['usage'],
         );
     }

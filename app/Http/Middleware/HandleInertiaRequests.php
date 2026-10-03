@@ -12,6 +12,7 @@ use App\Models\HotelAiPointTopUpRequest;
 use App\Models\PaymentSubmission;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Services\I18n\InterfaceLanguages;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\TrainingDepartments;
 use App\Services\Meaning\HelperLanguages;
@@ -239,6 +240,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => [
                 'current' => app()->getLocale(),
                 'direction' => Locales::direction(app()->getLocale()),
+                // The menu's languages: English, Arabic and those added in
+                // Settings (client request 2026-10-03).
+                'available' => InterfaceLanguages::options(),
             ],
             // The Payments nav badge (client request 2026-09-27).
             'pendingPayments' => $pendingPayments,

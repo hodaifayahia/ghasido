@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\I18n\InterfaceLanguages;
+
 /**
  * The interface languages (I18N-02, user request 2026-09-26): English, the
  * default, and Arabic, laid out right to left. Learning content itself stays
@@ -24,13 +26,17 @@ final class Locales
     /** @var list<string> */
     public const array RTL = ['ar'];
 
+    /**
+     * English, Arabic, and any language added and enabled in Settings
+     * (client request 2026-10-03).
+     */
     public static function isSupported(mixed $locale): bool
     {
-        return is_string($locale) && in_array($locale, self::SUPPORTED, true);
+        return is_string($locale) && in_array($locale, InterfaceLanguages::codes(), true);
     }
 
     public static function direction(string $locale): string
     {
-        return in_array($locale, self::RTL, true) ? 'rtl' : 'ltr';
+        return in_array($locale, self::RTL, true) ? 'rtl' : InterfaceLanguages::direction($locale);
     }
 }

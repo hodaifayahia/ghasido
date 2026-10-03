@@ -1,5 +1,8 @@
 import { router } from '@inertiajs/vue3';
-import { update as updateLocale } from '@/routes/locale';
+import {
+    messages as localeMessages,
+    update as updateLocale,
+} from '@/routes/locale';
 import { computed, ref } from 'vue';
 import type { App, ComputedRef } from 'vue';
 
@@ -19,28 +22,81 @@ import type { App, ComputedRef } from 'vue';
  * Arabic lives behind Show Meaning (I18N-01, CTRL-01).
  */
 
-export type Locale = 'en' | 'ar';
+/**
+ * A language code: English and Arabic are built in; the Super Admin adds
+ * others in Settings → Interface languages (client request 2026-10-03).
+ */
+export type Locale = string;
+
+/** One language of the menu, from the shared `locale.available` prop. */
+export type LocaleOption = {
+    code: string;
+    name: string;
+    native: string;
+    dir: 'ltr' | 'rtl';
+    flag: string | null;
+};
 
 export type Replacements = Record<string, string | number>;
 
 type Messages = Record<string, string>;
 
-const loaders: Record<Locale, () => Promise<Messages>> = {
+const builtInLoaders: Record<string, () => Promise<Messages>> = {
     // English needs only its few context keys (an English word that means
     // two things, such as "Clear" the status and "Clear" the button).
     en: async () => (await import('../../../lang/en.json')).default as Messages,
     ar: async () => (await import('../../../lang/ar.json')).default as Messages,
 };
 
+/** An added language's strings come from the server, as JSON. */
+async function loadMessages(locale: Locale): Promise<Messages> {
+    const builtIn = builtInLoaders[locale];
+
+    if (builtIn !== undefined) {
+        return builtIn();
+    }
+
+    try {
+        const response = await fetch(localeMessages.url(locale), {
+            headers: { Accept: 'application/json' },
+        });
+
+        return response.ok ? ((await response.json()) as Messages) : {};
+    } catch {
+        // Offline or removed: the English text shows instead.
+        return {};
+    }
+}
+
 const messages = ref<Messages>({});
 const current = ref<Locale>('en');
+const directions = ref<Record<string, 'ltr' | 'rtl'>>({
+    en: 'ltr',
+    ar: 'rtl',
+});
 
 export function isLocale(value: unknown): value is Locale {
-    return value === 'en' || value === 'ar';
+    return (
+        typeof value === 'string' &&
+        /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(value)
+    );
+}
+
+/** Remember each language's direction from the shared `locale` prop. */
+export function registerLocales(options: LocaleOption[] | undefined): void {
+    if (options === undefined) {
+        return;
+    }
+
+    directions.value = Object.fromEntries([
+        ['en', 'ltr'],
+        ['ar', 'rtl'],
+        ...options.map((option) => [option.code, option.dir]),
+    ]);
 }
 
 export function directionOf(locale: Locale): 'ltr' | 'rtl' {
-    return locale === 'ar' ? 'rtl' : 'ltr';
+    return directions.value[locale] ?? 'ltr';
 }
 
 function replace(text: string, replacements?: Replacements): string {
@@ -74,7 +130,11 @@ export function t(key: string, replacements?: Replacements): string {
  * prices keep their own formats.
  */
 export function intlLocale(): string {
-    return current.value === 'ar' ? 'ar-DZ' : 'en-GB';
+    if (current.value === 'ar') {
+        return 'ar-DZ';
+    }
+
+    return current.value === 'en' ? 'en-GB' : current.value;
 }
 
 /**
@@ -143,7 +203,7 @@ function applyToDocument(locale: Locale): void {
 
 /** Load a language's strings and apply its direction to the page. */
 export async function setLocale(locale: Locale): Promise<void> {
-    messages.value = await loaders[locale]();
+    messages.value = await loadMessages(locale);
     current.value = locale;
     applyToDocument(locale);
 }
@@ -177,12 +237,19 @@ export async function initializeI18n(): Promise<void> {
     const initial =
         typeof document === 'undefined' ? 'en' : document.documentElement.lang;
 
+    if (typeof document !== 'undefined' && isLocale(initial)) {
+        directions.value[initial] =
+            document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr';
+    }
+
     await setLocale(isLocale(initial) ? initial : 'en');
 
     router.on('success', (event) => {
-        const locale = (
-            event.detail.page.props.locale as { current?: unknown } | undefined
-        )?.current;
+        const props = event.detail.page.props.locale as
+            | { current?: unknown; available?: LocaleOption[] }
+            | undefined;
+        registerLocales(props?.available);
+        const locale = props?.current;
 
         if (isLocale(locale) && locale !== current.value) {
             void setLocale(locale);
@@ -210,6 +277,6 @@ export function useI18n(): UseI18nReturn {
         tc,
         switchLocale,
         locale: computed(() => current.value),
-        isRtl: computed(() => current.value === 'ar'),
+        isRtl: computed(() => directionOf(current.value) === 'rtl'),
     };
 }

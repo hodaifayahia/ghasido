@@ -3,7 +3,9 @@
 // user's request, 2026-09-30): the admin topbar's language box (111×46 at x 1147 / y 15
 // on the approved Admin Dashboard mockup, AGENTS.md §0.4), extracted here so
 // the lesson top bar reuses the same control (spec 0003 H.1).
+import { usePage } from '@inertiajs/vue3';
 import { ChevronDown, Globe } from '@lucide/vue';
+import { computed, watchEffect } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import {
     DropdownMenu,
@@ -13,7 +15,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/composables/useI18n';
-import type { Locale } from '@/lib/i18n';
+import { registerLocales } from '@/lib/i18n';
+import type { Locale, LocaleOption } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -27,14 +30,24 @@ type Props = {
 
 const props = defineProps<Props>();
 
-// The interface language, English or Arabic (I18N-02). Each language names
-// itself, so a reader of either can always find their own.
+// The interface language (I18N-02): English, Arabic, and any language the
+// Super Admin added in Settings (client request 2026-10-03). Each language
+// names itself, so a reader of any can always find their own.
 const { t, locale, switchLocale } = useI18n();
+const page = usePage();
 
-const languages: { value: Locale; code: string; name: string }[] = [
-    { value: 'en', code: 'EN', name: 'English' },
-    { value: 'ar', code: 'AR', name: 'العربية' },
+const builtIn: LocaleOption[] = [
+    { code: 'en', name: 'English', native: 'English', dir: 'ltr', flag: 'gb' },
+    { code: 'ar', name: 'Arabic', native: 'العربية', dir: 'rtl', flag: 'dz' },
 ];
+
+const languages = computed(
+    (): LocaleOption[] => page.props.locale?.available ?? builtIn,
+);
+
+watchEffect(() => registerLocales(languages.value));
+
+const currentCode = computed(() => locale.value.slice(0, 2).toUpperCase());
 
 function choose(value: Locale): void {
     void switchLocale(value);
@@ -74,7 +87,7 @@ function choose(value: Locale): void {
                         )
                     "
                 >
-                    {{ locale === 'ar' ? 'AR' : 'EN' }}
+                    {{ currentCode }}
                 </span>
                 <ChevronDown
                     :class="
@@ -97,16 +110,23 @@ function choose(value: Locale): void {
             </DropdownMenuLabel>
             <DropdownMenuCheckboxItem
                 v-for="language in languages"
-                :key="language.value"
-                :model-value="locale === language.value"
-                :data-test="`language-${language.value}`"
-                @select="choose(language.value)"
+                :key="language.code"
+                :model-value="locale === language.code"
+                :data-test="`language-${language.code}`"
+                @select="choose(language.code)"
             >
-                <span
-                    :lang="language.value"
-                    :dir="language.value === 'ar' ? 'rtl' : 'ltr'"
-                    >{{ language.name }}</span
-                >
+                <span class="flex min-w-0 items-center gap-2">
+                    <img
+                        v-if="language.flag"
+                        :src="`/flags/${language.flag}.svg`"
+                        alt=""
+                        aria-hidden="true"
+                        class="h-3.5 w-5 shrink-0 rounded-[2px] object-cover"
+                    />
+                    <span :lang="language.code" :dir="language.dir">{{
+                        language.native
+                    }}</span>
+                </span>
             </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
     </DropdownMenu>

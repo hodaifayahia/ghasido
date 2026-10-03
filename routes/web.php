@@ -23,6 +23,9 @@ use Inertia\Inertia;
 Route::get('/', LandingPageController::class)->name('home');
 
 // English or Arabic interface (I18N-02), for guests and signed-in users.
+Route::get('locale/{code}/messages', [LocaleController::class, 'messages'])
+    ->where('code', '[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?')
+    ->name('locale.messages');
 Route::put('locale', [LocaleController::class, 'update'])
     ->middleware('throttle:30,1')
     ->name('locale.update');
