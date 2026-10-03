@@ -147,7 +147,10 @@ class RoleplayController extends Controller
             'difficulty' => $scenario->difficulty->value,
             'icon' => $scenario->icon,
             'thumbnail' => $this->resolver->media($thumbnail),
-            'situation' => $scenario->situation,
+            // The description stands in when no separate situation was
+            // written, so the learner always sees the scene (client report
+            // 2026-10-02).
+            'situation' => filled(trim((string) $scenario->situation)) ? $scenario->situation : strip_tags((string) $scenario->description),
             'yourRole' => $scenario->employee_role,
             'guestRole' => $scenario->ai_role,
             'objective' => $scenario->objective,

@@ -54,6 +54,7 @@ const situation = ref(props.editor.situation ?? '');
 const guestRole = ref(props.editor.guestRole);
 const employeeRole = ref(props.editor.employeeRole);
 const objective = ref(props.editor.objective ?? '');
+const openingLine = ref(props.editor.openingLine ?? '');
 const goals = ref([...props.editor.objectives]);
 const newObjective = ref('');
 const addingObjective = ref(false);
@@ -73,6 +74,7 @@ watch(
         guestRole.value = editor.guestRole;
         employeeRole.value = editor.employeeRole;
         objective.value = editor.objective ?? '';
+        openingLine.value = editor.openingLine ?? '';
         goals.value = [...editor.objectives];
         clearCoverPreview();
         newObjective.value = '';
@@ -107,6 +109,7 @@ function save(settings?: AiScenarioSavePayload['settings']): void {
         ai_role: guestRole.value.trim(),
         employee_role: employeeRole.value.trim(),
         objective: objective.value.trim(),
+        opening_line: openingLine.value.trim(),
         goals: goals.value.map((goal) => goal.trim()).filter(Boolean),
         useful_phrases: props.editor.usefulPhrases ?? [],
         ...(settings ? { settings } : {}),
@@ -563,27 +566,64 @@ onBeforeUnmount(clearCoverPreview);
                 </div>
             </div>
 
+            <!-- What the AI acts out (client report 2026-10-02: the roles
+                 could not be written, so every conversation fell back to
+                 the same check-in). Each field goes into the AI's brief. -->
+            <div class="grid gap-1.5">
+                <label
+                    for="scenario-situation"
+                    class="text-brand-900 text-[12px] font-semibold"
+                >
+                    {{ $t('Situation *') }}
+                </label>
+                <textarea
+                    id="scenario-situation"
+                    v-model="situation"
+                    rows="3"
+                    maxlength="2000"
+                    :placeholder="
+                        $t(
+                            'What is happening? Example: A guest calls reception at 11 pm because the air conditioning in room 305 is not working.',
+                        )
+                    "
+                    data-test="scenario-situation"
+                    class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-[84px] w-full resize-y rounded-md border px-3 py-2 text-[13px] leading-[1.6] focus-visible:ring-3 focus-visible:outline-none"
+                />
+            </div>
+
             <div class="grid gap-3 md:grid-cols-2">
                 <section
-                    class="border-line bg-surface rounded-md border px-3 py-3"
+                    class="border-line bg-surface grid gap-2 rounded-md border px-3 py-3"
                 >
-                    <h3 class="text-brand-900 text-[12px] font-semibold">
-                        {{ $t('AI Role (Guest) *') }}
-                    </h3>
-                    <div class="mt-2 flex items-start gap-2.5">
+                    <label
+                        for="scenario-ai-role"
+                        class="text-brand-900 flex items-center gap-2 text-[12px] font-semibold"
+                    >
                         <span
-                            class="bg-ai/12 text-ai rounded-pill grid size-8 shrink-0 place-items-center"
+                            class="bg-ai/12 text-ai rounded-pill grid size-7 shrink-0 place-items-center"
+                            aria-hidden="true"
                         >
-                            <Sparkles class="size-4" aria-hidden="true" />
+                            <Sparkles class="size-3.5" />
                         </span>
-                        <p class="text-ink text-[12px] leading-[1.45]">
-                            {{ guestRole }}
-                        </p>
-                    </div>
+                        {{ $t('AI Role (Guest) *') }}
+                    </label>
+                    <textarea
+                        id="scenario-ai-role"
+                        v-model="guestRole"
+                        rows="4"
+                        maxlength="2000"
+                        :placeholder="
+                            $t(
+                                'Who the AI plays and how they behave. Example: A tired business guest, impatient, who wants a quick solution.',
+                            )
+                        "
+                        data-test="scenario-ai-role"
+                        class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-[96px] w-full resize-y rounded-md border px-3 py-2 text-[12.5px] leading-[1.5] focus-visible:ring-3 focus-visible:outline-none"
+                    />
                     <Button
                         type="button"
                         variant="outline"
-                        class="border-line text-brand-700 hover:bg-brand-50 mt-3 h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                        class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 justify-self-start rounded-md px-3 text-[12px] font-semibold shadow-none"
                         @click="emit('open-instructions')"
                     >
                         <Sparkles class="size-3.5" aria-hidden="true" />
@@ -592,22 +632,77 @@ onBeforeUnmount(clearCoverPreview);
                 </section>
 
                 <section
-                    class="border-line bg-surface rounded-md border px-3 py-3"
+                    class="border-line bg-surface grid gap-2 rounded-md border px-3 py-3"
                 >
-                    <h3 class="text-brand-900 text-[12px] font-semibold">
-                        {{ $t('Employee Role (User) *') }}
-                    </h3>
-                    <div class="mt-2 flex items-start gap-2.5">
+                    <label
+                        for="scenario-employee-role"
+                        class="text-brand-900 flex items-center gap-2 text-[12px] font-semibold"
+                    >
                         <span
-                            class="bg-success-tint text-success rounded-pill grid size-8 shrink-0 place-items-center"
+                            class="bg-success-tint text-success rounded-pill grid size-7 shrink-0 place-items-center"
+                            aria-hidden="true"
                         >
-                            <User class="size-4" aria-hidden="true" />
+                            <User class="size-3.5" />
                         </span>
-                        <p class="text-ink text-[12px] leading-[1.45]">
-                            {{ employeeRole }}
-                        </p>
-                    </div>
+                        {{ $t('Employee Role (User) *') }}
+                    </label>
+                    <textarea
+                        id="scenario-employee-role"
+                        v-model="employeeRole"
+                        rows="4"
+                        maxlength="2000"
+                        :placeholder="
+                            $t(
+                                'Who the learner is. Example: The night receptionist who must calm the guest and offer a solution.',
+                            )
+                        "
+                        data-test="scenario-employee-role"
+                        class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-[96px] w-full resize-y rounded-md border px-3 py-2 text-[12.5px] leading-[1.5] focus-visible:ring-3 focus-visible:outline-none"
+                    />
                 </section>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <div class="grid gap-1.5">
+                    <label
+                        for="scenario-objective"
+                        class="text-brand-900 text-[12px] font-semibold"
+                    >
+                        {{ $t('Main objective *') }}
+                    </label>
+                    <Input
+                        id="scenario-objective"
+                        v-model="objective"
+                        maxlength="500"
+                        :placeholder="
+                            $t(
+                                'Example: Solve the problem and keep the guest happy.',
+                            )
+                        "
+                        data-test="scenario-objective"
+                        class="border-line h-10 text-[12.5px]"
+                    />
+                </div>
+                <div class="grid gap-1.5">
+                    <label
+                        for="scenario-opening-line"
+                        class="text-brand-900 text-[12px] font-semibold"
+                    >
+                        {{ $t("Guest's first line (calls)") }}
+                    </label>
+                    <Input
+                        id="scenario-opening-line"
+                        v-model="openingLine"
+                        maxlength="200"
+                        :placeholder="
+                            $t(
+                                'Example: Hello, my air conditioning is not working!',
+                            )
+                        "
+                        data-test="scenario-opening-line"
+                        class="border-line h-10 text-[12.5px]"
+                    />
+                </div>
             </div>
 
             <div class="grid gap-2">

@@ -798,6 +798,7 @@ class AiScenariosController extends Controller
             'objectives' => $goals,
             'situation' => $scenario->situation,
             'objective' => $scenario->objective,
+            'openingLine' => app(VoiceAgentSettings::class)->scenarioOverrides($scenario)['greeting'] ?? '',
             'usefulPhrases' => $scenario->useful_phrases ?? [],
             'aiStatus' => $scenario->ai_status?->value,
             'aiDraft' => $scenario->ai_draft,

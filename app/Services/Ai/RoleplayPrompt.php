@@ -61,7 +61,9 @@ final class RoleplayPrompt
     {
         $lines = [
             'Scenario: '.trim($scenario->title),
-            'Situation: '.trim($scenario->situation),
+            // The editor's description stands in when no separate situation
+            // was written (client report 2026-10-02).
+            'Situation: '.trim(filled(trim((string) $scenario->situation)) ? (string) $scenario->situation : strip_tags((string) $scenario->description)),
             'Your character (the guest): '.trim($scenario->ai_role),
             'The learner\'s role (the employee): '.trim($scenario->employee_role),
             'The employee\'s objective: '.trim($scenario->objective),

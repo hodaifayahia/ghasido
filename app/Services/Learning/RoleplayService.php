@@ -79,7 +79,7 @@ class RoleplayService
         // inactivity reminder all read the same fact.
         $this->progress->touch($user);
 
-        GenerateRoleplayReply::dispatch($attempt->id);
+        self::replySoon($attempt->id);
 
         return $attempt;
     }
@@ -107,7 +107,7 @@ class RoleplayService
         $attempt->forceFill(['pending_reply' => true])->save();
         $this->progress->touch($user);
 
-        GenerateRoleplayReply::dispatch($attempt->id);
+        self::replySoon($attempt->id);
 
         return false;
     }
@@ -140,7 +140,23 @@ class RoleplayService
 
         // The admin preview scores inline instead (AiScenarioPreviewController).
         if ($queueEvaluation) {
-            EvaluateRoleplayAttempt::dispatch($attempt->id);
+            // Right after the response, like the reply: feedback never waits
+            // on a queue worker the host may not run.
+            EvaluateRoleplayAttempt::dispatchAfterResponse($attempt->id);
         }
+    }
+
+    /**
+     * The guest's next written line, written right after the response
+     * instead of on the queue (client report 2026-10-02: "writing does not
+     * work, only speaking"): voice replies were already answered inside the
+     * request, but typed ones waited for a queue worker the host may not
+     * run. The chat page polls `pending_reply` as before (PERF-04).
+     */
+    public static function replySoon(int $attemptId): void
+    {
+        @set_time_limit(180);
+
+        GenerateRoleplayReply::dispatchAfterResponse($attemptId);
     }
 }

@@ -4338,5 +4338,13 @@
     "A Hotel Admin manages this hotel only: its employees, departments, AI points and reports.": "يدير مسؤول الفندق هذا الفندق فقط: موظفيه وأقسامه ونقاط الذكاء الاصطناعي وتقاريره.",
     "Choose the hotel this Hotel Admin works for.": "اختر الفندق الذي يعمل له مسؤول الفندق هذا.",
     "No hotel (platform team)": "بدون فندق (فريق المنصة)",
-    "Pick a hotel to limit this role to that hotel, or leave it empty for the platform team.": "اختر فندقاً لحصر هذا الدور فيه، أو اتركه فارغاً لفريق المنصة."
+    "Pick a hotel to limit this role to that hotel, or leave it empty for the platform team.": "اختر فندقاً لحصر هذا الدور فيه، أو اتركه فارغاً لفريق المنصة.",
+    "Example: Hello, my air conditioning is not working!": "مثال: مرحباً، المكيّف في غرفتي لا يعمل!",
+    "Example: Solve the problem and keep the guest happy.": "مثال: حلّ المشكلة وحافظ على رضا الضيف.",
+    "Guest's first line (calls)": "أول جملة يقولها الضيف (المكالمات)",
+    "Main objective *": "الهدف الرئيسي *",
+    "Situation *": "الموقف *",
+    "What is happening? Example: A guest calls reception at 11 pm because the air conditioning in room 305 is not working.": "ماذا يحدث؟ مثال: يتصل ضيف بالاستقبال في الساعة 11 ليلاً لأن المكيّف في الغرفة 305 لا يعمل.",
+    "Who the AI plays and how they behave. Example: A tired business guest, impatient, who wants a quick solution.": "من يمثّل الذكاء الاصطناعي وكيف يتصرّف. مثال: ضيف أعمال متعب وقليل الصبر يريد حلاً سريعاً.",
+    "Who the learner is. Example: The night receptionist who must calm the guest and offer a solution.": "من هو المتعلّم. مثال: موظف الاستقبال الليلي الذي يجب أن يهدّئ الضيف ويقدّم حلاً."
 }

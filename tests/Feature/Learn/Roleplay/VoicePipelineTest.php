@@ -129,7 +129,7 @@ class VoicePipelineTest extends TestCase
             'status' => RoleplayStatus::InProgress,
             'channel' => RoleplayAttempt::CHANNEL_VOICE_CALL,
             'voice_engine' => 'pipeline',
-            'transcript' => [['role' => 'guest', 'text' => 'Hello! How may I help you?', 'seq' => 0, 'at' => now()->toIso8601String()]],
+            'transcript' => [['role' => 'guest', 'text' => 'Hello! Excuse me, could you help me, please?', 'seq' => 0, 'at' => now()->toIso8601String()]],
         ]);
     }
 
@@ -154,7 +154,7 @@ class VoicePipelineTest extends TestCase
             ->assertJsonPath('session.token', 'temporary-grant')
             ->assertJsonPath('session.inputSampleRate', 16000)
             ->assertJsonPath('session.chunkMs', 80)
-            ->assertJsonPath('session.greeting.text', 'Hello! How may I help you?');
+            ->assertJsonPath('session.greeting.text', 'Hello! Excuse me, could you help me, please?');
 
         $attempt = RoleplayAttempt::query()->where('user_id', $learner->id)->firstOrFail();
         $response->assertJsonPath('replyUrl', route('learn.roleplay.voice.reply', ['attempt' => $attempt->id]));
@@ -176,7 +176,7 @@ class VoicePipelineTest extends TestCase
         // The first call streams the greeting; its recording is queued, and
         // every call after plays it from storage.
         $response->assertJsonPath('session.greeting.audioUrl', null);
-        $this->assertDatabaseHas('voice_lines', ['ai_scenario_id' => $this->scenario->id, 'text' => 'Hello! How may I help you?', 'reusable' => false]);
+        $this->assertDatabaseHas('voice_lines', ['ai_scenario_id' => $this->scenario->id, 'text' => 'Hello! Excuse me, could you help me, please?', 'reusable' => false]);
         Queue::assertPushed(RecordVoiceLine::class);
         Queue::assertPushed(WarmVoiceLines::class, fn (WarmVoiceLines $job): bool => $job->voice === self::VOICE);
 

@@ -9,6 +9,7 @@ use App\Models\AiScenarioConfiguration;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\Ai\RoleplayPrompt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -160,5 +161,52 @@ class AiScenarioActionsTest extends TestCase
             'Stay in character as {{ai_role}}.',
             AiScenarioConfiguration::query()->where('key', 'instructions')->firstOrFail()->value['systemPrompt'],
         );
+    }
+
+    public function test_the_editor_saves_the_scene_the_roles_and_the_first_line()
+    {
+        // Client report 2026-10-02: the roles could not be written, so
+        // every conversation fell back to the same check-in.
+        $scenario = AiScenario::factory()->create([
+            'department_id' => $this->department->id,
+            'settings' => ['feedback_style' => 'encouraging'],
+        ]);
+
+        $this->actingAs($this->owner)
+            ->patch(route('ai-scenarios.update', $scenario), [
+                'title' => 'Broken air conditioning',
+                'department_id' => $this->department->id,
+                'difficulty' => 'intermediate',
+                'description' => 'A night call about room 305.',
+                'situation' => 'A guest calls reception at 11 pm: the air conditioning in room 305 is not working.',
+                'ai_role' => 'A tired, impatient business guest who wants a fast solution.',
+                'employee_role' => 'The night receptionist who calms the guest and offers a solution.',
+                'objective' => 'Solve the problem and keep the guest happy.',
+                'opening_line' => 'Hello? My air conditioning is not working!',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $scenario->refresh();
+        $this->assertStringContainsString('room 305', $scenario->situation);
+        $this->assertStringContainsString('impatient', $scenario->ai_role);
+        $this->assertSame('Solve the problem and keep the guest happy.', $scenario->objective);
+        $this->assertSame('Hello? My air conditioning is not working!', $scenario->settings['voice_agent']['greeting'] ?? null);
+        // The feedback panel's settings are kept.
+        $this->assertSame('encouraging', $scenario->settings['feedback_style'] ?? null);
+
+        $brief = RoleplayPrompt::brief($scenario);
+        $this->assertStringContainsString('Situation: A guest calls reception at 11 pm', $brief);
+        $this->assertStringContainsString('impatient business guest', $brief);
+    }
+
+    public function test_the_description_stands_in_for_an_empty_situation()
+    {
+        $scenario = AiScenario::factory()->create([
+            'department_id' => $this->department->id,
+            'situation' => '',
+            'description' => 'A guest asks for a late checkout.',
+        ]);
+
+        $this->assertStringContainsString('Situation: A guest asks for a late checkout.', RoleplayPrompt::brief($scenario));
     }
 }

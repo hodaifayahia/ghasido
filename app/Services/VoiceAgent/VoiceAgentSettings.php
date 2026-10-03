@@ -107,7 +107,11 @@ final class VoiceAgentSettings
         'thinkProvider' => 'open_ai',
         'thinkModel' => 'gpt-4o-mini',
         'temperature' => 0.7,
-        'greeting' => 'Hello! How may I help you?',
+        // A guest's line, not a receptionist's (client report 2026-10-02:
+        // the old "How may I help you?" made every call sound the same and
+        // put the guest in the employee's place). Each scenario can set its
+        // own opening line in the editor.
+        'greeting' => 'Hello! Excuse me, could you help me, please?',
         'prompt' => '',
         'maxCallSeconds' => 300,
         // Flux's native rate: a third of the upload of 48 kHz, which on a
@@ -419,7 +423,9 @@ final class VoiceAgentSettings
             'thinkProvider' => $string('thinkProvider', $d['thinkProvider'], self::THINK_PROVIDERS),
             'thinkModel' => $string('thinkModel', $d['thinkModel']),
             'temperature' => $number('temperature', $d['temperature'], 0, 2),
-            'greeting' => $string('greeting', $d['greeting']),
+            // The old receptionist-like default, saved before 2026-10-02,
+            // reads as the new guest default.
+            'greeting' => ($greeting = $string('greeting', $d['greeting'])) === 'Hello! How may I help you?' ? $d['greeting'] : $greeting,
             'prompt' => is_string($raw['prompt'] ?? null) ? trim($raw['prompt']) : $d['prompt'],
             'maxCallSeconds' => $maxCall,
             'inputSampleRate' => $integer('inputSampleRate', $d['inputSampleRate'], self::INPUT_SAMPLE_RATES),

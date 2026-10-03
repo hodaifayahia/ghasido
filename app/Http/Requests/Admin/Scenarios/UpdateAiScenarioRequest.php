@@ -38,6 +38,9 @@ class UpdateAiScenarioRequest extends FormRequest
             'attempts_allowed' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'min_turns' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'max_turns' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            // The guest's first line in a call (client report 2026-10-02:
+            // every call opened with the same staff-like greeting).
+            'opening_line' => ['nullable', 'string', 'max:200'],
             'settings' => ['sometimes', 'array'],
             'settings.attempts_allowed' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'settings.feedback_style' => ['sometimes', 'string', 'max:50'],
@@ -74,6 +77,27 @@ class UpdateAiScenarioRequest extends FormRequest
             $data['attempts_allowed'] = (int) $data['settings']['attempts_allowed'];
             unset($data['settings']['attempts_allowed']);
         }
+
+        // Settings are merged into what the scenario already holds, so a
+        // save from one panel never drops another panel's (the voice agent
+        // overrides, the feedback options).
+        $scenario = $this->route('scenario');
+        $current = $scenario instanceof AiScenario && is_array($scenario->settings) ? $scenario->settings : [];
+
+        if (array_key_exists('settings', $data) || array_key_exists('opening_line', $data)) {
+            $settings = array_replace($current, is_array($data['settings'] ?? null) ? $data['settings'] : []);
+
+            if (array_key_exists('opening_line', $data)) {
+                $voice = is_array($settings['voice_agent'] ?? null) ? $settings['voice_agent'] : [];
+                $line = trim((string) $data['opening_line']);
+                $voice['greeting'] = $line !== '' ? $line : null;
+                $settings['voice_agent'] = $voice;
+            }
+
+            $data['settings'] = $settings;
+        }
+
+        unset($data['opening_line']);
 
         return $data;
     }

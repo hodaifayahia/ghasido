@@ -14,6 +14,7 @@ use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\VoiceAgent\VoiceCallService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\Feature\Learn\BuildsLearnerFixtures;
 use Tests\TestCase;
@@ -108,6 +109,31 @@ class RoleplayFlowTest extends TestCase
         $this->assertSame('Good afternoon!', $attempt->transcript[0]['text']);
 
         Queue::assertPushed(GenerateRoleplayReply::class);
+    }
+
+    public function test_a_written_message_is_answered_without_a_queue_worker()
+    {
+        // Client report 2026-10-02: "only speaking works, writing does
+        // not". On a host with no worker the database queue never ran the
+        // reply; it now runs right after the response.
+        config(['queue.default' => 'database']);
+        $learner = $this->learner();
+        $attempt = RoleplayAttempt::factory()->create([
+            'user_id' => $learner->id,
+            'ai_scenario_id' => $this->scenario->id,
+            'status' => RoleplayStatus::InProgress,
+            'transcript' => [],
+        ]);
+
+        $this->actingAs($learner)
+            ->post(route('learn.roleplay.message', ['attempt' => $attempt]), ['text' => 'Good afternoon!'])
+            ->assertRedirect();
+
+        $attempt->refresh();
+        $this->assertFalse($attempt->pending_reply);
+        $this->assertCount(2, $attempt->transcript);
+        $this->assertNotSame('employee', $attempt->transcript[1]['role']);
+        $this->assertFalse(DB::table('jobs')->where('payload', 'like', '%GenerateRoleplayReply%')->exists());
     }
 
     public function test_the_scenarios_reply_bound_is_enforced_on_the_server()
