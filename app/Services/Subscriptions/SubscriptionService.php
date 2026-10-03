@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 /** Super Admin plan catalog and hotel assignments (SUB-01..05, AIL-01). */
 final class SubscriptionService
 {
-    /** @param array{name: string, employee_limit: int, price_dzd: int, price_usd?: float, extra_points_price_dzd?: int, extra_points_price_usd?: float, extra_seat_price_dzd?: int, extra_seat_price_usd?: float, points_per_employee: int, bonus_points_per_employee: int, voice_points_per_10_minutes: int, ai_action_points: int, is_active: bool} $data */
+    /** @param array{name: string, employee_limit: int, price_dzd: int, price_usd?: float, extra_points_price_dzd?: int, extra_points_price_usd?: float, extra_seat_price_dzd?: int, extra_seat_price_usd?: float, points_per_employee: int, bonus_points_per_employee: int, points_pool_override?: int|null, voice_points_per_10_minutes: int, ai_action_points: int, is_active: bool} $data */
     public function updatePlan(SubscriptionPlan $plan, array $data): SubscriptionPlan
     {
         return DB::transaction(function () use ($plan, $data): SubscriptionPlan {
@@ -20,6 +20,7 @@ final class SubscriptionService
             if ($plan->isIndividual()) {
                 $data['employee_limit'] = 1;
                 $data['bonus_points_per_employee'] = 0;
+                $data['points_pool_override'] = null;
             }
 
             // Hotels always need a plan to sign up on. Individual plans may
@@ -33,7 +34,7 @@ final class SubscriptionService
             $before = $plan->only([
                 'name', 'employee_limit', 'price_dzd', 'price_usd', 'extra_points_price_dzd', 'extra_points_price_usd',
                 'extra_seat_price_dzd', 'extra_seat_price_usd', 'points_per_employee',
-                'bonus_points_per_employee', 'voice_points_per_10_minutes', 'ai_action_points', 'is_active',
+                'bonus_points_per_employee', 'points_pool_override', 'voice_points_per_10_minutes', 'ai_action_points', 'is_active',
             ]);
             $plan->fill($data)->save();
 

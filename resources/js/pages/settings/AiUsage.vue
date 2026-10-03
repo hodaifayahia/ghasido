@@ -432,5 +432,86 @@ const head = 'text-ink/90 px-2 text-start text-[12px] font-medium';
                 </table>
             </div>
         </PanelCard>
+
+        <!-- Who used the points and where (client request 2026-10-02). -->
+        <PanelCard :title="$t('By account')" title-id="usage-by-account">
+            <table class="w-full table-fixed border-collapse">
+                <thead class="bg-app-alt">
+                    <tr class="h-[26px]">
+                        <th scope="col" :class="head">{{ $t('Account') }}</th>
+                        <th
+                            scope="col"
+                            :class="cn(head, 'hidden md:table-cell')"
+                        >
+                            {{ $t('Where') }}
+                        </th>
+                        <th scope="col" :class="cn(head, 'w-24 text-end')">
+                            {{ $t('Points') }}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="row in report.byUser ?? []"
+                        :key="row.userId"
+                        class="border-line border-t align-top"
+                    >
+                        <td :class="cn(cell, 'min-w-0')">
+                            <span
+                                class="text-ink block truncate font-semibold"
+                                >{{ row.name }}</span
+                            >
+                            <span
+                                class="text-ink-slate block truncate text-[11px]"
+                                >{{
+                                    [row.username, row.hotel]
+                                        .filter(Boolean)
+                                        .join(' · ')
+                                }}</span
+                            >
+                            <span
+                                class="text-ink-slate block text-[11px] md:hidden"
+                                >{{
+                                    row.where
+                                        .map(
+                                            (place) =>
+                                                `${place.label}: ${number.format(place.points)}`,
+                                        )
+                                        .join(' · ')
+                                }}</span
+                            >
+                        </td>
+                        <td :class="cn(cell, 'hidden md:table-cell')">
+                            <ul class="grid gap-0.5">
+                                <li
+                                    v-for="place in row.where"
+                                    :key="place.label"
+                                    class="text-ink-slate text-[12px]"
+                                >
+                                    {{ place.label }}:
+                                    <span class="text-ink font-semibold">{{
+                                        number.format(place.points)
+                                    }}</span>
+                                    {{
+                                        $tc(
+                                            ':count call|:count calls',
+                                            place.calls,
+                                        )
+                                    }}
+                                </li>
+                            </ul>
+                        </td>
+                        <td :class="cn(cell, 'text-end font-semibold')">
+                            {{ number.format(row.points) }}
+                        </td>
+                    </tr>
+                    <tr v-if="(report.byUser ?? []).length === 0">
+                        <td colspan="3" :class="cell">
+                            {{ $t('No points used in this period.') }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </PanelCard>
     </div>
 </template>

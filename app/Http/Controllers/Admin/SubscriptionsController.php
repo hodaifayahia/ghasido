@@ -59,6 +59,8 @@ final class SubscriptionsController extends Controller
                 'extraSeatPriceUsd' => $plan->extra_seat_price_usd,
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
+                'pointsPoolOverride' => $plan->points_pool_override,
+                'calculatedPointPool' => $plan->calculatedPointsPool(),
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
                 'aiActionPoints' => $plan->ai_action_points,
                 'isActive' => $plan->is_active,

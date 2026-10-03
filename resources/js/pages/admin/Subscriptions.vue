@@ -35,6 +35,9 @@ type Plan = {
     extraSeatPriceUsd: number;
     pointsPerEmployee: number;
     bonusPointsPerEmployee: number;
+    /** The monthly total set directly; null = calculated from seats. */
+    pointsPoolOverride: number | null;
+    calculatedPointPool: number;
     voicePointsPer10Minutes: number;
     aiActionPoints: number;
     isActive: boolean;
@@ -99,6 +102,7 @@ const form = useForm({
     extra_seat_price_usd: 0,
     points_per_employee: 2000,
     bonus_points_per_employee: 1000,
+    points_pool_override: null as number | null,
     voice_points_per_10_minutes: 100,
     ai_action_points: 50,
     is_active: true,
@@ -169,6 +173,7 @@ function editPlan(plan: Plan): void {
     form.extra_seat_price_usd = plan.extraSeatPriceUsd;
     form.points_per_employee = plan.pointsPerEmployee;
     form.bonus_points_per_employee = plan.bonusPointsPerEmployee;
+    form.points_pool_override = plan.pointsPoolOverride;
     form.voice_points_per_10_minutes = plan.voicePointsPer10Minutes;
     form.ai_action_points = plan.aiActionPoints;
     form.is_active = plan.isActive;
@@ -1094,6 +1099,45 @@ function savePaymentMethod(): void {
                     <InputError
                         :message="form.errors.bonus_points_per_employee"
                     />
+                </label>
+                <!-- The monthly total, set directly (client request
+                     2026-10-02); empty keeps the calculation. -->
+                <label
+                    v-if="!editingIndividual"
+                    class="grid gap-1.5 sm:col-span-2"
+                >
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Total AI points per month for the hotel')
+                    }}</span>
+                    <input
+                        :value="form.points_pool_override ?? ''"
+                        type="number"
+                        min="1"
+                        :placeholder="
+                            String(
+                                (form.employee_limit || 0) *
+                                    ((form.points_per_employee || 0) +
+                                        (form.bonus_points_per_employee || 0)),
+                            )
+                        "
+                        data-test="plan-points-total"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                        @input="
+                            form.points_pool_override =
+                                ($event.target as HTMLInputElement).value === ''
+                                    ? null
+                                    : Number(
+                                          ($event.target as HTMLInputElement)
+                                              .value,
+                                      )
+                        "
+                    />
+                    <span class="text-ink-slate text-[11px] leading-4">{{
+                        $t(
+                            'Leave empty to calculate it: employees × (points per employee + shared points per seat). This total is what the plan shows and what the hotel shares.',
+                        )
+                    }}</span>
+                    <InputError :message="form.errors.points_pool_override" />
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{

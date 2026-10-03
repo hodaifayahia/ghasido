@@ -121,6 +121,16 @@ export type AiUsageReport = {
         calls: number;
         cost: number;
     }[];
+    /** Who used the points and where (client request 2026-10-02). */
+    byUser?: {
+        userId: number;
+        name: string;
+        username: string | null;
+        hotel: string | null;
+        points: number;
+        calls: number;
+        where: { label: string; points: number; calls: number }[];
+    }[];
     daily: { date: string; label: string; calls: number; cost: number }[];
     unpricedModels: string[];
 };

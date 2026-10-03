@@ -4375,5 +4375,15 @@
     "Something not working, or want to extend your plan? Write to us here; we answer as soon as we can.": "هل هناك ما لا يعمل، أو تريد تمديد اشتراكك؟ اكتب لنا هنا وسنردّ في أقرب وقت.",
     "Support request from :name": "طلب دعم من :name",
     "Your message": "رسالتك",
-    "Your message was sent to the GHASIDO team. We will get back to you soon.": "أُرسلت رسالتك إلى فريق GHASIDO. سنعود إليك قريباً."
+    "Your message was sent to the GHASIDO team. We will get back to you soon.": "أُرسلت رسالتك إلى فريق GHASIDO. سنعود إليك قريباً.",
+    ":count call|:count calls": ":count استدعاء|:count استدعاءات",
+    "By account": "حسب الحساب",
+    "Deleted account": "حساب محذوف",
+    "Leave empty to calculate it: employees × (points per employee + shared points per seat). This total is what the plan shows and what the hotel shares.": "اتركه فارغاً ليُحسب تلقائياً: الموظفون × (نقاط كل موظف + النقاط المشتركة لكل مقعد). هذا المجموع هو ما يظهر في الباقة وما يوزّعه الفندق.",
+    "No hotel has a subscription plan yet.": "لا يوجد فندق لديه باقة اشتراك بعد.",
+    "No points used in this period.": "لم تُستهلك أي نقاط في هذه الفترة.",
+    "Points": "النقاط",
+    "Total AI points per month for the hotel": "مجموع نقاط الذكاء الاصطناعي الشهرية للفندق",
+    "Voice calls (role-play)": "المكالمات الصوتية (لعب الأدوار)",
+    "Where": "أين"
 }

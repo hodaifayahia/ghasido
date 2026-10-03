@@ -24,6 +24,25 @@ final class EmployeeAiPointsController extends Controller
 
         /** @var User $actor */
         $actor = $request->user();
+
+        // The Super Admin shares any hotel's points too, picking the hotel
+        // (client request 2026-10-02: "a section like the manager's").
+        if ($actor->hasRole(Role::SuperAdmin->value)) {
+            $hotels = Hotel::query()->withoutGlobalScopes()->notArchived()->whereNotNull('subscription_plan_id')->orderBy('name')->get(['id', 'name']);
+            abort_if($hotels->isEmpty(), 404, __('No hotel has a subscription plan yet.'));
+
+            $hotel = Hotel::query()->withoutGlobalScopes()->find((int) $request->query('hotel', 0))
+                ?? Hotel::query()->withoutGlobalScopes()->findOrFail($hotels->firstOrFail()->id);
+
+            return Inertia::render('manager/AiPoints', [
+                ...$points->forHotel($hotel),
+                'hotelPicker' => [
+                    'current' => $hotel->id,
+                    'options' => $hotels->map(fn (Hotel $option): array => ['value' => $option->id, 'label' => $option->name])->values()->all(),
+                ],
+            ]);
+        }
+
         abort_unless(
             $actor->hasAnyRole([Role::Admin->value, Role::Manager->value])
                 && $actor->hotel_id !== null,
@@ -41,11 +60,15 @@ final class EmployeeAiPointsController extends Controller
 
         /** @var User $actor */
         $actor = $request->user();
+        $superAdmin = $actor->hasRole(Role::SuperAdmin->value);
         abort_unless(
-            $actor->hasAnyRole([Role::Admin->value, Role::Manager->value])
-                && $actor->hotel_id !== null
-                && $employee->hotel_id === $actor->hotel_id
-                && $employee->hasRole(Role::Employee->value),
+            $employee->hasRole(Role::Employee->value)
+                && $employee->hotel_id !== null
+                && ($superAdmin || (
+                    $actor->hasAnyRole([Role::Admin->value, Role::Manager->value])
+                    && $actor->hotel_id !== null
+                    && $employee->hotel_id === $actor->hotel_id
+                )),
             403,
         );
 
@@ -53,7 +76,7 @@ final class EmployeeAiPointsController extends Controller
             'ai_points_allocated' => ['required', 'integer', 'min:0', 'max:100000000'],
         ]);
 
-        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail($actor->hotel_id);
+        $hotel = Hotel::query()->withoutGlobalScopes()->findOrFail($employee->hotel_id);
         $points->updateAllocation($hotel, $employee, (int) $data['ai_points_allocated'], $actor);
 
         Inertia::flash('toast', [

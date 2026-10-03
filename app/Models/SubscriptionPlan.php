@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property float $extra_seat_price_usd
  * @property int $points_per_employee
  * @property int $bonus_points_per_employee
+ * @property int|null $points_pool_override the monthly total set directly; null = calculated
  * @property int $voice_points_per_10_minutes
  * @property int $ai_action_points
  * @property bool $is_active
@@ -46,6 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'extra_seat_price_usd',
     'points_per_employee',
     'bonus_points_per_employee',
+    'points_pool_override',
     'voice_points_per_10_minutes',
     'ai_action_points',
     'is_active',
@@ -66,6 +68,7 @@ class SubscriptionPlan extends Model
             'extra_seat_price_usd' => 'float',
             'points_per_employee' => 'integer',
             'bonus_points_per_employee' => 'integer',
+            'points_pool_override' => 'integer',
             'voice_points_per_10_minutes' => 'integer',
             'ai_action_points' => 'integer',
             'is_active' => 'boolean',
@@ -107,7 +110,20 @@ class SubscriptionPlan extends Model
         return $this->audience === PlanAudience::Individual;
     }
 
+    /**
+     * The hotel's monthly AI points: the total the Super Admin set, or seats
+     * × (points per employee + shared points per seat) when none is set.
+     */
     public function pointsPool(): int
+    {
+        if ($this->points_pool_override !== null && $this->points_pool_override > 0) {
+            return $this->points_pool_override;
+        }
+
+        return $this->calculatedPointsPool();
+    }
+
+    public function calculatedPointsPool(): int
     {
         return $this->employee_limit * ($this->points_per_employee + $this->bonus_points_per_employee);
     }

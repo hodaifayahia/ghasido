@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
+    Coins,
     ArrowLeft,
     Building2,
     CalendarDays,
@@ -27,7 +28,7 @@ import {
 } from '@/components/hotels/hotelStatus';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
-import { dashboard, hotels } from '@/routes';
+import { aiPoints, dashboard, hotels } from '@/routes';
 import type {
     HotelApproval,
     HotelDetailActivity,
@@ -50,6 +51,11 @@ type Props = {
 const props = defineProps<Props>();
 
 const { t, tc } = useI18n();
+
+const page = usePage();
+const isSuperAdmin = computed(
+    () => page.props.auth.user?.role === 'super_admin',
+);
 
 function percentOf(part: number): number {
     return props.summary.totalEmployees === 0
@@ -188,6 +194,18 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
                     <ScriptAccent />
                 </template>
             </PageHeader>
+
+            <!-- Share this hotel's AI points among its employees, as the
+                 manager does (client request 2026-10-02). -->
+            <Link
+                v-if="isSuperAdmin && !approval.pending"
+                :href="aiPoints.url({ query: { hotel: hotel.id } })"
+                data-test="hotel-ai-points-link"
+                class="border-line bg-surface text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600/40 shadow-card inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-[12.5px] font-semibold focus-visible:ring-2 focus-visible:outline-none"
+            >
+                <Coins class="size-4" aria-hidden="true" />
+                <span>{{ $t('AI Points') }}</span>
+            </Link>
 
             <Link
                 :href="hotels()"

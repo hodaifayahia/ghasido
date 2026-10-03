@@ -285,6 +285,27 @@ class SubscriptionsTest extends TestCase
     }
 
     /** @return array<string, mixed> */
+    public function test_the_monthly_points_total_can_be_set_directly()
+    {
+        // Client request 2026-10-02: "I want the total to be a field I control".
+        $plan = SubscriptionPlan::query()->where('slug', 'gold')->firstOrFail();
+        $calculated = $plan->pointsPool();
+
+        $this->actingAs($this->owner)
+            ->patch(route('subscriptions.plans.update', $plan), [...$this->planInput($plan), 'points_pool_override' => 12000])
+            ->assertSessionHasNoErrors();
+
+        $plan->refresh();
+        $this->assertSame(12000, $plan->pointsPool());
+        $this->assertSame($calculated, $plan->calculatedPointsPool());
+
+        $this->actingAs($this->owner)
+            ->patch(route('subscriptions.plans.update', $plan), [...$this->planInput($plan), 'points_pool_override' => null])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($calculated, $plan->refresh()->pointsPool());
+    }
+
     private function planInput(SubscriptionPlan $plan): array
     {
         return [

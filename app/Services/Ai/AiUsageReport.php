@@ -7,6 +7,7 @@ use App\Models\AiModelPrice;
 use App\Models\AiUsage;
 use App\Models\Hotel;
 use App\Models\RoleplayAttempt;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
@@ -84,6 +85,7 @@ final class AiUsageReport
             'byModel' => $byModel,
             'byFeature' => $this->byFeature($base(), $prices),
             'byHotel' => $hotelId === null ? $this->byHotel($base(), $prices) : [],
+            'byUser' => $this->byUser($base(), $from, $hotelId),
             'daily' => $this->daily($base(), $prices, $from, $days),
             'unpricedModels' => array_values(array_map(
                 fn (array $row): string => $row['model'],
@@ -227,6 +229,87 @@ final class AiUsageReport
         usort($totals, fn (array $a, array $b): int => [$b['cost'], $b['calls']] <=> [$a['cost'], $a['calls']]);
 
         return $totals;
+    }
+
+    /**
+     * Who used the AI points and where (client request 2026-10-02: "100
+     * points went from Sid Ali's account and I could not see where"): the
+     * points each account was charged in the period, with the features it
+     * used them on. Voice calls are charged on the attempt, the rest on
+     * each AI call; previews never count. Top 50 accounts by points.
+     *
+     * @param  Builder<AiUsage>  $query
+     * @return list<array{userId: int, name: string, username: string|null, hotel: string|null, points: int, calls: int, where: list<array{label: string, points: int, calls: int}>}>
+     */
+    private function byUser(Builder $query, CarbonImmutable $from, ?int $hotelId): array
+    {
+        /** @var array<int, array{points: int, calls: int, where: array<string, array{label: string, points: int, calls: int}>}> $users */
+        $users = [];
+
+        $rows = (clone $query)
+            ->whereNotNull('user_id')
+            ->groupBy('user_id', 'feature')
+            ->toBase()
+            ->selectRaw('user_id, feature, count(*) as calls, sum(points_charged) as points')
+            ->get();
+
+        foreach ($rows as $row) {
+            $id = (int) $row->user_id;
+            $feature = AiFeature::tryFrom((string) $row->feature);
+            $label = $feature === null ? (string) $row->feature : self::featureLabel($feature);
+            $users[$id] ??= ['points' => 0, 'calls' => 0, 'where' => []];
+            $users[$id]['points'] += (int) $row->points;
+            $users[$id]['calls'] += (int) $row->calls;
+            $users[$id]['where'][$label] = [
+                'label' => $label,
+                'points' => ($users[$id]['where'][$label]['points'] ?? 0) + (int) $row->points,
+                'calls' => ($users[$id]['where'][$label]['calls'] ?? 0) + (int) $row->calls,
+            ];
+        }
+
+        $calls = RoleplayAttempt::query()
+            ->where('is_preview', false)
+            ->where('started_at', '>=', $from)
+            ->where('ai_points_charged', '>', 0)
+            ->when($hotelId !== null, fn ($attempts) => $attempts->whereHas('user', fn ($user) => $user->where('hotel_id', $hotelId)))
+            ->groupBy('user_id')
+            ->toBase()
+            ->selectRaw('user_id, count(*) as calls, sum(ai_points_charged) as points')
+            ->get();
+
+        $voiceLabel = __('Voice calls (role-play)');
+
+        foreach ($calls as $row) {
+            $id = (int) $row->user_id;
+            $users[$id] ??= ['points' => 0, 'calls' => 0, 'where' => []];
+            $users[$id]['points'] += (int) $row->points;
+            $users[$id]['calls'] += (int) $row->calls;
+            $users[$id]['where'][$voiceLabel] = ['label' => $voiceLabel, 'points' => (int) $row->points, 'calls' => (int) $row->calls];
+        }
+
+        uasort($users, fn (array $a, array $b): int => [$b['points'], $b['calls']] <=> [$a['points'], $a['calls']]);
+        $users = array_slice($users, 0, 50, true);
+
+        $people = User::query()->with('hotel')->whereIn('id', array_keys($users))->get()->keyBy('id');
+        $out = [];
+
+        foreach ($users as $id => $usage) {
+            $person = $people->get($id);
+            $where = array_values($usage['where']);
+            usort($where, fn (array $a, array $b): int => [$b['points'], $b['calls']] <=> [$a['points'], $a['calls']]);
+
+            $out[] = [
+                'userId' => $id,
+                'name' => $person->name ?? __('Deleted account'),
+                'username' => $person?->username,
+                'hotel' => $person?->hotel?->name,
+                'points' => $usage['points'],
+                'calls' => $usage['calls'],
+                'where' => $where,
+            ];
+        }
+
+        return $out;
     }
 
     /**

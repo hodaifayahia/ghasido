@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { Coins, Frown, Sparkles, Users } from '@lucide/vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import InputError from '@/components/InputError.vue';
@@ -43,6 +43,11 @@ type Props = {
         remaining: number;
     };
     topUpRequestPending: boolean;
+    /** The Super Admin picks the hotel (client request 2026-10-02). */
+    hotelPicker?: {
+        current: number;
+        options: { value: number; label: string }[];
+    } | null;
     employees: Employee[];
 };
 
@@ -71,6 +76,16 @@ function save(employee: Employee): void {
     });
 }
 
+function pickHotel(event: Event): void {
+    router.get(
+        aiPoints.url({
+            query: { hotel: (event.target as HTMLSelectElement).value },
+        }),
+        {},
+        { preserveScroll: true },
+    );
+}
+
 function requestTopUp(): void {
     topUpRequestForm.post(requestAiPointTopUp().url, { preserveScroll: true });
 }
@@ -95,6 +110,29 @@ function points(value: number): string {
                 )
             "
         />
+
+        <label
+            v-if="hotelPicker"
+            class="flex min-w-0 flex-wrap items-center gap-2"
+        >
+            <span class="text-brand-900 text-[12px] font-semibold">{{
+                $t('Hotel')
+            }}</span>
+            <select
+                :value="hotelPicker.current"
+                data-test="ai-points-hotel"
+                class="border-line bg-surface text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 min-w-0 rounded-md border px-3 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
+                @change="pickHotel"
+            >
+                <option
+                    v-for="option in hotelPicker.options"
+                    :key="option.value"
+                    :value="option.value"
+                >
+                    {{ option.label }}
+                </option>
+            </select>
+        </label>
 
         <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <div
@@ -201,7 +239,7 @@ function points(value: number): string {
                 </p>
             </div>
             <Button
-                v-if="!topUpRequestPending"
+                v-if="!topUpRequestPending && !hotelPicker"
                 type="button"
                 variant="outline"
                 class="border-danger-text text-danger-text h-9 shrink-0 text-[11px]"
