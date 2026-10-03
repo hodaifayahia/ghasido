@@ -5,6 +5,7 @@ namespace App\Services\Content;
 use App\Enums\BlockType;
 use App\Enums\ContentStatus;
 use App\Enums\MediaLibrary;
+use App\Enums\Permission;
 use App\Models\AiScenario;
 use App\Models\Block;
 use App\Models\Course;
@@ -73,7 +74,7 @@ class ContentTree
         $departments = $this->departments($hotelId);
         $departmentId = $this->pickDepartment((int) $request->query('department', 0), $departments, $hotelKey, $hotelId);
 
-        $courses = $this->courses($departmentId, $hotelKey, $hotelId);
+        $courses = $this->courses($departmentId, $hotelKey, $hotelId, self::publishedOnly($user));
         $course = $this->pick($courses, (int) $request->query('course', 0));
 
         /** @var Collection<int, Unit> $units */
@@ -244,13 +245,14 @@ class ContentTree
     /**
      * @return Collection<int, Course>
      */
-    private function courses(int $departmentId, string $hotelKey, ?int $hotelId): Collection
+    private function courses(int $departmentId, string $hotelKey, ?int $hotelId, bool $publishedOnly = false): Collection
     {
         return $this->courseScope($hotelKey, $hotelId)
             ->where('department_id', $departmentId)
             // A lesson removed by "Delete" keeps its answers but leaves the
-            // builder tree (CMS-01, DATA-10).
-            ->with(['units.lessons' => fn ($lessons) => $lessons->notArchived()])
+            // builder tree (CMS-01, DATA-10). A viewer who cannot edit
+            // lessons sees only the published ones.
+            ->with(['units.lessons' => fn ($lessons) => $publishedOnly ? $lessons->published() : $lessons->notArchived()])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -581,6 +583,13 @@ class ContentTree
     {
         $query = Lesson::query()->notArchived();
 
+        // A manager reads lessons but never builds them: drafts still being
+        // written are not theirs to see (client report 2026-10-02), only
+        // what is published for their hotel or shared with every hotel.
+        if (self::publishedOnly($user)) {
+            $query->published();
+        }
+
         if ($user->hotel_id === null) {
             if (! $user->hasRole('super_admin')) {
                 $query->whereNull('lessons.hotel_id');
@@ -592,6 +601,12 @@ class ContentTree
         }
 
         return $query;
+    }
+
+    /** A viewer who may read lessons but not edit them (a manager). */
+    public static function publishedOnly(User $user): bool
+    {
+        return ! $user->can(Permission::LessonsManage->value);
     }
 
     /**

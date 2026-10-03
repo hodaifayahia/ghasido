@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin\Lessons;
 
+use App\Enums\ContentStatus;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\Activity;
@@ -81,6 +82,8 @@ class LessonsCrossTenantTest extends TestCase
     public function test_a_manager_may_read_the_screen_but_every_write_is_refused()
     {
         $manager = $this->manager();
+        // A manager reads published lessons only (client report 2026-10-02).
+        $this->lesson->forceFill(['status' => ContentStatus::Published])->save();
 
         $this->actingAs($manager)
             ->get(route('lessons-content'))

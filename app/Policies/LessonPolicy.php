@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ContentStatus;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\Lesson;
@@ -37,6 +38,12 @@ class LessonPolicy
     public function view(User $user, Lesson $lesson): bool
     {
         if ($user->can(Permission::LessonsView->value)) {
+            // Someone who reads lessons but cannot edit them (a manager)
+            // sees published lessons only (client report 2026-10-02).
+            if (! $user->can(Permission::LessonsManage->value) && $lesson->status !== ContentStatus::Published) {
+                return false;
+            }
+
             return $this->isInReach($user, $lesson);
         }
 
