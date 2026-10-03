@@ -119,6 +119,12 @@ class HandleInertiaRequests extends Middleware
             ? ContactMessage::query()->whereNull('read_at')->orderByDesc('created_at')->limit(10)->get()
             : collect();
 
+        // A reminder with no link of its own opens the learner's messages;
+        // other roles have no reminder page, so the click only marks it read.
+        $reminderPage = $user?->hasRole(Role::Employee->value)
+            ? route('learn.messages', [], false)
+            : null;
+
         $notificationItems = $notifications
             ->map(fn (Reminder $reminder): array => [
                 'id' => $reminder->id,
@@ -131,6 +137,8 @@ class HandleInertiaRequests extends Middleware
                     ->toIso8601String() ?? '',
                 'read' => $reminder->read_at !== null,
                 'readUrl' => route('notifications.read', ['reminder' => $reminder]),
+                // Where a click goes (client request 2026-10-03).
+                'url' => $reminder->link ?? $reminderPage,
             ])
             ->concat($topUpRequests->map(fn (HotelAiPointTopUpRequest $topUpRequest): array => [
                 // Negative IDs keep this global bell key unique from reminder IDs.
@@ -146,6 +154,7 @@ class HandleInertiaRequests extends Middleware
                 'expiresAt' => null,
                 'read' => $topUpRequest->read_at !== null,
                 'readUrl' => route('subscriptions.ai-point-top-up-requests.read', ['topUpRequest' => $topUpRequest]),
+                'url' => route('subscriptions', [], false),
             ]))
             ->concat($paymentItems->map(fn (PaymentSubmission $payment): array => [
                 // Kept apart from reminder and recharge ids.
@@ -162,6 +171,7 @@ class HandleInertiaRequests extends Middleware
                 'expiresAt' => null,
                 'read' => $payment->read_at !== null,
                 'readUrl' => route('payments.read', ['payment' => $payment]),
+                'url' => route('payments', ['payment' => $payment->id], false),
             ]))
             ->concat($hotelRequests->map(fn (Hotel $hotel): array => [
                 'id' => -2_000_000 - $hotel->id,
@@ -175,6 +185,7 @@ class HandleInertiaRequests extends Middleware
                 'expiresAt' => null,
                 'read' => $hotel->request_read_at !== null,
                 'readUrl' => route('hotels.request-seen', ['hotel' => $hotel]),
+                'url' => route('hotels.show', ['hotel' => $hotel], false),
             ]))
             ->concat($contactMessages->map(fn (ContactMessage $message): array => [
                 'id' => -3_000_000 - $message->id,
@@ -187,6 +198,7 @@ class HandleInertiaRequests extends Middleware
                 'expiresAt' => null,
                 'read' => false,
                 'readUrl' => route('contact-messages.seen', ['contactMessage' => $message]),
+                'url' => route('inbox', ['message' => $message->id], false),
             ]))
             ->sortByDesc('sentAt')
             ->values();
@@ -230,6 +242,11 @@ class HandleInertiaRequests extends Middleware
             ],
             // The Payments nav badge (client request 2026-09-27).
             'pendingPayments' => $pendingPayments,
+            // The Inbox nav badge (client request 2026-10-03).
+            // A closure, so opening a message counts it down on that page.
+            'unreadInbox' => fn (): int => $user?->can(Permission::LandingManage->value)
+                ? ContactMessage::query()->whereNull('read_at')->count()
+                : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // The global topbar notification menu (REM-08, AIL-01): this user's
             // recent reminders plus outstanding Super Admin recharge requests.

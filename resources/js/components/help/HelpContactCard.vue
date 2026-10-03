@@ -5,7 +5,7 @@ import { computed, ref } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { tk } from '@/lib/i18n';
+import { intlLocale, tk } from '@/lib/i18n';
 import { message as sendMessage } from '@/routes/help';
 
 /*
@@ -16,8 +16,25 @@ import { message as sendMessage } from '@/routes/help';
  * Settings → Landing page.
  */
 type Support = { whatsapp: string; phone: string; email: string };
+type Conversation = {
+    id: number;
+    topic: string | null;
+    message: string;
+    sentAt: string;
+    replies: { id: number; body: string; sentAt: string }[];
+};
 
-const page = usePage<{ support?: Support }>();
+const page = usePage<{ support?: Support; conversations?: Conversation[] }>();
+const conversations = computed(() => page.props.conversations ?? []);
+
+function when(value: string): string {
+    return value === ''
+        ? ''
+        : new Intl.DateTimeFormat(intlLocale(), {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(new Date(value));
+}
 const support = computed(
     (): Support => page.props.support ?? { whatsapp: '', phone: '', email: '' },
 );
@@ -164,5 +181,53 @@ function send(): void {
                 </a>
             </div>
         </form>
+
+        <!-- Their messages and the team's answers (client request
+             2026-10-03). -->
+        <section
+            v-if="conversations.length > 0"
+            class="border-line mt-4 grid min-w-0 gap-3 border-t pt-4"
+            data-test="help-conversations"
+        >
+            <h3 class="text-brand-900 text-[13px] font-semibold">
+                {{ $t('Your messages') }}
+            </h3>
+            <article
+                v-for="conversation in conversations"
+                :key="conversation.id"
+                class="border-line bg-app grid min-w-0 gap-2 rounded-md border p-3"
+            >
+                <p
+                    class="text-ink text-[13px] leading-5 break-words whitespace-pre-line"
+                    dir="auto"
+                >
+                    {{ conversation.message }}
+                </p>
+                <p class="text-ink-slate text-[11px]">
+                    {{ when(conversation.sentAt) }}
+                </p>
+                <div
+                    v-for="reply in conversation.replies"
+                    :key="reply.id"
+                    class="bg-brand-50 border-brand-100 ms-4 grid gap-1 rounded-md border p-2.5"
+                >
+                    <p class="text-brand-700 text-[11.5px] font-semibold">
+                        {{ $t('GHASIDO team') }} · {{ when(reply.sentAt) }}
+                    </p>
+                    <p
+                        class="text-ink text-[13px] leading-5 break-words whitespace-pre-line"
+                        dir="auto"
+                    >
+                        {{ reply.body }}
+                    </p>
+                </div>
+                <p
+                    v-if="conversation.replies.length === 0"
+                    class="text-ink-slate text-[11.5px] italic"
+                >
+                    {{ $t('Waiting for an answer') }}
+                </p>
+            </article>
+        </section>
     </PanelCard>
 </template>

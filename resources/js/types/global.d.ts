@@ -46,6 +46,7 @@ declare module '@inertiajs/core' {
             locale: { current: 'en' | 'ar'; direction: 'ltr' | 'rtl' };
             /** Payments awaiting review; 0 without subscriptions.manage. */
             pendingPayments: number;
+            unreadInbox: number;
             [key: string]: unknown;
         };
     }

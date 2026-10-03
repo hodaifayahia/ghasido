@@ -8,6 +8,8 @@ export type AppNotification = {
     expiresAt: string | null;
     read: boolean;
     readUrl: string;
+    /** The page a click opens, or null when it only marks it read. */
+    url: string | null;
 };
 
 export type NotificationData = {

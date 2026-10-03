@@ -29,5 +29,6 @@ Route::middleware(Permission::SubscriptionsManage->middleware())->group(function
 Route::middleware(Permission::AiPointsManage->middleware())->group(function () {
     Route::get('ai-points', [EmployeeAiPointsController::class, 'index'])->name('ai-points');
     Route::patch('ai-points/employees/{employee}', [EmployeeAiPointsController::class, 'update'])->name('ai-points.update');
+    Route::post('ai-points/bonus', [EmployeeAiPointsController::class, 'bonus'])->name('ai-points.bonus');
     Route::post('ai-points/request-top-up', [EmployeeAiPointsController::class, 'requestTopUp'])->name('ai-points.request-top-up');
 });

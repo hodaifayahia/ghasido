@@ -12,9 +12,12 @@ use App\Http\Controllers\MeaningController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\SupportMessageController;
 use App\Http\Controllers\WelcomeSeenController;
+use App\Models\ContactMessage;
+use App\Models\ContactReply;
 use App\Services\Landing\LandingPageContentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 Route::get('/', LandingPageController::class)->name('home');
@@ -66,6 +69,27 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
                 'phone' => (string) ($support['phone'] ?? ''),
                 'email' => (string) ($support['email'] ?? ''),
             ],
+            // Their own messages to the team and the answers (client
+            // request 2026-10-03).
+            'conversations' => ContactMessage::query()
+                ->where('user_id', $request->user('web')?->id)
+                ->with('replies')
+                ->orderByDesc('id')
+                ->limit(20)
+                ->get()
+                ->map(fn (ContactMessage $message): array => [
+                    'id' => $message->id,
+                    'topic' => $message->topic,
+                    'message' => $message->topic !== null
+                        ? (string) Str::of($message->message)->after('['.$message->topic.'] ')
+                        : $message->message,
+                    'sentAt' => $message->created_at?->toIso8601String() ?? '',
+                    'replies' => $message->replies->map(fn (ContactReply $reply): array => [
+                        'id' => $reply->id,
+                        'body' => $reply->body,
+                        'sentAt' => $reply->created_at?->toIso8601String() ?? '',
+                    ])->values()->all(),
+                ])->values()->all(),
         ]);
     })->name('help');
     Route::post('help/message', [SupportMessageController::class, 'store'])

@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $currency
  * @property int $amount_dzd
  * @property float|null $amount_usd
+ * @property string $kind paid | bonus (free extra points from the Super Admin)
  */
 #[Fillable([
     'hotel_id',
@@ -30,6 +31,7 @@ use Illuminate\Support\Carbon;
     'payment_reference',
     'received_by',
     'received_at',
+    'kind',
 ])]
 class HotelAiPointTopUp extends Model
 {

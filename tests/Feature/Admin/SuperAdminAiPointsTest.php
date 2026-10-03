@@ -51,6 +51,29 @@ class SuperAdminAiPointsTest extends TestCase
         $this->assertNotNull($first);
     }
 
+    public function test_the_super_admin_gives_free_extra_points_shown_apart()
+    {
+        $owner = User::factory()->superAdmin()->create();
+        $plan = SubscriptionPlan::query()->where('slug', 'gold')->firstOrFail();
+        $hotel = Hotel::factory()->active()->create(['subscription_plan_id' => $plan->id]);
+        $manager = User::factory()->manager()->create(['hotel_id' => $hotel->id]);
+
+        $this->actingAs($manager)
+            ->post(route('ai-points.bonus'), ['hotel_id' => $hotel->id, 'points' => 500])
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->post(route('ai-points.bonus'), ['hotel_id' => $hotel->id, 'points' => 500, 'note' => 'Launch gift'])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($owner)
+            ->get(route('ai-points', ['hotel' => $hotel->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('plan.bonusPoints', 500)
+                ->where('plan.paidTopUpPoints', 0)
+                ->where('plan.monthlyPointPool', $plan->pointsPool() + 500));
+    }
+
     public function test_a_manager_still_cannot_touch_another_hotels_points()
     {
         $plan = SubscriptionPlan::query()->where('slug', 'gold')->firstOrFail();

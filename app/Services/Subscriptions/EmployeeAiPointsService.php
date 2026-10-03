@@ -23,6 +23,7 @@ final class EmployeeAiPointsService
         $plan = $hotel->subscriptionPlan;
         abort_if($plan === null, 409, __('This hotel does not have a subscription plan.'));
         $monthlyPointPool = $this->topUps->poolFor($hotel, $plan);
+        $bonusPoints = $this->topUps->bonusPointsForCurrentMonth($hotel);
 
         $employees = User::query()
             ->where('hotel_id', $hotel->id)
@@ -75,7 +76,8 @@ final class EmployeeAiPointsService
                 'employeeLimit' => $plan->employee_limit,
                 'monthlyPointPool' => $monthlyPointPool,
                 'baseMonthlyPointPool' => $plan->pointsPool(),
-                'paidTopUpPoints' => $monthlyPointPool - $plan->pointsPool(),
+                'paidTopUpPoints' => $monthlyPointPool - $plan->pointsPool() - $bonusPoints,
+                'bonusPoints' => $bonusPoints,
                 'pointsPerEmployee' => $plan->points_per_employee,
                 'bonusPointsPerEmployee' => $plan->bonus_points_per_employee,
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,

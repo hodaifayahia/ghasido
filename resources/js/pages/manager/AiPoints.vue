@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Coins, Frown, Sparkles, Users } from '@lucide/vue';
+import { Coins, Frown, Gift, Sparkles, Users } from '@lucide/vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { tk } from '@/lib/i18n';
 import { aiPoints, dashboard } from '@/routes';
 import {
+    bonus as giveBonus,
     requestTopUp as requestAiPointTopUp,
     update as updateAllocation,
 } from '@/routes/ai-points';
@@ -30,6 +31,8 @@ type Props = {
         employeeLimit: number;
         monthlyPointPool: number;
         paidTopUpPoints: number;
+        /** Free extra points from the Super Admin this month. */
+        bonusPoints?: number;
         pointsPerEmployee: number;
         bonusPointsPerEmployee: number;
         voicePointsPer10Minutes: number;
@@ -69,6 +72,17 @@ const forms = Object.fromEntries(
     ]),
 );
 const topUpRequestForm = useForm({});
+const bonusForm = useForm({ points: '', note: '' });
+
+/** Free extra points outside the plan (client request 2026-10-03). */
+function addBonus(): void {
+    bonusForm
+        .transform((data) => ({ ...data, hotel_id: props.hotel.id }))
+        .post(giveBonus().url, {
+            preserveScroll: true,
+            onSuccess: () => bonusForm.reset(),
+        });
+}
 
 function save(employee: Employee): void {
     forms[employee.id].patch(updateAllocation(employee.id).url, {
@@ -188,6 +202,16 @@ function points(value: number): string {
                             })
                         }}
                     </p>
+                    <p
+                        v-if="(plan.bonusPoints ?? 0) > 0"
+                        class="text-success-text mt-0.5 text-[10px] font-semibold"
+                    >
+                        {{
+                            $t('Includes :points extra points', {
+                                points: points(plan.bonusPoints ?? 0),
+                            })
+                        }}
+                    </p>
                 </div>
             </div>
             <div
@@ -222,6 +246,71 @@ function points(value: number): string {
                 </div>
             </div>
         </div>
+
+        <form
+            v-if="hotelPicker"
+            class="border-line bg-surface shadow-card grid min-w-0 gap-2 rounded-lg border p-3 sm:grid-cols-[auto_minmax(0,140px)_minmax(0,1fr)_auto] sm:items-end"
+            data-test="ai-points-bonus"
+            @submit.prevent="addBonus"
+        >
+            <div class="flex min-w-0 items-center gap-3 sm:self-center">
+                <span
+                    class="bg-success-tint text-success grid size-9 shrink-0 place-items-center rounded-full"
+                >
+                    <Gift class="size-4" aria-hidden="true" />
+                </span>
+                <div class="min-w-0">
+                    <p class="text-brand-900 text-[13px] font-semibold">
+                        {{ $t('Add extra points') }}
+                    </p>
+                    <p class="text-ink-muted text-[11px] leading-4">
+                        {{
+                            $t(
+                                'Free, outside the plan, for this month. Shown apart from the plan points.',
+                            )
+                        }}
+                    </p>
+                </div>
+            </div>
+            <label class="grid min-w-0 gap-1">
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Points')
+                }}</span>
+                <input
+                    v-model="bonusForm.points"
+                    type="number"
+                    min="1"
+                    max="10000000"
+                    required
+                    inputmode="numeric"
+                    data-test="ai-points-bonus-points"
+                    class="border-line bg-surface text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 w-full rounded-md border px-3 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
+                />
+            </label>
+            <label class="grid min-w-0 gap-1">
+                <span class="text-brand-900 text-[11px] font-semibold">{{
+                    $t('Note (optional)')
+                }}</span>
+                <input
+                    v-model="bonusForm.note"
+                    type="text"
+                    maxlength="120"
+                    class="border-line bg-surface text-ink focus-visible:border-brand-600 focus-visible:ring-brand-600/15 h-10 w-full rounded-md border px-3 text-[13px] focus-visible:ring-3 focus-visible:outline-none"
+                />
+            </label>
+            <Button
+                type="submit"
+                class="h-10"
+                :disabled="bonusForm.processing || bonusForm.points === ''"
+                data-test="ai-points-bonus-submit"
+            >
+                {{ $t('Add points') }}
+            </Button>
+            <InputError
+                class="sm:col-span-4"
+                :message="bonusForm.errors.points ?? bonusForm.errors.note"
+            />
+        </form>
 
         <div
             v-if="summary.remaining === 0"

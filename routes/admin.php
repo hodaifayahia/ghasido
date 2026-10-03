@@ -29,4 +29,5 @@ Route::middleware(['auth', 'hotel.access'])->group(function () {
     require __DIR__.'/admin/reports.php';
     require __DIR__.'/admin/roles.php';
     require __DIR__.'/admin/users.php';
+    require __DIR__.'/admin/inbox.php';
 });

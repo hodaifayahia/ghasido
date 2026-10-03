@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { intlLocale } from '@/lib/i18n';
-import { subscriptions } from '@/routes';
+import { inbox } from '@/routes';
 import { messages } from '@/routes/learn';
 import type { AppNotification } from '@/types';
 
@@ -76,8 +76,19 @@ onUnmounted(() => {
     }
 });
 
+/**
+ * A click marks it read and opens its page (client request 2026-10-03:
+ * "when I click a notification it should take me there").
+ */
 function markRead(notification: AppNotification): void {
+    const go = (): void => {
+        if (notification.url !== null) {
+            router.visit(notification.url);
+        }
+    };
+
     if (notification.read) {
+        go();
         return;
     }
 
@@ -87,6 +98,7 @@ function markRead(notification: AppNotification): void {
         {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: go,
         },
     );
 }
@@ -191,12 +203,12 @@ function sentTime(value: string): string {
             <DropdownMenuSeparator class="mx-0 my-0" />
             <DropdownMenuItem as-child class="justify-center px-4 py-2.5">
                 <Link
-                    :href="isSuperAdmin ? subscriptions() : messages()"
+                    :href="isSuperAdmin ? inbox() : messages()"
                     class="text-brand-700 cursor-pointer text-sm font-semibold"
                 >
                     {{
                         isSuperAdmin
-                            ? $t('Review point requests')
+                            ? $t('Open the inbox')
                             : $t('View all notifications')
                     }}
                 </Link>

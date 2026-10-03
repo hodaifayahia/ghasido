@@ -9,6 +9,7 @@ use App\Models\Hotel;
 use App\Models\User;
 use App\Services\Subscriptions\EmployeeAiPointsService;
 use App\Services\Subscriptions\HotelAiPointTopUpRequestService;
+use App\Services\Subscriptions\HotelAiPointTopUpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -82,6 +83,38 @@ final class EmployeeAiPointsController extends Controller
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => __('AI points for :employee were updated.', ['employee' => $employee->name]),
+        ]);
+
+        return back();
+    }
+
+    /**
+     * Free extra points for a hotel, outside its plan, by the Super Admin
+     * only (client request 2026-10-03).
+     */
+    public function bonus(Request $request, HotelAiPointTopUpService $topUps): RedirectResponse
+    {
+        Gate::authorize(Permission::AiPointsManage->value);
+
+        /** @var User $actor */
+        $actor = $request->user();
+        abort_unless($actor->hasRole(Role::SuperAdmin->value), 403);
+
+        $data = $request->validate([
+            'hotel_id' => ['required', 'integer'],
+            'points' => ['required', 'integer', 'min:1', 'max:10000000'],
+            'note' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $hotel = Hotel::query()->withoutGlobalScopes()->notArchived()->findOrFail((int) $data['hotel_id']);
+        $topUps->grantBonus($hotel, (int) $data['points'], isset($data['note']) ? (string) $data['note'] : null, $actor);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':points extra points were added to :hotel for this month.', [
+                'points' => number_format((int) $data['points']),
+                'hotel' => $hotel->name,
+            ]),
         ]);
 
         return back();

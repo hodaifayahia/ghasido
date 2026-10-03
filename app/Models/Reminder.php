@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Date;
  * @property string|null $blocked_reason why it was blocked, or the failure message
  * @property Carbon|null $read_at
  * @property string|null $provider_message_id
+ * @property string|null $link where a click on the notification goes, if not the inbox
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User|null $user
@@ -58,6 +59,7 @@ use Illuminate\Support\Facades\Date;
     'blocked_reason',
     'read_at',
     'provider_message_id',
+    'link',
 ])]
 class Reminder extends Model
 {

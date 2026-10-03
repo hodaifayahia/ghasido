@@ -12,6 +12,7 @@ import {
     ClipboardCheck,
     GraduationCap,
     Globe,
+    Inbox,
     LogOut,
     Settings,
     ShieldCheck,
@@ -47,6 +48,7 @@ import {
     departments,
     employees,
     hotels,
+    inbox,
     individuals,
     lessonsContent,
     messagesReminders,
@@ -166,7 +168,9 @@ const mainNavItems: SidebarNavItem[] = [
         title: tk('AI Points'),
         href: aiPointsRoute(),
         icon: Coins,
-        roles: ['admin', 'manager'],
+        // The Super Admin too, to give any hotel extra points (client
+        // request 2026-10-03).
+        roles: ['super_admin', 'admin', 'manager'],
         permission: 'ai_points.manage',
     },
     {
@@ -198,6 +202,15 @@ const mainNavItems: SidebarNavItem[] = [
         // Keep the longest label comfortable in the expanded 280px sidebar.
         labelClass: 'text-[12px] tracking-[-0.045em]',
         permission: 'messages.view',
+    },
+    {
+        // Contact and support messages, read and answered on the site
+        // (client request 2026-10-03); the badge counts the unread ones.
+        title: tk('Inbox'),
+        href: inbox(),
+        icon: Inbox,
+        iconClass: outline,
+        roles: ['super_admin'],
     },
     {
         title: tk('Reports & Export'),
@@ -301,7 +314,9 @@ const adminNav = computed((): SidebarNav => ({
         items: mainNavItems.map((item) =>
             item.title === 'Payments'
                 ? { ...item, badge: page.props.pendingPayments ?? 0 }
-                : item,
+                : item.title === 'Inbox'
+                  ? { ...item, badge: page.props.unreadInbox ?? 0 }
+                  : item,
         ),
     },
     account: { items: accountNavItems, class: 'gap-[5px]' },

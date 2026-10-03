@@ -22,11 +22,61 @@ final class HotelAiPointTopUpService
         return $base + $this->paidPointsForCurrentMonth($hotel);
     }
 
+    /** Every point added this month on top of the plan: paid and free. */
     public function paidPointsForCurrentMonth(Hotel $hotel): int
     {
         return (int) $hotel->aiPointTopUps()
             ->whereDate('month_start', Date::now()->startOfMonth()->toDateString())
             ->sum('points');
+    }
+
+    /** The free extra points given this month (client request 2026-10-03). */
+    public function bonusPointsForCurrentMonth(Hotel $hotel): int
+    {
+        return (int) $hotel->aiPointTopUps()
+            ->where('kind', 'bonus')
+            ->whereDate('month_start', Date::now()->startOfMonth()->toDateString())
+            ->sum('points');
+    }
+
+    /**
+     * Extra points outside the plan, free, any time after approval — like
+     * adding days to a contract (client request 2026-10-03). They count for
+     * the current month, as the plan's own pool does.
+     */
+    public function grantBonus(Hotel $hotel, int $points, ?string $note, User $actor): HotelAiPointTopUp
+    {
+        return DB::transaction(function () use ($hotel, $points, $note, $actor): HotelAiPointTopUp {
+            /** @var Hotel $lockedHotel */
+            $lockedHotel = Hotel::query()->withoutGlobalScopes()->lockForUpdate()->findOrFail($hotel->id);
+            $monthStart = Date::now()->startOfMonth();
+
+            $topUp = HotelAiPointTopUp::query()->create([
+                'hotel_id' => $lockedHotel->id,
+                'month_start' => $monthStart->toDateString(),
+                'points' => $points,
+                'currency' => 'DZD',
+                'amount_dzd' => 0,
+                'amount_usd' => null,
+                'payment_method_id' => null,
+                'payment_reference' => $note,
+                'received_by' => $actor->id,
+                'received_at' => Date::now(),
+                'kind' => 'bonus',
+            ]);
+
+            AuditLog::record($topUp, 'hotel.ai_points_bonus_given', [
+                'hotel_id' => $lockedHotel->id,
+                'month_start' => $monthStart->toDateString(),
+                'points' => $points,
+                'note' => $note,
+                'given_by' => $actor->id,
+            ]);
+
+            $this->requests->fulfillPending($lockedHotel, $topUp->id);
+
+            return $topUp;
+        });
     }
 
     /**
