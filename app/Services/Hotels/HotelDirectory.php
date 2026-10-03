@@ -75,6 +75,8 @@ class HotelDirectory
         // 2026-09-29); the rest keeps the name order.
         $query = Hotel::query()
             ->withSeatCounts()
+            // A deleted hotel leaves the list (client request 2026-10-02).
+            ->whereNull('hotels.removed_at')
             ->orderByRaw('case when access_state = ? then 0 else 1 end', [HotelAccessState::Pending->value])
             ->orderByRaw('case when access_state = ? then created_at end desc', [HotelAccessState::Pending->value])
             ->directoryOrder()

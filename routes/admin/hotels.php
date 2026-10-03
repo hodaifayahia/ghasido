@@ -24,6 +24,8 @@ Route::middleware(Permission::HotelsManage->middleware())->group(function () {
     Route::post('hotels', [HotelsController::class, 'store'])->name('hotels.store');
     Route::patch('hotels/{hotel}', [HotelsController::class, 'update'])->name('hotels.update');
     Route::post('hotels/{hotel}/archive', [HotelAccessController::class, 'archive'])->name('hotels.archive');
+    // Delete an archived hotel, Super Admin only (checked in the controller).
+    Route::delete('hotels/{hotel}', [HotelAccessController::class, 'remove'])->name('hotels.remove');
     Route::post('hotels/{hotel}/pause', [HotelAccessController::class, 'pause'])->name('hotels.pause');
     Route::post('hotels/{hotel}/resume', [HotelAccessController::class, 'resume'])->name('hotels.resume');
     Route::patch('hotels/{hotel}/contract', [HotelContractController::class, 'update'])->name('hotels.contract');

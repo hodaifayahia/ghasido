@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { EllipsisVertical, KeyRound, UserCheck, UserX } from '@lucide/vue';
+import { usePage } from '@inertiajs/vue3';
+import {
+    EllipsisVertical,
+    KeyRound,
+    Trash2,
+    UserCheck,
+    UserX,
+} from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import type { Component } from 'vue';
 import { computed, onMounted, ref } from 'vue';
@@ -54,6 +61,10 @@ type Item = {
  * The "More" menu: what the three icon buttons do not carry (spec 0003
  * Part D). The server checks every action again regardless (ROLE-01).
  */
+// Delete (anonymise) is the Super Admin's only (client request 2026-10-02).
+const page = usePage();
+const canDelete = computed(() => page.props.auth.user?.role === 'super_admin');
+
 const items = computed<Item[]>(() => [
     {
         action: 'reset-password',
@@ -68,6 +79,16 @@ const items = computed<Item[]>(() => [
               destructive: true,
           }
         : { action: 'activate', label: t('Activate'), icon: UserCheck },
+    ...(canDelete.value
+        ? [
+              {
+                  action: 'delete' as const,
+                  label: t('Delete'),
+                  icon: Trash2,
+                  destructive: true,
+              },
+          ]
+        : []),
 ]);
 
 function choose(action: EmployeeRowAction): void {

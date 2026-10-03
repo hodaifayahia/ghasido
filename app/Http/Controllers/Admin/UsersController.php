@@ -38,6 +38,7 @@ class UsersController extends Controller
             // admins and custom roles. Hotel managers and learners are
             // managed from the hotel. A hotel-bound actor sees their hotel's.
             ->when($actor->hotel_id !== null, fn ($query) => $query->where('hotel_id', $actor->hotel_id))
+            ->whereNull('removed_at')
             ->whereDoesntHave('roles', fn ($query) => $query->whereIn('name', [RoleEnum::Employee->value, RoleEnum::Manager->value]))
             // …and holding a back-office role: an account with no role at
             // all has no access to run anything.

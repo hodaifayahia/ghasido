@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Date;
  * @property CarbonInterface|null $contract_ends_on
  * @property CarbonInterface|null $paused_at
  * @property CarbonInterface|null $approved_at
+ * @property CarbonInterface|null $removed_at when the hotel was deleted (it leaves every list)
  * @property CarbonInterface|null $request_read_at when the Super Admin saw the new request in the bell
  * @property int|null $approved_by
  * @property CarbonInterface|null $archived_at
@@ -79,6 +80,7 @@ class Hotel extends Model
             'contract_starts_on' => 'date',
             'contract_ends_on' => 'date',
             'request_read_at' => 'datetime',
+            'removed_at' => 'datetime',
             'paused_at' => 'datetime',
             'approved_at' => 'datetime',
             'archived_at' => 'datetime',

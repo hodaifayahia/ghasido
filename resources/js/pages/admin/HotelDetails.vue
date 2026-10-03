@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     Coins,
+    Trash2,
     ArrowLeft,
     Building2,
     CalendarDays,
@@ -14,7 +15,8 @@ import {
     Users,
 } from '@lucide/vue';
 import type { Component } from 'vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import ConfirmRemoveDialog from '@/components/common/ConfirmRemoveDialog.vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import StatCard from '@/components/common/StatCard.vue';
 import ProgressBar from '@/components/data/ProgressBar.vue';
@@ -27,8 +29,10 @@ import {
     seatPercent,
 } from '@/components/hotels/hotelStatus';
 import PageHeader from '@/components/shell/PageHeader.vue';
+import { Button } from '@/components/ui/button';
 import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { aiPoints, dashboard, hotels } from '@/routes';
+import { remove } from '@/routes/hotels';
 import type {
     HotelApproval,
     HotelDetailActivity,
@@ -51,6 +55,18 @@ type Props = {
 const props = defineProps<Props>();
 
 const { t, tc } = useI18n();
+
+const removeOpen = ref(false);
+const removing = ref(false);
+
+function removeHotel(): void {
+    removing.value = true;
+    router.delete(remove(props.hotel.id).url, {
+        onFinish: () => {
+            removing.value = false;
+        },
+    });
+}
 
 const page = usePage();
 const isSuperAdmin = computed(
@@ -225,6 +241,45 @@ function employeeProgress(employee: HotelEmployeeActivity): string {
         />
 
         <RequestedLanguagesList :languages="approval.helperLanguages ?? []" />
+
+        <!-- An archived hotel can be deleted for good (client request
+             2026-10-02): it leaves every list, its accounts are
+             anonymised and their answers stay in the reports. -->
+        <div
+            v-if="isSuperAdmin && hotel.accessState === 'archived'"
+            class="border-danger/40 bg-danger-tint flex min-w-0 flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"
+        >
+            <p class="text-danger-text min-w-0 text-sm">
+                {{
+                    $t(
+                        "This hotel is archived. Delete it to remove it from every list and free its accounts' usernames and emails. Their answers stay in the reports, anonymously.",
+                    )
+                }}
+            </p>
+            <Button
+                type="button"
+                variant="outline"
+                class="border-danger text-danger-text hover:bg-danger-tint min-h-11 shrink-0"
+                data-test="delete-hotel-button"
+                @click="removeOpen = true"
+            >
+                <Trash2 class="size-4" aria-hidden="true" />
+                {{ $t('Delete hotel') }}
+            </Button>
+        </div>
+
+        <ConfirmRemoveDialog
+            v-model:open="removeOpen"
+            :title="$t('Delete :name?', { name: hotel.name })"
+            :description="
+                $t(
+                    'The hotel leaves every list and all its accounts are closed for good; their usernames and emails can be used again. Answers stay in the reports, anonymously. This cannot be undone.',
+                )
+            "
+            :confirm-text="hotel.name"
+            :busy="removing"
+            @confirm="removeHotel"
+        />
 
         <div class="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
             <StatCard

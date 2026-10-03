@@ -32,5 +32,7 @@ Route::middleware(Permission::EmployeesManage->middleware())->group(function () 
     Route::patch('employees/{employee}', [EmployeesController::class, 'update'])->name('employees.update');
     Route::post('employees/{employee}/activate', [EmployeeStatusController::class, 'activate'])->name('employees.activate');
     Route::post('employees/{employee}/deactivate', [EmployeeStatusController::class, 'deactivate'])->name('employees.deactivate');
+    // Delete = anonymise, Super Admin only (checked in the controller).
+    Route::delete('employees/{employee}', [EmployeeStatusController::class, 'remove'])->name('employees.remove');
     Route::post('employees/{employee}/reset-password', [EmployeePasswordController::class, 'reset'])->name('employees.reset-password');
 });

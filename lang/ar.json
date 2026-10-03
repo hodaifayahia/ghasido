@@ -4385,5 +4385,13 @@
     "Points": "النقاط",
     "Total AI points per month for the hotel": "مجموع نقاط الذكاء الاصطناعي الشهرية للفندق",
     "Voice calls (role-play)": "المكالمات الصوتية (لعب الأدوار)",
-    "Where": "أين"
+    "Where": "أين",
+    ":hotel was deleted. Its accounts are anonymised and their answers stay in the reports.": "حُذف :hotel. أصبحت حساباته مجهولة الهوية وتبقى إجاباتها في التقارير.",
+    ":name was deleted. Their username and email are free again; their answers stay in the reports anonymously.": "حُذف :name. أصبح اسم المستخدم والبريد متاحين من جديد، وتبقى إجاباته في التقارير دون هوية.",
+    "Archive the hotel first; only an archived hotel can be deleted.": "أرشف الفندق أولاً؛ لا يمكن حذف إلا فندق مؤرشف.",
+    "Delete hotel": "حذف الفندق",
+    "The account is closed for good: the name, username, email and phone are removed and can be used for a new account. Their answers stay in the reports, anonymously. This cannot be undone.": "يُغلق الحساب نهائياً: يُحذف الاسم واسم المستخدم والبريد والهاتف ويمكن استعمالها لحساب جديد. تبقى إجاباته في التقارير دون هوية. لا يمكن التراجع عن ذلك.",
+    "The hotel leaves every list and all its accounts are closed for good; their usernames and emails can be used again. Answers stay in the reports, anonymously. This cannot be undone.": "يختفي الفندق من كل القوائم وتُغلق كل حساباته نهائياً؛ ويمكن استعمال أسماء المستخدمين والبريد من جديد. تبقى الإجابات في التقارير دون هوية. لا يمكن التراجع عن ذلك.",
+    "This hotel is archived. Delete it to remove it from every list and free its accounts' usernames and emails. Their answers stay in the reports, anonymously.": "هذا الفندق مؤرشف. احذفه لإزالته من كل القوائم وتحرير أسماء مستخدمي حساباته وبريدهم. تبقى إجاباتهم في التقارير دون هوية.",
+    "Type :name to confirm.": "اكتب :name للتأكيد."
 }

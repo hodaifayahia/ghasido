@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Admin\Hotels;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Hotels\ArchiveHotelRequest;
 use App\Models\Hotel;
+use App\Models\User;
+use App\Services\Accounts\AccountRemoval;
 use App\Services\Hotels\HotelService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -54,5 +58,27 @@ class HotelAccessController extends Controller
         ]);
 
         return back();
+    }
+
+    /**
+     * Delete an archived hotel: it leaves every list and its accounts are
+     * deleted (anonymised; answers kept). Super Admin only (client request
+     * 2026-10-02; DATA-10).
+     */
+    public function remove(Request $request, Hotel $hotel, AccountRemoval $removal): RedirectResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user('web');
+        abort_unless($actor->hasRole(Role::SuperAdmin->value), 403);
+
+        $name = $hotel->name;
+        $removal->removeHotel($hotel, $actor);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':hotel was deleted. Its accounts are anonymised and their answers stay in the reports.', ['hotel' => $name]),
+        ]);
+
+        return to_route('hotels');
     }
 }

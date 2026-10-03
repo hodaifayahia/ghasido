@@ -2,6 +2,7 @@
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/vue3';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import ConfirmRemoveDialog from '@/components/common/ConfirmRemoveDialog.vue';
 import EmployeeCredentialsDialog from '@/components/employees/EmployeeCredentialsDialog.vue';
 import EmployeeFormDialog from '@/components/employees/EmployeeFormDialog.vue';
 import EmployeeResetDialog from '@/components/employees/EmployeeResetDialog.vue';
@@ -16,7 +17,7 @@ import ScriptAccent from '@/components/shell/ScriptAccent.vue';
 import { useCan } from '@/composables/useCan';
 import { tk } from '@/lib/i18n';
 import { dashboard, employees as employeesRoute } from '@/routes';
-import { activate, bulk, deactivate, remind } from '@/routes/employees';
+import { activate, bulk, deactivate, remind, remove } from '@/routes/employees';
 import type {
     EmployeeBulkAction,
     EmployeeCreateForm,
@@ -184,6 +185,27 @@ const formOpen = ref(false);
 const resetOpen = ref(false);
 const credentialsOpen = ref(false);
 const actionEmployee = ref<EmployeeRecord | null>(null);
+const removeOpen = ref(false);
+const removing = ref(false);
+
+function removeEmployee(): void {
+    const employee = actionEmployee.value;
+
+    if (employee === null) {
+        return;
+    }
+
+    removing.value = true;
+    router.delete(remove(employee.id).url, {
+        preserveScroll: true,
+        onSuccess: () => {
+            removeOpen.value = false;
+        },
+        onFinish: () => {
+            removing.value = false;
+        },
+    });
+}
 const credentials = ref<EmployeeCredentials | null>(null);
 
 function onAction(action: EmployeeRowAction, employee: EmployeeRecord): void {
@@ -207,6 +229,9 @@ function onAction(action: EmployeeRowAction, employee: EmployeeRecord): void {
             return;
         case 'deactivate':
             post(deactivate(employee.id).url);
+            return;
+        case 'delete':
+            removeOpen.value = true;
     }
 }
 
@@ -297,6 +322,19 @@ onBeforeUnmount(() => {
         <EmployeeCredentialsDialog
             v-model:open="credentialsOpen"
             :credentials="credentials"
+        />
+        <ConfirmRemoveDialog
+            v-if="actionEmployee"
+            v-model:open="removeOpen"
+            :title="$t('Delete :name?', { name: actionEmployee.name })"
+            :description="
+                $t(
+                    'The account is closed for good: the name, username, email and phone are removed and can be used for a new account. Their answers stay in the reports, anonymously. This cannot be undone.',
+                )
+            "
+            :confirm-text="actionEmployee.name"
+            :busy="removing"
+            @confirm="removeEmployee"
         />
     </template>
 </template>

@@ -246,7 +246,9 @@ class EmployeeDirectory
      */
     private function base(User $actor): Builder
     {
-        $query = User::query()->employees();
+        // A deleted (anonymised) account leaves the list (client request
+        // 2026-10-02); its answers stay in the reports.
+        $query = User::query()->employees()->whereNull('users.removed_at');
 
         if (! $this->seesEveryHotel($actor)) {
             $query->where('users.hotel_id', $actor->hotel_id ?? 0);
