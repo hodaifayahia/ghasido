@@ -38,6 +38,7 @@ import {
     SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useCan } from '@/composables/useCan';
 import { useI18n } from '@/composables/useI18n';
 import { tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -323,6 +324,35 @@ const adminNav = computed((): SidebarNav => ({
 }));
 
 const nav = computed((): SidebarNav => props.nav ?? adminNav.value);
+
+/*
+ * The rows the sidebar shows, filtered the way NavMain filters them. A
+ * long menu (the Super Admin's, 20 rows) shrinks its rows so it still fits
+ * without a scrollbar on short windows (client request 2026-10-03); a menu
+ * of the approved length keeps the mockup's 42px rows.
+ */
+const { can } = useCan();
+
+function visibleCount(items: SidebarNavItem[] | undefined): number {
+    const role = page.props.auth.user?.role ?? null;
+
+    return (items ?? []).filter(
+        (item) =>
+            (!item.permission || can(item.permission)) &&
+            (!item.roles || (role !== null && item.roles.includes(role))),
+    ).length;
+}
+
+const rows = computed(
+    () =>
+        visibleCount(nav.value.main.items) +
+        visibleCount(nav.value.journey?.items) +
+        visibleCount(nav.value.account.items),
+);
+
+// A long menu has no room left for the palm artwork; a clipped fragment
+// would look broken, so it gives its space to the rows instead.
+const longMenu = computed(() => rows.value > 14);
 const homeHref = computed(() => nav.value.homeHref ?? dashboard());
 
 // Divider: 2px, inset 22px, 15px above / 9px below at 853px, scaling with
@@ -367,9 +397,13 @@ function closeMobileSidebar(): void {
              (--sb-unit = 1% of the height below the topbar), so the nav and
              the brand footer always fit: no scrollbar, no clipped labels. -->
         <SidebarContent
+            :style="{ '--sb-rows': rows }"
             :class="
                 cn(
                     'gap-0 overflow-x-hidden pt-[clamp(10px,calc(var(--sb-unit)*3.2),25px)] [--sb-unit:calc((100svh_-_72px)/100)]',
+                    // Row height: the mockup's rhythm, or less when the
+                    // rows would not fit (64px = top gap and dividers).
+                    '[--sb-item:clamp(24px,min(calc(var(--sb-unit)*5.38),calc((100svh_-_72px_-_64px)/var(--sb-rows)_-_2.5px)),42px)]',
                     nav.contentClass,
                 )
             "
@@ -402,7 +436,12 @@ function closeMobileSidebar(): void {
                  windows so the menu stays usable. -->
             <div
                 aria-hidden="true"
-                class="pointer-events-none relative min-h-0 flex-1 overflow-hidden select-none group-data-[collapsible=icon]:hidden"
+                :class="
+                    cn(
+                        'pointer-events-none relative min-h-0 flex-1 overflow-hidden select-none group-data-[collapsible=icon]:hidden',
+                        longMenu && 'hidden',
+                    )
+                "
             >
                 <img
                     src="/decor/palm-island-tagline.png"

@@ -121,12 +121,12 @@ const PREFETCH_CACHE = '10s';
  * collapsed rail clips back to the icon.
  */
 const buttonClass = cn(
-    'text-ink-indigo flex h-11 w-full min-w-0 justify-start gap-5 overflow-visible rounded-md ps-3.5 pe-1 text-[13px] leading-none font-medium tracking-[-0.02em] md:h-[clamp(32px,calc(var(--sb-unit)*5.38),42px)]',
+    'text-ink-indigo flex h-11 w-full min-w-0 justify-start gap-5 overflow-visible rounded-md ps-3.5 pe-1 text-[13px] leading-none font-medium tracking-[-0.02em] md:h-[var(--sb-item,clamp(32px,calc(var(--sb-unit)*5.38),42px))]',
     'ease-brand transition-[width,height,padding,background-color] duration-150',
     'hover:bg-brand-50 hover:text-ink-indigo active:bg-brand-50 active:text-ink-indigo',
     'focus-visible:ring-brand-600/40 focus-visible:ring-2',
     'data-[active=true]:bg-brand-100/70 data-[active=true]:text-brand-600 data-[active=true]:font-semibold',
-    '[&>svg]:text-brand-900 data-[active=true]:[&>svg]:text-brand-600 [&>svg]:size-[26px]',
+    '[&>svg]:text-brand-900 data-[active=true]:[&>svg]:text-brand-600 [&>svg]:size-[26px] md:[&>svg]:size-[min(26px,calc(var(--sb-item,42px)_-_8px))]',
     '[&>span:last-child]:overflow-visible! [&>span:last-child]:whitespace-nowrap!',
     'group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-[9px]!',
 );
