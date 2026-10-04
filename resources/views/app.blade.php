@@ -43,32 +43,49 @@
         <link rel="manifest" href="/manifest.webmanifest">
         <meta name="theme-color" content="#0b5cff">
 
-        @if ($page['component'] === 'Welcome')
-            {{-- Search engines: the site name and logo for the result card. --}}
-            <link rel="canonical" href="{{ url('/') }}">
+        @php($seo = \App\Support\Seo::for($page))
+        {{-- What search engines and link previews read before any JavaScript
+             runs (client report 2026-10-04). Private screens are noindex. --}}
+        <meta name="description" content="{{ $seo['description'] }}">
+        @if ($seo['indexable'])
+            <meta name="robots" content="index, follow, max-image-preview:large">
+            <meta name="keywords" content="{{ \App\Support\Seo::KEYWORDS }}">
+            <link rel="canonical" href="{{ $seo['canonical'] }}">
             <meta property="og:type" content="website">
             <meta property="og:site_name" content="GHASIDO">
-            <meta property="og:url" content="{{ url('/') }}">
+            <meta property="og:title" content="{{ $seo['title'] }}">
+            <meta property="og:description" content="{{ $seo['description'] }}">
+            <meta property="og:url" content="{{ $seo['canonical'] }}">
             <meta property="og:image" content="{{ url('/brand/ghasido-app-512.png') }}">
-            <script type="application/ld+json">
-                {!! json_encode([
-                    '@context' => 'https://schema.org',
-                    '@graph' => [
-                        ['@type' => 'WebSite', 'name' => 'GHASIDO', 'url' => url('/')],
-                        ['@type' => 'Organization', 'name' => 'GHASIDO', 'url' => url('/'), 'logo' => url('/brand/ghasido-app-512.png')],
-                    ],
-                ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}
-            </script>
+            <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_DZ' : 'en_US' }}">
+            <meta name="twitter:card" content="summary">
+            <meta name="twitter:title" content="{{ $seo['title'] }}">
+            <meta name="twitter:description" content="{{ $seo['description'] }}">
+            <meta name="twitter:image" content="{{ url('/brand/ghasido-app-512.png') }}">
+        @else
+            <meta name="robots" content="noindex, nofollow">
+        @endif
+
+        @if ($page['component'] === 'Welcome')
+            {{-- Search engines: the site name and logo for the result card. --}}
+            {{-- Built in PHP: Blade would read "@context" as a directive. --}}
+            <script type="application/ld+json">{!! \App\Support\Seo::jsonLd($seo) !!}</script>
         @endif
 
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'GHASIDO') }}</title>
+            <title>{{ $seo['title'] }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app />
+        @if ($page['component'] === 'Welcome')
+            {{-- A readable copy of the landing page for search engines that do
+                 not run JavaScript, and for the moment before the app starts.
+                 The app removes it once it shows the same page. --}}
+            @include('partials.landing-static', ['content' => (array) ($page['props']['content'] ?? [])])
+        @endif
     </body>
 </html>

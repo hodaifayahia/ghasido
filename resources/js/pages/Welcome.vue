@@ -136,7 +136,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
 </script>
 
 <template>
-    <Head :title="content.hero.title">
+    <Head :title="`GHASIDO – ${content.hero.title}`">
         <meta name="description" :content="content.hero.description" />
     </Head>
 

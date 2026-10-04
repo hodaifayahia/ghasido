@@ -16,10 +16,17 @@ const appName = import.meta.env.VITE_APP_NAME || 'GHASIDO';
 
 // The interface language's strings load before the first render, so an
 // Arabic page never flashes English first (I18N-02).
-void initializeI18n().then(() =>
-    createInertiaApp({
+void initializeI18n().then(async () => {
+    await createInertiaApp({
         withApp: (app) => installI18n(app),
-        title: (title) => (title ? `${title} - ${appName}` : appName),
+        // A title that already names the site (the landing page's, which
+        // puts the brand first for search) is used as it is.
+        title: (title) =>
+            !title
+                ? appName
+                : title.startsWith(appName)
+                  ? title
+                  : `${title} - ${appName}`,
         layout: (name) => {
             switch (true) {
                 case name === 'Welcome':
@@ -54,8 +61,12 @@ void initializeI18n().then(() =>
         progress: {
             color: '#0B5CFF', // brand-600
         },
-    }),
-);
+    });
+
+    // The server's readable copy of the landing page (for search engines,
+    // client report 2026-10-04) gives way to the app.
+    document.getElementById('seo-fallback')?.remove();
+});
 
 // This will set light / dark mode on page load...
 initializeTheme();

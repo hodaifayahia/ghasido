@@ -10,6 +10,7 @@ use App\Http\Controllers\Learn\MessagesController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MeaningController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SupportMessageController;
 use App\Http\Controllers\WelcomeSeenController;
 use App\Models\ContactMessage;
@@ -21,6 +22,9 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 Route::get('/', LandingPageController::class)->name('home');
+
+// The public pages for search engines (client report 2026-10-04).
+Route::get('sitemap.xml', SitemapController::class)->name('sitemap');
 
 // English or Arabic interface (I18N-02), for guests and signed-in users.
 Route::get('locale/{code}/messages', [LocaleController::class, 'messages'])
