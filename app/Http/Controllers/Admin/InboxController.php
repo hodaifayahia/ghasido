@@ -10,6 +10,7 @@ use App\Mail\CustomerMessageMail;
 use App\Models\AuditLog;
 use App\Models\ContactMessage;
 use App\Models\ContactReply;
+use App\Models\LevelChangeRequest;
 use App\Models\Reminder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -72,7 +74,124 @@ final class InboxController extends Controller
             ])->values()->all(),
             'selectedId' => $selected?->id,
             'unread' => $messages->whereNull('read_at')->count(),
+            'tab' => $request->query('tab') === 'levels' ? 'levels' : 'messages',
+            'levelRequests' => $this->levelRequests($request),
+            'pendingLevelRequests' => LevelChangeRequest::query()->where('status', 'pending')->count(),
         ]);
+    }
+
+    /**
+     * Level change requests, waiting ones first (client request
+     * 2026-10-04). Opening the tab marks them seen for the bell.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function levelRequests(Request $request): array
+    {
+        if ($request->query('tab') === 'levels') {
+            LevelChangeRequest::query()->whereNull('read_at')->update(['read_at' => now()]);
+        }
+
+        return LevelChangeRequest::query()
+            ->with(['user', 'hotel'])
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get()
+            ->map(fn (LevelChangeRequest $levelRequest): array => [
+                'id' => $levelRequest->id,
+                'name' => $levelRequest->user->name ?? __('Removed account'),
+                'username' => $levelRequest->user?->username,
+                'hotel' => $levelRequest->hotel?->name,
+                'from' => $levelRequest->from_level?->label(),
+                'to' => $levelRequest->to_level->label(),
+                'reason' => $levelRequest->reason,
+                'status' => $levelRequest->status,
+                'note' => $levelRequest->decision_note,
+                'sentAt' => $levelRequest->created_at?->toIso8601String() ?? '',
+                'decidedAt' => $levelRequest->decided_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Approve or refuse a level change request (client request 2026-10-04).
+     * Approved: the learner's level changes now and their new path starts.
+     * Either way the learner hears it in their notifications.
+     */
+    public function decideLevel(Request $request, LevelChangeRequest $levelRequest): RedirectResponse
+    {
+        Gate::authorize(Permission::LandingManage->value);
+
+        $data = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'reject'])],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        abort_unless($levelRequest->status === 'pending', 409, __('This request was already answered.'));
+
+        $learner = $levelRequest->user;
+        abort_if($learner === null, 404);
+
+        $approve = $data['decision'] === 'approve';
+        $note = isset($data['note']) && trim((string) $data['note']) !== '' ? trim((string) $data['note']) : null;
+        $actor = $request->user('web');
+
+        $levelRequest->forceFill([
+            'status' => $approve ? 'approved' : 'rejected',
+            'decided_by' => $actor?->id,
+            'decided_at' => now(),
+            'decision_note' => $note,
+            'read_at' => $levelRequest->read_at ?? now(),
+        ])->save();
+
+        if ($approve) {
+            $learner->forceFill([
+                'english_level' => $levelRequest->to_level,
+                'english_level_assessed_at' => now(),
+                'level_suggestion' => null,
+            ])->save();
+        }
+
+        $level = $levelRequest->to_level->label();
+
+        Reminder::query()->create([
+            'user_id' => $learner->id,
+            'channel' => ReminderChannel::InApp,
+            'subject' => $approve
+                ? __('Your level change was approved', [], $learner->locale ?? 'en')
+                : __('Your level change was not approved', [], $learner->locale ?? 'en'),
+            'body' => trim(($approve
+                ? __('Your level is now :level. Your lessons and tests follow it.', ['level' => $level], $learner->locale ?? 'en')
+                : __('You stay at your current level. Finish its Post-test to choose another one.', [], $learner->locale ?? 'en'))
+                .($note !== null ? "\n\n".$note : '')),
+            'sent_by' => $actor?->id,
+            'status' => ReminderStatus::Sent,
+            'sent_at' => now(),
+            'link' => route('learn.progress', [], false),
+        ]);
+
+        AuditLog::record($levelRequest, $approve ? 'learner.level.change_approved' : 'learner.level.change_rejected', [
+            'user_id' => $learner->id,
+            'to' => $levelRequest->to_level->value,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $approve
+            ? __(':name is now at :level.', ['name' => $learner->name, 'level' => $level])
+            : __('The request from :name was refused.', ['name' => $learner->name])]);
+
+        return back();
+    }
+
+    /** The bell marks one request seen. */
+    public function seenLevel(LevelChangeRequest $levelRequest): RedirectResponse
+    {
+        Gate::authorize(Permission::LandingManage->value);
+
+        $levelRequest->forceFill(['read_at' => $levelRequest->read_at ?? now()])->save();
+
+        return back();
     }
 
     public function reply(Request $request, ContactMessage $contactMessage): RedirectResponse

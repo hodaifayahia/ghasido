@@ -18,3 +18,17 @@ export type InboxMessage = {
     read: boolean;
     replies: InboxReply[];
 };
+
+export type LevelRequestRow = {
+    id: number;
+    name: string;
+    username: string | null;
+    hotel: string | null;
+    from: string | null;
+    to: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    note: string | null;
+    sentAt: string;
+    decidedAt: string | null;
+};

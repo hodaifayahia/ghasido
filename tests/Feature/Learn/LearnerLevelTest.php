@@ -5,8 +5,10 @@ namespace Tests\Feature\Learn;
 use App\Enums\ActivityType;
 use App\Enums\BlockType;
 use App\Enums\EnglishLevel;
+use App\Enums\TestAttemptStatus;
 use App\Models\Activity;
 use App\Models\Course;
+use App\Models\LevelChangeRequest;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
@@ -151,14 +153,93 @@ class LearnerLevelTest extends TestCase
         $this->assertSame(EnglishLevel::Intermediate, $learner->fresh()?->level_suggestion);
     }
 
-    public function test_the_learner_can_change_their_level_later()
+    /** A submitted Post-test of the learner's level, sat now. */
+    private function finishPostTest(User $learner, EnglishLevel $level): void
     {
-        $learner = $this->learner(['english_level' => EnglishLevel::Beginner]);
+        $test = Test::factory()->post()->create(['department_id' => $this->department->id, 'level' => $level]);
+        TestAttempt::factory()->create([
+            'user_id' => $learner->id,
+            'test_id' => $test->id,
+            'status' => TestAttemptStatus::Submitted,
+            'submitted_at' => now()->addSecond(),
+        ]);
+    }
 
+    public function test_the_level_is_locked_until_its_post_test_then_free_again()
+    {
+        $learner = $this->learner(['english_level' => EnglishLevel::Beginner, 'english_level_assessed_at' => now()->subDay()]);
+
+        // Locked: the direct call is refused on the server, not only hidden.
+        $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'advanced'])->assertSessionHasErrors('level');
+        $this->assertSame(EnglishLevel::Beginner, $learner->fresh()?->english_level);
+        $this->actingAs($learner)->get(route('learn.progress'))
+            ->assertInertia(fn (Assert $page) => $page->where('learnerLevel.canChange', false));
+
+        // After the Beginner Post-test the choice opens.
+        $this->finishPostTest($learner, EnglishLevel::Beginner);
         $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'nope'])->assertSessionHasErrors('level');
-        $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'advanced'])->assertRedirect();
+        $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'intermediate'])->assertSessionHasNoErrors();
+        $this->assertSame(EnglishLevel::Intermediate, $learner->fresh()?->english_level);
 
-        $this->assertSame(EnglishLevel::Advanced, $learner->fresh()?->english_level);
+        // And locks again for the new level.
+        $this->actingAs($learner)->put(route('learn.level.update'), ['level' => 'advanced'])->assertSessionHasErrors('level');
+    }
+
+    public function test_a_learner_requests_a_change_and_the_super_admin_approves_it()
+    {
+        $learner = $this->learner(['english_level' => EnglishLevel::Advanced, 'english_level_assessed_at' => now()]);
+        $owner = User::factory()->superAdmin()->create();
+
+        $this->actingAs($learner)
+            ->post(route('learn.level.request'), ['level' => 'beginner', 'reason' => 'The lessons are much harder than my English.'])
+            ->assertSessionHasNoErrors();
+        $levelRequest = LevelChangeRequest::query()->sole();
+
+        // One request at a time.
+        $this->actingAs($learner)
+            ->post(route('learn.level.request'), ['level' => 'intermediate', 'reason' => 'Another try at changing it.'])
+            ->assertSessionHasErrors('level');
+
+        $this->actingAs($owner)->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->where('notifications.items.0.url', '/inbox?tab=levels'));
+        $this->actingAs($owner)->get(route('inbox', ['tab' => 'levels']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tab', 'levels')
+                ->where('levelRequests.0.reason', 'The lessons are much harder than my English.'));
+
+        $this->actingAs($owner)
+            ->post(route('inbox.level-requests.decide', $levelRequest), ['decision' => 'approve'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(EnglishLevel::Beginner, $learner->fresh()?->english_level);
+        $this->assertSame('approved', $levelRequest->fresh()?->status);
+        $this->assertDatabaseHas('reminders', ['user_id' => $learner->id, 'subject' => 'Your level change was approved']);
+    }
+
+    public function test_a_refused_request_keeps_the_level_and_only_the_super_admin_decides()
+    {
+        $learner = $this->learner(['english_level' => EnglishLevel::Beginner, 'english_level_assessed_at' => now()]);
+        $owner = User::factory()->superAdmin()->create();
+        $manager = User::factory()->manager()->create(['hotel_id' => $learner->hotel_id]);
+
+        $this->actingAs($learner)
+            ->post(route('learn.level.request'), ['level' => 'advanced', 'reason' => 'I chose this level by mistake.'])
+            ->assertSessionHasNoErrors();
+        $levelRequest = LevelChangeRequest::query()->sole();
+
+        $this->actingAs($manager)
+            ->post(route('inbox.level-requests.decide', $levelRequest), ['decision' => 'approve'])
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->post(route('inbox.level-requests.decide', $levelRequest), ['decision' => 'reject', 'note' => 'Finish the Beginner Post-test first.'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(EnglishLevel::Beginner, $learner->fresh()?->english_level);
+        $this->actingAs($learner)->get(route('learn.progress'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('learnerLevel.pendingRequest', null)
+                ->where('learnerLevel.lastRefusal.note', 'Finish the Beginner Post-test first.'));
     }
 
     public function test_home_shows_the_level_track_and_the_modules_timeline()

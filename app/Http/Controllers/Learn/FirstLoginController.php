@@ -8,6 +8,7 @@ use App\Http\Requests\Learn\FirstLoginRequest;
 use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\Learning\LevelLock;
 use App\Services\Meaning\HelperLanguages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,9 @@ class FirstLoginController extends Controller
             $user->meaning_locale = $helper;
         }
 
-        if ($user->english_level !== $level) {
+        // A level already set stays locked until its Post-test (client
+        // request 2026-10-04).
+        if ($user->english_level !== $level && app(LevelLock::class)->canChange($user)) {
             $user->forceFill([
                 'english_level' => $level,
                 'english_level_assessed_at' => now(),

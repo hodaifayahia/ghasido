@@ -9,11 +9,13 @@ use App\Enums\Role;
 use App\Models\ContactMessage;
 use App\Models\Hotel;
 use App\Models\HotelAiPointTopUpRequest;
+use App\Models\LevelChangeRequest;
 use App\Models\PaymentSubmission;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\I18n\InterfaceLanguages;
 use App\Services\Learning\JourneyService;
+use App\Services\Learning\LevelLock;
 use App\Services\Learning\TrainingDepartments;
 use App\Services\Meaning\HelperLanguages;
 use App\Services\Subscriptions\AiPointsBalanceService;
@@ -116,6 +118,10 @@ class HandleInertiaRequests extends Middleware
                 ->limit(10)
                 ->get()
             : collect();
+        // Level change requests from learners (client request 2026-10-04).
+        $levelRequests = $user?->can(Permission::LandingManage->value)
+            ? LevelChangeRequest::query()->where('status', 'pending')->with('user')->orderByDesc('id')->limit(10)->get()
+            : collect();
         $contactMessages = $user?->can(Permission::LandingManage->value)
             ? ContactMessage::query()->whereNull('read_at')->orderByDesc('created_at')->limit(10)->get()
             : collect();
@@ -201,6 +207,18 @@ class HandleInertiaRequests extends Middleware
                 'readUrl' => route('contact-messages.seen', ['contactMessage' => $message]),
                 'url' => route('inbox', ['message' => $message->id], false),
             ]))
+            ->concat($levelRequests->map(fn (LevelChangeRequest $levelRequest): array => [
+                'id' => -4_000_000 - $levelRequest->id,
+                'channel' => 'in_app',
+                'subject' => __('Level change request from :name', ['name' => $levelRequest->user->name ?? '']),
+                'body' => ($levelRequest->from_level?->label() ?? '—').' → '.$levelRequest->to_level->label()
+                    .' · '.Str::limit($levelRequest->reason, 110),
+                'sentAt' => $levelRequest->created_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => $levelRequest->read_at !== null,
+                'readUrl' => route('inbox.level-requests.seen', ['levelRequest' => $levelRequest]),
+                'url' => route('inbox', ['tab' => 'levels'], false),
+            ]))
             ->sortByDesc('sentAt')
             ->values();
 
@@ -250,6 +268,7 @@ class HandleInertiaRequests extends Middleware
             // A closure, so opening a message counts it down on that page.
             'unreadInbox' => fn (): int => $user?->can(Permission::LandingManage->value)
                 ? ContactMessage::query()->whereNull('read_at')->count()
+                    + LevelChangeRequest::query()->where('status', 'pending')->count()
                 : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // The global topbar notification menu (REM-08, AIL-01): this user's
@@ -259,7 +278,8 @@ class HandleInertiaRequests extends Middleware
                     + $unreadTopUpRequests
                     + $unreadPayments
                     + $hotelRequests->whereNull('request_read_at')->count()
-                    + $contactMessages->count(),
+                    + $contactMessages->count()
+                    + $levelRequests->whereNull('read_at')->count(),
                 'items' => $notificationItems->all(),
             ],
             // The employee journey's gates and figures (JOURNEY-01..05, PROG-05;
@@ -317,6 +337,18 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
+        $lock = app(LevelLock::class);
+        $pending = $lock->pendingRequest($user);
+        // A refusal is shown until the learner asks again, for two weeks.
+        $refused = $pending === null
+            ? LevelChangeRequest::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'rejected')
+                ->where('decided_at', '>=', now()->subDays(14))
+                ->latest('id')
+                ->first()
+            : null;
+
         return [
             'current' => $user->english_level?->value,
             'currentLabel' => $user->english_level?->label(),
@@ -325,6 +357,19 @@ class HandleInertiaRequests extends Middleware
             'options' => EnglishLevel::options(),
             'updateUrl' => route('learn.level.update'),
             'answerUrl' => route('learn.level.answer'),
+            // Locked until the level's Post-test; a change before it is a
+            // request the Super Admin decides (client request 2026-10-04).
+            'canChange' => $lock->canChange($user),
+            'requestUrl' => route('learn.level.request'),
+            'pendingRequest' => $pending === null ? null : [
+                'toLabel' => $pending->to_level->label(),
+                'reason' => $pending->reason,
+                'sentAt' => $pending->created_at?->toIso8601String() ?? '',
+            ],
+            'lastRefusal' => $refused === null ? null : [
+                'toLabel' => $refused->to_level->label(),
+                'note' => $refused->decision_note,
+            ],
         ];
     }
 

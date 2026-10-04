@@ -468,6 +468,11 @@ export type LearnerLevel = {
     options: LevelOption[];
     updateUrl: string;
     answerUrl: string;
+    /** Locked until the level's Post-test (client request 2026-10-04). */
+    canChange: boolean;
+    requestUrl: string;
+    pendingRequest: { toLabel: string; reason: string; sentAt: string } | null;
+    lastRefusal: { toLabel: string; note: string | null } | null;
 };
 
 /**

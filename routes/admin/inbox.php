@@ -11,4 +11,9 @@ Route::middleware(Permission::LandingManage->middleware())->group(function () {
     Route::post('inbox/{contactMessage}/reply', [InboxController::class, 'reply'])
         ->middleware('throttle:30,1')
         ->name('inbox.reply');
+    // Level change requests (client request 2026-10-04).
+    Route::post('inbox/level-requests/{levelRequest}/decide', [InboxController::class, 'decideLevel'])
+        ->name('inbox.level-requests.decide');
+    Route::post('inbox/level-requests/{levelRequest}/seen', [InboxController::class, 'seenLevel'])
+        ->name('inbox.level-requests.seen');
 });

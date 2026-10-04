@@ -69,6 +69,9 @@ Route::middleware([
             // The learner's level (client decision 2026-09-30).
             Route::put('level', [LevelController::class, 'update'])->name('level.update');
             Route::post('level/suggestion', [LevelController::class, 'answer'])->name('level.answer');
+            Route::post('level/request', [LevelController::class, 'request'])
+                ->middleware('throttle:10,1')
+                ->name('level.request');
             // Their helper language for Show Meaning (client request 2026-09-30).
             Route::put('helper-language', [HelperLanguageController::class, 'update'])->name('helper-language.update');
             Route::get('post-test', [HomeController::class, 'postTest'])->name('post-test');
