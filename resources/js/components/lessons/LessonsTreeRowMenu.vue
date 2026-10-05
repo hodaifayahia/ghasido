@@ -34,12 +34,15 @@ type Props = {
     canEdit?: boolean;
     canCopy?: boolean;
     canDelete?: boolean;
+    /** Always shown (the open lesson); otherwise see `slotClass`. */
+    pinned?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
     canEdit: true,
     canCopy: true,
     canDelete: true,
+    pinned: false,
 });
 
 const emit = defineEmits<{
@@ -94,12 +97,27 @@ function choose(action: LessonsTreeAction): void {
     emit('select', action);
 }
 
+/**
+ * The approved tree keeps every title at full width. With a mouse the
+ * button floats over the end of its row (`group/row` in the panel) and
+ * shows on hover, on keyboard focus, while its menu is open, or always for
+ * the open lesson; nothing is hover-only (AGENTS.md §7). On touch screens
+ * there is no hover, so it always sits beside the title.
+ */
+const slotClass = computed(() =>
+    cn(
+        'flex shrink-0 items-center pointer-fine:absolute pointer-fine:inset-y-0 pointer-fine:end-0',
+        !props.pinned &&
+            'pointer-fine:opacity-0 pointer-fine:group-focus-within/row:opacity-100 pointer-fine:group-hover/row:opacity-100 pointer-fine:has-[[data-state=open]]:opacity-100',
+    ),
+);
+
 const triggerClass =
-    'text-ink-slate hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/15 inline-flex size-7 shrink-0 items-center justify-center rounded-md focus-visible:ring-3 focus-visible:outline-none md:size-6';
+    'text-ink-slate hover:bg-brand-50 hover:text-brand-800 focus-visible:ring-brand-600/15 pointer-fine:bg-surface pointer-fine:border-line pointer-fine:shadow-card inline-flex size-7 shrink-0 items-center justify-center rounded-md focus-visible:ring-3 focus-visible:outline-none pointer-fine:border md:size-6';
 </script>
 
 <template>
-    <template v-if="items.length > 0">
+    <span v-if="items.length > 0" :class="slotClass">
         <template v-if="isPhone">
             <button
                 type="button"
@@ -200,5 +218,5 @@ const triggerClass =
                 </template>
             </DropdownMenuContent>
         </DropdownMenu>
-    </template>
+    </span>
 </template>

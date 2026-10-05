@@ -96,7 +96,13 @@ class BlockWritesTest extends TestCase
 
         $this->assertSame(['situation', 'vocabulary', 'vocabulary', 'expressions'], array_slice($types, 0, 4));
         $copy = $this->lesson->blocks()->get()[2];
-        $this->assertSame([$item->id], $copy->lexiconItems()->pluck('lexicon_items.id')->all());
+        $copyItem = $copy->lexiconItems()->firstOrFail();
+
+        // The copy owns its words: editing it never edits the original.
+        $this->assertNotSame($item->id, $copyItem->id);
+        $this->assertSame($item->english_text, $copyItem->english_text);
+        $copyItem->update(['english_text' => 'Changed in the copy']);
+        $this->assertNotSame('Changed in the copy', $item->fresh()?->english_text);
     }
 
     public function test_delete_removes_the_block_and_renumbers_the_rest()

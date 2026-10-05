@@ -199,7 +199,7 @@ function duplicate(target: LessonsTreeTarget): void {
                 :key="course.id"
                 class="rounded-md border border-transparent"
             >
-                <div class="flex items-center gap-0.5">
+                <div class="group/row relative flex items-center gap-0.5">
                     <button
                         type="button"
                         :aria-expanded="course.expanded === true"
@@ -251,7 +251,9 @@ function duplicate(target: LessonsTreeTarget): void {
                         :key="unit.id"
                         class="pb-1"
                     >
-                        <div class="flex items-center gap-0.5">
+                        <div
+                            class="group/row relative flex items-center gap-0.5"
+                        >
                             <button
                                 type="button"
                                 :aria-expanded="unit.expanded === true"
@@ -288,7 +290,7 @@ function duplicate(target: LessonsTreeTarget): void {
                             <div
                                 v-for="lesson in unit.lessons ?? []"
                                 :key="lesson.id"
-                                class="flex items-center gap-0.5"
+                                class="group/row relative flex items-center gap-0.5"
                             >
                                 <button
                                     type="button"
@@ -313,6 +315,7 @@ function duplicate(target: LessonsTreeTarget): void {
                                 <LessonsTreeRowMenu
                                     v-if="manage"
                                     :name="lesson.name ?? lesson.title"
+                                    :pinned="lesson.active === true"
                                     :test-id="`lesson-${lesson.id}`"
                                     :can-edit="course.canEdit !== false"
                                     :can-copy="course.canEdit !== false"

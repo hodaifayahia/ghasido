@@ -244,14 +244,7 @@ onBeforeUnmount(clearCoverPreview);
                     <DropdownMenuTrigger as-child>
                         <button
                             type="button"
-                            :class="
-                                cn(
-                                    'focus-visible:ring-brand-600/15 inline-flex h-8 items-center gap-2 rounded-md px-3 text-[11.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none',
-                                    editor.published
-                                        ? 'bg-success-tint text-success-text'
-                                        : 'bg-warning-tint text-warning-text',
-                                )
-                            "
+                            class="bg-success-tint text-success-text focus-visible:ring-brand-600/15 inline-flex h-8 items-center gap-2 rounded-md px-3 text-[11.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
                             :aria-label="
                                 $t('Status: :status. Change it', {
                                     status: editor.status,
@@ -259,16 +252,8 @@ onBeforeUnmount(clearCoverPreview);
                             "
                             data-test="scenario-status-button"
                         >
-                            <span
-                                :class="
-                                    cn(
-                                        'size-2 rounded-full',
-                                        editor.published
-                                            ? 'bg-success'
-                                            : 'bg-warning',
-                                    )
-                                "
-                            />
+                            <!-- The approved pill (mockup), whatever the status. -->
+                            <span class="bg-success size-2 rounded-full" />
                             {{ editor.status }}
                             <ChevronDown class="size-3.5" aria-hidden="true" />
                         </button>

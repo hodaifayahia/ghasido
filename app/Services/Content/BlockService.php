@@ -230,7 +230,7 @@ class BlockService
 
             $lesson = $block->lesson()->firstOrFail();
             $this->renumber($lesson, $copy->id, $block->position + 1);
-            $this->lessons->reattach($block, $copy);
+            $this->lessons->copyBlockContent($block, $copy);
 
             AuditLog::record($copy, 'block.duplicated', ['source_block_id' => $block->id]);
 

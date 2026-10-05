@@ -587,9 +587,11 @@ class LessonService
 
     /**
      * Give a copied block its own copies of the source block's words,
-     * expressions and activities, and the same scenarios.
+     * expressions and activities, and the same scenarios. Used for whole
+     * lesson copies here and for one block copied by BlockService::duplicate
+     * (client request 2026-10-05: editing a copy never edits the original).
      */
-    private function copyBlockContent(Block $source, Block $copy): void
+    public function copyBlockContent(Block $source, Block $copy): void
     {
         $lexicon = [];
         foreach ($source->lexiconItems()->get() as $item) {
@@ -617,34 +619,6 @@ class LessonService
 
             $copy->placements()->create([
                 'activity_id' => $activityCopy->id,
-                'position' => $placement->position,
-                'overrides' => $placement->overrides,
-            ]);
-        }
-
-        $this->attachScenarios($source, $copy);
-    }
-
-    /**
-     * Attach the shared rows of one block to its copy (used by duplicate here
-     * and by BlockService::duplicate).
-     */
-    public function reattach(Block $source, Block $copy): void
-    {
-        $lexicon = [];
-        foreach ($source->lexiconItems()->get() as $item) {
-            $pivot = $item->getRelationValue('pivot');
-            $position = $pivot instanceof Model ? $pivot->getAttribute('position') : 0;
-            $lexicon[$item->id] = ['position' => is_numeric($position) ? (int) $position : 0];
-        }
-
-        if ($lexicon !== []) {
-            $copy->lexiconItems()->sync($lexicon);
-        }
-
-        foreach ($source->placements()->get() as $placement) {
-            $copy->placements()->create([
-                'activity_id' => $placement->activity_id,
                 'position' => $placement->position,
                 'overrides' => $placement->overrides,
             ]);
