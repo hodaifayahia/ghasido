@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\MediaAsset;
 use App\Models\Test;
 use App\Models\User;
+use App\Services\Content\LessonService;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -373,6 +374,46 @@ class TestService
                 ->delete();
             Test::query()->where('paired_test_id', $test->id)->update(['paired_test_id' => null]);
             $test->delete();
+        });
+    }
+
+    /**
+     * A draft copy of the test with its settings and every question
+     * (client request 2026-10-05: copy a test, then change a little).
+     *
+     * Each question is a new activity at version 1 of the same content, so
+     * editing the copy never changes the original or any stored answer
+     * (DATA-11, TEST-09). Sittings are learner data and are not copied.
+     */
+    public function duplicate(Test $test, User $actor): Test
+    {
+        return DB::transaction(function () use ($test, $actor): Test {
+            $copy = $test->replicate(['status', 'ai_status', 'ai_failed_reason', 'ai_request']);
+            $copy->title = LessonService::copyTitle($test->title, 120);
+            $copy->status = ContentStatus::Draft;
+            $copy->save();
+
+            foreach ($test->questions()->with('activity')->get() as $placement) {
+                $activity = $placement->activity;
+
+                if ($activity === null) {
+                    continue;
+                }
+
+                $activityCopy = $activity->replicate(['current_version']);
+                $activityCopy->created_by = $actor->id;
+                $activityCopy->save();
+
+                $copy->questions()->create([
+                    'activity_id' => $activityCopy->id,
+                    'position' => $placement->position,
+                    'overrides' => $placement->overrides,
+                ]);
+            }
+
+            AuditLog::record($copy, 'test.duplicated', ['source_test_id' => $test->id]);
+
+            return $copy;
         });
     }
 

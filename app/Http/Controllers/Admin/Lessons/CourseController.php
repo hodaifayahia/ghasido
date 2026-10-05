@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -40,6 +41,49 @@ class CourseController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was updated.', ['title' => $course->title])]);
 
         return back();
+    }
+
+    /**
+     * Copy the course with its units and lessons (client request 2026-10-05).
+     */
+    public function duplicate(Request $request, Course $course, LessonService $lessons): RedirectResponse
+    {
+        Gate::authorize('duplicate', $course);
+
+        /** @var User $user */
+        $user = $request->user();
+        $copy = $lessons->duplicateCourse($course, $user);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was copied. The copy is a draft: rename it and change what you need.', ['title' => $course->title])]);
+
+        return to_route('lessons-content', [
+            'hotel' => $copy->hotel_id === null ? 'shared' : $copy->hotel_id,
+            'department' => $copy->department_id,
+            'course' => $copy->id,
+        ]);
+    }
+
+    /**
+     * "Delete" (client request 2026-10-05, CMS-01). Learner answers are
+     * never deleted: a course holding any is removed and kept for reports
+     * (DATA-10). Authorized here, not by hiding the button (SEC-01).
+     */
+    public function destroy(Course $course, LessonService $lessons): RedirectResponse
+    {
+        Gate::authorize('destroy', $course);
+
+        $title = $course->title;
+        $target = [
+            'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
+            'department' => $course->department_id,
+        ];
+        $deleted = $lessons->deleteCourse($course);
+
+        Inertia::flash('toast', $deleted
+            ? ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]
+            : ['type' => 'success', 'message' => __(':title was removed from the library. Learner answers were kept for reports.', ['title' => $title])]);
+
+        return to_route('lessons-content', $target);
     }
 
     public function archive(Course $course, LessonService $lessons): RedirectResponse

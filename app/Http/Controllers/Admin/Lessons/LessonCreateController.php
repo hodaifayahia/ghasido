@@ -42,7 +42,9 @@ class LessonCreateController extends Controller
             : Course::query()
                 ->where('department_id', $department->id)
                 ->sharedOrFor($user->hotel_id)
+                ->notArchived()
                 ->with(['units' => fn ($units) => $units
+                    ->notArchived()
                     ->orderBy('position')
                     ->orderBy('id')])
                 ->orderBy('position')

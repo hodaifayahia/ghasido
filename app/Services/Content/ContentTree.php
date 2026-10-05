@@ -135,7 +135,7 @@ class ContentTree
             'directoryStats' => fn (): array => $directoryData()['stats'],
             'directoryFilters' => fn (): array => $directoryData()['filters'],
             'directoryPagination' => fn (): array => $directoryData()['pagination'],
-            'courses' => fn (): array => $this->tree($courses, $course, $unit, $lesson, $open),
+            'courses' => fn (): array => $this->tree($courses, $course, $unit, $lesson, $open, $user),
             'editor' => fn (): array => $this->editor($lesson, $hotels, $departments),
             'blocks' => $this->palette(),
             'library' => fn (): array => $this->library($request, $user),
@@ -249,10 +249,14 @@ class ContentTree
     {
         return $this->courseScope($hotelKey, $hotelId)
             ->where('department_id', $departmentId)
-            // A lesson removed by "Delete" keeps its answers but leaves the
-            // builder tree (CMS-01, DATA-10). A viewer who cannot edit
-            // lessons sees only the published ones.
-            ->with(['units.lessons' => fn ($lessons) => $publishedOnly ? $lessons->published() : $lessons->notArchived()])
+            // A course, unit or lesson removed by "Delete" keeps its answers
+            // but leaves the builder tree (CMS-01, DATA-10). A viewer who
+            // cannot edit lessons sees only the published lessons.
+            ->notArchived()
+            ->with([
+                'units' => fn ($units) => $units->notArchived(),
+                'units.lessons' => fn ($lessons) => $publishedOnly ? $lessons->published() : $lessons->notArchived(),
+            ])
             ->orderBy('position')
             ->orderBy('id')
             ->get();
@@ -284,14 +288,20 @@ class ContentTree
      * @param  list<string>  $open
      * @return list<array<string, mixed>>
      */
-    private function tree(Collection $courses, ?Course $course, ?Unit $unit, ?Lesson $lesson, array $open): array
+    private function tree(Collection $courses, ?Course $course, ?Unit $unit, ?Lesson $lesson, array $open, User $user): array
     {
-        return array_values($courses->map(function (Course $row) use ($course, $unit, $lesson, $open): array {
+        return array_values($courses->map(function (Course $row) use ($course, $unit, $lesson, $open, $user): array {
             $expanded = $row->id === $course?->id || in_array('c'.$row->id, $open, true);
 
             return [
                 'id' => $row->id,
                 'title' => $row->title,
+                // Rename / Copy / Delete in the tree (client request
+                // 2026-10-05). The server checks each again (SEC-01); units
+                // and lessons share their course's reach.
+                'canEdit' => $user->can('update', $row),
+                'canCopy' => $user->can('duplicate', $row),
+                'canDelete' => $user->can('destroy', $row),
                 'tone' => $row->tone,
                 'status' => $row->status->value,
                 // Who sees it: every level, or one (client decision 2026-09-30).
@@ -304,11 +314,14 @@ class ContentTree
                     return [
                         'id' => $unitRow->id,
                         'title' => __('Unit :n: :title', ['n' => $index + 1, 'title' => $unitRow->title]),
+                        // The stored title, for Rename (client request 2026-10-05).
+                        'name' => $unitRow->title,
                         'status' => $unitRow->status->value,
                         'expanded' => $unitExpanded,
                         'lessons' => $unitRow->lessons->values()->map(fn (Lesson $lessonRow, int $lessonIndex): array => [
                             'id' => $lessonRow->id,
                             'title' => ($lessonIndex + 1).'. '.$lessonRow->title,
+                            'name' => $lessonRow->title,
                             'status' => $lessonRow->status->value,
                             'active' => $lessonRow->id === $lesson?->id,
                         ])->all(),
@@ -725,7 +738,7 @@ class ContentTree
      */
     private function directoryCourseOptions(User $user): array
     {
-        $query = Course::query()->orderBy('position')->orderBy('title');
+        $query = Course::query()->notArchived()->orderBy('position')->orderBy('title');
 
         if (! $user->hasRole('super_admin')) {
             $query->sharedOrFor($user->hotel_id);

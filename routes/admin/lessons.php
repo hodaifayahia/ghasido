@@ -35,9 +35,14 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
     Route::patch('courses/{course}', [CourseController::class, 'update'])->name('courses.update');
     Route::post('courses/{course}/archive', [CourseController::class, 'archive'])->name('courses.archive');
+    // Copy and delete a whole course or unit (client request 2026-10-05).
+    Route::post('courses/{course}/duplicate', [CourseController::class, 'duplicate'])->name('courses.duplicate');
+    Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
 
     Route::post('units', [UnitController::class, 'store'])->name('units.store');
     Route::patch('units/{unit}', [UnitController::class, 'update'])->name('units.update');
+    Route::post('units/{unit}/duplicate', [UnitController::class, 'duplicate'])->name('units.duplicate');
+    Route::delete('units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy');
 
     Route::post('lessons', [LessonController::class, 'store'])->name('lessons.store');
     Route::patch('lessons/{lesson}', [LessonController::class, 'update'])->name('lessons.update');

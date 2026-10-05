@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ContentStatus;
 use Database\Factories\UnitFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string $title
  * @property int $position
  * @property ContentStatus $status
+ * @property Carbon|null $archived_at removed by "Delete", kept for reports (DATA-10)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -39,6 +41,7 @@ class Unit extends Model
         return [
             'position' => 'integer',
             'status' => ContentStatus::class,
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -68,8 +71,23 @@ class Unit extends Model
         return $this->hasMany(Lesson::class)->orderBy('position')->orderBy('id');
     }
 
+    /**
+     * Units still in the admin library: not removed by "Delete" (CMS-01).
+     *
+     * @param  Builder<Unit>  $query
+     */
+    public function scopeNotArchived(Builder $query): void
+    {
+        $query->whereNull($query->qualifyColumn('archived_at'));
+    }
+
     public function isPublished(): bool
     {
         return $this->status === ContentStatus::Published;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 }

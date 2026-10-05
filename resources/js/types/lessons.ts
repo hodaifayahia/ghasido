@@ -117,6 +117,8 @@ export type LessonContentStatus = 'draft' | 'published';
 export type LessonsTreeLesson = {
     id: number;
     title: string;
+    /** The stored title, without the "1. " number (for Rename). */
+    name?: string;
     active?: boolean;
     status?: LessonContentStatus;
 };
@@ -124,6 +126,8 @@ export type LessonsTreeLesson = {
 export type LessonsTreeUnit = {
     id: number;
     title: string;
+    /** The stored title, without the "Unit 1: " prefix (for Rename). */
+    name?: string;
     expanded?: boolean;
     lessons?: LessonsTreeLesson[];
     addLessonLabel?: string;
@@ -140,7 +144,20 @@ export type LessonsTreeCourse = {
     /** Null = every level (client decision 2026-09-30). */
     level?: string | null;
     levelLabel?: string | null;
+    /** Rename / Copy / Delete rights for the course and everything in it. */
+    canEdit?: boolean;
+    canCopy?: boolean;
+    canDelete?: boolean;
 };
+
+/** A row of the Course Structure tree an action applies to. */
+export type LessonsTreeTarget = {
+    kind: 'course' | 'unit' | 'lesson';
+    id: number;
+    name: string;
+};
+
+export type LessonsTreeAction = 'rename' | 'duplicate' | 'delete';
 
 export type LessonMockupCrop = {
     x: number;

@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     CircleHelp,
+    Copy,
     FileText,
     MessagesSquare,
     Mic,
@@ -199,6 +200,32 @@ function publishScenario(): void {
     router.post(props.editor.publishUrl, {}, { preserveScroll: true });
 }
 
+function unpublishScenario(): void {
+    if (!props.editor.unpublishUrl) return;
+
+    router.post(props.editor.unpublishUrl, {}, { preserveScroll: true });
+}
+
+/** A draft copy with every setting, opened in the editor (2026-10-05). */
+const copying = ref(false);
+
+function copyScenario(url: string | null | undefined): void {
+    if (!url || copying.value) return;
+
+    router.post(
+        url,
+        {},
+        {
+            onStart: () => {
+                copying.value = true;
+            },
+            onFinish: () => {
+                copying.value = false;
+            },
+        },
+    );
+}
+
 function saveInstructions(payload: AiScenarioInstructionsSavePayload): void {
     if (!props.instructions.saveUrl) return;
 
@@ -358,6 +385,18 @@ defineOptions({
                         {{ $t('Visual scenario guide') }}
                     </Button>
                     <Button
+                        v-if="editor.duplicateUrl"
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 h-11 gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none md:h-8"
+                        :disabled="copying"
+                        data-test="copy-open-scenario-button"
+                        @click="copyScenario(editor.duplicateUrl)"
+                    >
+                        <Copy class="size-3.5" aria-hidden="true" />
+                        {{ $t('Make a copy') }}
+                    </Button>
+                    <Button
                         v-if="openLibraryItem?.canDelete"
                         type="button"
                         variant="outline"
@@ -413,6 +452,7 @@ defineOptions({
                         @generate="generateScenario"
                         @apply-draft="applyDraft"
                         @publish="publishScenario"
+                        @unpublish="unpublishScenario"
                         @open-instructions="openInstructions"
                     />
                 </div>

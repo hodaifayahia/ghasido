@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $published_at
  * @property int|null $cover_media_id
  * @property int|null $created_by
+ * @property Carbon|null $archived_at removed by "Delete", kept for reports (DATA-10)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read int|null $lessons_count
@@ -67,6 +68,7 @@ class Course extends Model
             'status' => ContentStatus::class,
             'level' => EnglishLevel::class,
             'published_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -127,7 +129,18 @@ class Course extends Model
      */
     public function scopePublished(Builder $query): void
     {
-        $query->where('status', ContentStatus::Published);
+        // A removed course is never live again, whatever its status (DATA-10).
+        $query->where('status', ContentStatus::Published)->whereNull($query->qualifyColumn('archived_at'));
+    }
+
+    /**
+     * Courses still in the admin library: not removed by "Delete" (CMS-01).
+     *
+     * @param  Builder<Course>  $query
+     */
+    public function scopeNotArchived(Builder $query): void
+    {
+        $query->whereNull($query->qualifyColumn('archived_at'));
     }
 
     /**
@@ -181,6 +194,11 @@ class Course extends Model
     public function isPublished(): bool
     {
         return $this->status === ContentStatus::Published;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 
     public function isShared(): bool

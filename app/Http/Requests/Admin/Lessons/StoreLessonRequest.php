@@ -89,7 +89,7 @@ class StoreLessonRequest extends FormRequest
 
             $sibling = $this->levelCourse($course, $lessons);
 
-            return $sibling->units()->where('title', $unit->title)->orderBy('id')->first()
+            return $sibling->units()->notArchived()->where('title', $unit->title)->orderBy('id')->first()
                 ?? $lessons->createUnit($sibling, $unit->title);
         }
 
@@ -107,7 +107,7 @@ class StoreLessonRequest extends FormRequest
             return $lessons->createUnit($course, trim((string) $this->input('new_unit_title')));
         }
 
-        $unit = $course->units()->orderBy('position')->orderBy('id')->first();
+        $unit = $course->units()->notArchived()->orderBy('position')->orderBy('id')->first();
 
         return $unit instanceof Unit ? $unit : $lessons->createUnit($course, self::DEFAULT_TITLE);
     }
@@ -153,6 +153,7 @@ class StoreLessonRequest extends FormRequest
         abort_unless($user->can('create', Course::class), 403);
 
         $existing = Course::query()
+            ->notArchived()
             ->where('department_id', $course->department_id)
             ->where('title', $course->title)
             ->where('level', $this->level())
@@ -194,6 +195,7 @@ class StoreLessonRequest extends FormRequest
         abort_if($department === null, 403);
 
         $existing = Course::query()
+            ->notArchived()
             ->where('department_id', $department->id)
             ->when(
                 $user->hotel_id === null,

@@ -37,6 +37,8 @@ export type AiScenarioLibraryItem = {
     learnerAttempts?: number;
     /** Lesson steps that offer it; a delete takes it out of them. */
     lessonSteps?: number;
+    /** Make a copy (client request 2026-10-05); null when not allowed. */
+    duplicateUrl?: string | null;
 };
 
 export type AiScenarioDirectoryMetricKey =
@@ -99,6 +101,10 @@ export type AiScenarioEditor = {
     generateUrl?: string;
     applyDraftUrl?: string;
     publishUrl?: string;
+    /** Live for employees; Unpublish takes it back to draft (2026-10-05). */
+    published?: boolean;
+    unpublishUrl?: string;
+    duplicateUrl?: string;
     usedInLessons: AiScenarioLessonUsage[];
 };
 

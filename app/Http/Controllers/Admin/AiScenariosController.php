@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ContentStatus;
 use App\Enums\GuestMood;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Scenarios\StoreAiScenarioRequest;
@@ -93,6 +94,39 @@ class AiScenariosController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title is published.', ['title' => $scenario->title])]);
 
         return back();
+    }
+
+    /**
+     * Take a published scenario back to draft (client request 2026-10-05).
+     */
+    public function unpublish(AiScenario $scenario, ScenarioService $scenarios): RedirectResponse
+    {
+        Gate::authorize('update', $scenario);
+        $scenarios->unpublish($scenario);
+
+        Inertia::flash('toast', ['type' => 'info', 'message' => __(':title is back in draft. Employees no longer see it.', ['title' => $scenario->title])]);
+
+        return back();
+    }
+
+    /**
+     * Copy a scenario with all its settings (client request 2026-10-05).
+     */
+    public function duplicate(Request $request, AiScenario $scenario, ScenarioService $scenarios): RedirectResponse
+    {
+        Gate::authorize('update', $scenario);
+        Gate::authorize('create', AiScenario::class);
+
+        /** @var User $actor */
+        $actor = $request->user();
+        $copy = $scenarios->duplicate($scenario, $actor);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':title was copied. The copy is a draft: rename it and change what you need.', ['title' => $scenario->title]),
+        ]);
+
+        return to_route('ai-scenarios', ['scenario' => $copy->id]);
     }
 
     /**
@@ -695,6 +729,9 @@ class AiScenariosController extends Controller
                 'level' => __('Level: :level', ['level' => Str::headline($scenario->difficulty->value)]),
                 'status' => $scenario->status->value,
                 'canDelete' => $viewer->can('destroy', $scenario),
+                'duplicateUrl' => $viewer->can('update', $scenario) && $viewer->can('create', AiScenario::class)
+                    ? route('ai-scenarios.duplicate', $scenario)
+                    : null,
                 'learnerAttempts' => $learnerAttempts[$scenario->id] ?? 0,
                 'lessonSteps' => (int) ($lessonSteps[$scenario->id] ?? 0),
                 'crop' => [
@@ -809,6 +846,9 @@ class AiScenariosController extends Controller
             'generateUrl' => route('ai-scenarios.generate', $scenario),
             'applyDraftUrl' => route('ai-scenarios.apply-draft', $scenario),
             'publishUrl' => route('ai-scenarios.publish', $scenario),
+            'published' => $scenario->status === ContentStatus::Published,
+            'unpublishUrl' => route('ai-scenarios.unpublish', $scenario),
+            'duplicateUrl' => route('ai-scenarios.duplicate', $scenario),
             'usedInLessons' => $this->scenarioLessonUsage($scenario),
             'departments' => $departments->map(fn (Department $department): array => [
                 'value' => (string) $department->id,

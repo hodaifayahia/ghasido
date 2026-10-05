@@ -10,6 +10,7 @@ use App\Models\AiScenario;
 use App\Models\AuditLog;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
+use App\Models\VoiceLine;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -133,6 +134,51 @@ final class ScenarioService
             $scenario->save();
 
             return $scenario->refresh();
+        });
+    }
+
+    /**
+     * Back to draft so no learner is offered it while the admin edits it
+     * (client request 2026-10-05), exactly as a lesson can be. Attempts
+     * already made stay (RP-11, DATA-10).
+     */
+    public function unpublish(AiScenario $scenario): AiScenario
+    {
+        return DB::transaction(function () use ($scenario): AiScenario {
+            $scenario->status = ContentStatus::Draft;
+            AuditLog::record($scenario, 'scenario.unpublished');
+            $scenario->save();
+
+            return $scenario->refresh();
+        });
+    }
+
+    /**
+     * A draft copy with every setting of the original (client request
+     * 2026-10-05: copy a scenario, then change a little). Learner and
+     * preview attempts are not copied; lesson steps keep offering the
+     * original. The guest's recorded reusable lines come along, so the
+     * copy's first calls need no new speech (TTS-02, AIL-04).
+     */
+    public function duplicate(AiScenario $scenario, User $actor): AiScenario
+    {
+        return DB::transaction(function () use ($scenario, $actor): AiScenario {
+            $copy = $scenario->replicate(['slug', 'status', 'ai_draft', 'ai_status', 'archived_at']);
+            $copy->title = Str::limit($scenario->title, 100 - 7, '').' (copy)';
+            $copy->slug = $this->uniqueSlug($copy->title);
+            $copy->status = ContentStatus::Draft;
+            $copy->created_by = $actor->id;
+            $copy->save();
+
+            foreach (VoiceLine::query()->where('ai_scenario_id', $scenario->id)->where('reusable', true)->get() as $line) {
+                $lineCopy = $line->replicate(['uses', 'reuses', 'last_used_at']);
+                $lineCopy->ai_scenario_id = $copy->id;
+                $lineCopy->save();
+            }
+
+            AuditLog::record($copy, 'scenario.duplicated', ['source_scenario_id' => $scenario->id]);
+
+            return $copy;
         });
     }
 

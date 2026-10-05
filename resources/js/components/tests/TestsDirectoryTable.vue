@@ -2,6 +2,7 @@
 import {
     ArrowRight,
     Check,
+    Copy,
     Filter,
     RotateCcw,
     Search,
@@ -37,6 +38,7 @@ const emit = defineEmits<{
     open: [id: string];
     create: [];
     delete: [item: TestListItem];
+    copy: [item: TestListItem];
 }>();
 
 const search = ref(props.list.search);
@@ -330,6 +332,22 @@ function statusClass(item: TestListItem): string {
                                     v-if="canDelete"
                                     type="button"
                                     variant="ghost"
+                                    class="text-brand-700 hover:bg-brand-100/60 size-8 p-0"
+                                    :aria-label="
+                                        $t('Make a copy of :name', {
+                                            name: item.title,
+                                        })
+                                    "
+                                    :title="$t('Make a copy')"
+                                    :data-test="`copy-test-${item.id}-button`"
+                                    @click="emit('copy', item)"
+                                >
+                                    <Copy class="size-4" aria-hidden="true" />
+                                </Button>
+                                <Button
+                                    v-if="canDelete"
+                                    type="button"
+                                    variant="ghost"
                                     class="text-danger-text hover:bg-danger-tint hover:text-danger-text size-8 p-0"
                                     :aria-label="
                                         $t('Delete :name', { name: item.title })
@@ -415,6 +433,19 @@ function statusClass(item: TestListItem): string {
                         aria-hidden="true"
                     />
                 </button>
+                <Button
+                    v-if="canDelete"
+                    type="button"
+                    variant="ghost"
+                    class="text-brand-700 hover:bg-brand-100/60 size-11 shrink-0 p-0"
+                    :aria-label="
+                        $t('Make a copy of :name', { name: item.title })
+                    "
+                    :data-test="`copy-test-${item.id}-mobile-button`"
+                    @click="emit('copy', item)"
+                >
+                    <Copy class="size-4" aria-hidden="true" />
+                </Button>
                 <Button
                     v-if="canDelete"
                     type="button"

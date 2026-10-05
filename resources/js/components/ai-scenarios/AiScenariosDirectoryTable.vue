@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import {
     ArrowRight,
     Bot,
     Check,
     CircleHelp,
+    Copy,
     Filter,
     RotateCcw,
     Search,
@@ -53,6 +55,33 @@ function canDelete(scenario: AiScenarioLibraryItem): boolean {
 function askDelete(scenario: AiScenarioLibraryItem): void {
     deleteTarget.value = scenario;
     deleteOpen.value = true;
+}
+
+// Make a copy with every setting (client request 2026-10-05); the server
+// opens the draft copy in the editor.
+const copying = ref(false);
+
+function canCopy(scenario: AiScenarioLibraryItem): boolean {
+    return manage && typeof scenario.duplicateUrl === 'string';
+}
+
+function copy(scenario: AiScenarioLibraryItem): void {
+    if (!scenario.duplicateUrl || copying.value) {
+        return;
+    }
+
+    router.post(
+        scenario.duplicateUrl,
+        {},
+        {
+            onStart: () => {
+                copying.value = true;
+            },
+            onFinish: () => {
+                copying.value = false;
+            },
+        },
+    );
 }
 
 const search = ref(props.library.search);
@@ -319,6 +348,23 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                                     />
                                 </Button>
                                 <Button
+                                    v-if="canCopy(scenario)"
+                                    type="button"
+                                    variant="outline"
+                                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface size-8 shrink-0 rounded-md p-0 shadow-none"
+                                    :aria-label="
+                                        $t('Make a copy of :name', {
+                                            name: scenario.title,
+                                        })
+                                    "
+                                    :title="$t('Make a copy')"
+                                    :disabled="copying"
+                                    :data-test="`copy-scenario-${scenario.id}-button`"
+                                    @click="copy(scenario)"
+                                >
+                                    <Copy class="size-3.5" aria-hidden="true" />
+                                </Button>
+                                <Button
                                     v-if="canDelete(scenario)"
                                     type="button"
                                     variant="outline"
@@ -389,6 +435,19 @@ function statusClass(scenario: AiScenarioLibraryItem): string {
                         class="text-brand-700 size-4 shrink-0"
                         aria-hidden="true"
                     />
+                </button>
+                <button
+                    v-if="canCopy(scenario)"
+                    type="button"
+                    class="border-line text-brand-700 hover:bg-brand-50 bg-surface focus-visible:ring-brand-600/15 grid size-10 shrink-0 place-items-center rounded-md border focus-visible:ring-3 focus-visible:outline-none"
+                    :aria-label="
+                        $t('Make a copy of :name', { name: scenario.title })
+                    "
+                    :disabled="copying"
+                    :data-test="`copy-scenario-${scenario.id}-mobile-button`"
+                    @click="copy(scenario)"
+                >
+                    <Copy class="size-4" aria-hidden="true" />
                 </button>
                 <button
                     v-if="canDelete(scenario)"

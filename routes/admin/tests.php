@@ -16,6 +16,8 @@ Route::middleware(Permission::TestsManage->middleware())->group(function () {
     // Refused (not cascaded) when the test has sittings (DATA-10).
     Route::delete('tests/{test}', [TestsController::class, 'destroy'])->name('tests.destroy');
     Route::post('tests/{test}/publish', [TestsController::class, 'publish'])->name('tests.publish');
+    // Copy a test with its questions (client request 2026-10-05).
+    Route::post('tests/{test}/duplicate', [TestsController::class, 'duplicate'])->name('tests.duplicate');
     Route::post('tests/{test}/questions', [TestsController::class, 'storeQuestion'])->name('tests.questions.store');
     // Bulk import from CSV or pasted rows (client request 2026-09-26).
     Route::get('tests/questions/import-template', [TestsController::class, 'importTemplate'])

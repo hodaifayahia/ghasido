@@ -4,11 +4,13 @@ import {
     Check,
     ChevronDown,
     CirclePlus,
+    EyeOff,
     ExternalLink,
     Image,
     Link2,
     List,
     ListOrdered,
+    Send,
     Sparkles,
     Trash2,
     User,
@@ -19,6 +21,12 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -43,6 +51,7 @@ const emit = defineEmits<{
     generate: [];
     'apply-draft': [];
     publish: [];
+    unpublish: [];
     'open-instructions': [];
 }>();
 
@@ -229,15 +238,89 @@ onBeforeUnmount(clearCoverPreview);
                     {{ $t('Edit Scenario') }}
                 </h2>
 
-                <button
-                    type="button"
-                    class="bg-success-tint text-success-text inline-flex h-8 items-center gap-2 rounded-md px-3 text-[11.5px] font-semibold"
-                    @click="emit('publish')"
-                >
-                    <span class="bg-success size-2 rounded-full" />
-                    {{ editor.status }}
-                    <ChevronDown class="size-3.5" aria-hidden="true" />
-                </button>
+                <!-- Publish, or take it back to draft while editing it,
+                     as a lesson can (client request 2026-10-05). -->
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <button
+                            type="button"
+                            :class="
+                                cn(
+                                    'focus-visible:ring-brand-600/15 inline-flex h-8 items-center gap-2 rounded-md px-3 text-[11.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none',
+                                    editor.published
+                                        ? 'bg-success-tint text-success-text'
+                                        : 'bg-warning-tint text-warning-text',
+                                )
+                            "
+                            :aria-label="
+                                $t('Status: :status. Change it', {
+                                    status: editor.status,
+                                })
+                            "
+                            data-test="scenario-status-button"
+                        >
+                            <span
+                                :class="
+                                    cn(
+                                        'size-2 rounded-full',
+                                        editor.published
+                                            ? 'bg-success'
+                                            : 'bg-warning',
+                                    )
+                                "
+                            />
+                            {{ editor.status }}
+                            <ChevronDown class="size-3.5" aria-hidden="true" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        class="border-line bg-surface shadow-pop min-w-[240px] rounded-md p-1"
+                    >
+                        <DropdownMenuItem
+                            v-if="editor.published"
+                            class="text-brand-900 focus:bg-brand-50 focus:text-brand-900 [&_svg]:text-warning cursor-pointer items-start gap-2.5 rounded-sm px-2.5 py-2 text-[13px] font-medium"
+                            data-test="scenario-unpublish"
+                            @select="emit('unpublish')"
+                        >
+                            <EyeOff
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span class="grid">
+                                {{ $t('Unpublish (back to draft)') }}
+                                <span
+                                    class="text-ink-slate text-[11.5px] font-normal"
+                                >
+                                    {{
+                                        $t(
+                                            'Employees no longer see it while you edit it.',
+                                        )
+                                    }}
+                                </span>
+                            </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            v-else
+                            class="text-brand-900 focus:bg-brand-50 focus:text-brand-900 [&_svg]:text-success cursor-pointer items-start gap-2.5 rounded-sm px-2.5 py-2 text-[13px] font-medium"
+                            data-test="scenario-publish"
+                            @select="emit('publish')"
+                        >
+                            <Send
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span class="grid">
+                                {{ $t('Publish') }}
+                                <span
+                                    class="text-ink-slate text-[11.5px] font-normal"
+                                >
+                                    {{ $t('Employees can practise it.') }}
+                                </span>
+                            </span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                     v-if="editor.aiStatus === 'done' && editor.applyDraftUrl"
                     type="button"

@@ -64,8 +64,11 @@ void initializeI18n().then(async () => {
     });
 
     // The server's readable copy of the landing page (for search engines,
-    // client report 2026-10-04) gives way to the app.
-    document.getElementById('seo-fallback')?.remove();
+    // client report 2026-10-04) gives way to the app. Guarded: the dev
+    // server's SSR warm-up evaluates this file where there is no document.
+    if (typeof document !== 'undefined') {
+        document.getElementById('seo-fallback')?.remove();
+    }
 });
 
 // This will set light / dark mode on page load...

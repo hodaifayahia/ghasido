@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, Copy } from '@lucide/vue';
 import { useIntervalFn } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import CreateTestDialog from '@/components/tests/CreateTestDialog.vue';
@@ -236,6 +236,30 @@ function confirmDelete(): void {
     });
 }
 
+/**
+ * Copy a test with its settings and questions (client request 2026-10-05).
+ * The server opens the draft copy in the builder.
+ */
+const copying = ref(false);
+
+function copyTest(id: number): void {
+    if (copying.value) return;
+
+    router.post(
+        testActions.duplicate.url(id),
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => {
+                copying.value = true;
+            },
+            onFinish: () => {
+                copying.value = false;
+            },
+        },
+    );
+}
+
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -300,6 +324,7 @@ defineOptions({
                             attemptCount: item.attemptCount,
                         })
                 "
+                @copy="(item) => copyTest(Number(item.id))"
             />
         </template>
 
@@ -316,14 +341,28 @@ defineOptions({
                     />
                     {{ $t('Back to Test Library') }}
                 </Link>
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="border-line text-brand-700 hover:bg-brand-50 h-8 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
-                    @click="createTestOpen = true"
-                >
-                    {{ $t('Create another test') }}
-                </Button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 h-8 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
+                        @click="createTestOpen = true"
+                    >
+                        {{ $t('Create another test') }}
+                    </Button>
+                    <Button
+                        v-if="canManage && editor.id !== null"
+                        type="button"
+                        variant="outline"
+                        class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold shadow-none"
+                        :disabled="copying"
+                        data-test="copy-open-test-button"
+                        @click="editor.id !== null && copyTest(editor.id)"
+                    >
+                        <Copy class="size-3.5" aria-hidden="true" />
+                        {{ $t('Make a copy') }}
+                    </Button>
+                </div>
             </div>
 
             <!-- The removed "Test List" panel's column now goes to the

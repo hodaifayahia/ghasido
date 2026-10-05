@@ -33,6 +33,11 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
         ->name('ai-scenarios.apply-draft');
     Route::post('ai-scenarios/{scenario}/publish', [AiScenariosController::class, 'publish'])
         ->name('ai-scenarios.publish');
+    // Back to draft, and copy (client request 2026-10-05).
+    Route::post('ai-scenarios/{scenario}/unpublish', [AiScenariosController::class, 'unpublish'])
+        ->name('ai-scenarios.unpublish');
+    Route::post('ai-scenarios/{scenario}/duplicate', [AiScenariosController::class, 'duplicate'])
+        ->name('ai-scenarios.duplicate');
 
     Route::post('ai-scenarios/preview', [AiScenarioPreviewController::class, 'store'])
         ->name('ai-scenarios.preview.store');

@@ -98,7 +98,7 @@ class LessonGenerator
 
             $unit = $isCourse || $createdCourse
                 ? $this->lessons->createUnit($course, $isCourse ? __('AI course', [], 'en') : __('Unit 1', [], 'en'))
-                : (Unit::query()->where('course_id', $course->id)->orderByDesc('position')->orderByDesc('id')->first()
+                : (Unit::query()->notArchived()->where('course_id', $course->id)->orderByDesc('position')->orderByDesc('id')->first()
                     ?? $this->lessons->createUnit($course, __('Unit 1', [], 'en')));
 
             $generation = ContentGeneration::query()->create([

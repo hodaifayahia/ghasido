@@ -7,6 +7,7 @@ use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Block;
 use App\Models\BlockCompletion;
+use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\LessonCompletion;
@@ -92,6 +93,76 @@ class LessonService
         });
     }
 
+    /**
+     * "Delete" on a course (client request 2026-10-05, CMS-01). Every unit
+     * goes through deleteUnit. The course row is deleted once nothing is
+     * left in it and no certificate names it; otherwise it is removed from
+     * the library and from learners and kept for reports (DATA-10).
+     *
+     * @return bool true when the course row was deleted, false when removed
+     */
+    public function deleteCourse(Course $course): bool
+    {
+        return DB::transaction(function () use ($course): bool {
+            foreach ($course->units()->notArchived()->get() as $unit) {
+                $this->deleteUnit($unit);
+            }
+
+            $keptUnits = $course->units()->count();
+            $certificates = Certificate::query()->where('course_id', $course->id)->count();
+
+            if ($keptUnits > 0 || $certificates > 0) {
+                $course->status = ContentStatus::Draft;
+                $course->archived_at = Carbon::now();
+                AuditLog::record($course, 'course.removed', [
+                    'kept_units' => $keptUnits,
+                    'certificates' => $certificates,
+                    'kept_for_reports' => true,
+                ]);
+                $course->save();
+
+                return false;
+            }
+
+            AuditLog::record($course, 'course.deleted', ['deleted' => $course->only(['id', 'title', 'department_id', 'hotel_id', 'level'])]);
+            $course->delete();
+
+            return true;
+        });
+    }
+
+    /**
+     * A copy of the course with every unit and lesson, as a draft at the end
+     * of its department (client request 2026-10-05). A hotel admin copying a
+     * shared course gets a copy for their own hotel (CMS-04, ORG-04).
+     */
+    public function duplicateCourse(Course $course, User $actor): Course
+    {
+        return DB::transaction(function () use ($course, $actor): Course {
+            $copy = $course->replicate(['slug', 'status', 'published_at', 'position', 'archived_at']);
+            $copy->title = self::copyTitle($course->title, 120);
+            $copy->slug = $this->uniqueSlug(Course::class, $copy->title, 'course');
+            $copy->status = ContentStatus::Draft;
+            $copy->published_at = null;
+            $copy->position = (int) Course::query()->where('department_id', $course->department_id)->max('position') + 1;
+            $copy->created_by = $actor->id;
+
+            if ($actor->hotel_id !== null) {
+                $copy->hotel_id = $actor->hotel_id;
+            }
+
+            $copy->save();
+
+            foreach ($course->units()->notArchived()->get() as $unit) {
+                $this->copyUnit($unit, $copy, $unit->title);
+            }
+
+            AuditLog::record($copy, 'course.duplicated', ['source_course_id' => $course->id]);
+
+            return $copy;
+        });
+    }
+
     // --------------------------------------------------------------- units
 
     public function createUnit(Course $course, string $title): Unit
@@ -121,6 +192,57 @@ class LessonService
             $unit->save();
 
             return $unit;
+        });
+    }
+
+    /**
+     * "Delete" on a unit (client request 2026-10-05, CMS-01). Every lesson
+     * in it goes through deleteLesson: deleted while no learner touched it,
+     * otherwise removed and kept for reports. The unit row is deleted once
+     * no lesson row is left in it; a unit still holding a kept lesson is
+     * removed the same way, so every answer resolves (DATA-10, DATA-11).
+     *
+     * @return bool true when the unit row was deleted, false when removed
+     */
+    public function deleteUnit(Unit $unit): bool
+    {
+        return DB::transaction(function () use ($unit): bool {
+            foreach ($unit->lessons()->notArchived()->get() as $lesson) {
+                $this->deleteLesson($lesson);
+            }
+
+            $courseId = $unit->course_id;
+            $kept = Lesson::query()->where('unit_id', $unit->id)->count();
+
+            if ($kept > 0) {
+                $unit->status = ContentStatus::Draft;
+                $unit->archived_at = Carbon::now();
+                AuditLog::record($unit, 'unit.removed', ['kept_lessons' => $kept, 'kept_for_reports' => true]);
+                $unit->save();
+            } else {
+                AuditLog::record($unit, 'unit.deleted', ['deleted' => ['id' => $unit->id, 'title' => $unit->title, 'course_id' => $courseId]]);
+                $unit->delete();
+            }
+
+            $this->renumberUnits($courseId);
+
+            return $kept === 0;
+        });
+    }
+
+    /**
+     * A copy of the unit and every lesson in it, as drafts at the end of the
+     * same course (client request 2026-10-05). See copyLesson for what is
+     * copied and what stays shared.
+     */
+    public function duplicateUnit(Unit $unit): Unit
+    {
+        return DB::transaction(function () use ($unit): Unit {
+            $copy = $this->copyUnit($unit, $unit->course()->firstOrFail(), self::copyTitle($unit->title, 120));
+
+            AuditLog::record($copy, 'unit.duplicated', ['source_unit_id' => $unit->id]);
+
+            return $copy;
         });
     }
 
@@ -392,35 +514,115 @@ class LessonService
     }
 
     /**
-     * A copy of the lesson and its blocks, as a draft at the end of the same
-     * unit. Shared rows (lexicon items, activities, scenarios) are attached
-     * again rather than copied, so a fix in one place reaches both (CMS-06).
+     * A copy of the lesson as a draft at the end of the same unit
+     * (CMS-01). See copyLesson for what is copied.
      */
     public function duplicate(Lesson $lesson): Lesson
     {
         return DB::transaction(function () use ($lesson): Lesson {
-            $course = $lesson->course()->firstOrFail();
-
-            $copy = $lesson->replicate(['slug', 'status', 'published_at', 'position']);
-            $copy->title = __(':title (copy)', ['title' => $lesson->title], 'en');
-            $copy->slug = $this->uniqueLessonSlug($course, $copy->title);
-            $copy->status = ContentStatus::Draft;
-            $copy->published_at = null;
-            $copy->position = (int) Lesson::query()->where('unit_id', $lesson->unit_id)->max('position') + 1;
-            $copy->save();
-
-            foreach ($lesson->blocks()->get() as $block) {
-                $blockCopy = $block->replicate();
-                $blockCopy->lesson_id = $copy->id;
-                $blockCopy->save();
-
-                $this->reattach($block, $blockCopy);
-            }
+            $unit = $lesson->unit()->firstOrFail();
+            $copy = $this->copyLesson($lesson, $unit, self::copyTitle($lesson->title, 100));
 
             AuditLog::record($copy, 'lesson.duplicated', ['source_lesson_id' => $lesson->id]);
 
             return $copy;
         });
+    }
+
+    /**
+     * Copy a unit's lessons still in the library into a new draft unit at
+     * the end of `$course`.
+     */
+    private function copyUnit(Unit $unit, Course $course, string $title): Unit
+    {
+        $copy = new Unit;
+        $copy->course_id = $course->id;
+        $copy->title = $title;
+        $copy->position = (int) $course->units()->max('position') + 1;
+        // Publishing one of its lessons publishes the unit too.
+        $copy->status = ContentStatus::Draft;
+        $copy->save();
+
+        foreach ($unit->lessons()->notArchived()->get() as $lesson) {
+            $this->copyLesson($lesson, $copy, $lesson->title);
+        }
+
+        return $copy;
+    }
+
+    /**
+     * Copy one lesson into `$unit` as a draft, with its blocks
+     * (client request 2026-10-05: copy a lesson, then change a little).
+     *
+     * The words, expressions and activities of each block are copied too,
+     * so editing the copy never changes the lesson it came from; a new
+     * activity starts at version 1 of the same content (DATA-11). AI
+     * role-play scenarios are library rows of their own and stay attached,
+     * not copied. Stored audio and translations are keyed by text, so the
+     * copy plays and translates without a new AI call (CTRL-05, TTS-02).
+     */
+    private function copyLesson(Lesson $lesson, Unit $unit, string $title): Lesson
+    {
+        $course = $unit->course()->firstOrFail();
+
+        $copy = $lesson->replicate(['slug', 'status', 'published_at', 'position', 'archived_at', 'ai_status']);
+        $copy->unit_id = $unit->id;
+        $copy->title = $title;
+        $copy->slug = $this->uniqueLessonSlug($course, $title);
+        $copy->status = ContentStatus::Draft;
+        $copy->published_at = null;
+        $copy->position = (int) Lesson::query()->where('unit_id', $unit->id)->max('position') + 1;
+        $copy->save();
+
+        foreach ($lesson->blocks()->get() as $block) {
+            $blockCopy = $block->replicate();
+            $blockCopy->lesson_id = $copy->id;
+            $blockCopy->save();
+
+            $this->copyBlockContent($block, $blockCopy);
+        }
+
+        return $copy;
+    }
+
+    /**
+     * Give a copied block its own copies of the source block's words,
+     * expressions and activities, and the same scenarios.
+     */
+    private function copyBlockContent(Block $source, Block $copy): void
+    {
+        $lexicon = [];
+        foreach ($source->lexiconItems()->get() as $item) {
+            $pivot = $item->getRelationValue('pivot');
+            $position = $pivot instanceof Model ? $pivot->getAttribute('position') : 0;
+
+            $itemCopy = $item->replicate();
+            $itemCopy->save();
+            $lexicon[$itemCopy->id] = ['position' => is_numeric($position) ? (int) $position : 0];
+        }
+
+        if ($lexicon !== []) {
+            $copy->lexiconItems()->sync($lexicon);
+        }
+
+        foreach ($source->placements()->get() as $placement) {
+            $activity = $placement->activity()->first();
+
+            if ($activity === null) {
+                continue;
+            }
+
+            $activityCopy = $activity->replicate(['current_version']);
+            $activityCopy->save();
+
+            $copy->placements()->create([
+                'activity_id' => $activityCopy->id,
+                'position' => $placement->position,
+                'overrides' => $placement->overrides,
+            ]);
+        }
+
+        $this->attachScenarios($source, $copy);
     }
 
     /**
@@ -448,6 +650,11 @@ class LessonService
             ]);
         }
 
+        $this->attachScenarios($source, $copy);
+    }
+
+    private function attachScenarios(Block $source, Block $copy): void
+    {
         $scenarioIds = $source->scenarioIds();
         if ($scenarioIds !== []) {
             $scenarioPivot = [];
@@ -460,6 +667,32 @@ class LessonService
     }
 
     // ------------------------------------------------------------- helpers
+
+    /**
+     * "Title (copy)", cut so it still fits the column.
+     */
+    public static function copyTitle(string $title, int $max): string
+    {
+        $suffix = ' (copy)';
+
+        return Str::limit($title, $max - mb_strlen($suffix), '').$suffix;
+    }
+
+    /**
+     * Positions 1..n for the units still in the library of one course.
+     */
+    private function renumberUnits(int $courseId): void
+    {
+        $position = 1;
+
+        foreach (Unit::query()->where('course_id', $courseId)->notArchived()->orderBy('position')->orderBy('id')->get(['id', 'position']) as $row) {
+            if ($row->position !== $position) {
+                Unit::query()->whereKey($row->id)->update(['position' => $position]);
+            }
+
+            $position++;
+        }
+    }
 
     /**
      * @param  class-string<Course>  $model

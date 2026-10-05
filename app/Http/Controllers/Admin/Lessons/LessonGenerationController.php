@@ -88,6 +88,7 @@ class LessonGenerationController extends Controller
         $hotelId = is_string($hotel) && ctype_digit($hotel) ? (int) $hotel : null;
 
         $courses = Course::query()
+            ->notArchived()
             ->where('department_id', $departmentId)
             ->where(fn (Builder $query) => $hotelId === null ? $query->whereNull('hotel_id') : $query->where('hotel_id', $hotelId))
             ->orderBy('position')

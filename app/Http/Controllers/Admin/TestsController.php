@@ -133,6 +133,27 @@ class TestsController extends Controller
     }
 
     /**
+     * Copy a test with its settings and questions (client request
+     * 2026-10-05). The copy is a draft, opened in the builder.
+     */
+    public function duplicate(Request $request, Test $test, TestService $tests): RedirectResponse
+    {
+        Gate::authorize('update', $test);
+        Gate::authorize('create', Test::class);
+
+        /** @var User $actor */
+        $actor = $request->user();
+        $copy = $tests->duplicate($test, $actor);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':title was copied. The copy is a draft: rename it and change what you need.', ['title' => $test->title]),
+        ]);
+
+        return to_route('tests', ['test' => $copy->id]);
+    }
+
+    /**
      * Delete a test that nobody has sat yet (client request 2026-09-29).
      *
      * A test with any sitting is refused, never cascaded: its attempts hold

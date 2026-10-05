@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Lessons\UpdateLessonRequest;
 use App\Models\Lesson;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -90,7 +91,7 @@ class LessonController extends Controller
         $copy = $lessons->duplicate($lesson);
         $course = $copy->course()->firstOrFail();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was duplicated.', ['title' => $lesson->title])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was copied. The copy is a draft: rename it and change what you need.', ['title' => $lesson->title])]);
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
@@ -118,16 +119,24 @@ class LessonController extends Controller
      * and from learners while every answer stays (DATA-10). Authorized here,
      * not by hiding the button (ROLE-02, SEC-01).
      */
-    public function destroy(Lesson $lesson, LessonService $lessons): RedirectResponse
+    public function destroy(Request $request, Lesson $lesson, LessonService $lessons): RedirectResponse
     {
         Gate::authorize('destroy', $lesson);
 
         $title = $lesson->title;
+        $course = $lesson->course()->first();
+        $unitId = $lesson->unit_id;
         $deleted = $lessons->deleteLesson($lesson);
 
         Inertia::flash('toast', $deleted
             ? ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]
             : ['type' => 'success', 'message' => __(':title was removed from the library. Learner answers were kept for reports.', ['title' => $title])]);
+
+        // From the builder's Course Structure the page may be the deleted
+        // lesson's own edit URL, so land on its unit instead of going back.
+        if ($request->boolean('from_tree') && $course !== null) {
+            return to_route('lessons-content', LessonsContentController::builderQuery($course, $unitId));
+        }
 
         return back();
     }

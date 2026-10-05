@@ -41,6 +41,28 @@ class CoursePolicy
         return $this->update($user, $course);
     }
 
+    /**
+     * "Delete" a course or one of its units (client request 2026-10-05). A
+     * hotel admin may not delete the shared catalogue other hotels use;
+     * the platform team may (ORG-04, CMS-04), as for lessons.
+     */
+    public function destroy(User $user, Course $course): bool
+    {
+        if (! $this->update($user, $course)) {
+            return false;
+        }
+
+        return $course->hotel_id !== null || $user->hotel_id === null;
+    }
+
+    /**
+     * Copy a course or a unit: anyone who may create content and reach it.
+     */
+    public function duplicate(User $user, Course $course): bool
+    {
+        return $this->create($user) && $this->isInReach($user, $course);
+    }
+
     private function isInReach(User $user, Course $course): bool
     {
         return $course->hotel_id === null || $course->hotel_id === $user->hotel_id;

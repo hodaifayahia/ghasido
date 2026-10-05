@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Services\Content\ContentTree;
@@ -32,6 +33,43 @@ class LessonsContentController extends Controller
             ...$tree->build($request, $user),
             'tts' => $tts->payload(),
         ]);
+    }
+
+    /**
+     * Where the builder lands after something was deleted from its Course
+     * Structure tree: the first lesson left in the unit, else in the course,
+     * so the builder stays open; the directory when none is left.
+     *
+     * @return array<string, int|string>
+     */
+    public static function builderQuery(Course $course, ?int $unitId = null): array
+    {
+        $query = [
+            'hotel' => $course->hotel_id === null ? ContentTree::SHARED : $course->hotel_id,
+            'department' => $course->department_id,
+            'course' => $course->id,
+        ];
+
+        // The unit's own lessons first, then the course in learner order.
+        $next = $course->orderedLessons(false)
+            ->whereNull('lessons.archived_at')
+            ->whereNull('units.archived_at')
+            ->reorder()
+            ->orderByRaw('case when lessons.unit_id = ? then 0 else 1 end', [$unitId ?? 0])
+            ->orderBy('units.position')
+            ->orderBy('units.id')
+            ->orderBy('lessons.position')
+            ->orderBy('lessons.id')
+            ->first();
+
+        if ($next !== null) {
+            $query['unit'] = $next->unit_id;
+            $query['lesson'] = $next->id;
+        } elseif ($unitId !== null) {
+            $query['unit'] = $unitId;
+        }
+
+        return $query;
     }
 
     /**
