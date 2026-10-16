@@ -51,9 +51,9 @@ class ApiAccountController extends Controller
      * Queue the same connection checks as Settings → AI models (PERF-04):
      * one small real call per capability, metered like any other.
      */
-    public function check(ApiAccount $account, AiModelSettings $settings): RedirectResponse
+    public function check(ApiAccount $account, AiModelSettings $settings, ApiCredit $credit): RedirectResponse
     {
-        foreach ($account->checks() as $capability) {
+        foreach ($credit->checksFor($account) as $capability) {
             $settings->recordCheck($capability, ['status' => 'pending']);
             RunProviderCheck::dispatch($capability);
         }

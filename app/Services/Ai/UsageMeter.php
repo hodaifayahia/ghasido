@@ -65,7 +65,7 @@ final class UsageMeter
             $costEstimate = 0.0;
         } elseif ($costEstimate <= 0) {
             $costEstimate = AiModelPrice::for($usage->model)
-                ?->costOf($usage->promptTokens, $usage->completionTokens) ?? 0.0;
+                ?->costOf($usage->promptTokens, $usage->completionTokens, $usage->cacheReadTokens, $usage->cacheWriteTokens) ?? 0.0;
         }
 
         $row = DB::transaction(function () use ($user, $feature, $usage, $costEstimate, $points, $hotelId): AiUsage {

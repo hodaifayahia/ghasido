@@ -80,10 +80,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(AiProvider::class, function (): AiProvider {
             $models = app(AiModelSettings::class);
-            $overrides = $models->overrides();
             $provider = $models->provider('ai', self::configString('services.ai.provider', FakeAiProvider::PROVIDER));
-            $model = $overrides['aiModel'] ?: self::configString('services.ai.model');
-            $fastModel = $overrides['aiFastModel'] ?: self::configString('services.ai.fast_model');
+            ['model' => $model, 'fast' => $fastModel] = $models->aiModels($provider);
             app(ApiCredit::class)->assertProvider($provider);
 
             return match ($provider) {

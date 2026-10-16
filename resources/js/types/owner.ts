@@ -6,7 +6,7 @@ import type { AiCheckState, AiPriceRow } from './ai-models';
  * last four characters (API-02, SEC-03).
  */
 
-export type ApiAccountId = 'qwen' | 'deepgram';
+export type ApiAccountId = 'anthropic' | 'qwen' | 'deepgram';
 
 /** `unlimited` = no recharge yet (D6). */
 export type ApiAccountState =
@@ -116,6 +116,8 @@ export type OwnerConsolePayload = {
     prices: AiPriceRow[];
     units: string[];
     deepgramBalance: DeepgramBalance | null;
+    /** The account the text AI runs on now (Claude or Qwen). */
+    textAccount: ApiAccountId;
 };
 
 /** Shared only on owner routes by the `owner` middleware. */

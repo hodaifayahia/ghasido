@@ -30,6 +30,7 @@ GHASIDO runs on two paid APIs the platform owner pays for: **Qwen** (Alibaba Mod
 
 | D12 | **Low-credit emails.** When an account drops under 20% left (the "Running low" state everywhere), and again when it is used up, `CreditAlerts` queues `ApiCreditAlertMail` to every owner and every active Super Admin, checked after each metered call (`UsageMeter::record`). Each is sent once (claimed with a conditional UPDATE on `api_account_settings.low_alert_sent_at` / `empty_alert_sent_at`); a recharge clears both. A problem in the check is logged and never breaks metering. | Learners in the research study must not be cut off mid-lesson without warning. Needs a real mailer: production has `MAIL_MAILER=log` until SMTP is set. |
 | D13 | **Admin contact profile** (owner request 2026-09-25). Super Admin and hotel Admin accounts must fill first name, last name, email, phone and address; `EnsureAdminProfileCompleted` (web group) sends their page visits to Settings → Profile until done (settings, sign-out and the owner console stay open). The display `name` follows first + last. Managers and employees keep name + email only: no phone or address for learners (PRIV-03). | The platform must be able to reach its admins, e.g. for D12. |
+| D14 | **Claude replaces Qwen as the text AI; every model has a default price** (user request 2026-10-16). A third account `anthropic` (label "Claude") funds `AI_PROVIDER=anthropic` (`claude-sonnet-5-5`); Qwen keeps lesson images. The text key slot follows `AI_PROVIDER` (Claude's stored key for `anthropic`, Qwen's for `qwen`); `AI_IMAGE_KEY` no longer borrows a non-Qwen `AI_KEY`. Migration `2026_10_16_100001` inserts default list prices where none exist: Claude per token (Sonnet 5.5 $2/$10 per M; prompt-cache reads at 0.1x and writes at 1.25x input, from the usage the API reports), Deepgram Flux voices $45 and Aura-2 $30 per M characters, Nova-3 / Flux listening and the voice agent per second. The live-voice proxy calls Claude through its Messages API. A Qwen model override is never sent to Claude (`AiModelSettings::aiModels`). The console offers only the checks that run on each account now. | Credit was dollars-only with no prices, so every row cost $0 and no balance ever went down. |
 
 ## Data
 
@@ -38,13 +39,14 @@ GHASIDO runs on two paid APIs the platform owner pays for: **Qwen** (Alibaba Mod
 - `api_credit_topups`: account, amount_usd decimal(12,4), amount_tokens, amount_characters, amount_seconds (bigint; the last two from migration `2026_09_25_100002`), note, owner_id, created_at.
 - `ai_usages`: new index (provider, occurred_at).
 
-Provider mapping (`App\Enums\ApiAccount`): Qwen = `ai_usages.provider` `qwen`, `qwen_*`, `dashscope`; Deepgram = `deepgram`, `deepgram_*`.
+Provider mapping (`App\Enums\ApiAccount`): Claude = `ai_usages.provider` `anthropic`, `anthropic_*` (D14); Qwen = `qwen`, `qwen_*`, `dashscope`; Deepgram = `deepgram`, `deepgram_*`.
 
 Which config key a stored key replaces:
 
 | Config key                 | Account  | Only when                                            |
 | -------------------------- | -------- | ---------------------------------------------------- |
-| `services.ai.key`          | Qwen     | `AI_PROVIDER` is `qwen` or `fake`                    |
+| `services.ai.key`          | Claude   | `AI_PROVIDER` is `anthropic` or `fake` (D14)         |
+| `services.ai.key`          | Qwen     | `AI_PROVIDER` is `qwen`                              |
 | `services.ai.image_key`    | Qwen     | `AI_IMAGE_PROVIDER` is `qwen`, `dashscope` or `fake` |
 | `services.tts.key`         | Deepgram | `TTS_PROVIDER` is `deepgram` or `fake`               |
 | `services.stt.key`         | Deepgram | `STT_PROVIDER` is `deepgram` or `fake`               |

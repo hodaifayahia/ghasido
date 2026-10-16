@@ -11,11 +11,20 @@ namespace App\Contracts;
  */
 final readonly class AiUsageInfo
 {
+    /**
+     * `promptTokens` is every input token the call used. Of those,
+     * `cacheReadTokens` were read from the prompt cache and
+     * `cacheWriteTokens` written to it; providers that bill them at other
+     * rates (Anthropic: 0.1x and 1.25x input) report them, so the meter can
+     * price them right (API-03; spec 0007, D5).
+     */
     public function __construct(
         public int $promptTokens,
         public int $completionTokens,
         public string $model,
         public string $provider,
+        public int $cacheReadTokens = 0,
+        public int $cacheWriteTokens = 0,
     ) {}
 
     /**

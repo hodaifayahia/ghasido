@@ -4497,5 +4497,19 @@
     "The new title is saved at once. Learners see it too.": "يُحفظ العنوان الجديد فورًا، ويراه المتعلمون أيضًا.",
     "The unit and its lessons will be deleted. Lessons learners already used are removed from the library instead, and their answers are kept for reports.": "ستُحذف الوحدة ودروسها. أما الدروس التي استخدمها المتعلمون فتُزال من المكتبة بدلًا من حذفها، وتُحفظ إجاباتهم للتقارير.",
     "Title": "العنوان",
-    "Unpublish (back to draft)": "إلغاء النشر (العودة إلى المسودة)"
+    "Unpublish (back to draft)": "إلغاء النشر (العودة إلى المسودة)",
+    "AI text": "نصوص الذكاء الاصطناعي",
+    "AI images": "صور الذكاء الاصطناعي",
+    "Text AI: role-play replies, feedback and evaluations, lesson and test drafts, coaching and translations.": "الذكاء الاصطناعي النصي: ردود لعب الأدوار والملاحظات والتقييمات ومسودات الدروس والاختبارات والتوجيه والترجمات.",
+    "Lesson images, and text AI while Qwen is the text provider.": "صور الدروس، والذكاء الاصطناعي النصي ما دام Qwen هو مزوّد النصوص.",
+    "The text AI needs a public HTTPS APP_URL so Deepgram can reach the /voice-agent/llm proxy. Current APP_URL: :url": "يحتاج الذكاء الاصطناعي النصي إلى عنوان APP_URL عام عبر HTTPS حتى يصل Deepgram إلى الوكيل /voice-agent/llm. العنوان الحالي APP_URL: :url",
+    "The text AI is not configured on the server (AI_KEY is empty).": "الذكاء الاصطناعي النصي غير مُعدّ على الخادم (AI_KEY فارغ).",
+    "The AI is preparing an editable scenario draft.": "يُعدّ الذكاء الاصطناعي مسودة سيناريو قابلة للتعديل.",
+    ":provider (:model) through GHASIDO": ":provider (:model) عبر GHASIDO",
+    ":provider is unavailable: :reason": ":provider غير متاح: :reason",
+    "Regenerate with AI": "إعادة الإنشاء بالذكاء الاصطناعي",
+    "AI draft ready for review": "مسودة الذكاء الاصطناعي جاهزة للمراجعة",
+    ":name tokens left": "رموز :name المتبقية",
+    ":name tokens used": "رموز :name المستخدمة",
+    "The text AI has run out of quota, so calls use the Deepgram voice agent until it is topped up.": "نفد رصيد الذكاء الاصطناعي النصي، لذلك تستخدم المكالمات وكيل Deepgram الصوتي إلى أن تتم إعادة الشحن."
 }

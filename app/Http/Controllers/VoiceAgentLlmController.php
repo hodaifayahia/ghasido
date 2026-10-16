@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\AiProvider;
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
-use App\Enums\ApiAccount;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
+use App\Services\Ai\AiLimitReached;
 use App\Services\Ai\AiModelSettings;
+use App\Services\Ai\AnthropicAiProvider;
 use App\Services\Ai\RoleplayPrompt;
 use App\Services\Ai\UsageMeter;
 use App\Services\Owner\ApiCredit;
@@ -15,18 +17,22 @@ use App\Services\Owner\ApiKeyring;
 use App\Services\VoiceAgent\VoiceAgentProxyToken;
 use App\Services\VoiceAgent\VoiceAgentSettings;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * An OpenAI-compatible chat-completions endpoint that lets the Deepgram Voice
- * Agent use Qwen as the guest's brain without the Qwen key ever leaving the
- * server (API-02, SEC-03, RP-04; spec 0004 NOTES).
+ * Agent use our own text AI (Claude, or Qwen) as the guest's brain without
+ * its key ever leaving the server (API-02, SEC-03, RP-04; spec 0004 NOTES).
+ * Claude is called through its Messages API (AnthropicAiProvider); any other
+ * provider through its OpenAI-compatible endpoint.
  *
  * Deepgram calls POST /voice-agent/llm/{token}/chat/completions from its own
  * servers. The token is short-lived and bound to one in-progress voice call;
@@ -36,6 +42,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class VoiceAgentLlmController extends Controller
 {
     private const MAX_HISTORY = 40;
+
+    private const GOODBYE = 'I am sorry, we need to finish our call here. Thank you for your help!';
 
     public function __invoke(
         Request $request,
@@ -71,11 +79,18 @@ class VoiceAgentLlmController extends Controller
         $user = $attempt->user;
         $stream = $request->boolean('stream');
 
-        // The owner's Qwen credit ends the call politely too, preview or not
-        // (spec 0007, D7).
-        if (! app(ApiCredit::class)->isAvailable(ApiAccount::Qwen)
+        // The owner's credit for the text account ends the call politely too,
+        // preview or not (spec 0007, D7).
+        $credit = app(ApiCredit::class);
+        $account = $credit->accountFor('fast');
+
+        if (($account !== null && ! $credit->isAvailable($account))
             || (! $attempt->is_preview && $user !== null && ! $meter->isWithinLimits($user, AiFeature::RoleplayTurn))) {
-            return $this->reply('I am sorry, we need to finish our call here. Thank you for your help!', $model, $stream);
+            return $this->reply(self::GOODBYE, $model, $stream);
+        }
+
+        if (app(AiModelSettings::class)->currentProvider('fast') === AnthropicAiProvider::PROVIDER) {
+            return $this->claude($request, $attempt, $values, $model, $stream, $meter);
         }
 
         $body = [
@@ -237,6 +252,54 @@ class VoiceAgentLlmController extends Controller
             'Cache-Control' => 'no-cache',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * One guest line from Claude, metered to the Claude account. Claude's
+     * reply comes back whole and goes to Deepgram as one chunk.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function claude(Request $request, RoleplayAttempt $attempt, array $values, string $model, bool $stream, UsageMeter $meter): Response
+    {
+        $scenario = $attempt->scenario;
+
+        if ($scenario === null) {
+            return $this->error('This voice call is not active.', 403);
+        }
+
+        try {
+            /** @var AiProvider $provider resolved from config, so any implementation */
+            $provider = app()->make(AiProvider::class);
+        } catch (AiLimitReached) {
+            return $this->reply(self::GOODBYE, $model, $stream);
+        }
+
+        if (! $provider instanceof AnthropicAiProvider) {
+            return $this->error('The language model is not configured.', 503);
+        }
+
+        try {
+            $reply = $provider->voiceLine(
+                RoleplayPrompt::forVoice($scenario, (string) $values['prompt'], $attempt->user?->english_level),
+                $this->conversation($request->input('messages')),
+            );
+        } catch (ConnectionException) {
+            return $this->error('The language model could not be reached.', 502);
+        } catch (RuntimeException|RequestException) {
+            return $this->error('The language model refused the request.', 502);
+        }
+
+        $meter->record($attempt->user, AiFeature::RoleplayTurn, new AiUsageInfo(
+            $reply->usage->promptTokens,
+            $reply->usage->completionTokens,
+            $reply->usage->model,
+            AnthropicAiProvider::PROVIDER.'_voice_proxy',
+            $reply->usage->cacheReadTokens,
+            $reply->usage->cacheWriteTokens,
+        ), chargePoints: false);
+
+        return $this->reply($reply->text, $model, $stream);
     }
 
     /**

@@ -75,6 +75,16 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
     private const API_VERSION = '2023-06-01';
 
     /**
+     * Models that accept the server-side refusal fallback: a declined
+     * request is re-run on another model inside the same call instead of
+     * failing a learner's turn. The answering model is metered under its
+     * own id (`model` in the response).
+     */
+    private const FALLBACK_MODELS = ['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'];
+
+    private const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
+
+    /**
      * Generous on purpose: this is a cap, not a cost. A capped reply would
      * be truncated JSON and a failed job.
      */
@@ -105,6 +115,28 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
         );
 
         return new AiReply(trim($result['text']), $result['usage']);
+    }
+
+    /**
+     * One short spoken line for a live voice call (the fast engine's
+     * VoiceReplyService and the voice agent's proxy): the fast model, low
+     * effort, since the learner is listening for it (PERF-04). The caller
+     * builds the prompt from the scenario row (RP-04); `$turnSystem` is what
+     * changes every turn, sent after the cached brief.
+     *
+     * @param  list<array{role: string, content: string}>  $messages
+     */
+    public function voiceLine(string $system, array $messages, string $turnSystem = ''): AiReply
+    {
+        $result = $this->complete($system, $messages, $this->fastModel, $turnSystem, effort: 'low');
+
+        $text = trim($result['text']);
+
+        if ($text === '') {
+            throw new RuntimeException('The AI provider returned an empty reply.');
+        }
+
+        return new AiReply($text, $result['usage']);
     }
 
     public function roleplayReply(AiScenario $scenario, array $transcript, ?EnglishLevel $level = null): AiReply
@@ -346,9 +378,10 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
      * scoring anchors in the prompt instead.
      *
      * @param  list<array{role: string, content: string}>  $messages
+     * @param  string|null  $effort  `low`…`max`; null keeps the model's default
      * @return array{text: string, usage: AiUsageInfo}
      */
-    private function complete(string $system, array $messages, ?string $model = null, string $turnSystem = ''): array
+    private function complete(string $system, array $messages, ?string $model = null, string $turnSystem = '', ?string $effort = null): array
     {
         $model = $model !== null && $model !== '' ? $model : $this->model;
 
@@ -370,12 +403,27 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
             $systemBlocks[] = ['type' => 'text', 'text' => $turnSystem];
         }
 
-        $response = $this->client()->post('/v1/messages', [
+        $body = [
             'model' => $model,
             'max_tokens' => self::MAX_TOKENS,
             'system' => $systemBlocks,
             'messages' => $messages,
-        ])->throw();
+        ];
+
+        if ($effort !== null) {
+            $body['output_config'] = ['effort' => $effort];
+        }
+
+        $client = $this->client();
+
+        // Server-side fallback exists on Anthropic's own API only, not on a
+        // proxy or another host set as AI_BASE_URL.
+        if (in_array($model, self::FALLBACK_MODELS, true) && $this->usesAnthropicHost()) {
+            $body['fallbacks'] = 'default';
+            $client = $client->withHeaders(['anthropic-beta' => self::FALLBACK_BETA]);
+        }
+
+        $response = $client->post('/v1/messages', $body)->throw();
 
         $data = $response->json();
 
@@ -401,15 +449,25 @@ final class AnthropicAiProvider implements AiProvider, ChecksConnection
             'text' => $text,
             'usage' => new AiUsageInfo(
                 // input_tokens counts only the uncached part; the prompt the
-                // call actually used is all three (API-03 metering).
+                // call actually used is all three (API-03 metering). The
+                // cached parts are reported apart so the meter charges them
+                // at the cache rates, not the full input price.
                 promptTokens: $this->int($usage, 'input_tokens')
                     + $this->int($usage, 'cache_read_input_tokens')
                     + $this->int($usage, 'cache_creation_input_tokens'),
                 completionTokens: $this->int($usage, 'output_tokens'),
                 model: $this->string($data, 'model', $model),
                 provider: self::PROVIDER,
+                cacheReadTokens: $this->int($usage, 'cache_read_input_tokens'),
+                cacheWriteTokens: $this->int($usage, 'cache_creation_input_tokens'),
             ),
         ];
+    }
+
+    private function usesAnthropicHost(): bool
+    {
+        return $this->baseUrl === null || $this->baseUrl === ''
+            || parse_url($this->baseUrl, PHP_URL_HOST) === parse_url(self::DEFAULT_BASE_URL, PHP_URL_HOST);
     }
 
     private function client(): PendingRequest

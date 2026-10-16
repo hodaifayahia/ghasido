@@ -65,8 +65,10 @@ class AiMeteringTest extends TestCase
         Storage::fake(MediaAsset::DISK_LOCAL);
         Storage::fake(MediaAsset::DISK_PUBLIC);
 
+        // The Qwen metering suite: Qwen stays the text provider here, so the
+        // Real switch keeps it (a fake .env would now switch to Claude).
         config([
-            'services.ai.provider' => 'fake',
+            'services.ai.provider' => 'qwen',
             'services.ai.base_url' => self::QWEN_HOST,
             'services.ai.model' => 'qwen3.8-max',
             'services.ai.fast_model' => 'qwen3.8-flash',
@@ -95,6 +97,10 @@ class AiMeteringTest extends TestCase
                 'words' => [],
             ]]]]]]),
         ]);
+
+        // These tests set their own prices; the default rows from the
+        // 2026_10_16 migration are covered by DefaultModelPricesTest.
+        AiModelPrice::query()->delete();
 
         // The owner's prices, per million units (spec 0007, D8/D9).
         foreach ([

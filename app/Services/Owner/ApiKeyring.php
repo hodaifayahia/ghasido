@@ -23,24 +23,29 @@ use Illuminate\Database\QueryException;
 final class ApiKeyring
 {
     /**
-     * Config slot => [account, the config key naming the slot's provider,
-     * the providers for which the owner's key applies]. A slot pointing at
-     * another vendor (AI_PROVIDER=anthropic) keeps its own .env key.
+     * Config slot => [the config key naming the slot's provider (null: one
+     * fixed account), provider => the account whose owner key applies]. The
+     * text slot follows AI_PROVIDER: Claude's key for `anthropic`, Qwen's
+     * for `qwen`. A slot pointing at another vendor keeps its .env key.
      *
-     * @var array<string, array{0: string, 1: string|null, 2: list<string>}>
+     * @var array<string, array{0: string|null, 1: array<string, string>}>
      */
     private const array SLOTS = [
-        'services.ai.key' => ['qwen', 'services.ai.provider', ['qwen', 'fake']],
-        'services.ai.image_key' => ['qwen', 'services.ai.image_provider', ['qwen', 'dashscope', 'fake']],
-        'services.tts.key' => ['deepgram', 'services.tts.provider', ['deepgram', 'fake']],
-        'services.stt.key' => ['deepgram', 'services.stt.provider', ['deepgram', 'fake']],
-        'services.voice_agent.key' => ['deepgram', null, []],
+        'services.ai.key' => ['services.ai.provider', ['anthropic' => 'anthropic', 'qwen' => 'qwen', 'fake' => 'anthropic']],
+        'services.ai.image_key' => ['services.ai.image_provider', ['qwen' => 'qwen', 'dashscope' => 'qwen', 'fake' => 'qwen']],
+        'services.tts.key' => ['services.tts.provider', ['deepgram' => 'deepgram', 'fake' => 'deepgram']],
+        'services.stt.key' => ['services.stt.provider', ['deepgram' => 'deepgram', 'fake' => 'deepgram']],
+        'services.voice_agent.key' => [null, ['*' => 'deepgram']],
     ];
 
-    /** The slot whose .env value stands for the account on the console. */
+    /**
+     * The slots whose .env value stands for the account on the console, in
+     * order: the first one that belongs to the account now.
+     */
     private const array PRIMARY = [
-        'qwen' => 'services.ai.key',
-        'deepgram' => 'services.voice_agent.key',
+        'anthropic' => ['services.ai.key'],
+        'qwen' => ['services.ai.key', 'services.ai.image_key'],
+        'deepgram' => ['services.voice_agent.key'],
     ];
 
     /** @var array<string, ApiAccountSetting>|null */
@@ -51,10 +56,10 @@ final class ApiKeyring
      */
     public function key(string $configKey): string
     {
-        $slot = self::SLOTS[$configKey] ?? null;
+        $account = self::accountOf($configKey);
 
-        if ($slot !== null && self::applies($slot)) {
-            $stored = $this->stored(ApiAccount::from($slot[0]));
+        if ($account !== null) {
+            $stored = $this->stored($account);
 
             if ($stored !== null) {
                 return $stored;
@@ -82,7 +87,7 @@ final class ApiKeyring
             return 'owner';
         }
 
-        return self::env(self::PRIMARY[$account->value]) !== '' ? 'env' : 'none';
+        return self::primaryEnv($account) !== '' ? 'env' : 'none';
     }
 
     /**
@@ -91,7 +96,7 @@ final class ApiKeyring
      */
     public function masked(ApiAccount $account): ?string
     {
-        $key = $this->stored($account) ?? self::env(self::PRIMARY[$account->value]);
+        $key = $this->stored($account) ?? self::primaryEnv($account);
 
         if ($key === '') {
             return null;
@@ -106,7 +111,7 @@ final class ApiKeyring
      */
     public function effective(ApiAccount $account): string
     {
-        return $this->key(self::PRIMARY[$account->value]);
+        return $this->stored($account) ?? self::primaryEnv($account);
     }
 
     /**
@@ -137,23 +142,47 @@ final class ApiKeyring
     }
 
     /**
-     * @param  array{0: string, 1: string|null, 2: list<string>}  $slot
+     * The account whose owner key a config slot uses now, or null when the
+     * slot points at a vendor the owner does not fund.
      */
-    private static function applies(array $slot): bool
+    private static function accountOf(string $configKey): ?ApiAccount
     {
-        if ($slot[1] === null) {
-            return true;
+        $slot = self::SLOTS[$configKey] ?? null;
+
+        if ($slot === null) {
+            return null;
         }
 
-        $provider = config($slot[1]);
+        if ($slot[0] === null) {
+            return ApiAccount::from($slot[1]['*']);
+        }
+
+        $provider = config($slot[0]);
         $provider = is_string($provider) && trim($provider) !== '' ? trim($provider) : 'fake';
 
         // `openai` pointed at Alibaba's host is the Qwen account.
-        if ($slot[1] === 'services.ai.provider') {
+        if ($slot[0] === 'services.ai.provider') {
             $provider = AiModelSettings::aiProviderLabel($provider);
         }
 
-        return in_array($provider, $slot[2], true);
+        $account = $slot[1][$provider] ?? null;
+
+        return $account === null ? null : ApiAccount::from($account);
+    }
+
+    /**
+     * The .env key standing for the account: the first of its primary
+     * slots that belongs to it now, so Qwen never shows Claude's key.
+     */
+    private static function primaryEnv(ApiAccount $account): string
+    {
+        foreach (self::PRIMARY[$account->value] as $configKey) {
+            if (self::accountOf($configKey) === $account) {
+                return self::env($configKey);
+            }
+        }
+
+        return '';
     }
 
     private static function env(string $configKey): string

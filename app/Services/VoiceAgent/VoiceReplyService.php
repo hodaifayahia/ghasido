@@ -2,6 +2,7 @@
 
 namespace App\Services\VoiceAgent;
 
+use App\Contracts\AiProvider;
 use App\Contracts\AiUsageInfo;
 use App\Enums\AiFeature;
 use App\Enums\ApiAccount;
@@ -10,7 +11,9 @@ use App\Models\AiScenario;
 use App\Models\AudioClip;
 use App\Models\RoleplayAttempt;
 use App\Models\VoiceLine;
+use App\Services\Ai\AiLimitReached;
 use App\Services\Ai\AiModelSettings;
+use App\Services\Ai\AnthropicAiProvider;
 use App\Services\Ai\RoleplayPrompt;
 use App\Services\Ai\UsageMeter;
 use App\Services\Owner\ApiCredit;
@@ -18,6 +21,7 @@ use App\Services\Owner\ApiKeyring;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
@@ -49,6 +53,9 @@ use Throwable;
 final class VoiceReplyService
 {
     public const PROVIDER_LABEL = 'qwen_voice_pipeline';
+
+    /** The usage label for Claude's lines: bills the Claude account. */
+    public const CLAUDE_PROVIDER_LABEL = 'anthropic_voice_pipeline';
 
     public const SOURCE_NEW = 'new';
 
@@ -162,8 +169,10 @@ final class VoiceReplyService
     {
         $user = $attempt->user;
         $credit = app(ApiCredit::class);
+        // The account the guest's lines are written on: Claude, or Qwen.
+        $text = $credit->accountFor('fast');
 
-        if (! $credit->isAvailable(ApiAccount::Qwen) || ! $credit->isAvailable(ApiAccount::Deepgram)) {
+        if (($text !== null && ! $credit->isAvailable($text)) || ! $credit->isAvailable(ApiAccount::Deepgram)) {
             return true;
         }
 
@@ -280,6 +289,10 @@ final class VoiceReplyService
 
         $pacing = [...$history, ['role' => RoleplayAttempt::ROLE_EMPLOYEE, 'text' => $employeeText]];
 
+        if ($provider === AnthropicAiProvider::PROVIDER) {
+            return $this->claude($scenario, $attempt, $pacing, $candidates, $values);
+        }
+
         $messages = [['role' => 'system', 'content' => implode("\n\n", array_filter([
             RoleplayPrompt::forVoice($scenario, (string) $values['prompt'], $attempt->user?->english_level),
             RoleplayPrompt::pacingLine($scenario, $pacing),
@@ -354,6 +367,79 @@ final class VoiceReplyService
             (int) $response->json('usage.completion_tokens', 0),
             (string) $response->json('model', $model),
             self::PROVIDER_LABEL,
+        )];
+    }
+
+    /**
+     * The guest's line from Claude (Messages API). The scenario brief is the
+     * cached system block; the pacing line and the recorded-line choices
+     * change every turn and follow it uncached (spec 0005 §5.3). Metered as
+     * `anthropic_voice_pipeline`, so it bills the Claude account.
+     *
+     * @param  list<array{role: string, text: string}>  $pacing
+     * @param  Collection<int, VoiceLine>  $candidates
+     * @param  array<string, mixed>  $values
+     * @return array{text: string, usage: AiUsageInfo|null}
+     */
+    private function claude(AiScenario $scenario, RoleplayAttempt $attempt, array $pacing, Collection $candidates, array $values): array
+    {
+        try {
+            /** @var AiProvider $provider resolved from config, so any implementation */
+            $provider = app()->make(AiProvider::class);
+        } catch (AiLimitReached) {
+            // The owner's Claude credit is spent: close the call politely.
+            throw new AiQuotaExhausted(__('The AI text service has run out of quota. Please tell your administrator.'));
+        }
+
+        if (! $provider instanceof AnthropicAiProvider) {
+            throw new RuntimeException(__('The language model is not configured.'));
+        }
+
+        $messages = [];
+
+        foreach ($pacing as $entry) {
+            $messages[] = [
+                'role' => $entry['role'] === RoleplayAttempt::ROLE_EMPLOYEE ? 'user' : 'assistant',
+                'content' => mb_substr($entry['text'], 0, 2000),
+            ];
+        }
+
+        if ($messages === [] || $messages[0]['role'] !== 'user') {
+            // The Messages API wants the conversation to open with the user.
+            array_unshift($messages, ['role' => 'user', 'content' => '(The employee has answered the call.)']);
+        }
+
+        try {
+            $reply = $provider->voiceLine(
+                RoleplayPrompt::forVoice($scenario, (string) $values['prompt'], $attempt->user?->english_level),
+                $messages,
+                implode("\n\n", array_filter([
+                    RoleplayPrompt::pacingLine($scenario, $pacing),
+                    $this->bankInstruction($candidates),
+                ])),
+            );
+        } catch (ConnectionException) {
+            throw new RuntimeException(__('The guest could not be reached. Please say it again.'));
+        } catch (RequestException $e) {
+            // Anthropic answers 400 "credit balance is too low" when the
+            // account is empty: as with Qwen's spent quota, the call closes
+            // politely and the next calls use the voice agent meanwhile.
+            if (str_contains(strtolower($e->response->body()), 'credit balance')) {
+                VoiceAgentSettings::markQwenQuotaExhausted();
+
+                throw new AiQuotaExhausted(__('The AI text service has run out of quota. Please tell your administrator.'));
+            }
+
+            throw new RuntimeException(__('The guest could not answer (HTTP :status). Please say it again.', ['status' => $e->response->status()]));
+        }
+
+        return ['text' => $reply->text, 'usage' => new AiUsageInfo(
+            $reply->usage->promptTokens,
+            $reply->usage->completionTokens,
+            $reply->usage->model,
+            self::CLAUDE_PROVIDER_LABEL,
+            $reply->usage->cacheReadTokens,
+            $reply->usage->cacheWriteTokens,
         )];
     }
 

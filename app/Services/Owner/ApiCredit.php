@@ -111,6 +111,21 @@ final class ApiCredit
     }
 
     /**
+     * The account's "Test" capabilities that really run on it now: with
+     * Claude as the text provider, Qwen's text check would call Claude. A
+     * capability on the fake provider bills nobody, so it stays listed.
+     *
+     * @return list<string>
+     */
+    public function checksFor(ApiAccount $account): array
+    {
+        return array_values(array_filter(
+            $account->checks(),
+            fn (string $capability): bool => in_array($this->accountFor($capability), [null, $account], true),
+        ));
+    }
+
+    /**
      * The pre-dispatch check (D7a) for the capabilities a feature needs.
      *
      * @throws AiLimitReached

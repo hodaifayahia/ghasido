@@ -44,6 +44,8 @@ export type VoiceAgentSettingsPayload = {
     qwenProxyAvailable: boolean;
     qwenProxyReason: string | null;
     qwenModel: string | null;
+    /** The text AI behind the proxy mode: `Claude` or `Qwen`. */
+    aiProviderLabel: string;
     pipelineAvailable: boolean;
     pipelineReason: string | null;
     /** What the stored-voice bank has saved so far (spec 0009). */

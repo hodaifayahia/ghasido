@@ -50,7 +50,7 @@ class AiModelSettingsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/AiModels')
                 ->where('settings.values.aiModel', '')
-                ->where('settings.presets.text.0', 'qwen3.8-max')
+                ->where('settings.presets.text.0', 'claude-sonnet-5-5')
                 ->has('checks.ai')
                 ->has('voiceAgent.settings.values')
             );

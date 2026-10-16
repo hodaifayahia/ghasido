@@ -33,6 +33,10 @@ class AiUsagePageTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+
+        // These tests set their own prices; the default rows from the
+        // 2026_10_16 migration are covered by DefaultModelPricesTest.
+        AiModelPrice::query()->delete();
     }
 
     private function usage(string $model, int $in, int $out, ?Hotel $hotel = null, AiFeature $feature = AiFeature::RoleplayTurn): AiUsage

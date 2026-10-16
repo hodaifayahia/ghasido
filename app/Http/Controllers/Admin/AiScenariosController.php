@@ -70,7 +70,7 @@ class AiScenariosController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'info',
-            'message' => __('Qwen is preparing an editable scenario draft.'),
+            'message' => __('The AI is preparing an editable scenario draft.'),
         ]);
 
         return back();

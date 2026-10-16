@@ -48,7 +48,7 @@ class OwnerAuthTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('owner/Dashboard')
                 ->where('owner.email', 'owner@clickdz.test')
-                ->has('accounts', 2));
+                ->has('accounts', 3));
     }
 
     public function test_a_wrong_password_is_refused()

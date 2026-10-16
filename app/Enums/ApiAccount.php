@@ -12,12 +12,14 @@ namespace App\Enums;
  */
 enum ApiAccount: string
 {
+    case Anthropic = 'anthropic';
     case Qwen = 'qwen';
     case Deepgram = 'deepgram';
 
     public function label(): string
     {
         return match ($this) {
+            self::Anthropic => 'Claude',
             self::Qwen => 'Qwen',
             self::Deepgram => 'Deepgram',
         };
@@ -26,6 +28,7 @@ enum ApiAccount: string
     public function vendor(): string
     {
         return match ($this) {
+            self::Anthropic => 'Anthropic',
             self::Qwen => 'Alibaba Model Studio',
             self::Deepgram => 'Deepgram',
         };
@@ -38,7 +41,8 @@ enum ApiAccount: string
     public function serviceLabel(): string
     {
         return match ($this) {
-            self::Qwen => __('AI text & images'),
+            self::Anthropic => __('AI text'),
+            self::Qwen => __('AI images'),
             self::Deepgram => __('Speech & listening'),
         };
     }
@@ -49,7 +53,8 @@ enum ApiAccount: string
     public function usedFor(): string
     {
         return match ($this) {
-            self::Qwen => __('Text AI: role-play replies, feedback and evaluations, lesson and test drafts, coaching, and lesson images.'),
+            self::Anthropic => __('Text AI: role-play replies, feedback and evaluations, lesson and test drafts, coaching and translations.'),
+            self::Qwen => __('Lesson images, and text AI while Qwen is the text provider.'),
             self::Deepgram => __('Speech: lesson audio, transcription of spoken answers, pronunciation checks and live voice calls.'),
         };
     }
@@ -57,14 +62,15 @@ enum ApiAccount: string
     /**
      * The provider units a recharge can buy (spec 0007, D10): Qwen is sold
      * as a token plan; Deepgram bills speech by the character and listening
-     * (transcription, pronunciation, voice calls) by the second.
+     * (transcription, pronunciation, voice calls) by the second; Claude
+     * is billed by the token.
      *
      * @return list<CreditMeter>
      */
     public function meters(): array
     {
         return match ($this) {
-            self::Qwen => [CreditMeter::Tokens],
+            self::Anthropic, self::Qwen => [CreditMeter::Tokens],
             self::Deepgram => [CreditMeter::Seconds, CreditMeter::Characters],
         };
     }
@@ -78,6 +84,7 @@ enum ApiAccount: string
     public function checks(): array
     {
         return match ($this) {
+            self::Anthropic => ['ai', 'fast'],
             // Text only: an image check generates (and bills) a picture.
             self::Qwen => ['ai'],
             self::Deepgram => ['tts', 'stt'],

@@ -39,14 +39,14 @@ class SuperAdminCreditViewTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('aiCredit.0.account', 'qwen')
-                ->where('aiCredit.0.service', 'AI text & images')
-                ->where('aiCredit.0.creditUsd', 200)
-                ->where('aiCredit.0.remainingUsd', 150)
-                ->where('aiCredit.0.meters.0.left', 750)
-                ->missing('aiCredit.0.costUsd')
-                ->where('aiCredit.1.state', 'unlimited')
-                ->where('aiCredit.1.usedUsd', null));
+                ->where('aiCredit.1.account', 'qwen')
+                ->where('aiCredit.1.service', 'AI images')
+                ->where('aiCredit.1.creditUsd', 200)
+                ->where('aiCredit.1.remainingUsd', 150)
+                ->where('aiCredit.1.meters.0.left', 750)
+                ->missing('aiCredit.1.costUsd')
+                ->where('aiCredit.2.state', 'unlimited')
+                ->where('aiCredit.2.usedUsd', null));
     }
 
     public function test_the_ai_usage_page_shows_it_too()
@@ -56,7 +56,7 @@ class SuperAdminCreditViewTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/AiUsage')
-                ->where('aiCredit.0.remainingUsd', 150));
+                ->where('aiCredit.1.remainingUsd', 150));
     }
 
     public function test_hotel_admins_and_managers_never_receive_it()

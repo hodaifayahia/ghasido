@@ -493,4 +493,83 @@ class VoicePipelineTest extends TestCase
         Queue::assertPushed(EvaluateRoleplayAttempt::class);
         $this->assertDatabaseHas('ai_usages', ['feature' => 'voice_call', 'model' => UsageMeter::VOICE_STREAM_MODEL]);
     }
+
+    /**
+     * Claude as the text AI (2026-10-16): the fast engine writes the guest's
+     * line through the Messages API and bills the Claude account.
+     *
+     * @param  array<string, mixed>|null  $error  an error body to answer with
+     */
+    private function useClaude(string $content, ?array $error = null): void
+    {
+        config()->set('services.ai.provider', 'anthropic');
+        config()->set('services.ai.key', 'claude-secret-key-never-shipped');
+        config()->set('services.ai.base_url', null);
+        config()->set('services.ai.model', 'claude-sonnet-5-5');
+        config()->set('services.ai.fast_model', null);
+
+        Http::fake(['api.anthropic.com/*' => $error !== null
+            ? Http::response($error, 400)
+            : Http::response([
+                'model' => 'claude-sonnet-5-5',
+                'content' => [['type' => 'text', 'text' => $content]],
+                'stop_reason' => 'end_turn',
+                'usage' => ['input_tokens' => 300, 'cache_read_input_tokens' => 1200, 'output_tokens' => 15],
+            ])]);
+    }
+
+    public function test_claude_writes_the_guests_line_and_is_metered_to_the_claude_account()
+    {
+        $this->useClaude('{"reuse": 1}');
+        $learner = $this->learner();
+        $attempt = $this->voiceCall($learner);
+        $line = $this->recordedLine('I would like to check in, please.');
+
+        $this->assertNull(app(VoiceAgentSettings::class)->pipelineReason());
+
+        $this->actingAs($learner)
+            ->postJson($this->replyUrl($attempt), ['turn' => 0, 'rev' => 0, 'text' => 'Good evening, how can I help you?'])
+            ->assertOk()
+            ->assertJsonPath('source', VoiceReplyService::SOURCE_REUSED)
+            ->assertJsonPath('text', 'I would like to check in, please.')
+            ->assertJsonPath('limitReached', false);
+
+        // The scenario brief is the cached block; the recorded lines change
+        // every turn and follow it. The conversation opens with the user.
+        Http::assertSent(fn (HttpRequest $request): bool => str_contains($request->url(), 'api.anthropic.com/v1/messages')
+            && $request->hasHeader('x-api-key', 'claude-secret-key-never-shipped')
+            && $request['model'] === 'claude-sonnet-5-5'
+            && $request['output_config'] === ['effort' => 'low']
+            && str_contains($request['system'][0]['text'], RoleplayPrompt::GUARD)
+            && isset($request['system'][0]['cache_control'])
+            && str_contains($request['system'][1]['text'], '1. "I would like to check in, please."')
+            && $request['messages'][0]['role'] === 'user'
+            && end($request->data()['messages']) === ['role' => 'user', 'content' => 'Good evening, how can I help you?']);
+        Http::assertNotSent(fn (HttpRequest $request): bool => str_contains($request->url(), 'qwen.test'));
+
+        $this->assertDatabaseHas('ai_usages', [
+            'feature' => 'roleplay_turn',
+            'provider' => VoiceReplyService::CLAUDE_PROVIDER_LABEL,
+            'model' => 'claude-sonnet-5-5',
+            'prompt_tokens' => 1500,
+        ]);
+        $this->assertSame(1, $line->refresh()->reuses);
+    }
+
+    public function test_an_empty_claude_balance_closes_the_call_and_moves_the_next_ones_to_the_voice_agent()
+    {
+        $this->useClaude('', ['type' => 'error', 'error' => ['type' => 'invalid_request_error', 'message' => 'Your credit balance is too low to access the Anthropic API.']]);
+        $learner = $this->learner();
+        $attempt = $this->voiceCall($learner);
+
+        $this->actingAs($learner)
+            ->postJson($this->replyUrl($attempt), ['turn' => 0, 'rev' => 0, 'text' => 'Hello, welcome.'])
+            ->assertOk()
+            ->assertJsonPath('limitReached', true)
+            ->assertJsonPath('endReason', 'quota')
+            ->assertJsonPath('text', VoiceReplyService::CLOSING_LINE);
+
+        $this->assertSame('Hello, welcome.', $attempt->refresh()->transcript[1]['text']);
+        $this->assertFalse(app(VoiceAgentSettings::class)->pipelineAvailable());
+    }
 }

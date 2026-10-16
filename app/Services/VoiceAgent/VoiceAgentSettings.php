@@ -2,6 +2,7 @@
 
 namespace App\Services\VoiceAgent;
 
+use App\Enums\ApiAccount;
 use App\Models\AiScenario;
 use App\Models\User;
 use App\Models\VoiceAgentSetting;
@@ -212,20 +213,22 @@ final class VoiceAgentSettings
             return null;
         }
 
-        if (! in_array($provider, ['qwen', 'openai'], true)) {
+        // Claude through its Messages API, or an OpenAI-compatible host (Qwen).
+        if (! in_array($provider, ['anthropic', 'qwen', 'openai'], true)) {
             return __('The fast engine needs an OpenAI-compatible text model such as Qwen; the AI provider is :provider.', ['provider' => $provider]);
         }
 
         if (trim(app(ApiKeyring::class)->key('services.ai.key')) === '') {
-            return __('Qwen is not configured on the server (AI_KEY is empty).');
+            return __('The text AI is not configured on the server (AI_KEY is empty).');
         }
 
         return $now ? $this->qwenQuotaReason() : null;
     }
 
     /**
-     * Remember that Qwen said its quota is spent (VoiceReplyService, the
-     * Qwen proxy), so the next calls use the voice agent.
+     * Remember that the text AI said its quota or credit is spent
+     * (VoiceReplyService, the proxy), so the next calls use the voice agent.
+     * The flag keeps its Qwen-era name.
      */
     public static function markQwenQuotaExhausted(): void
     {
@@ -235,7 +238,7 @@ final class VoiceAgentSettings
     private function qwenQuotaReason(): ?string
     {
         return Cache::get(self::QWEN_QUOTA_FLAG) === true
-            ? (string) __('Qwen has run out of quota, so calls use the Deepgram voice agent until it is topped up.')
+            ? (string) __('The text AI has run out of quota, so calls use the Deepgram voice agent until it is topped up.')
             : null;
     }
 
@@ -315,7 +318,8 @@ final class VoiceAgentSettings
     }
 
     /**
-     * Qwen as the agent's brain goes through our own OpenAI-compatible proxy,
+     * Our text AI (Claude or Qwen; the mode keeps its old `qwen_proxy` id)
+     * as the agent's brain goes through our own OpenAI-compatible proxy,
      * which Deepgram must reach over public HTTPS (spec 0004 NOTES).
      */
     public function qwenProxyAvailable(bool $now = true): bool
@@ -328,13 +332,13 @@ final class VoiceAgentSettings
         $appUrl = (string) config('app.url', '');
 
         if (! str_starts_with($appUrl, 'https://')) {
-            return __('Qwen needs a public HTTPS APP_URL so Deepgram can reach the /voice-agent/llm proxy. Current APP_URL: :url', ['url' => $appUrl]);
+            return __('The text AI needs a public HTTPS APP_URL so Deepgram can reach the /voice-agent/llm proxy. Current APP_URL: :url', ['url' => $appUrl]);
         }
 
         $key = app(ApiKeyring::class)->key('services.ai.key');
 
         if (trim($key) === '') {
-            return __('Qwen is not configured on the server (AI_KEY is empty).');
+            return __('The text AI is not configured on the server (AI_KEY is empty).');
         }
 
         return $now ? $this->qwenQuotaReason() : null;
@@ -352,7 +356,9 @@ final class VoiceAgentSettings
      */
     public function payload(): array
     {
-        $qwenModel = config('services.ai.fast_model') ?: config('services.ai.model');
+        $models = app(AiModelSettings::class);
+        $qwenModel = $models->fastChatModel();
+        $textProvider = $models->currentProvider('fast');
 
         return [
             'values' => $this->current(),
@@ -362,7 +368,8 @@ final class VoiceAgentSettings
             // a quota outage; the reason still explains the fallback.
             'qwenProxyAvailable' => $this->qwenProxyAvailable(false),
             'qwenProxyReason' => $this->qwenProxyReason(),
-            'qwenModel' => is_string($qwenModel) ? $qwenModel : null,
+            'qwenModel' => $qwenModel !== '' ? $qwenModel : null,
+            'aiProviderLabel' => ApiAccount::forProvider($textProvider)?->label() ?? ucfirst($textProvider),
             'pipelineAvailable' => $this->pipelineAvailable(false),
             'pipelineReason' => $this->pipelineReason(),
             'bank' => app(VoiceLineBank::class)->stats(),

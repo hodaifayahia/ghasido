@@ -43,6 +43,10 @@ class ApiCreditTest extends TestCase
             'services.tts.provider' => 'deepgram',
             'services.tts.key' => 'env-deepgram-key',
         ]);
+
+        // These tests set their own prices; the default rows from the
+        // 2026_10_16 migration are covered by DefaultModelPricesTest.
+        AiModelPrice::query()->delete();
     }
 
     private function credit(): ApiCredit

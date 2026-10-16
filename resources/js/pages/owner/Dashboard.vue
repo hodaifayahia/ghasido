@@ -20,8 +20,9 @@ type Props = OwnerConsolePayload;
 const props = defineProps<Props>();
 const { t } = useI18n();
 
-const qwen = computed(() =>
-    props.accounts.find((card) => card.account === 'qwen'),
+// The account the text AI runs on now: Claude, or Qwen if switched back.
+const text = computed(() =>
+    props.accounts.find((card) => card.account === props.textAccount),
 );
 const deepgram = computed(() =>
     props.accounts.find((card) => card.account === 'deepgram'),
@@ -74,7 +75,7 @@ function balanceDetail(card: ApiAccountCard | undefined): string {
 }
 
 const tokens = computed(() =>
-    qwen.value?.meters.find((meter) => meter.meter === 'tokens'),
+    text.value?.meters.find((meter) => meter.meter === 'tokens'),
 );
 
 const tokensLeft = computed(() =>
@@ -134,10 +135,10 @@ watch(
 
         <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-                :value="balanceValue(qwen)"
-                :label="balanceLabel(qwen)"
-                :detail="balanceDetail(qwen)"
-                :tone="creditTone(qwen, 'ai')"
+                :value="balanceValue(text)"
+                :label="balanceLabel(text)"
+                :detail="balanceDetail(text)"
+                :tone="creditTone(text, 'ai')"
             >
                 <template #icon
                     ><Bot class="size-6" aria-hidden="true"
@@ -153,8 +154,8 @@ watch(
                 unit="k"
                 :label="
                     tokens?.limited
-                        ? $t('Qwen tokens left')
-                        : $t('Qwen tokens used')
+                        ? $t(':name tokens left', { name: text?.label ?? '' })
+                        : $t(':name tokens used', { name: text?.label ?? '' })
                 "
                 :detail="
                     tokens?.limited
@@ -164,7 +165,7 @@ watch(
                           })
                         : $t('No token limit set')
                 "
-                :tone="creditTone(qwen, 'brand')"
+                :tone="creditTone(text, 'brand')"
             >
                 <template #icon
                     ><Coins class="size-6" aria-hidden="true"

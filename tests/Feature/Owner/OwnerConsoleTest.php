@@ -46,6 +46,10 @@ class OwnerConsoleTest extends TestCase
             'services.stt.key' => 'env-deepgram-key-2222',
             'services.voice_agent.key' => 'env-deepgram-key-2222',
         ]);
+
+        // These tests set their own prices; the default rows from the
+        // 2026_10_16 migration are covered by DefaultModelPricesTest.
+        AiModelPrice::query()->delete();
     }
 
     public function test_a_saved_key_is_encrypted_used_by_the_app_and_never_sent_to_the_browser()
@@ -75,11 +79,11 @@ class OwnerConsoleTest extends TestCase
             ->assertDontSee(self::SECRET)
             ->assertDontSee('env-deepgram-key-2222')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('accounts.0.account', 'qwen')
-                ->where('accounts.0.key.source', 'owner')
-                ->where('accounts.0.key.masked', '••••7890')
-                ->where('accounts.1.key.source', 'env')
-                ->where('accounts.1.key.masked', '••••2222'));
+                ->where('accounts.1.account', 'qwen')
+                ->where('accounts.1.key.source', 'owner')
+                ->where('accounts.1.key.masked', '••••7890')
+                ->where('accounts.2.key.source', 'env')
+                ->where('accounts.2.key.masked', '••••2222'));
     }
 
     public function test_a_deepgram_key_feeds_speech_transcription_and_voice_calls()
@@ -149,14 +153,14 @@ class OwnerConsoleTest extends TestCase
         $this->actingAs($this->owner, 'owner')
             ->get(route('owner.dashboard'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('accounts.0.state', 'active')
-                ->where('accounts.0.mode', 'units')
-                ->where('accounts.0.client.creditUsd', 200)
-                ->where('accounts.0.client.remainingUsd', 200)
-                ->where('accounts.0.meters.0.meter', 'tokens')
-                ->where('accounts.0.meters.0.granted', 250000)
-                ->has('accounts.0.topups', 1)
-                ->where('accounts.1.state', 'unlimited'));
+                ->where('accounts.1.state', 'active')
+                ->where('accounts.1.mode', 'units')
+                ->where('accounts.1.client.creditUsd', 200)
+                ->where('accounts.1.client.remainingUsd', 200)
+                ->where('accounts.1.meters.0.meter', 'tokens')
+                ->where('accounts.1.meters.0.granted', 250000)
+                ->has('accounts.1.topups', 1)
+                ->where('accounts.2.state', 'unlimited'));
     }
 
     public function test_a_recharge_is_validated()
@@ -211,9 +215,9 @@ class OwnerConsoleTest extends TestCase
         $this->actingAs($this->owner, 'owner')
             ->get(route('owner.dashboard'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('accounts.0.meters.0.granted', 25000000)
-                ->where('accounts.0.client.creditUsd', 200)
-                ->where('accounts.0.client.remainingUsd', 200));
+                ->where('accounts.1.meters.0.granted', 25000000)
+                ->where('accounts.1.client.creditUsd', 200)
+                ->where('accounts.1.client.remainingUsd', 200));
     }
 
     public function test_a_negative_recharge_corrects_a_mistake()

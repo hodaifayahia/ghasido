@@ -55,12 +55,14 @@ return [
         // Lower-latency model for turns a learner waits on (role-play lines).
         'fast_model' => env('AI_FAST_MODEL'),
         // Image generation (DashScope async task API). The base URL is the
-        // provider's native /api/v1 root, not the compatible-mode one; it
-        // falls back to the AI key when no separate key is set.
+        // provider's native /api/v1 root, not the compatible-mode one. It
+        // borrows the AI key only while the text AI is Qwen too: with Claude
+        // as AI_PROVIDER, AI_KEY is an Anthropic key and must never reach
+        // Alibaba, so set AI_IMAGE_PROVIDER=qwen and AI_IMAGE_KEY instead.
         'image_provider' => env('AI_IMAGE_PROVIDER', env('AI_PROVIDER') === 'qwen' ? 'qwen' : 'fake'),
         'image_model' => env('AI_IMAGE_MODEL'),
         'image_base_url' => env('AI_IMAGE_BASE_URL'),
-        'image_key' => env('AI_IMAGE_KEY', env('AI_KEY')),
+        'image_key' => env('AI_IMAGE_KEY', env('AI_PROVIDER') === 'qwen' ? env('AI_KEY') : null),
     ],
 
     /*

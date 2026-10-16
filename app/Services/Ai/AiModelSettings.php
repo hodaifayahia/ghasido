@@ -53,10 +53,11 @@ final class AiModelSettings
     public const array MODES = ['', 'fake', 'real'];
 
     /** The real provider a capability switches to when .env says fake. */
-    public const array REAL_DEFAULTS = ['ai' => 'qwen', 'image' => 'qwen', 'tts' => 'deepgram', 'stt' => 'deepgram'];
+    public const array REAL_DEFAULTS = ['ai' => 'anthropic', 'image' => 'qwen', 'tts' => 'deepgram', 'stt' => 'deepgram'];
 
-    /** Text model presets from the client's token plan. */
+    /** Text model presets: Claude (Anthropic), then the client's Qwen token plan. */
     public const array TEXT_PRESETS = [
+        'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5',
         'qwen3.8-max', 'qwen3.8-flash', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.6-plus', 'qwen3.6-flash',
         'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v4.1-flash', 'deepseek-v3.2',
         'glm-5.3', 'glm-5.2', 'kimi-k2.6', 'kimi-k2.5', 'MiniMax-M2.5',
@@ -141,6 +142,45 @@ final class AiModelSettings
         };
 
         return $this->provider($switch, self::config($configKey, 'fake'));
+    }
+
+    /**
+     * The text and fast model ids for a provider: the Super Admin's
+     * override, else .env, skipping an id from another vendor's list. A
+     * `qwen3.8-max` override saved before the switch to Claude would
+     * otherwise be sent to Anthropic and fail every call. `fast` is blank
+     * when no fast model is set (the provider then uses the main one).
+     *
+     * @return array{model: string, fast: string}
+     */
+    public function aiModels(string $provider): array
+    {
+        $overrides = $this->overrides();
+        $pick = function (string $override, string $env) use ($provider): string {
+            foreach ([$override, $env] as $model) {
+                if ($model !== '' && self::modelFits($provider, $model)) {
+                    return $model;
+                }
+            }
+
+            return '';
+        };
+
+        return [
+            'model' => $pick($overrides['aiModel'], self::config('services.ai.model')),
+            'fast' => $pick($overrides['aiFastModel'], self::config('services.ai.fast_model')),
+        ];
+    }
+
+    /**
+     * Whether a text model id can run on the provider: Claude ids only on
+     * Anthropic, and never on another vendor.
+     */
+    public static function modelFits(string $provider, string $model): bool
+    {
+        $claude = str_starts_with(strtolower(trim($model)), 'claude-');
+
+        return $provider === 'anthropic' ? $claude : ! $claude;
     }
 
     /**
@@ -284,14 +324,15 @@ final class AiModelSettings
     {
         $o = $this->overrides();
         $aiProvider = $this->provider('ai', self::config('services.ai.provider', 'fake'));
-        $aiModel = $o['aiModel'] ?: self::config('services.ai.model');
+        $aiModels = $this->aiModels($aiProvider);
+        $aiModel = $aiModels['model'];
         $sttProvider = $this->provider('stt', self::config('services.stt.provider', 'fake'));
 
         return [
             'ai' => ['provider' => $aiProvider, 'model' => $aiModel, 'keyConfigured' => app(ApiKeyring::class)->key('services.ai.key') !== ''],
             'fast' => [
                 'provider' => $aiProvider,
-                'model' => $o['aiFastModel'] ?: (self::config('services.ai.fast_model') ?: $aiModel),
+                'model' => $aiModels['fast'] ?: $aiModel,
                 'keyConfigured' => app(ApiKeyring::class)->key('services.ai.key') !== '',
             ],
             'image' => [

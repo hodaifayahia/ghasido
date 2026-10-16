@@ -62,6 +62,7 @@ final class OwnerConsole
                 ->all(),
             'units' => AiModelPrice::UNITS,
             'deepgramBalance' => $this->deepgram->last(),
+            'textAccount' => ($this->credit->accountFor('ai') ?? ApiAccount::Anthropic)->value,
         ];
     }
 
@@ -115,7 +116,7 @@ final class OwnerConsole
                     'label' => self::checkLabel($capability),
                     'state' => $checks[$capability] ?? null,
                 ],
-                $account->checks(),
+                $this->credit->checksFor($account),
             ),
             'topups' => ApiCreditTopup::query()
                 ->with('owner:id,name')

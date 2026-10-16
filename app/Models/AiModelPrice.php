@@ -41,15 +41,27 @@ class AiModelPrice extends Model
         ];
     }
 
+    /** Prompt-cache reads, as a share of the input price (Anthropic). */
+    public const float CACHE_READ_RATE = 0.1;
+
+    /** Prompt-cache writes (5-minute cache), as a share of the input price. */
+    public const float CACHE_WRITE_RATE = 1.25;
+
     /**
-     * The cost of one call at this price.
+     * The cost of one call at this price. `$cacheRead` and `$cacheWrite`
+     * are the part of `$inputUnits` that hit or filled the prompt cache;
+     * they are costed at their own rates instead of the full input price.
      */
-    public function costOf(int $inputUnits, int $outputUnits): float
+    public function costOf(int $inputUnits, int $outputUnits, int $cacheRead = 0, int $cacheWrite = 0): float
     {
-        return round(
-            ($inputUnits * (float) $this->input_per_million + $outputUnits * (float) $this->output_per_million) / 1_000_000,
-            6,
-        );
+        $cacheRead = max(0, min($cacheRead, $inputUnits));
+        $cacheWrite = max(0, min($cacheWrite, $inputUnits - $cacheRead));
+        $input = (float) $this->input_per_million;
+        $inputCost = ($inputUnits - $cacheRead - $cacheWrite) * $input
+            + $cacheRead * $input * self::CACHE_READ_RATE
+            + $cacheWrite * $input * self::CACHE_WRITE_RATE;
+
+        return round(($inputCost + $outputUnits * (float) $this->output_per_million) / 1_000_000, 6);
     }
 
     /**

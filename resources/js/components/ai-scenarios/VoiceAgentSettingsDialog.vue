@@ -516,7 +516,8 @@ function saveScenario(): void {
                                 :disabled="!settings.qwenProxyAvailable"
                             >
                                 {{
-                                    $t('Qwen (:model) through GHASIDO', {
+                                    $t(':provider (:model) through GHASIDO', {
+                                        provider: settings.aiProviderLabel,
                                         model:
                                             settings.qwenModel ??
                                             $t('server model'),
@@ -530,7 +531,8 @@ function saveScenario(): void {
                         class="text-ink-slate text-[11.5px]"
                     >
                         {{
-                            $t('Qwen is unavailable: :reason', {
+                            $t(':provider is unavailable: :reason', {
+                                provider: settings.aiProviderLabel,
                                 reason: settings.qwenProxyReason ?? '',
                             })
                         }}

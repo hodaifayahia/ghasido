@@ -28,6 +28,7 @@ import {
 import { store as storeTopup } from '@/routes/owner/accounts/topups';
 import type {
     ApiAccountCard,
+    ApiAccountId,
     ApiAccountMeter,
     ApiAccountState,
     ApiAccountTopup,
@@ -59,6 +60,13 @@ const stateLabel: Record<ApiAccountState, string> = {
     low: tk('Low credit'),
     exhausted: tk('Out of credit'),
     paused: tk('Paused'),
+};
+
+// Text AI accounts carry the robot, speech the waveform.
+const iconTone: Record<ApiAccountId, string> = {
+    anthropic: 'bg-brand-50 text-brand-600',
+    qwen: 'bg-ai-tint text-ai',
+    deepgram: 'bg-aqua-tint text-aqua',
 };
 
 const stateTone: Record<ApiAccountState, string> = {
@@ -188,14 +196,12 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
                 :class="
                     cn(
                         'grid size-9 shrink-0 place-items-center rounded-xl',
-                        card.account === 'qwen'
-                            ? 'bg-ai-tint text-ai'
-                            : 'bg-aqua-tint text-aqua',
+                        iconTone[card.account],
                     )
                 "
             >
                 <Bot
-                    v-if="card.account === 'qwen'"
+                    v-if="card.account !== 'deepgram'"
                     class="size-5"
                     aria-hidden="true"
                 />
@@ -527,8 +533,10 @@ const cell = 'text-ink/80 px-2 py-1.5 text-[12.5px]';
             </p>
         </section>
 
-        <!-- Connection -->
+        <!-- Connection: hidden when nothing runs on this account now (Qwen
+             while Claude is the text AI) -->
         <section
+            v-if="card.checks.length > 0 || card.account === 'deepgram'"
             class="border-line grid gap-2 border-t pt-4"
             :aria-labelledby="`${id}-connection`"
         >

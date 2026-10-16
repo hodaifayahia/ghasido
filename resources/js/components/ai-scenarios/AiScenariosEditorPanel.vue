@@ -330,8 +330,8 @@ onBeforeUnmount(clearCoverPreview);
                     <Sparkles class="size-3.5" aria-hidden="true" />
                     {{
                         editor.aiStatus === 'failed'
-                            ? $t('Regenerate with Qwen')
-                            : $t('Generate with Qwen')
+                            ? $t('Regenerate with AI')
+                            : $t('Generate with AI')
                     }}
                 </Button>
             </div>
@@ -342,7 +342,7 @@ onBeforeUnmount(clearCoverPreview);
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <p class="text-ai text-[12px] font-semibold">
-                        {{ $t('Qwen draft ready for review') }}
+                        {{ $t('AI draft ready for review') }}
                     </p>
                     <span class="text-ai text-[11px] font-medium">{{
                         $t('Apply only after checking the wording')
