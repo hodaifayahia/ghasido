@@ -127,7 +127,7 @@ class StoreRecordingRequest extends FormRequest
             'block' => Block::query()
                 ->whereKey($id)
                 ->where('is_visible', true)
-                ->whereHas('lesson', fn (Builder $lesson) => $lesson->forLearner($user))
+                ->whereHas('lesson', fn (Builder $lesson) => $lesson->reachableBy($user))
                 ->exists(),
             'test_attempt' => TestAttempt::query()
                 ->whereKey($id)

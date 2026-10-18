@@ -3,6 +3,9 @@
 namespace App\Http\Requests\Admin\Lessons;
 
 use App\Models\Block;
+use App\Models\Lesson;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +38,39 @@ class UpdateBlockRequest extends FormRequest
             'activity_ids.*' => ['integer', Rule::exists('activities', 'id')],
             'scenario_ids' => ['sometimes', 'array', 'max:40'],
             'scenario_ids.*' => ['integer', 'distinct', Rule::exists('ai_scenarios', 'id')],
+            // A department lesson step may point at one English Essentials
+            // lesson in the same hotel scope (client request 2026-10-18).
+            'help_lesson_id' => ['sometimes', 'nullable', 'integer', function (string $attribute, mixed $value, Closure $fail): void {
+                if (! $this->helpLessonAllowed((int) $value)) {
+                    $fail(__('Choose an English Essentials lesson.'));
+                }
+            }],
+            'help_prompt' => ['sometimes', 'nullable', 'string', 'max:160'],
         ];
+    }
+
+    private function helpLessonAllowed(int $lessonId): bool
+    {
+        $block = $this->route('block');
+
+        if (! $block instanceof Block) {
+            return false;
+        }
+
+        $from = $block->lesson()->with('course')->first();
+
+        // No help link inside English Essentials itself.
+        if ($from === null || $from->isEssentials()) {
+            return false;
+        }
+
+        return Lesson::query()
+            ->whereKey($lessonId)
+            ->notArchived()
+            ->whereHas('course', function (Builder $course) use ($from): void {
+                $course->essentials()->sharedOrFor($from->hotel_id);
+            })
+            ->exists();
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Lessons\StoreUnitRequest;
 use App\Http\Requests\Admin\Lessons\UpdateUnitRequest;
 use App\Models\Unit;
+use App\Services\Content\ContentTree;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -25,7 +26,7 @@ class UnitController extends Controller
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $unit->id,
         ]);
@@ -55,7 +56,7 @@ class UnitController extends Controller
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $copy->id,
         ]);

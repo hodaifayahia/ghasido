@@ -273,6 +273,28 @@
     /* Half a cycle ahead, so two blobs in one section never move in step. */
     --animate-landing-drift-offset: landing-drift 16s ease-in-out -8s infinite
         alternate;
+    /* Hero moving background (user request 2026-10-18): a turning aurora
+       of brand, aqua and AI tints, glows that orbit, a panning dot grid
+       and sparks that rise and fade. Colours are the tokens above only. */
+    --animate-landing-aurora: landing-aurora 28s linear infinite;
+    --animate-landing-orbit: landing-orbit 20s ease-in-out infinite;
+    --animate-landing-orbit-reverse: landing-orbit 24s ease-in-out -10s infinite
+        reverse;
+    --animate-landing-grid: landing-grid 24s linear infinite;
+    --animate-landing-rise: landing-rise 9s ease-in infinite;
+    --background-image-landing-aurora: conic-gradient(
+        from 0deg,
+        var(--color-brand-100),
+        var(--color-aqua-tint),
+        var(--color-ai-tint),
+        var(--color-brand-200),
+        var(--color-app),
+        var(--color-brand-100)
+    );
+    --background-image-landing-dots: radial-gradient(
+        var(--color-brand-200) 1.2px,
+        transparent 1.3px
+    );
 
     @keyframes landing-float {
         0%,
@@ -281,6 +303,50 @@
         }
         50% {
             transform: translate3d(0, -8px, 0);
+        }
+    }
+    @keyframes landing-aurora {
+        from {
+            transform: rotate(0deg) scale(1);
+        }
+        50% {
+            transform: rotate(180deg) scale(1.08);
+        }
+        to {
+            transform: rotate(360deg) scale(1);
+        }
+    }
+    @keyframes landing-orbit {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+        33% {
+            transform: translate3d(-70px, 50px, 0) scale(1.15);
+        }
+        66% {
+            transform: translate3d(40px, 90px, 0) scale(0.92);
+        }
+    }
+    @keyframes landing-grid {
+        from {
+            background-position: 0 0;
+        }
+        to {
+            background-position: 240px 120px;
+        }
+    }
+    @keyframes landing-rise {
+        0% {
+            opacity: 0;
+            transform: translate3d(0, 0, 0) scale(0.6);
+        }
+        15% {
+            opacity: 0.7;
+        }
+        100% {
+            opacity: 0;
+            transform: translate3d(0, -70vh, 0) scale(1.2);
         }
     }
     @keyframes landing-drift {

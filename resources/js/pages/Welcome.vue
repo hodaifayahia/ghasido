@@ -150,49 +150,63 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 class="bg-app relative isolate overflow-hidden"
                 aria-labelledby="hero-title"
             >
+                <!-- Moving background (user request 2026-10-18): a slowly
+                     turning aurora, three drifting glows, a panning dot grid
+                     and rising sparks. Decorative only; reduced motion
+                     stops every layer. -->
                 <div
-                    class="bg-brand-100/80 animate-landing-drift pointer-events-none absolute -end-32 -top-40 size-[34rem] rounded-full blur-3xl motion-reduce:animate-none"
+                    class="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none"
                     aria-hidden="true"
-                />
-                <div
-                    class="bg-aqua-tint/70 animate-landing-drift-offset pointer-events-none absolute -start-40 -bottom-56 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
-                    aria-hidden="true"
-                />
+                >
+                    <div
+                        class="bg-landing-aurora animate-landing-aurora absolute top-1/2 left-1/2 size-[150vmax] -translate-x-1/2 -translate-y-1/2 opacity-60 blur-3xl motion-reduce:animate-none"
+                    />
+                    <div
+                        class="bg-brand-200/70 animate-landing-orbit absolute -end-24 -top-40 size-[34rem] rounded-full blur-3xl motion-reduce:animate-none"
+                    />
+                    <div
+                        class="bg-aqua-tint animate-landing-orbit-reverse absolute -start-40 top-1/3 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
+                    />
+                    <div
+                        class="bg-ai-tint animate-landing-drift-offset absolute -bottom-48 left-1/2 size-[28rem] -translate-x-1/2 rounded-full blur-3xl motion-reduce:animate-none"
+                    />
+                    <div
+                        class="bg-landing-dots animate-landing-grid absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_72%)] bg-size-[24px_24px] opacity-70 motion-reduce:animate-none"
+                    />
+                    <span
+                        v-for="spark in 10"
+                        :key="spark"
+                        class="bg-brand-400 animate-landing-rise absolute bottom-0 size-1.5 rounded-full opacity-0 motion-reduce:hidden"
+                        :style="{
+                            left: `${(spark * 37) % 100}%`,
+                            animationDelay: `${(spark * 1.3) % 9}s`,
+                            animationDuration: `${8 + (spark % 4) * 1.5}s`,
+                        }"
+                    />
+                </div>
 
                 <div
-                    class="relative mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-10 lg:py-22"
+                    class="relative mx-auto flex max-w-7xl flex-col items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:gap-14 lg:px-10 lg:py-22"
                 >
-                    <div class="relative z-10 max-w-xl min-w-0">
-                        <span
-                            v-reveal
-                            class="border-brand-200 bg-surface text-brand-700 shadow-card rounded-pill inline-flex items-center gap-2 border px-3.5 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
-                        >
-                            <span class="relative flex size-2">
-                                <span
-                                    class="bg-success absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:animate-none"
-                                />
-                                <span
-                                    class="bg-success relative inline-flex size-2 rounded-full"
-                                />
-                            </span>
-                            {{ content.hero.eyebrow }}
-                        </span>
+                    <div
+                        class="relative z-10 flex max-w-3xl min-w-0 flex-col items-center text-center"
+                    >
                         <h1
                             id="hero-title"
                             v-reveal="80"
-                            class="font-heading text-ink-night mt-5 text-[clamp(2.45rem,5vw,4.35rem)] leading-[1.02] font-bold tracking-[-0.05em]"
+                            class="font-heading text-ink-night text-[clamp(2.45rem,5vw,4.35rem)] leading-[1.04] font-bold tracking-[-0.05em] text-balance"
                         >
                             {{ content.hero.title }}
                         </h1>
                         <p
                             v-reveal="160"
-                            class="text-ink-slate mt-6 max-w-lg text-[16px] leading-7 sm:text-[18px] sm:leading-8"
+                            class="text-ink-slate mt-6 max-w-2xl text-[16px] leading-7 text-balance sm:text-[18px] sm:leading-8"
                         >
                             {{ content.hero.description }}
                         </p>
                         <div
                             v-reveal="240"
-                            class="mt-8 flex flex-wrap items-center gap-3"
+                            class="mt-8 flex flex-wrap items-center justify-center gap-3"
                         >
                             <Button
                                 as-child
@@ -217,14 +231,14 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             <InstallAppButton variant="outline" />
                         </div>
                         <div
-                            class="border-line mt-8 grid gap-3 border-t pt-5 sm:grid-cols-3"
+                            class="border-line mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 border-t pt-5"
                         >
                             <div
                                 v-for="(point, index) in content.hero
                                     .proof_points"
                                 :key="point"
                                 v-reveal="320 + index * 90"
-                                class="text-ink-indigo flex items-start gap-2 text-[11px] leading-5 font-semibold sm:text-[12px]"
+                                class="text-ink-indigo flex items-center gap-2 text-[11px] leading-5 font-semibold sm:text-[12px]"
                             >
                                 <CircleCheck
                                     :class="
@@ -232,7 +246,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                             ? 'text-ai'
                                             : 'text-brand-600'
                                     "
-                                    class="mt-0.5 size-4 shrink-0"
+                                    class="size-4 shrink-0"
                                 />
                                 {{ point }}
                             </div>
@@ -240,8 +254,8 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                     </div>
 
                     <figure
-                        v-reveal:end="200"
-                        class="relative mx-auto w-full max-w-[720px] min-w-0 pb-10 sm:pb-14 lg:ms-auto"
+                        v-reveal:rise="200"
+                        class="relative mx-auto w-full max-w-[860px] min-w-0 pb-10 sm:pb-14"
                     >
                         <div
                             class="bg-brand-200/60 absolute -inset-3 rotate-1 rounded-xl"

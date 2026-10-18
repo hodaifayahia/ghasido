@@ -91,10 +91,21 @@ class BlockService
                 $scenarioIds = array_values(array_map('intval', $block->setting('scenario_ids')));
             }
 
+            // English Essentials help link (client request 2026-10-18): the
+            // request has already checked the target is an Essentials lesson.
+            if (array_key_exists('help_lesson_id', $data)) {
+                $block->help_lesson_id = is_numeric($data['help_lesson_id']) ? (int) $data['help_lesson_id'] : null;
+            }
+
+            if (array_key_exists('help_prompt', $data)) {
+                $block->help_prompt = is_string($data['help_prompt']) && trim($data['help_prompt']) !== '' ? trim($data['help_prompt']) : null;
+            }
+
             AuditLog::record($block, 'block.updated', array_filter([
                 'lexicon_item_ids' => $data['lexicon_item_ids'] ?? null,
                 'activity_ids' => $data['activity_ids'] ?? null,
                 'scenario_ids' => $scenarioIds,
+                'help_lesson_id' => $block->isDirty('help_lesson_id') ? $block->help_lesson_id : null,
             ]));
             $block->save();
 
@@ -136,7 +147,9 @@ class BlockService
         $allowed = AiScenario::query()
             ->notArchived()
             ->whereIn('id', $ids)
-            ->where('department_id', $course->department_id)
+            // An English Essentials topic has no department: any department's
+            // scenario in the hotel scope fits (client request 2026-10-18).
+            ->when($course->department_id !== null, fn ($query) => $query->where('department_id', $course->department_id))
             ->where(function ($query) use ($lesson): void {
                 $query->whereNull('hotel_id');
 

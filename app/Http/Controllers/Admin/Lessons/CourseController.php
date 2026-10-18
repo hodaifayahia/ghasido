@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Lessons\StoreCourseRequest;
 use App\Http\Requests\Admin\Lessons\UpdateCourseRequest;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\Content\ContentTree;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,13 +24,13 @@ class CourseController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $course = $lessons->createCourse($request->courseData(), $user);
+        $course = $lessons->createCourse($request->courseData(), $user, $request->audience());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was created.', ['title' => $course->title])]);
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
         ]);
     }
@@ -37,6 +38,12 @@ class CourseController extends Controller
     public function update(UpdateCourseRequest $request, Course $course, LessonService $lessons): RedirectResponse
     {
         $lessons->updateCourse($course, $request->courseData());
+
+        $audience = $request->audience();
+
+        if ($audience !== null) {
+            $lessons->setAudience($course, $audience);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was updated.', ['title' => $course->title])]);
 
@@ -58,7 +65,7 @@ class CourseController extends Controller
 
         return to_route('lessons-content', [
             'hotel' => $copy->hotel_id === null ? 'shared' : $copy->hotel_id,
-            'department' => $copy->department_id,
+            'department' => ContentTree::departmentKey($copy),
             'course' => $copy->id,
         ]);
     }
@@ -75,7 +82,7 @@ class CourseController extends Controller
         $title = $course->title;
         $target = [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
         ];
         $deleted = $lessons->deleteCourse($course);
 

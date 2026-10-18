@@ -70,6 +70,16 @@ cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php
 
 Then sign in at `/owner/login`, set a price for every model the console lists as unpriced, and recharge. Until an account has a recharge it has no limit, so the deploy itself never switches AI off. Keys saved on the console override `.env` and are encrypted with `APP_KEY`: keep `APP_KEY` stable, or the stored keys stop decrypting and the app falls back to `.env`.
 
+### English Essentials (2026-10-18), once after the first deploy that includes it
+
+`migrate --force` (run by `remote-install.sh`) adds the columns. Then create the five starter topics as drafts (idempotent, safe to run again):
+
+```bash
+cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php artisan db:seed --class=EnglishEssentialsSeeder --force
+```
+
+Learners see nothing until the Super Admin fills and publishes them in **Lessons & Content → Department: English Essentials (all departments)**.
+
 ## First install only
 
 Run `deploy-export.php` inside the Sail container (`docker exec -u sail -w /var/www/html ghasido-laravel.test-1 php docs/deploy/scripts/deploy-export.php`) to produce `storage/logs/deploy/database.sqlite` and `media-list.txt`, then `INITIAL=1 assemble.sh` and `INITIAL=1 upload.sh`. **Doing this again overwrites the live database with local data.**

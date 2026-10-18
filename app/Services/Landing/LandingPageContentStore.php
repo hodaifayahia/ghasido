@@ -30,7 +30,6 @@ final class LandingPageContentStore
                 'contact' => 'Contact us',
             ],
             'hero' => [
-                'eyebrow' => 'English for every hotel team',
                 'title' => 'Hotel English your team can use on their next shift.',
                 'description' => 'GHASIDO brings lessons, assessments, AI guest role-play and measurable progress into one clear training path for every hotel department.',
                 'primary_cta' => 'See how it works',

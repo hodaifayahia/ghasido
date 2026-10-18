@@ -38,22 +38,65 @@ class LessonService
     // ------------------------------------------------------------- courses
 
     /**
-     * @param  array{title: string, department_id: int, hotel_id: int|null, description: string|null, tone: string}  $data
+     * An English Essentials topic (`track` = essentials) has no department;
+     * `$audience` lists the departments that see it, empty = every one
+     * (client request 2026-10-18).
+     *
+     * @param  array{title: string, department_id: int|null, hotel_id: int|null, description: string|null, tone: string, track?: string, icon?: string|null, level?: string|null}  $data
+     * @param  list<int>  $audience
      */
-    public function createCourse(array $data, User $actor): Course
+    public function createCourse(array $data, User $actor, array $audience = []): Course
     {
-        return DB::transaction(function () use ($data, $actor): Course {
+        return DB::transaction(function () use ($data, $actor, $audience): Course {
             $course = new Course;
             $course->fill($data);
             $course->slug = $this->uniqueSlug(Course::class, $data['title'], 'course');
-            $course->position = (int) Course::query()->where('department_id', $data['department_id'])->max('position') + 1;
+            $course->position = $this->nextCoursePosition($course);
             $course->status = ContentStatus::Draft;
             $course->created_by = $actor->id;
             $course->save();
 
-            AuditLog::record($course, 'course.created', ['created' => $course->only(['title', 'department_id', 'hotel_id', 'tone'])]);
+            if ($course->isEssentials()) {
+                $course->audienceDepartments()->sync($audience);
+            }
+
+            AuditLog::record($course, 'course.created', ['created' => $course->only(['title', 'department_id', 'hotel_id', 'tone', 'track']) + ['audience' => $audience]]);
 
             return $course;
+        });
+    }
+
+    /**
+     * The end of the course's department list, or of English Essentials.
+     */
+    private function nextCoursePosition(Course $course): int
+    {
+        $query = Course::query();
+
+        if ($course->isEssentials()) {
+            $query->essentials();
+        } else {
+            $query->where('department_id', $course->department_id);
+        }
+
+        return (int) $query->max('position') + 1;
+    }
+
+    /**
+     * Who sees an English Essentials topic: these departments, or every
+     * department when the list is empty (client request 2026-10-18).
+     *
+     * @param  list<int>  $departmentIds
+     */
+    public function setAudience(Course $course, array $departmentIds): void
+    {
+        if (! $course->isEssentials()) {
+            return;
+        }
+
+        DB::transaction(function () use ($course, $departmentIds): void {
+            $course->audienceDepartments()->sync($departmentIds);
+            AuditLog::record($course, 'course.audience_updated', ['audience' => $departmentIds]);
         });
     }
 
@@ -63,6 +106,11 @@ class LessonService
     public function updateCourse(Course $course, array $data): Course
     {
         return DB::transaction(function () use ($course, $data): Course {
+            if (! $course->isEssentials()) {
+                // The icon is an Essentials topic's only.
+                unset($data['icon']);
+            }
+
             $course->fill($data);
 
             if (($data['status'] ?? null) === ContentStatus::Published->value && $course->published_at === null) {
@@ -144,7 +192,7 @@ class LessonService
             $copy->slug = $this->uniqueSlug(Course::class, $copy->title, 'course');
             $copy->status = ContentStatus::Draft;
             $copy->published_at = null;
-            $copy->position = (int) Course::query()->where('department_id', $course->department_id)->max('position') + 1;
+            $copy->position = $this->nextCoursePosition($course);
             $copy->created_by = $actor->id;
 
             if ($actor->hotel_id !== null) {
@@ -152,6 +200,10 @@ class LessonService
             }
 
             $copy->save();
+
+            if ($course->isEssentials()) {
+                $copy->audienceDepartments()->sync($course->audienceDepartments()->pluck('departments.id')->all());
+            }
 
             foreach ($course->units()->notArchived()->get() as $unit) {
                 $this->copyUnit($unit, $copy, $unit->title);

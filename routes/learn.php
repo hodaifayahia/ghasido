@@ -3,6 +3,7 @@
 use App\Enums\Role;
 use App\Http\Controllers\Learn\ActivityController;
 use App\Http\Controllers\Learn\CertificateController;
+use App\Http\Controllers\Learn\EssentialsController;
 use App\Http\Controllers\Learn\FirstLoginController;
 use App\Http\Controllers\Learn\HelperLanguageController;
 use App\Http\Controllers\Learn\HomeController;
@@ -77,6 +78,16 @@ Route::middleware([
             Route::get('post-test', [HomeController::class, 'postTest'])->name('post-test');
 
             Route::get('lessons', [LessonsController::class, 'index'])->name('lessons');
+
+            // English Essentials (client request 2026-10-18): beginner topics
+            // beside the department training, reached from My Lessons or
+            // from a lesson step's help link, with the way back. Under
+            // lessons/ so the Lessons tab stays the active one; declared
+            // before lessons/{lesson}.
+            Route::get('lessons/essentials', [EssentialsController::class, 'index'])->name('essentials.index');
+            Route::get('lessons/essentials/back', [EssentialsController::class, 'back'])->name('essentials.return');
+            Route::get('lessons/essentials/{course}', [EssentialsController::class, 'show'])->name('essentials.show');
+
             Route::get('lessons/{lesson}', [LessonsController::class, 'show'])->name('lessons.show');
 
             // {block} is scoped to {lesson} and {placement} to {block}, so a
@@ -84,6 +95,7 @@ Route::middleware([
             Route::scopeBindings()->group(function () {
                 Route::get('lessons/{lesson}/steps/{block}', [LessonStepController::class, 'show'])->name('lessons.step');
                 Route::post('lessons/{lesson}/steps/{block}/complete', [LessonStepController::class, 'complete'])->name('lessons.step.complete');
+                Route::get('lessons/{lesson}/steps/{block}/essentials', [EssentialsController::class, 'help'])->name('lessons.step.essentials');
                 Route::get('lessons/{lesson}/steps/{block}/activities/{placement}', [ActivityController::class, 'show'])->name('lessons.activity');
                 Route::post('lessons/{lesson}/steps/{block}/activities/{placement}/answers', [ActivityController::class, 'answer'])->name('lessons.activity.answer');
 

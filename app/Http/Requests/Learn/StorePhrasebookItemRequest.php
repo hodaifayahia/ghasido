@@ -50,7 +50,7 @@ class StorePhrasebookItemRequest extends FormRequest
                 'integer',
                 function (string $attribute, mixed $value, Closure $fail) use ($user): void {
                     $visible = $user instanceof User && is_numeric($value)
-                        && Lesson::query()->whereKey((int) $value)->forLearner($user)->exists();
+                        && Lesson::query()->whereKey((int) $value)->reachableBy($user)->exists();
 
                     if (! $visible) {
                         $fail(__('That lesson is not available.'));

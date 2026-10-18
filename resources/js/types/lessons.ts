@@ -5,6 +5,24 @@ export type LessonFilterOption = {
     label: string;
 };
 
+/**
+ * English Essentials in the builder (client request 2026-10-18): the open
+ * topic's audience and icon, and the Essentials lessons a department step
+ * may link to.
+ */
+export type LessonsEssentialsPanel = {
+    topic: {
+        id: number;
+        /** Department ids; empty = every department. */
+        audience: number[];
+        icon: string;
+        updateUrl: string;
+    } | null;
+    departments: LessonFilterOption[];
+    icons: LessonFilterOption[];
+    lessons: (LessonFilterOption & { published: boolean })[];
+};
+
 export type LessonsFilters = {
     hotel: string;
     department: string;
@@ -201,6 +219,8 @@ export type LessonEditor = {
     /** The course's level (null = every level) and where to change it. */
     courseLevel: string | null;
     courseLevelUrl: string | null;
+    /** The lesson belongs to an English Essentials topic (2026-10-18). */
+    essentials?: boolean;
     previewUrl: string | null;
     updatedAt: string | null;
 };
@@ -413,6 +433,9 @@ export type LessonBlockRow = {
     lexiconItems: LexiconItemRow[];
     activities: LessonActivityRow[];
     scenarioIds: number[];
+    /** English Essentials lesson this step links to (2026-10-18). */
+    helpLessonId?: number | null;
+    helpPrompt?: string | null;
 };
 
 export type LessonScenarioOption = {

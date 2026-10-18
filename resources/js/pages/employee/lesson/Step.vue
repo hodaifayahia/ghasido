@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import EssentialsHelpCard from '@/components/learning/essentials/EssentialsHelpCard.vue';
+import EssentialsReturnBar from '@/components/learning/essentials/EssentialsReturnBar.vue';
 import LessonStepHeader from '@/components/learning/LessonStepHeader.vue';
 import StepFooterNav from '@/components/learning/StepFooterNav.vue';
 import CompleteStep from '@/components/learning/steps/CompleteStep.vue';
@@ -15,7 +17,13 @@ import VocabularyStep from '@/components/learning/steps/VocabularyStep.vue';
 import { useI18n } from '@/composables/useI18n';
 import { home } from '@/routes/learn';
 import { complete } from '@/routes/learn/lessons/step';
-import type { LessonStepNav, LessonSummary, StepBlock } from '@/types';
+import type {
+    EssentialsHelpLink,
+    EssentialsReturn,
+    LessonStepNav,
+    LessonSummary,
+    StepBlock,
+} from '@/types';
 
 /*
  * One lesson step (LESSON-01..04, PROG-03; spec 0003 Part E, H.3): the
@@ -33,6 +41,12 @@ type Props = {
     completeUrl: string;
     /** Admin preview uses read-only preview URLs, never learner endpoints. */
     preview?: boolean;
+    /** English Essentials (client request 2026-10-18): this step's help link. */
+    help?: EssentialsHelpLink | null;
+    /** Inside an Essentials lesson: the lesson step the learner came from. */
+    returnTo?: EssentialsReturn | null;
+    /** Where "back" leaves the lesson: Home, or the Essentials topic. */
+    exitUrl?: string;
 };
 
 const props = defineProps<Props>();
@@ -47,6 +61,20 @@ const completeForm = computed(() =>
     complete.form({ lesson: props.lesson.id, block: props.block.id }),
 );
 
+// Leaving the lesson: back to the lesson step an Essentials lesson was
+// opened from, else to its topic, else Home.
+const exit = computed((): { label: string; href: string } => {
+    if (props.returnTo) {
+        return { label: t('Back to lesson'), href: props.returnTo.url };
+    }
+
+    if (props.lesson.essentials && props.exitUrl) {
+        return { label: t('Back to English Essentials'), href: props.exitUrl };
+    }
+
+    return { label: t('Back to Home'), href: home().url };
+});
+
 const prev = computed(() => {
     if (isPreview.value) {
         return props.prevUrl === null
@@ -55,7 +83,7 @@ const prev = computed(() => {
     }
 
     if (props.block.type === 'situation' || props.prevUrl === null) {
-        return { label: t('Back to Home'), href: home().url };
+        return exit.value;
     }
 
     return { label: t('Previous'), href: props.prevUrl };
@@ -78,7 +106,7 @@ const next = computed(() => {
         case 'situation':
             return { label: t('Start Lesson'), form: completeForm.value };
         case 'complete':
-            return { label: t('Back to Home'), form: completeForm.value };
+            return { label: exit.value.label, form: completeForm.value };
         default:
             return { label: t('Next'), form: completeForm.value };
     }
@@ -87,6 +115,12 @@ const next = computed(() => {
 
 <template>
     <Head :title="`${lesson.title} – ${block.heading}`" />
+
+    <EssentialsReturnBar
+        v-if="returnTo && !isPreview"
+        :return-to="returnTo"
+        class="mb-3"
+    />
 
     <LessonStepHeader
         v-if="
@@ -147,6 +181,8 @@ const next = computed(() => {
         :preview="isPreview"
     />
     <GenericStep v-else :lesson="lesson" :block="block" />
+
+    <EssentialsHelpCard v-if="help && !isPreview" :help="help" class="mt-4" />
 
     <StepFooterNav v-if="block.type !== 'complete'" :prev="prev" :next="next" />
 </template>

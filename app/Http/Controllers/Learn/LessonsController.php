@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Learn;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Lesson;
-use App\Models\Unit;
 use App\Models\User;
+use App\Services\Learning\CourseOutline;
+use App\Services\Learning\EssentialsCatalogue;
+use App\Services\Learning\EssentialsDetour;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\LessonNavigator;
 use Illuminate\Http\RedirectResponse;
@@ -22,12 +24,18 @@ use Inertia\Response;
  * Every lesson card carries `locked` until the Pre-test is submitted; the
  * lock is repeated server side by LessonPolicy on `show`, so a locked card
  * with a reachable route cannot exist (JOURNEY-01).
+ *
+ * Below the department training sits the English Essentials card (client
+ * request 2026-10-18): its own topics and progress, outside the journey.
  */
 class LessonsController extends Controller
 {
     public function __construct(
         private readonly JourneyService $journey,
         private readonly LessonNavigator $navigator,
+        private readonly CourseOutline $outline,
+        private readonly EssentialsCatalogue $essentials,
+        private readonly EssentialsDetour $detour,
     ) {}
 
     public function index(Request $request): Response
@@ -42,32 +50,14 @@ class LessonsController extends Controller
             ->forLearner($user)
             ->orderBy('position')
             ->orderBy('id')
-            ->with(['units' => fn ($units) => $units->with(['lessons' => fn ($lessons) => $lessons->published()->withCount('visibleBlocks')])])
+            ->with(CourseOutline::with())
             ->get();
 
+        $essentials = $this->essentials->summary($user, $completed);
+
         return Inertia::render('employee/Lessons', [
-            'courses' => $courses->map(fn (Course $course): array => [
-                'id' => $course->id,
-                'title' => $course->title,
-                'description' => $course->description,
-                'tone' => $course->tone,
-                'units' => $course->units
-                    ->filter(fn (Unit $unit): bool => $unit->isPublished())
-                    ->map(fn (Unit $unit): array => [
-                        'id' => $unit->id,
-                        'title' => $unit->title,
-                        'lessons' => $unit->lessons->map(fn (Lesson $lesson): array => [
-                            'id' => $lesson->id,
-                            'title' => $lesson->title,
-                            'position' => $lesson->position,
-                            'estimatedMinutes' => $lesson->estimated_minutes,
-                            'stepCount' => (int) ($lesson->visible_blocks_count ?? 0),
-                            'completed' => in_array($lesson->id, $completed, true),
-                            'locked' => $locked,
-                            'url' => route('learn.lessons.show', ['lesson' => $lesson]),
-                        ])->values()->all(),
-                    ])->values()->all(),
-            ])->values()->all(),
+            'courses' => $courses->map(fn (Course $course): array => $this->outline->present($course, $completed, $locked))->values()->all(),
+            'essentials' => $essentials === null ? null : $essentials + ['locked' => $locked],
             'journey' => $this->journey->summary($user),
         ]);
     }
@@ -81,6 +71,12 @@ class LessonsController extends Controller
         $user = $request->user();
 
         Gate::authorize('view', $lesson);
+
+        // Opened from My Lessons, not from a lesson step's help link: there
+        // is no lesson to go back to.
+        if ($lesson->isEssentials()) {
+            $this->detour->forget();
+        }
 
         $block = $this->navigator->entryBlock($user, $lesson);
 

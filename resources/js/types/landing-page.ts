@@ -33,7 +33,8 @@ export type LandingPageContent = {
         steps: LandingPageItem[];
     };
     hero: {
-        eyebrow: string;
+        /** No longer shown (user request 2026-10-18); old copies keep it. */
+        eyebrow?: string;
         title: string;
         description: string;
         primary_cta: string;

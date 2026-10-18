@@ -55,6 +55,20 @@ class CourseFactory extends Factory
         return $this->state(fn (array $attributes) => ['department_id' => $departmentId]);
     }
 
+    /**
+     * An English Essentials topic (client request 2026-10-18): no
+     * department of its own; every department sees it unless an audience
+     * is attached.
+     */
+    public function essentials(): static
+    {
+        return $this->state(fn (): array => [
+            'track' => 'essentials',
+            'department_id' => null,
+            'level' => null,
+        ]);
+    }
+
     public function tone(string $tone): static
     {
         return $this->state(fn (array $attributes) => ['tone' => $tone]);

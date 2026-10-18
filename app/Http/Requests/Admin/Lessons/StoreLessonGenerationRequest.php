@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Lessons;
 
 use App\Enums\ContentGenerationType;
+use App\Enums\CourseTrack;
 use App\Enums\Role;
 use App\Models\Course;
 use App\Services\Content\LessonGenerator;
@@ -50,7 +51,10 @@ class StoreLessonGenerationRequest extends FormRequest
     {
         return [
             'prompt' => ['required', 'string', 'min:5', 'max:4000'],
-            'department_id' => ['required', 'integer', Rule::exists('departments', 'id')],
+            // "essentials" = an English Essentials topic (2026-10-18).
+            'department_id' => $this->forEssentials()
+                ? ['required', 'string']
+                : ['required', 'integer', Rule::exists('departments', 'id')],
             'hotel_id' => ['nullable', 'integer', Rule::exists('hotels', 'id')],
             'level' => ['required', 'string', Rule::in(LessonGenerator::LEVELS)],
             'mode' => ['required', 'string', Rule::in([ContentGenerationType::Lesson->value, ContentGenerationType::Course->value])],
@@ -79,15 +83,28 @@ class StoreLessonGenerationRequest extends FormRequest
 
                 $course = Course::query()->find((int) $courseId);
 
-                if ($course !== null && $course->department_id !== (int) $this->input('department_id')) {
+                if ($course === null) {
+                    return;
+                }
+
+                $matches = $this->forEssentials()
+                    ? $course->isEssentials()
+                    : ! $course->isEssentials() && $course->department_id === (int) $this->input('department_id');
+
+                if (! $matches) {
                     $validator->errors()->add('course_id', __('Choose a course of the selected department.'));
                 }
             },
         ];
     }
 
+    public function forEssentials(): bool
+    {
+        return $this->input('department_id') === CourseTrack::Essentials->value;
+    }
+
     /**
-     * @return array{prompt: string, department_id: int, hotel_id: int|null, level: string, mode: string, lesson_count: int, course_id: int|null, images: bool, audio: bool}
+     * @return array{prompt: string, department_id: int|null, hotel_id: int|null, level: string, mode: string, lesson_count: int, course_id: int|null, images: bool, audio: bool}
      */
     public function generationData(): array
     {
@@ -96,7 +113,7 @@ class StoreLessonGenerationRequest extends FormRequest
 
         return [
             'prompt' => (string) $this->validated('prompt'),
-            'department_id' => (int) $this->validated('department_id'),
+            'department_id' => $this->forEssentials() ? null : (int) $this->validated('department_id'),
             'hotel_id' => $hotel === null || $hotel === '' ? null : (int) $hotel,
             'level' => (string) $this->validated('level'),
             'mode' => (string) $this->validated('mode'),

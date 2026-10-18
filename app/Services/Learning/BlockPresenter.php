@@ -296,12 +296,17 @@ class BlockPresenter
      * What the Lesson Completed screen reports ("2 of 8 lessons") plus the
      * per-block summary rows (LESSON-05; photo_19).
      *
-     * @return array{lessonsCompleted: int, lessonsTotal: int, nextLesson: array{id: int, title: string, url: string}|null, rows: list<array{type: string, title: string, subtitle: string, done: bool}>, homeUrl: string, lessonsUrl: string}
+     * @return array{lessonsCompleted: int, lessonsTotal: int, nextLesson: array{id: int, title: string, url: string}|null, rows: list<array{type: string, title: string, subtitle: string, done: bool}>, homeUrl: string, lessonsUrl: string, returnTo: array{url: string, title: string}|null}
      */
     public function summary(Block $block, User $user): array
     {
         /** @var Lesson $lesson */
         $lesson = $block->lesson()->firstOrFail();
+
+        if ($lesson->isEssentials()) {
+            return $this->essentialsSummary($lesson, $user);
+        }
+
         $next = $this->navigator->nextLessonAfter($user, $lesson);
 
         return [
@@ -315,6 +320,39 @@ class BlockPresenter
             'rows' => $this->summaryRows($lesson, $user),
             'homeUrl' => route('learn.home'),
             'lessonsUrl' => route('learn.lessons'),
+            'returnTo' => null,
+        ];
+    }
+
+    /**
+     * The Lesson Completed screen of an English Essentials lesson (client
+     * request 2026-10-18): progress within its topic only, never the
+     * training totals, and "next" goes back to the lesson step the learner
+     * came from when there is one.
+     *
+     * @return array{lessonsCompleted: int, lessonsTotal: int, nextLesson: array{id: int, title: string, url: string}|null, rows: list<array{type: string, title: string, subtitle: string, done: bool}>, homeUrl: string, lessonsUrl: string, returnTo: array{url: string, title: string}|null}
+     */
+    private function essentialsSummary(Lesson $lesson, User $user): array
+    {
+        $course = $lesson->course()->firstOrFail();
+        /** @var list<int> $ids */
+        $ids = $course->orderedLessons()->pluck('lessons.id')->map(fn ($id): int => (int) $id)->all();
+        $completed = $this->navigator->completedLessonIds($user);
+        $next = $lesson->nextIn($course);
+        $topicUrl = route('learn.essentials.show', ['course' => $course]);
+
+        return [
+            'lessonsCompleted' => count(array_intersect($ids, $completed)),
+            'lessonsTotal' => count($ids),
+            'nextLesson' => $next === null ? null : [
+                'id' => $next->id,
+                'title' => $next->title,
+                'url' => route('learn.lessons.show', ['lesson' => $next]),
+            ],
+            'rows' => $this->summaryRows($lesson, $user),
+            'homeUrl' => $topicUrl,
+            'lessonsUrl' => route('learn.essentials.index'),
+            'returnTo' => app(EssentialsDetour::class)->returnLink($user, $lesson),
         ];
     }
 
@@ -396,7 +434,10 @@ class BlockPresenter
             'positionInCourse' => $lesson->stepNumberIn($course),
             'courseLessonCount' => $lesson->totalStepsIn($course),
             'course' => ['id' => $course->id, 'title' => $course->title, 'tone' => $course->tone],
-            'department' => ['name' => $department->name ?? ''],
+            // An English Essentials topic has no department of its own
+            // (client request 2026-10-18); the step header names the track.
+            'department' => ['name' => $course->isEssentials() ? __('English Essentials') : ($department->name ?? '')],
+            'essentials' => $course->isEssentials(),
         ];
     }
 

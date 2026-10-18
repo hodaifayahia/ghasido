@@ -93,6 +93,9 @@ class BlockShaper
             'lexiconItems' => $block->lexiconItems->map(fn (LexiconItem $item): array => $this->lexiconRow($item, $audio))->values()->all(),
             'activities' => $block->placements->map(fn (ActivityPlacement $placement): ?array => $placement->activity === null ? null : $this->activityRow($placement->activity, $placement))->filter()->values()->all(),
             'scenarioIds' => $block->scenarioIds(),
+            // English Essentials help link (client request 2026-10-18).
+            'helpLessonId' => $block->help_lesson_id,
+            'helpPrompt' => $block->help_prompt,
         ];
     }
 

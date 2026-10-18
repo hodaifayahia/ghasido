@@ -10,6 +10,7 @@ use App\Enums\AiFeature;
 use App\Enums\BlockType;
 use App\Enums\ContentGenerationType;
 use App\Enums\ContentStatus;
+use App\Enums\CourseTrack;
 use App\Enums\GenerationStatus;
 use App\Enums\LexiconKind;
 use App\Jobs\GenerateContentImage;
@@ -73,7 +74,7 @@ class LessonGenerator
      * Validate the limits, pick or create the target course and unit, write
      * the generation row and queue the first job.
      *
-     * @param  array{prompt: string, department_id: int, hotel_id: int|null, level: string, mode: string, lesson_count: int, course_id: int|null, images: bool, audio: bool}  $data
+     * @param  array{prompt: string, department_id: int|null, hotel_id: int|null, level: string, mode: string, lesson_count: int, course_id: int|null, images: bool, audio: bool}  $data
      *
      * @throws AiLimitReached
      */
@@ -94,6 +95,8 @@ class LessonGenerator
                 'hotel_id' => $data['hotel_id'],
                 'description' => null,
                 'tone' => 'brand',
+                // No department = an English Essentials topic (2026-10-18).
+                'track' => $data['department_id'] === null ? CourseTrack::Essentials->value : CourseTrack::Department->value,
             ], $actor);
 
             $unit = $isCourse || $createdCourse
@@ -782,6 +785,11 @@ class LessonGenerator
      */
     public function departmentName(ContentGeneration $generation): string
     {
+        // An English Essentials topic: beginner basics for every team.
+        if ($generation->department_id === null) {
+            return 'English Essentials, beginner basics for every hotel department';
+        }
+
         return Department::query()->whereKey($generation->department_id)->value('name') ?? '';
     }
 }

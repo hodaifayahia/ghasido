@@ -4,7 +4,8 @@ import { ArrowRight, BookOpen, Check, Lock } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
 import { cn } from '@/lib/utils';
 import { home } from '@/routes/learn';
-import type { CourseOutline, CourseTone } from '@/types';
+import type { CourseOutline, CourseTone, EssentialsIcon } from '@/types';
+import EssentialsIconChip from '@/components/learning/essentials/EssentialsIconChip.vue';
 import MeaningRow from '@/components/learning/meaning/MeaningRow.vue';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
@@ -17,6 +18,8 @@ import MeaningText from '@/components/learning/meaning/MeaningText.vue';
  */
 type Props = {
     course: CourseOutline;
+    /** An English Essentials topic shows its own chip (2026-10-18). */
+    icon?: EssentialsIcon | null;
     class?: HTMLAttributes['class'];
 };
 
@@ -50,7 +53,9 @@ const rowClass =
         :aria-labelledby="`course-${course.id}`"
     >
         <header class="flex items-center gap-3">
+            <EssentialsIconChip v-if="icon" :icon="icon" />
             <span
+                v-else
                 :class="
                     cn(
                         'grid size-11 shrink-0 place-items-center rounded-xl',

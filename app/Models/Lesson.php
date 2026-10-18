@@ -239,14 +239,56 @@ class Lesson extends Model
     }
 
     /**
-     * Is this lesson visible to this learner (the scope, applied to one row)?
+     * Is this lesson open to this learner: their department training or an
+     * English Essentials lesson meant for them (the scope, applied to one row)?
      */
     public function isVisibleTo(User $user): bool
     {
         return static::query()
             ->whereKey($this->id)
-            ->forLearner($user)
+            ->reachableBy($user)
             ->exists();
+    }
+
+    /**
+     * The English Essentials lessons one learner may open (client request
+     * 2026-10-18): published, in a published unit, on a topic meant for them.
+     *
+     * @param  Builder<Lesson>  $query
+     */
+    public function scopeEssentialsFor(Builder $query, User $user): void
+    {
+        $query
+            ->published()
+            ->whereHas('unit', fn (Builder $unit) => $unit->where('status', ContentStatus::Published))
+            ->whereHas('course', fn (Builder $course) => $course->essentialsFor($user));
+    }
+
+    /**
+     * Everything one learner may open: their department training plus the
+     * English Essentials meant for them. Totals, "continue" and the
+     * certificate read forLearner only, so Essentials never count there.
+     *
+     * @param  Builder<Lesson>  $query
+     */
+    public function scopeReachableBy(Builder $query, User $user): void
+    {
+        $query
+            ->published()
+            ->whereHas('unit', fn (Builder $unit) => $unit->where('status', ContentStatus::Published))
+            ->whereHas('course', fn (Builder $course) => $course->where(
+                fn (Builder $either) => $either->forLearner($user)->orWhere(fn (Builder $essentials) => $essentials->essentialsFor($user)),
+            ));
+    }
+
+    /**
+     * Is this lesson part of English Essentials (its course's track)?
+     */
+    public function isEssentials(): bool
+    {
+        $course = $this->relationLoaded('course') ? $this->course : $this->course()->first();
+
+        return $course?->isEssentials() ?? false;
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Lessons\StoreLessonRequest;
 use App\Http\Requests\Admin\Lessons\UpdateLessonRequest;
 use App\Models\Lesson;
+use App\Services\Content\ContentTree;
 use App\Services\Content\LessonService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class LessonController extends Controller
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $unit->id,
             'lesson' => $lesson->id,
@@ -95,7 +96,7 @@ class LessonController extends Controller
 
         return to_route('lessons-content', [
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $copy->unit_id,
             'lesson' => $copy->id,

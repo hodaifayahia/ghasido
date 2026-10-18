@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
 import LevelSelect from '@/components/common/LevelSelect.vue';
+import LessonsEssentialsSettings from '@/components/lessons/LessonsEssentialsSettings.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -303,7 +304,7 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                 </dd>
             </div>
             <div
-                v-if="editor.courseLevelUrl"
+                v-if="editor.courseLevelUrl && !editor.essentials"
                 class="grid gap-1 md:col-span-2"
                 data-test="lesson-course-level"
             >
@@ -327,6 +328,8 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                 }}
             </p>
         </dl>
+
+        <LessonsEssentialsSettings />
 
         <div v-if="manage" class="flex justify-end">
             <Button

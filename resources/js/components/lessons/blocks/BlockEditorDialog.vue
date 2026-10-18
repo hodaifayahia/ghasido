@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import type { FormDataConvertible } from '@inertiajs/core';
 import { computed, ref, watch } from 'vue';
 import type { Component } from 'vue';
+import BlockHelpLinkField from '@/components/lessons/blocks/BlockHelpLinkField.vue';
 import CompleteEditor from '@/components/lessons/blocks/CompleteEditor.vue';
 import DialogueEditor from '@/components/lessons/blocks/DialogueEditor.vue';
 import GenericEditor from '@/components/lessons/blocks/GenericEditor.vue';
@@ -24,7 +25,9 @@ import type {
     BlockTypeKey,
     LessonBlockRow,
     LessonBlockTypeOption,
+    LessonEditor,
     LessonScenarioOption,
+    LessonsEssentialsPanel,
     LessonsImageLibrary,
 } from '@/types';
 
@@ -52,10 +55,23 @@ const scenarioIds = ref<number[]>([...props.block.scenarioIds]);
 const saving = ref(false);
 const errors = ref<Record<string, string>>({});
 
+// English Essentials help link (client request 2026-10-18): offered on the
+// steps of department lessons only, never inside an Essentials lesson.
+const page = usePage<{
+    essentials?: LessonsEssentialsPanel;
+    editor?: LessonEditor;
+}>();
+const helpLessons = computed(() => page.props.essentials?.lessons ?? []);
+const offersHelp = computed(() => page.props.editor?.essentials !== true);
+const helpLessonId = ref<number | null>(props.block.helpLessonId ?? null);
+const helpPrompt = ref<string>(props.block.helpPrompt ?? '');
+
 function resetFrom(block: LessonBlockRow): void {
     title.value = block.title ?? '';
     settings.value = cloneData(block.settings);
     scenarioIds.value = [...block.scenarioIds];
+    helpLessonId.value = block.helpLessonId ?? null;
+    helpPrompt.value = block.helpPrompt ?? '';
     errors.value = {};
 }
 
@@ -129,6 +145,16 @@ function save(): void {
             ...(props.block.type === 'ai_roleplay'
                 ? { scenario_ids: scenarioIds.value }
                 : {}),
+            ...(offersHelp.value
+                ? {
+                      help_lesson_id: helpLessonId.value,
+                      help_prompt:
+                          helpLessonId.value === null ||
+                          helpPrompt.value.trim() === ''
+                              ? null
+                              : helpPrompt.value.trim(),
+                  }
+                : {}),
         },
         {
             preserveState: true,
@@ -176,6 +202,15 @@ function save(): void {
                 :scenarios="scenarios"
                 :library="library"
                 :read-only="readOnly"
+            />
+
+            <BlockHelpLinkField
+                v-if="offersHelp && block.type !== 'complete'"
+                v-model:lesson-id="helpLessonId"
+                v-model:prompt="helpPrompt"
+                :lessons="helpLessons"
+                :read-only="readOnly"
+                :error="errors.help_lesson_id ?? errors.help_prompt"
             />
 
             <p

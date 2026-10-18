@@ -88,7 +88,10 @@ final class LandingPageController extends Controller
             'content.journey.steps.*.title' => ['required', 'string', 'max:120'],
             'content.journey.steps.*.description' => ['required', 'string', 'max:400'],
             'content.hero' => ['required', 'array:eyebrow,title,description,primary_cta,secondary_cta,image_alt,proof_points'],
-            'content.hero.eyebrow' => ['required', 'string', 'max:100'],
+            // The hero has no eyebrow any more (user request 2026-10-18);
+            // copies saved before still carry one, which is accepted and
+            // never shown.
+            'content.hero.eyebrow' => ['sometimes', 'nullable', 'string', 'max:100'],
             'content.hero.title' => ['required', 'string', 'max:180'],
             'content.hero.description' => ['required', 'string', 'max:600'],
             'content.hero.primary_cta' => ['required', 'string', 'max:60'],

@@ -242,11 +242,6 @@ defineOptions({
             >
                 <div class="grid gap-4">
                     <LessonsField
-                        v-model="form.content.hero.eyebrow"
-                        :label="$t('Eyebrow')"
-                        :error="form.errors['content.hero.eyebrow']"
-                    />
-                    <LessonsField
                         v-model="form.content.hero.title"
                         :label="$t('Headline')"
                         type="textarea"

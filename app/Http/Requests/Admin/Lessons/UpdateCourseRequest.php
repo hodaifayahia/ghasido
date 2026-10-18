@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Lessons;
 
 use App\Enums\EnglishLevel;
+use App\Enums\EssentialsIcon;
 use App\Models\Course;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,6 +31,11 @@ class UpdateCourseRequest extends FormRequest
             'tone' => ['sometimes', 'string', Rule::in(StoreCourseRequest::TONES)],
             'status' => ['sometimes', 'string', Rule::in(['draft', 'published'])],
             'level' => ['sometimes', 'nullable', 'string', Rule::enum(EnglishLevel::class)],
+            // English Essentials topics only (client request 2026-10-18):
+            // who sees it (empty = every department) and its list icon.
+            'audience_department_ids' => ['sometimes', 'array', 'max:100'],
+            'audience_department_ids.*' => ['integer', 'distinct', Rule::exists('departments', 'id')],
+            'icon' => ['sometimes', 'nullable', 'string', Rule::enum(EssentialsIcon::class)],
         ];
     }
 
@@ -44,6 +50,25 @@ class UpdateCourseRequest extends FormRequest
             $data['level'] = null;
         }
 
+        unset($data['audience_department_ids']);
+
         return $data;
+    }
+
+    /**
+     * The new audience of an Essentials topic, or null when not sent.
+     *
+     * @return list<int>|null
+     */
+    public function audience(): ?array
+    {
+        if (! $this->exists('audience_department_ids')) {
+            return null;
+        }
+
+        /** @var array<int, int|string> $ids */
+        $ids = $this->validated('audience_department_ids', []);
+
+        return array_values(array_map('intval', $ids));
     }
 }

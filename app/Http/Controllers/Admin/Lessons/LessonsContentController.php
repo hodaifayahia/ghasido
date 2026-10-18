@@ -46,7 +46,7 @@ class LessonsContentController extends Controller
     {
         $query = [
             'hotel' => $course->hotel_id === null ? ContentTree::SHARED : $course->hotel_id,
-            'department' => $course->department_id,
+            'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
         ];
 
@@ -86,7 +86,7 @@ class LessonsContentController extends Controller
         $lesson->loadMissing('course');
 
         $request->query->set('hotel', $lesson->hotel_id === null ? ContentTree::SHARED : (string) $lesson->hotel_id);
-        $request->query->set('department', (string) ($lesson->course->department_id ?? ''));
+        $request->query->set('department', $lesson->course === null ? '' : (string) ContentTree::departmentKey($lesson->course));
         $request->query->set('course', (string) $lesson->course_id);
         $request->query->set('unit', (string) $lesson->unit_id);
         $request->query->set('lesson', (string) $lesson->id);

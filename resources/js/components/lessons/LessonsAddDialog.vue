@@ -46,6 +46,10 @@ const course = ref(props.filters.course);
 const unit = ref(props.filters.unit);
 const withBlocks = ref(true);
 
+// The department list's English Essentials entry creates an Essentials
+// topic: no department, no level (client request 2026-10-18).
+const isEssentials = computed(() => department.value === 'essentials');
+
 watch(
     () => open.value,
     (isOpen) => {
@@ -238,7 +242,17 @@ const inputClass =
                     </div>
                 </div>
 
-                <div class="grid gap-1.5">
+                <p
+                    v-if="isEssentials"
+                    class="bg-brand-50 text-ink-slate rounded-md px-3 py-2 text-[12.5px] leading-5"
+                >
+                    {{
+                        $t(
+                            'An English Essentials topic is for beginners and every department sees it. After creating it, you can limit it to some departments and choose its icon in the lesson Settings tab.',
+                        )
+                    }}
+                </p>
+                <div v-else class="grid gap-1.5">
                     <Label :class="labelClass">{{ $t('Level') }}</Label>
                     <LevelSelect
                         v-model="level"
@@ -431,7 +445,8 @@ const inputClass =
                 <Button
                     type="submit"
                     :disabled="
-                        processing || (kind === 'course' && level === '')
+                        processing ||
+                        (kind === 'course' && level === '' && !isEssentials)
                     "
                     class="bg-brand-600 shadow-btn hover:bg-brand-700 h-10 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97]"
                     data-test="save-add-button"

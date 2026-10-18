@@ -76,6 +76,8 @@ export type LessonSummary = {
     courseLessonCount: number;
     course: { id: number; title: string; tone: CourseTone };
     department: { name: string };
+    /** Part of English Essentials (client request 2026-10-18). */
+    essentials?: boolean;
 };
 
 // ---------------------------------------------------------------- settings
@@ -212,6 +214,8 @@ export type CompleteSummary = {
     rows: CompleteRow[];
     homeUrl: string;
     lessonsUrl: string;
+    /** After an English Essentials lesson: the lesson step to go back to. */
+    returnTo?: EssentialsReturn | null;
 };
 
 type StepBlockBase<TType extends BlockType, TSettings> = {
@@ -327,6 +331,51 @@ export type CourseOutline = {
     description: string | null;
     tone: CourseTone;
     units: UnitOutline[];
+};
+
+// ------------------------------------------------- English Essentials
+
+/** Client request 2026-10-18: beginner topics beside department training. */
+export type EssentialsIcon =
+    | 'letters'
+    | 'numbers'
+    | 'time'
+    | 'greetings'
+    | 'clarification'
+    | 'sprout';
+
+/** The English Essentials card on My Lessons. */
+export type EssentialsSummary = {
+    topics: number;
+    lessonsTotal: number;
+    lessonsCompleted: number;
+    url: string;
+    locked: boolean;
+};
+
+/** One topic on the English Essentials page. */
+export type EssentialsTopic = {
+    id: number;
+    title: string;
+    description: string | null;
+    icon: EssentialsIcon;
+    tone: CourseTone;
+    lessonsTotal: number;
+    lessonsCompleted: number;
+    url: string;
+};
+
+/** A department step's link into an English Essentials lesson. */
+export type EssentialsHelpLink = {
+    prompt: string;
+    title: string;
+    url: string;
+};
+
+/** Inside an English Essentials lesson: the lesson step to go back to. */
+export type EssentialsReturn = {
+    url: string;
+    title: string;
 };
 
 // ------------------------------------------------------------- phrasebook

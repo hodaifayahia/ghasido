@@ -4,6 +4,7 @@ namespace App\Services\Content;
 
 use App\Enums\BlockType;
 use App\Enums\ContentStatus;
+use App\Enums\EssentialsIcon;
 use App\Enums\MediaLibrary;
 use App\Enums\Permission;
 use App\Models\AiScenario;
@@ -34,6 +35,12 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class ContentTree
 {
     public const string SHARED = 'shared';
+
+    /**
+     * The English Essentials entry of the department list (client request
+     * 2026-10-18): its topics belong to no single department.
+     */
+    public const string ESSENTIALS = 'essentials';
 
     public const string ALL_CATEGORIES = 'all-categories';
 
@@ -72,7 +79,8 @@ class ContentTree
         $hotelId = $hotelKey === self::SHARED ? null : (int) $hotelKey;
 
         $departments = $this->departments($hotelId);
-        $departmentId = $this->pickDepartment((int) $request->query('department', 0), $departments, $hotelKey, $hotelId);
+        $essentials = (string) $request->query('department', '') === self::ESSENTIALS;
+        $departmentId = $essentials ? null : $this->pickDepartment((int) $request->query('department', 0), $departments, $hotelKey, $hotelId);
 
         $courses = $this->courses($departmentId, $hotelKey, $hotelId, self::publishedOnly($user));
         $course = $this->pick($courses, (int) $request->query('course', 0));
@@ -104,7 +112,7 @@ class ContentTree
         return [
             'filters' => [
                 'hotel' => $hotelKey,
-                'department' => (string) $departmentId,
+                'department' => $essentials ? self::ESSENTIALS : (string) $departmentId,
                 'course' => (string) ($course->id ?? ''),
                 'unit' => (string) ($unit->id ?? ''),
                 'lesson' => (string) ($lesson->id ?? ''),
@@ -112,7 +120,10 @@ class ContentTree
                     ['value' => self::SHARED, 'label' => __('Shared (all hotels)')],
                     ...$hotels->map(fn (Hotel $hotel): array => ['value' => (string) $hotel->id, 'label' => $hotel->name])->all(),
                 ],
-                'departments' => $departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+                'departments' => [
+                    ...$departments->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])->values()->all(),
+                    ['value' => self::ESSENTIALS, 'label' => __('English Essentials (all departments)')],
+                ],
                 'courses' => $courses->map(fn (Course $row): array => ['value' => (string) $row->id, 'label' => $row->title])->values()->all(),
                 'units' => $units->values()->map(fn (Unit $row, int $index): array => ['value' => (string) $row->id, 'label' => ($index + 1).'. '.$row->title])->all(),
                 'lessons' => $lessons->values()->map(fn (Lesson $row, int $index): array => ['value' => (string) $row->id, 'label' => ($index + 1).'. '.$row->title])->all(),
@@ -137,6 +148,10 @@ class ContentTree
             'directoryPagination' => fn (): array => $directoryData()['pagination'],
             'courses' => fn (): array => $this->tree($courses, $course, $unit, $lesson, $open, $user),
             'editor' => fn (): array => $this->editor($lesson, $hotels, $departments),
+            // English Essentials (client request 2026-10-18): the open
+            // topic's audience and icon, and the Essentials lessons a step
+            // of a department lesson may link to.
+            'essentials' => fn (): array => $this->essentialsPanel($course, $hotelId, $departments),
             'blocks' => $this->palette(),
             'library' => fn (): array => $this->library($request, $user),
             // Only the open builder shows the lesson's steps. They are by far
@@ -243,12 +258,27 @@ class ContentTree
     }
 
     /**
+     * Where a course sits in the builder's department list: its department
+     * id, or the English Essentials entry.
+     */
+    public static function departmentKey(Course $course): int|string
+    {
+        return $course->isEssentials() ? self::ESSENTIALS : (int) $course->department_id;
+    }
+
+    /**
+     * A department's courses, or the English Essentials topics (null).
+     *
      * @return Collection<int, Course>
      */
-    private function courses(int $departmentId, string $hotelKey, ?int $hotelId, bool $publishedOnly = false): Collection
+    private function courses(?int $departmentId, string $hotelKey, ?int $hotelId, bool $publishedOnly = false): Collection
     {
         return $this->courseScope($hotelKey, $hotelId)
-            ->where('department_id', $departmentId)
+            ->when(
+                $departmentId === null,
+                fn (Builder $query) => $query->essentials(),
+                fn (Builder $query) => $query->where('department_id', $departmentId)->where('track', 'department'),
+            )
             // A course, unit or lesson removed by "Delete" keeps its answers
             // but leaves the builder tree (CMS-01, DATA-10). A viewer who
             // cannot edit lessons sees only the published lessons.
@@ -363,6 +393,7 @@ class ContentTree
                 'departmentLabel' => null,
                 'courseLevel' => null,
                 'courseLevelUrl' => null,
+                'essentials' => false,
                 'previewUrl' => null,
                 'updatedAt' => null,
             ];
@@ -395,11 +426,14 @@ class ContentTree
             'hotelLabel' => $lesson->hotel_id === null
                 ? __('Shared (all hotels)')
                 : ($hotels->firstWhere('id', $lesson->hotel_id)->name ?? __('Hotel #:id', ['id' => $lesson->hotel_id])),
-            'departmentLabel' => $course === null ? null : ($departments->firstWhere('id', $course->department_id)->name ?? null),
+            'departmentLabel' => $course === null ? null : ($course->isEssentials()
+                ? __('English Essentials')
+                : ($departments->firstWhere('id', $course->department_id)->name ?? null)),
             // The level comes from the course, like the department (client
             // decision 2026-09-30); null = every level.
             'courseLevel' => $course?->level?->value,
             'courseLevelUrl' => $course === null ? null : route('courses.update', ['course' => $course]),
+            'essentials' => $course?->isEssentials() ?? false,
             'previewUrl' => route('lessons.preview', ['lesson' => $lesson]),
             'updatedAt' => $lesson->updated_at?->toIso8601String(),
         ];
@@ -505,7 +539,7 @@ class ContentTree
             'rows' => array_values($page->getCollection()->map(function (Lesson $lesson) use ($user, $learnerRecords): array {
                 $course = $lesson->course;
                 $unit = $lesson->unit;
-                $departmentName = $course === null ? null : $course->department->name;
+                $departmentName = $course === null ? null : ($course->isEssentials() ? __('English Essentials') : $course->department?->name);
                 $hotelName = $course === null ? null : $course->hotel?->name;
 
                 return [
@@ -516,7 +550,7 @@ class ContentTree
                     'department' => (string) ($departmentName ?? __('Unassigned')),
                     'hotel' => (string) ($hotelName ?? __('All hotels')),
                     'hotelId' => $lesson->hotel_id === null ? null : (int) $lesson->hotel_id,
-                    'departmentId' => $course === null ? null : (int) $course->department_id,
+                    'departmentId' => $course === null ? null : self::departmentKey($course),
                     'courseId' => $lesson->course_id,
                     'unitId' => $lesson->unit_id,
                     'status' => $lesson->status->value,
@@ -539,7 +573,7 @@ class ContentTree
      * Directory query: filter and page the rows on the server so a large
      * content library never arrives in the browser at once (CMS-01, CMS-04).
      *
-     * @param  array{search: string, hotel: string|null, department: int|null, course: int|null, status: ContentStatus|null, perPage: int}  $filters
+     * @param  array{search: string, hotel: string|null, department: int|string|null, course: int|null, status: ContentStatus|null, perPage: int}  $filters
      * @return Builder<Lesson>
      */
     private function directoryQuery(User $user, array $filters): Builder
@@ -558,7 +592,9 @@ class ContentTree
             $query->where('lessons.hotel_id', (int) $filters['hotel']);
         }
 
-        if ($filters['department'] !== null) {
+        if ($filters['department'] === self::ESSENTIALS) {
+            $query->whereHas('course', fn (Builder $course): Builder => $course->essentials());
+        } elseif ($filters['department'] !== null) {
             $query->whereHas('course', fn (Builder $course): Builder => $course->where('department_id', $filters['department']));
         }
 
@@ -623,7 +659,7 @@ class ContentTree
     }
 
     /**
-     * @return array{search: string, hotel: string|null, department: int|null, course: int|null, status: ContentStatus|null, perPage: int}
+     * @return array{search: string, hotel: string|null, department: int|string|null, course: int|null, status: ContentStatus|null, perPage: int}
      */
     private function directoryFiltersFrom(Request $request, User $user): array
     {
@@ -640,7 +676,9 @@ class ContentTree
         return [
             'search' => trim((string) $request->query('directorySearch', '')),
             'hotel' => $requestedHotel === self::DIRECTORY_ALL_HOTELS ? null : $requestedHotel,
-            'department' => $this->positiveInt($request->query('directoryDepartment')),
+            'department' => $request->query('directoryDepartment') === self::ESSENTIALS
+                ? self::ESSENTIALS
+                : $this->positiveInt($request->query('directoryDepartment')),
             'course' => $this->positiveInt($request->query('directoryCourse')),
             'status' => $requestedStatus,
             'perPage' => in_array($requestedPerPage, self::DIRECTORY_PAGE_SIZES, true)
@@ -661,7 +699,7 @@ class ContentTree
     }
 
     /**
-     * @param  array{search: string, hotel: string|null, department: int|null, course: int|null, status: ContentStatus|null, perPage: int}  $filters
+     * @param  array{search: string, hotel: string|null, department: int|string|null, course: int|null, status: ContentStatus|null, perPage: int}  $filters
      * @return array<string, mixed>
      */
     private function directoryFiltersPayload(array $filters, User $user): array
@@ -720,7 +758,7 @@ class ContentTree
      */
     private function directoryDepartmentOptions(User $user): array
     {
-        return array_values(Department::query()
+        $departments = array_values(Department::query()
             ->visibleTo($user)
             ->active()
             ->orderBy('position')
@@ -731,6 +769,9 @@ class ContentTree
                 'label' => $department->name,
             ])
             ->all());
+
+        // English Essentials topics have no department (2026-10-18).
+        return [...$departments, ['value' => self::ESSENTIALS, 'label' => (string) __('English Essentials')]];
     }
 
     /**
@@ -827,14 +868,57 @@ class ContentTree
         return $pages;
     }
 
+    // ---------------------------------------------------------- essentials
+
+    /**
+     * The English Essentials settings of the open topic (audience and icon)
+     * and the Essentials lessons a department step may link to (client
+     * request 2026-10-18). Lessons in reach: shared, or the open hotel's.
+     *
+     * @param  Collection<int, Department>  $departments
+     * @return array<string, mixed>
+     */
+    private function essentialsPanel(?Course $course, ?int $hotelId, Collection $departments): array
+    {
+        $topic = $course !== null && $course->isEssentials() ? $course : null;
+
+        $lessons = Lesson::query()
+            ->notArchived()
+            ->whereHas('course', fn (Builder $query) => $query->essentials()->notArchived()->sharedOrFor($hotelId))
+            ->with('course:id,title')
+            ->orderBy('course_id')
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get(['id', 'title', 'course_id', 'status']);
+
+        return [
+            'topic' => $topic === null ? null : [
+                'id' => $topic->id,
+                'audience' => array_values(array_map('intval', $topic->audienceDepartments()->pluck('departments.id')->all())),
+                'icon' => $topic->icon->value ?? EssentialsIcon::Sprout->value,
+                'updateUrl' => route('courses.update', ['course' => $topic]),
+            ],
+            'departments' => array_values($departments
+                ->map(fn (Department $department): array => ['value' => (string) $department->id, 'label' => $department->name])
+                ->all()),
+            'icons' => EssentialsIcon::options(),
+            'lessons' => array_values($lessons->map(fn (Lesson $lesson): array => [
+                'value' => (string) $lesson->id,
+                'label' => ($lesson->course->title ?? '').' · '.$lesson->title,
+                'published' => $lesson->status === ContentStatus::Published,
+            ])->all()),
+        ];
+    }
+
     // ----------------------------------------------------------- scenarios
 
     /**
      * @return list<array{id: int, title: string, description: string|null, difficulty: string, icon: string, status: string}>
      */
-    private function scenarios(int $departmentId, string $hotelKey, ?int $hotelId): array
+    private function scenarios(?int $departmentId, string $hotelKey, ?int $hotelId): array
     {
-        $query = AiScenario::query()->notArchived()->where('department_id', $departmentId)->orderBy('title');
+        // An English Essentials topic (null) may use any department's scenario.
+        $query = AiScenario::query()->notArchived()->when($departmentId !== null, fn (Builder $inner) => $inner->where('department_id', $departmentId))->orderBy('title');
 
         if ($hotelKey === self::SHARED) {
             $query->whereNull('hotel_id');

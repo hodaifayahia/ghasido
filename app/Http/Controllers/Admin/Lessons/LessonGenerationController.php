@@ -9,6 +9,7 @@ use App\Models\ContentGeneration;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
+use App\Services\Content\ContentTree;
 use App\Services\Content\LessonGenerator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -83,13 +84,18 @@ class LessonGenerationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $departmentId = (int) $request->query('department', '0');
+        $department = (string) $request->query('department', '0');
         $hotel = $request->query('hotel');
         $hotelId = is_string($hotel) && ctype_digit($hotel) ? (int) $hotel : null;
 
         $courses = Course::query()
             ->notArchived()
-            ->where('department_id', $departmentId)
+            // "essentials" lists the English Essentials topics (2026-10-18).
+            ->when(
+                $department === ContentTree::ESSENTIALS,
+                fn (Builder $query) => $query->essentials(),
+                fn (Builder $query) => $query->where('department_id', (int) $department)->where('track', 'department'),
+            )
             ->where(fn (Builder $query) => $hotelId === null ? $query->whereNull('hotel_id') : $query->where('hotel_id', $hotelId))
             ->orderBy('position')
             ->orderBy('id')

@@ -28,10 +28,12 @@ use Illuminate\Support\Carbon;
  * @property string $layout
  * @property array<string, mixed>|null $settings
  * @property bool $is_visible
+ * @property int|null $help_lesson_id an English Essentials lesson the step points at
+ * @property string|null $help_prompt the learner-facing line for that link
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['lesson_id', 'type', 'title', 'position', 'layout', 'settings', 'is_visible'])]
+#[Fillable(['lesson_id', 'type', 'title', 'position', 'layout', 'settings', 'is_visible', 'help_lesson_id', 'help_prompt'])]
 class Block extends Model
 {
     /** @use HasFactory<BlockFactory> */
@@ -56,6 +58,17 @@ class Block extends Model
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
+    }
+
+    /**
+     * The English Essentials lesson this step offers as help ("Want to
+     * learn spelling first? Tap here"; client request 2026-10-18).
+     *
+     * @return BelongsTo<Lesson, $this>
+     */
+    public function helpLesson(): BelongsTo
+    {
+        return $this->belongsTo(Lesson::class, 'help_lesson_id');
     }
 
     /**

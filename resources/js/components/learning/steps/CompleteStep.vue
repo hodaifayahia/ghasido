@@ -70,11 +70,32 @@ const percent = computed(() => {
     return total > 0 ? Math.round((done / total) * 100) : 0;
 });
 
+// An English Essentials lesson opened from a lesson step goes back to
+// that step first (client request 2026-10-18).
+const returnTo = computed(() => summary.value?.returnTo ?? null);
+
 const nextUrl = computed(() =>
     props.preview
         ? null
-        : (summary.value?.nextLesson?.url ?? summary.value?.homeUrl ?? ''),
+        : (returnTo.value?.url ??
+          summary.value?.nextLesson?.url ??
+          summary.value?.homeUrl ??
+          ''),
 );
+
+const nextLabel = computed(() => {
+    if (returnTo.value) {
+        return t('Back to your lesson');
+    }
+
+    if (summary.value?.nextLesson) {
+        return t('Continue to Next Lesson');
+    }
+
+    return props.lesson.essentials
+        ? t('Back to the topic')
+        : t('Continue to Next Lesson');
+});
 
 const rowIcon: Record<BlockType, Component> = {
     situation: BedDouble,
@@ -307,12 +328,22 @@ onMounted(async () => {
                             {{ $t("What's Next?") }}
                         </h2>
                     </div>
+                    <p v-if="returnTo" class="text-ink-slate mb-3 text-sm">
+                        {{
+                            $t('You came here from :lesson.', {
+                                lesson: returnTo.title,
+                            })
+                        }}
+                    </p>
                     <Link
                         :href="nextUrl ?? ''"
                         title="الانتقال إلى الدرس التالي"
                         class="bg-brand-600 hover:bg-brand-700 shadow-btn focus-visible:ring-brand-600/30 font-heading flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97]"
+                        :data-test="
+                            returnTo ? 'back-to-lesson-button' : undefined
+                        "
                     >
-                        {{ $t('Continue to Next Lesson') }}
+                        {{ nextLabel }}
                         <ArrowRight class="size-4" aria-hidden="true" />
                     </Link>
                     <Link
@@ -321,7 +352,11 @@ onMounted(async () => {
                         class="border-line text-ink hover:bg-app-alt focus-visible:ring-brand-600/30 mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold focus-visible:ring-3 focus-visible:outline-none"
                     >
                         <House class="size-4" aria-hidden="true" />
-                        {{ $t('Back to My Lessons') }}
+                        {{
+                            lesson.essentials
+                                ? $t('Back to English Essentials')
+                                : $t('Back to My Lessons')
+                        }}
                     </Link>
                 </div>
                 <div
