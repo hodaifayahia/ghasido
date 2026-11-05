@@ -33,7 +33,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // interface language (I18N-02).
             SetLocale::class,
             HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            // At most 20 preload hints: the lesson builder imports enough
+            // chunks that the full Link header (~9 KB) went past
+            // Hostinger's LiteSpeed header limit, which answered 500
+            // before the response left the server (2026-11-05). The
+            // header is only a speed hint; the page loads its chunks
+            // either way.
+            AddLinkHeadersForPreloadedAssets::using(20),
             // Admin accounts complete their contact profile first (owner
             // request 2026-09-25; spec 0007, D12).
             EnsureAdminProfileCompleted::class,
