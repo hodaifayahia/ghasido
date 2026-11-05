@@ -8,6 +8,7 @@ use App\Enums\GenerationStatus;
 use App\Enums\RoleplayStatus;
 use App\Models\RoleplayAttempt;
 use App\Services\Ai\UsageMeter;
+use App\Services\Learning\RoleplayFeedbackMeaning;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -92,6 +93,10 @@ class EvaluateRoleplayAttempt implements ShouldBeUnique, ShouldQueue
             'ended_at' => $endedAt,
             'duration_ms' => $attempt->duration_ms ?? (int) abs($attempt->started_at->diffInMilliseconds($endedAt)),
         ])->save();
+
+        // The English stays as written; the learner's helper language is
+        // drafted now, once, for Show Meaning (client request 2026-11-05).
+        app(RoleplayFeedbackMeaning::class)->queue($attempt);
     }
 
     public function failed(?Throwable $exception): void

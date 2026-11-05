@@ -27,6 +27,11 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
         ->name('ai-scenarios.update');
     Route::delete('ai-scenarios/{scenario}', [AiScenariosController::class, 'destroy'])
         ->name('ai-scenarios.destroy');
+    // The cover image, saved when chosen (client report 2026-11-05).
+    Route::post('ai-scenarios/{scenario}/thumbnail', [AiScenariosController::class, 'updateThumbnail'])
+        ->name('ai-scenarios.thumbnail.update');
+    Route::delete('ai-scenarios/{scenario}/thumbnail', [AiScenariosController::class, 'removeThumbnail'])
+        ->name('ai-scenarios.thumbnail.destroy');
     Route::post('ai-scenarios/{scenario}/generate', [AiScenariosController::class, 'generate'])
         ->name('ai-scenarios.generate');
     Route::post('ai-scenarios/{scenario}/apply-draft', [AiScenariosController::class, 'applyDraft'])

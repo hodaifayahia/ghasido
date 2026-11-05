@@ -14,6 +14,7 @@ import {
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { Component } from 'vue';
+import { toast } from 'vue-sonner';
 import AiScenariosDirectoryStats from '@/components/ai-scenarios/AiScenariosDirectoryStats.vue';
 import AiScenariosDirectoryTable from '@/components/ai-scenarios/AiScenariosDirectoryTable.vue';
 import AiScenariosCategoriesPanel from '@/components/ai-scenarios/AiScenariosCategoriesPanel.vue';
@@ -32,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import TtsVoiceStudio from '@/components/tts/TtsVoiceStudio.vue';
 import VoiceAgentSettingsDialog from '@/components/ai-scenarios/VoiceAgentSettingsDialog.vue';
 import VoiceCall from '@/components/roleplay/VoiceCall.vue';
-import { tk } from '@/lib/i18n';
+import { t, tk } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { aiScenarios, dashboard } from '@/routes';
 import aiScenarioActions from '@/routes/ai-scenarios';
@@ -176,10 +177,121 @@ function createScenario(payload: CreateAiScenarioPayload): void {
     );
 }
 
-function saveScenario(payload: AiScenarioSavePayload): void {
-    if (!props.editor.saveUrl) return;
+/*
+ * One save for the whole scenario, from either tab: the details tab sends
+ * its fields, the Settings tab sends the same fields plus its own, and the
+ * server merges settings into what is stored (client report 2026-11-05).
+ * preserveState keeps the typed text on a validation error.
+ */
+const savingScenario = ref(false);
+const uploadingImage = ref(false);
 
-    router.patch(props.editor.saveUrl, payload, { preserveScroll: true });
+function firstError(errors: Record<string, string>): string {
+    return Object.values(errors)[0] ?? t('The scenario could not be saved.');
+}
+
+/** Runs once after the next successful save (Edit AI Instructions). */
+let afterSave: (() => void) | null = null;
+
+function saveScenario(payload: AiScenarioSavePayload): void {
+    if (!props.editor.saveUrl || savingScenario.value) return;
+
+    router.patch(props.editor.saveUrl, payload, {
+        preserveScroll: true,
+        preserveState: true,
+        onStart: () => {
+            savingScenario.value = true;
+        },
+        onSuccess: () => {
+            const next = afterSave;
+            afterSave = null;
+            next?.();
+        },
+        onFinish: () => {
+            savingScenario.value = false;
+        },
+        onError: (errors) => {
+            afterSave = null;
+            toast.error(firstError(errors));
+        },
+    });
+}
+
+/*
+ * Leaving the open scenario with unsaved typing asks first, instead of
+ * dropping it silently (client report 2026-11-05).
+ */
+let leavingSaved = false;
+
+const removeLeaveGuard = router.on('before', (event) => {
+    const visit = event.detail.visit;
+
+    if (leavingSaved) {
+        leavingSaved = false;
+        return;
+    }
+
+    if (
+        !builderOpen.value ||
+        !editorPanel.value?.dirty ||
+        visit.method !== 'get' ||
+        visit.url.searchParams.get('scenario') === String(props.editor.id ?? '')
+    ) {
+        return;
+    }
+
+    if (!window.confirm(t('You have unsaved changes. Leave without saving?'))) {
+        event.preventDefault();
+    }
+});
+
+onBeforeUnmount(removeLeaveGuard);
+
+/** The cover image is stored as soon as it is chosen (2026-11-05). */
+function uploadImage(file: File): void {
+    const url = props.editor.thumbnailUrl;
+
+    if (!url || uploadingImage.value) return;
+
+    router.post(
+        url,
+        {
+            image: file,
+            // English, like the learner content it describes (MED-07).
+            alt_text: 'Cover image for the role-play: ' + props.editor.title,
+        },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => {
+                uploadingImage.value = true;
+            },
+            onFinish: () => {
+                uploadingImage.value = false;
+            },
+            onError: (errors) => {
+                toast.error(firstError(errors));
+            },
+        },
+    );
+}
+
+function removeImage(): void {
+    const url = props.editor.thumbnailUrl;
+
+    if (!url || uploadingImage.value) return;
+
+    router.delete(url, {
+        preserveScroll: true,
+        preserveState: true,
+        onStart: () => {
+            uploadingImage.value = true;
+        },
+        onFinish: () => {
+            uploadingImage.value = false;
+        },
+    });
 }
 
 function generateScenario(): void {
@@ -253,6 +365,18 @@ function saveFromSidebar(settings: AiScenarioSavePayload['settings']): void {
 }
 
 function openInstructions(): void {
+    // The global AI Instructions tab replaces the editor: save what was
+    // typed on this page first, so it is never lost (2026-11-05).
+    if (editorPanel.value?.dirty && props.editor.saveUrl) {
+        afterSave = () => {
+            leavingSaved = true;
+            selectTab('instructions');
+        };
+        editorPanel.value.save();
+
+        return;
+    }
+
     selectTab('instructions');
 }
 
@@ -448,7 +572,11 @@ defineOptions({
                     <AiScenariosEditorPanel
                         ref="editorPanel"
                         :editor="editor"
+                        :saving="savingScenario"
+                        :uploading="uploadingImage"
                         @save="saveScenario"
+                        @upload-image="uploadImage"
+                        @remove-image="removeImage"
                         @generate="generateScenario"
                         @apply-draft="applyDraft"
                         @publish="publishScenario"

@@ -9,11 +9,17 @@ import {
     Sparkles,
 } from '@lucide/vue';
 import { computed, onMounted, onUnmounted } from 'vue';
+import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 
 /*
  * Role-play feedback (RP-08, AIE-01, AIE-04, PERF-04; spec 0003 Part E,
  * photo_18). The criterion scores and the encouraging feedback blocks. While
  * the evaluation is still running the page polls (PERF-04).
+ *
+ * Every comment stays in English as the AI wrote it, with Show Meaning
+ * beside it for the learner's own helper language (client request
+ * 2026-11-05; CTRL-01..03). The translations are drafted when the
+ * evaluation is saved, so a tap never calls the AI.
  */
 type Criterion = { key: string; label: string; weight: number };
 type Feedback = {
@@ -112,16 +118,35 @@ onUnmounted(() => {
                 >
                     <CircleCheck class="size-8" aria-hidden="true" />
                 </span>
+                <MeaningText
+                    v-if="attempt.feedback?.summary_label"
+                    as="h1"
+                    :text="attempt.feedback.summary_label"
+                    class="font-heading text-ink-royal text-[26px] font-bold tracking-[-0.02em]"
+                />
                 <h1
+                    v-else
                     class="font-heading text-ink-royal text-[26px] font-bold tracking-[-0.02em]"
                 >
-                    {{ attempt.feedback?.summary_label ?? $t('Well done!') }}
+                    {{ $t('Well done!') }}
                 </h1>
-                <p
+                <MeaningText
                     v-if="attempt.feedback?.summary_text"
-                    class="text-ink-slate max-w-lg text-[14px]"
+                    :text="attempt.feedback.summary_text"
+                    class="text-ink-slate text-[14px]"
+                    wrapper-class="max-w-lg"
+                    panel-class="text-start"
+                />
+                <p
+                    v-if="attempt.feedback"
+                    class="text-ink-faint max-w-lg text-[12.5px]"
+                    data-test="roleplay-feedback-meaning-hint"
                 >
-                    {{ attempt.feedback.summary_text }}
+                    {{
+                        $t(
+                            'Tap the meaning button next to a comment to read it in your language.',
+                        )
+                    }}
                 </p>
                 <span
                     class="font-heading text-brand-700 mt-1 text-[40px] leading-none font-bold"
@@ -187,7 +212,7 @@ onUnmounted(() => {
                             <span
                                 class="bg-success mt-1.5 size-1.5 shrink-0 rounded-full"
                             />
-                            {{ item }}
+                            <MeaningText :text="item" wrapper-class="flex-1" />
                         </li>
                     </ul>
                 </div>
@@ -208,12 +233,14 @@ onUnmounted(() => {
                             :key="item.title"
                             class="grid gap-0.5"
                         >
-                            <span class="text-ink text-[13px] font-semibold">{{
-                                item.title
-                            }}</span>
-                            <span class="text-ink-slate text-[12.5px]">{{
-                                item.text
-                            }}</span>
+                            <MeaningText
+                                :text="item.title"
+                                class="text-ink text-[13px] font-semibold"
+                            />
+                            <MeaningText
+                                :text="item.text"
+                                class="text-ink-slate text-[12.5px]"
+                            />
                         </li>
                     </ul>
                 </div>
@@ -235,12 +262,15 @@ onUnmounted(() => {
                         >“{{ attempt.feedback.better_expression.yours }}”</span
                     >
                 </p>
-                <p class="text-ink text-[13.5px] font-medium">
+                <MeaningText
+                    :text="attempt.feedback.better_expression.better"
+                    class="text-ink text-[13.5px] font-medium"
+                >
                     {{ $t('Try:') }}
                     <span class="text-ai"
                         >“{{ attempt.feedback.better_expression.better }}”</span
                     >
-                </p>
+                </MeaningText>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
