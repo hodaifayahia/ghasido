@@ -226,7 +226,10 @@ function removeLine(index: number): void {
                     :rows="2"
                     @update:model-value="
                         (value) =>
-                            setText(index, typeof value === 'string' ? value : '')
+                            setText(
+                                index,
+                                typeof value === 'string' ? value : '',
+                            )
                     "
                 />
             </div>

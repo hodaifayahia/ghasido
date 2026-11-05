@@ -35,7 +35,7 @@ final class LandingPageArabicDefaults
                 'proof_points' => ['مصممة لفرق الفنادق', 'تعمل بسلاسة على الهاتف', 'تدريب هادف بالذكاء الاصطناعي'],
                 // The guest line and the reply stay English: they are the
                 // learning content the phone shows.
-                'demo_situation' => 'مكتب الاستقبال · تسجيل وصول ضيف',
+                'demo_situation' => 'مكتب الاستقبال · تسجيل الوصول',
                 'demo_guest_line' => 'Good evening. I have a reservation under the name Haddad.',
                 'demo_meaning' => 'مساء الخير. لديّ حجز باسم حدّاد.',
                 'demo_reply' => 'Welcome, Mr Haddad. May I see your passport, please?',

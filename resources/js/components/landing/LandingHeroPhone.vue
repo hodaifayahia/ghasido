@@ -117,7 +117,7 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                         {{ $t("Step :current of :total", { current: 4, total: 9 }) }}
                     </p>
                     <p
-                        class="font-heading text-ink-night truncate text-[12.5px] leading-5 font-semibold"
+                        class="font-heading text-ink-night line-clamp-2 text-[12.5px] leading-[1.3] font-semibold"
                     >
                         {{ hero.demo_situation }}
                     </p>

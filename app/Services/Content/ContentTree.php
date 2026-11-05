@@ -4,6 +4,7 @@ namespace App\Services\Content;
 
 use App\Enums\BlockType;
 use App\Enums\ContentStatus;
+use App\Enums\CourseHotelScope;
 use App\Enums\EssentialsIcon;
 use App\Enums\MediaLibrary;
 use App\Enums\Permission;
@@ -428,7 +429,7 @@ class ContentTree
             'effectiveAccent' => $lesson->speakingAccent()->value,
             'unitId' => $lesson->unit_id,
             'hotelLabel' => $lesson->hotel_id === null
-                ? ($course === null ? __('Shared (all hotels)') : $course->hotel_scope->label())
+                ? ($course === null || $course->hotel_scope === CourseHotelScope::All ? __('Shared (all hotels)') : $course->hotel_scope->label())
                 : ($hotels->firstWhere('id', $lesson->hotel_id)->name ?? __('Hotel #:id', ['id' => $lesson->hotel_id])),
             'departmentLabel' => $course === null ? null : ($course->isEssentials()
                 ? __('English Essentials')

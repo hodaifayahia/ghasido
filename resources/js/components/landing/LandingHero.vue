@@ -103,7 +103,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                  to the edge, behind the phone. -->
             <div class="relative min-w-0 lg:static">
                 <div
-                    class="pointer-events-none relative -mx-5 select-none sm:-mx-8 lg:absolute lg:end-0 lg:top-0 lg:mx-0 lg:w-[58%]"
+                    class="pointer-events-none relative -mx-5 select-none sm:-mx-8 lg:absolute lg:end-0 lg:top-8 lg:mx-0 lg:w-[62%]"
                     aria-hidden="true"
                 >
                     <div :style="photoStyle" class="will-change-transform">
@@ -113,7 +113,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                             width="1008"
                             height="550"
                             fetchpriority="high"
-                            class="animate-landing-photo block aspect-[1008/550] w-full [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,black_45%,transparent_98%),linear-gradient(to_right,transparent_0%,black_32%)] object-cover motion-reduce:animate-none rtl:-scale-x-100"
+                            class="animate-landing-photo block aspect-[1008/550] w-full [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,black_30%,transparent_88%),linear-gradient(to_right,transparent_0%,black_36%)] object-cover motion-reduce:animate-none rtl:-scale-x-100"
                         />
                     </div>
                 </div>

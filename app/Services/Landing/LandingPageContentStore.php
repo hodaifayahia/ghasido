@@ -39,7 +39,7 @@ final class LandingPageContentStore
                 // The lesson step the hero's phone plays (user request
                 // 2026-11-05). The two lines are English learning content in
                 // both copies; the meaning is the learner's Arabic help.
-                'demo_situation' => 'Front desk · Checking in a guest',
+                'demo_situation' => 'Front desk · Check-in',
                 'demo_guest_line' => 'Good evening. I have a reservation under the name Haddad.',
                 'demo_meaning' => 'مساء الخير. لديّ حجز باسم حدّاد.',
                 'demo_reply' => 'Welcome, Mr Haddad. May I see your passport, please?',

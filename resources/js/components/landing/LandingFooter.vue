@@ -85,7 +85,7 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
             width="540"
             height="252"
             loading="lazy"
-            class="pointer-events-none absolute end-[-40px] bottom-[72px] -z-10 hidden w-[440px] opacity-[0.09] select-none md:block rtl:-scale-x-100"
+            class="pointer-events-none absolute end-[-24px] bottom-[99px] -z-10 hidden w-[320px] opacity-[0.1] select-none md:block rtl:-scale-x-100"
         />
 
         <div class="mx-auto max-w-7xl px-5 pt-14 pb-8 sm:px-8 lg:px-10 lg:pt-16">
