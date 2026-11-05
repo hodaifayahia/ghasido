@@ -49,7 +49,7 @@ defineProps<Props>();
         <div
             :class="
                 essentials
-                    ? 'grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start'
+                    ? 'grid min-w-0 gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_300px] min-[1180px]:items-start xl:grid-cols-[minmax(0,1fr)_320px]'
                     : 'flex min-w-0 flex-col gap-4'
             "
         >
@@ -75,7 +75,7 @@ defineProps<Props>();
             <EssentialsCard
                 v-if="essentials"
                 :essentials="essentials"
-                class="xl:sticky xl:top-[calc(var(--spacing-topbar)+20px)]"
+                class="min-[1180px]:sticky min-[1180px]:top-[calc(var(--spacing-topbar)+20px)]"
             />
         </div>
     </div>

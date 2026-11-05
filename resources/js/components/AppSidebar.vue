@@ -475,12 +475,15 @@ function closeMobileSidebar(): void {
                  original.png, cropped to the artwork on a transparent
                  background). Keep its approved 128px width on full-height
                  layouts, and scale it down with the sidebar rhythm on short
-                 windows so the menu stays usable. -->
+                 windows so the menu stays usable. It is also capped to the
+                 space left under the menu, so a longer menu shrinks it whole
+                 instead of clipping its top, and left out when too little
+                 space is left for it to read (2026-11-05). -->
             <div
                 aria-hidden="true"
                 :class="
                     cn(
-                        'pointer-events-none relative min-h-0 flex-1 overflow-hidden select-none group-data-[collapsible=icon]:hidden',
+                        '[container-type:size] pointer-events-none relative min-h-0 flex-1 overflow-hidden select-none group-data-[collapsible=icon]:hidden',
                         longMenu && 'hidden',
                     )
                 "
@@ -491,7 +494,7 @@ function closeMobileSidebar(): void {
                     width="540"
                     height="410"
                     draggable="false"
-                    class="absolute start-4 bottom-[clamp(12px,calc(var(--sb-unit)*5.4),42px)] h-auto w-[clamp(40px,calc(var(--sb-unit)*41_-_192px),128px)] opacity-65"
+                    class="sb-footer-short:hidden absolute start-4 bottom-[clamp(12px,calc(var(--sb-unit)*5.4),42px)] h-auto max-h-[calc(100%_-_clamp(12px,calc(var(--sb-unit)*5.4),42px))] w-auto max-w-[clamp(40px,calc(var(--sb-unit)*41_-_192px),128px)] opacity-65"
                 />
             </div>
         </SidebarContent>
