@@ -4,6 +4,7 @@ namespace App\Services\Content;
 
 use App\Enums\ContentStatus;
 use App\Enums\CourseHotelScope;
+use App\Enums\EssentialsLessonTemplate;
 use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Block;
@@ -370,6 +371,84 @@ class LessonService
             ]);
 
             return $lesson;
+        });
+    }
+
+    // ---------------------------------------------- English Essentials studio
+
+    /**
+     * A new English Essentials lesson from a beginner template (client
+     * request 2026-11-05): at the end of the topic, as a draft, with the
+     * template's steps in order and their default settings, so the admin
+     * fills them in the usual lesson editor. A topic with no unit gets its
+     * single "Unit 1" first; the studio never shows units.
+     */
+    public function createEssentialsLesson(Course $topic, string $title, EssentialsLessonTemplate $template): Lesson
+    {
+        return DB::transaction(function () use ($topic, $title, $template): Lesson {
+            $unit = $topic->units()->notArchived()->reorder()->orderByDesc('position')->orderByDesc('id')->first() ?? $this->createUnit($topic, 'Unit 1');
+
+            $lesson = $this->createLesson($unit, $title, false);
+            $lesson->estimated_minutes = $template->minutes();
+            $lesson->save();
+
+            foreach ($template->blocks() as $index => $type) {
+                Block::query()->create([
+                    'lesson_id' => $lesson->id,
+                    'type' => $type,
+                    'position' => $index + 1,
+                    'layout' => 'full',
+                    'settings' => BlockDefaults::settings($type),
+                    'is_visible' => true,
+                ]);
+            }
+
+            AuditLog::record($lesson, 'lesson.created_from_template', ['template' => $template->value, 'course_id' => $topic->id]);
+
+            return $lesson;
+        });
+    }
+
+    /**
+     * The topic's lessons in this order (client request 2026-11-05). The
+     * studio shows a topic as one flat list, so the lessons are gathered
+     * into the topic's first unit, numbered 1..n.
+     *
+     * @param  list<int>  $lessonIds  every lesson of the topic still in the library
+     */
+    public function reorderEssentialsLessons(Course $topic, array $lessonIds): void
+    {
+        DB::transaction(function () use ($topic, $lessonIds): void {
+            $unit = $topic->units()->notArchived()->first() ?? $this->createUnit($topic, 'Unit 1');
+
+            foreach ($lessonIds as $index => $id) {
+                Lesson::query()->whereKey($id)->where('course_id', $topic->id)->update([
+                    'unit_id' => $unit->id,
+                    'position' => $index + 1,
+                ]);
+            }
+
+            AuditLog::record($topic, 'course.lessons_reordered', ['order' => $lessonIds]);
+        });
+    }
+
+    /**
+     * The English Essentials topics in this order on the learner's list.
+     *
+     * @param  list<int>  $courseIds
+     */
+    public function reorderEssentialsTopics(array $courseIds): void
+    {
+        DB::transaction(function () use ($courseIds): void {
+            foreach ($courseIds as $index => $id) {
+                Course::query()->whereKey($id)->essentials()->update(['position' => $index + 1]);
+            }
+
+            $first = Course::query()->whereKey($courseIds[0] ?? 0)->first();
+
+            if ($first !== null) {
+                AuditLog::record($first, 'essentials.topics_reordered', ['order' => $courseIds]);
+            }
         });
     }
 

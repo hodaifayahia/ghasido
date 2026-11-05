@@ -91,7 +91,7 @@ class CourseController extends Controller
      * never deleted: a course holding any is removed and kept for reports
      * (DATA-10). Authorized here, not by hiding the button (SEC-01).
      */
-    public function destroy(Course $course, LessonService $lessons): RedirectResponse
+    public function destroy(Request $request, Course $course, LessonService $lessons): RedirectResponse
     {
         Gate::authorize('destroy', $course);
 
@@ -105,6 +105,11 @@ class CourseController extends Controller
         Inertia::flash('toast', $deleted
             ? ['type' => 'success', 'message' => __(':title was deleted.', ['title' => $title])]
             : ['type' => 'success', 'message' => __(':title was removed from the library. Learner answers were kept for reports.', ['title' => $title])]);
+
+        // Deleted from the English Essentials studio: back to the studio.
+        if ($request->input('from') === 'essentials-studio') {
+            return to_route('essentials-studio');
+        }
 
         return to_route('lessons-content', $target);
     }

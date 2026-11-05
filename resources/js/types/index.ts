@@ -29,3 +29,4 @@ export * from './payments';
 export * from './mail-settings';
 export * from './inbox';
 export * from './interfaceLanguages';
+export * from './essentials-studio';

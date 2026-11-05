@@ -50,6 +50,7 @@ import {
     dashboard,
     departments,
     employees,
+    essentialsStudio,
     hotels,
     inbox,
     individuals,
@@ -185,13 +186,10 @@ const mainNavItems: SidebarNavItem[] = [
         permission: 'lessons.view',
     },
     {
-        // English Essentials (client request 2026-11-05): opens the builder
-        // straight on the Essentials topics, built with the same lesson
-        // editor as the department courses.
+        // English Essentials (client request 2026-11-05): its own studio,
+        // apart from the department lesson builder.
         title: tk('English Essentials'),
-        href: lessonsContent({
-            query: { hotel: 'shared', department: 'essentials', builder: '1' },
-        }),
+        href: essentialsStudio(),
         icon: Sprout,
         iconClass: outline,
         permission: 'lessons.view',
@@ -336,8 +334,9 @@ const accountNavItems: SidebarNavItem[] = [
 // Lessons & Content (both share the /lessons-content path).
 const onEssentials = computed(
     () =>
-        page.url.startsWith('/lessons-content') &&
-        page.url.includes('department=essentials'),
+        page.url.startsWith('/english-essentials') ||
+        (page.url.startsWith('/lessons-content') &&
+            page.url.includes('department=essentials')),
 );
 
 const adminNav = computed((): SidebarNav => ({
