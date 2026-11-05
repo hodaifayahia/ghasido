@@ -41,6 +41,15 @@ export type LandingPageContent = {
         secondary_cta: string;
         image_alt: string;
         proof_points: string[];
+        /** The lesson step the hero's phone plays (2026-11-05). */
+        demo_situation: string;
+        /** English learning content in both copies. */
+        demo_guest_line: string;
+        /** The learner's Arabic help for the guest line. */
+        demo_meaning: string;
+        /** English learning content in both copies. */
+        demo_reply: string;
+        demo_note: string;
     };
     why_us: {
         eyebrow: string;

@@ -3,7 +3,7 @@ import { useId } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import PhrasebookButton from '@/components/learning/PhrasebookButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import type { LexiconEntry } from '@/types';
 
@@ -75,18 +75,18 @@ const panelId = `expr-meaning-${useId()}`;
             />
         </div>
 
-        <template v-if="item.showMeaning && item.meaning">
+        <template v-if="item.showMeaning">
             <ShowMeaningButton
                 :shown="meaning.shown.value"
                 :controls="panelId"
                 class="mx-auto mt-3"
                 @toggle="meaning.toggle()"
             />
-            <ShowMeaningPanel
+            <StoredMeaningPanel
                 :id="panelId"
+                :text="item.text"
                 :shown="meaning.shown.value"
-                :arabic="item.meaning.arabic"
-                :explanation="item.meaning.explanation"
+                :explanation="item.meaning?.explanation ?? null"
                 class="mt-3"
             />
         </template>

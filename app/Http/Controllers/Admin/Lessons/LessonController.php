@@ -73,13 +73,12 @@ class LessonController extends Controller
             ]);
 
             $message = match (true) {
-                $cascade['course'] && $cascade['unit'] => __(':title is published, together with its unit and its course ":course". Visible to: :audience.', ['title' => $lesson->title, 'course' => $course->title ?? '', 'audience' => $audience]),
-                $cascade['course'] => __(':title is published, together with its course ":course". Visible to: :audience.', ['title' => $lesson->title, 'course' => $course->title ?? '', 'audience' => $audience]),
+                $cascade['course'] => __(':title is published, but its course ":course" is still hidden from employees. Show the course from its ⋮ menu in Course Structure when you are ready.', ['title' => $lesson->title, 'course' => $course->title ?? '']),
                 $cascade['unit'] => __(':title is published, together with its unit. Visible to: :audience.', ['title' => $lesson->title, 'audience' => $audience]),
                 default => __(':title is published. Visible to: :audience.', ['title' => $lesson->title, 'audience' => $audience]),
             };
 
-            Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+            Inertia::flash('toast', ['type' => $cascade['course'] ? 'info' : 'success', 'message' => $message]);
         }
 
         return back();

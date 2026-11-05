@@ -28,7 +28,9 @@ class CourseOutline
             'description' => $course->description,
             'tone' => $course->tone,
             'units' => $course->units
-                ->filter(fn (Unit $unit): bool => $unit->isPublished())
+                // A unit with no published lesson yet shows nothing useful
+                // (client request 2026-11-05: no empty titles).
+                ->filter(fn (Unit $unit): bool => $unit->isPublished() && $unit->lessons->isNotEmpty())
                 ->map(fn (Unit $unit): array => [
                     'id' => $unit->id,
                     'title' => $unit->title,

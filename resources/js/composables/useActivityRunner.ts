@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref, toValue } from 'vue';
 import type { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
+import { newSubmissionKey } from '@/lib/submissionKey';
 import type { ActivityResult, ActivityView, AnswerMap } from '@/types';
 
 /** How one option should render given the current answer and any result. */
@@ -39,9 +40,17 @@ export function useActivityRunner(
 ): UseActivityRunnerReturn {
     const startedAt = new Date().toISOString();
     const answers = reactive<AnswerMap>({});
-    const form = useForm<{ answers: AnswerMap; started_at: string }>({
+    // A reopened activity shows the learner's saved answer beside its
+    // verdict (PROG-01; client report 2026-11-05).
+    Object.assign(answers, toValue(result)?.answers ?? {});
+    const form = useForm<{
+        answers: AnswerMap;
+        started_at: string;
+        submission_key: string;
+    }>({
         answers: {},
         started_at: startedAt,
+        submission_key: newSubmissionKey(),
     });
 
     const items = computed(() => toValue(activity).items);

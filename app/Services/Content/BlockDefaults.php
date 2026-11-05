@@ -62,7 +62,7 @@ final class BlockDefaults
             BlockType::ListenRepeat => [
                 'subtitle' => 'Listen to the sentence, then repeat it. Try to sound like the native speaker.',
                 'tip' => 'Try to speak clearly and at a similar speed.',
-                'items' => [['text' => 'How can I help you?', 'arabic' => 'كيف يمكنني مساعدتك؟', 'image' => null]],
+                'items' => [['text' => 'How can I help you?', 'image' => null]],
             ],
             BlockType::Dialogue => [
                 'subtitle' => 'Listen to the conversation. Take turns and follow the dialogue step by step.',
@@ -70,8 +70,8 @@ final class BlockDefaults
                 'situation_caption' => 'Situation: Check-in at the hotel',
                 'tip' => 'Listen carefully, then repeat. Focus on pronunciation and intonation.',
                 'lines' => [
-                    ['speaker' => 'staff', 'text' => "Good afternoon.\nHow can I help you?", 'arabic' => null],
-                    ['speaker' => 'guest', 'text' => 'Hello. I have a reservation.', 'arabic' => null],
+                    ['speaker' => 'staff', 'text' => "Good afternoon.\nHow can I help you?"],
+                    ['speaker' => 'guest', 'text' => 'Hello. I have a reservation.'],
                 ],
             ],
             BlockType::Video => [
@@ -79,7 +79,7 @@ final class BlockDefaults
                 'video' => null,
                 'poster' => null,
                 'controls_note' => 'Watch as many times as you need.',
-                'example' => ['text' => 'How can I help you?', 'arabic' => 'كيف يمكنني مساعدتك؟', 'note' => 'This is one of the sentences from the video.'],
+                'example' => ['text' => 'How can I help you?', 'note' => 'This is one of the sentences from the video.'],
                 'tip' => 'Watch, listen and notice the language, gestures and tone of voice.',
             ],
             BlockType::Practice => [

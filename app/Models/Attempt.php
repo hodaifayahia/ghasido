@@ -55,6 +55,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $started_at
  * @property Carbon|null $submitted_at
  * @property int|null $time_taken_ms
+ * @property string|null $submission_key
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -85,6 +86,7 @@ use Illuminate\Support\Carbon;
     'started_at',
     'submitted_at',
     'time_taken_ms',
+    'submission_key',
 ])]
 #[UsePolicy(AttemptPolicy::class)]
 class Attempt extends Model

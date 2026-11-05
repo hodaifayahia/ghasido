@@ -4,6 +4,7 @@ namespace App\Services\Content;
 
 use App\Enums\BlockType;
 use App\Enums\ContentStatus;
+use App\Enums\CourseHotelScope;
 use App\Enums\EssentialsIcon;
 use App\Enums\MediaLibrary;
 use App\Enums\Permission;
@@ -99,7 +100,11 @@ class ContentTree
 
         // The directory is the landing surface. The builder opens only after
         // a lesson is selected or created (CMS-01).
-        $builderOpen = $request->query('lesson') !== null;
+        // `builder=1` keeps it open on a course or topic that has no lesson
+        // yet, so choosing "English Essentials" (or another department) in
+        // the builder's selects stays in the builder instead of falling back
+        // to the directory (client report 2026-11-05).
+        $builderOpen = $request->query('lesson') !== null || $request->query('builder') === '1';
 
         // Every section is a closure: Inertia resolves one only when the
         // response includes it, so the directory's partial reloads (filter,
@@ -424,7 +429,7 @@ class ContentTree
             'effectiveAccent' => $lesson->speakingAccent()->value,
             'unitId' => $lesson->unit_id,
             'hotelLabel' => $lesson->hotel_id === null
-                ? __('Shared (all hotels)')
+                ? ($course === null || $course->hotel_scope === CourseHotelScope::All ? __('Shared (all hotels)') : $course->hotel_scope->label())
                 : ($hotels->firstWhere('id', $lesson->hotel_id)->name ?? __('Hotel #:id', ['id' => $lesson->hotel_id])),
             'departmentLabel' => $course === null ? null : ($course->isEssentials()
                 ? __('English Essentials')
@@ -434,6 +439,14 @@ class ContentTree
             'courseLevel' => $course?->level?->value,
             'courseLevelUrl' => $course === null ? null : route('courses.update', ['course' => $course]),
             'essentials' => $course?->isEssentials() ?? false,
+            // Which hotels see a shared course (client request 2026-11-05):
+            // all, only a group, or all except a group.
+            'courseHotels' => $course === null || $course->hotel_id !== null ? null : [
+                'scope' => $course->hotel_scope->value,
+                'hotelIds' => $course->scopedHotels()->pluck('hotels.id')->map(fn ($id): int => (int) $id)->values()->all(),
+                'options' => $hotels->map(fn (Hotel $hotel): array => ['id' => $hotel->id, 'name' => $hotel->name])->values()->all(),
+                'url' => route('courses.update', ['course' => $course]),
+            ],
             'previewUrl' => route('lessons.preview', ['lesson' => $lesson]),
             'updatedAt' => $lesson->updated_at?->toIso8601String(),
         ];

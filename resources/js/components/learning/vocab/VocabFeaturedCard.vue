@@ -3,7 +3,7 @@ import { useId } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import PhrasebookButton from '@/components/learning/PhrasebookButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import type { LexiconEntry } from '@/types';
 
@@ -12,7 +12,9 @@ import type { LexiconEntry } from '@/types';
  * a 412×292 rounded-xl image, the word 34px bold ink-royal with an inline
  * speaker, the IPA, the Normal | Slow pair, Save to Phrasebook and Show
  * Meaning (CTRL-01..03, PHRASE-02). Keyed by item id in the parent so the
- * Show Meaning panel resets when a related word swaps the feature in.
+ * Show Meaning panel resets when a related word swaps the feature in. The
+ * meaning is the stored translation of the word in the learner's helper
+ * language, fetched on the tap (client request 2026-11-05).
  */
 type Props = {
     item: LexiconEntry;
@@ -78,18 +80,18 @@ const panelId = `vocab-meaning-${useId()}`;
                     class="mt-3 w-full"
                 />
 
-                <template v-if="item.showMeaning && item.meaning">
+                <template v-if="item.showMeaning">
                     <ShowMeaningButton
                         :shown="meaning.shown.value"
                         :controls="panelId"
                         class="mt-3 w-full"
                         @toggle="meaning.toggle()"
                     />
-                    <ShowMeaningPanel
+                    <StoredMeaningPanel
                         :id="panelId"
+                        :text="item.text"
                         :shown="meaning.shown.value"
-                        :arabic="item.meaning.arabic"
-                        :explanation="item.meaning.explanation"
+                        :explanation="item.meaning?.explanation ?? null"
                         class="mt-3"
                     />
                 </template>

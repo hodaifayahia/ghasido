@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContentStatus;
+use App\Enums\CourseHotelScope;
 use App\Enums\CourseTrack;
 use App\Enums\EnglishLevel;
 use App\Enums\EssentialsIcon;
@@ -33,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int|null $department_id null only for an English Essentials topic
  * @property int|null $hotel_id
+ * @property CourseHotelScope $hotel_scope which hotels see a shared course (client request 2026-11-05)
  * @property EnglishLevel|null $level null = every level
  * @property string $title
  * @property string $slug
@@ -65,6 +67,7 @@ use Illuminate\Support\Carbon;
     'created_by',
     'track',
     'icon',
+    'hotel_scope',
 ])]
 class Course extends Model
 {
@@ -74,6 +77,7 @@ class Course extends Model
     /** A new course is department training unless said otherwise. */
     protected $attributes = [
         'track' => 'department',
+        'hotel_scope' => 'all',
     ];
 
     /**
@@ -86,6 +90,7 @@ class Course extends Model
             'status' => ContentStatus::class,
             'level' => EnglishLevel::class,
             'track' => CourseTrack::class,
+            'hotel_scope' => CourseHotelScope::class,
             'icon' => EssentialsIcon::class,
             'published_at' => 'datetime',
             'archived_at' => 'datetime',
@@ -140,6 +145,17 @@ class Course extends Model
         return $this->belongsToMany(Department::class, 'course_department')->withTimestamps();
     }
 
+    /**
+     * The hotel group of a shared course: the only hotels that see it, or
+     * the hotels that do not, per `hotel_scope` (client request 2026-11-05).
+     *
+     * @return BelongsToMany<Hotel, $this>
+     */
+    public function scopedHotels(): BelongsToMany
+    {
+        return $this->belongsToMany(Hotel::class, 'course_hotel')->withTimestamps();
+    }
+
     /** @return HasMany<Unit, $this> */
     public function units(): HasMany
     {
@@ -190,6 +206,38 @@ class Course extends Model
     }
 
     /**
+     * The courses one hotel's learners may see: that hotel's own, and the
+     * shared ones whose hotel group lets it in — every hotel, only a chosen
+     * group, or every hotel except a chosen group (ORG-04, CMS-04; client
+     * request 2026-11-05).
+     *
+     * @param  Builder<Course>  $query
+     */
+    public function scopeOpenToHotel(Builder $query, ?int $hotelId): void
+    {
+        $query->where(function (Builder $inner) use ($hotelId): void {
+            $inner->where(function (Builder $shared) use ($hotelId): void {
+                $shared->whereNull($shared->qualifyColumn('hotel_id'))
+                    ->where(function (Builder $group) use ($hotelId): void {
+                        $inGroup = fn (Builder $hotel) => $hotel->whereKey($hotelId ?? 0);
+
+                        $group->where($group->qualifyColumn('hotel_scope'), CourseHotelScope::All)
+                            ->orWhere(fn (Builder $only) => $only
+                                ->where($only->qualifyColumn('hotel_scope'), CourseHotelScope::Only)
+                                ->whereHas('scopedHotels', $inGroup))
+                            ->orWhere(fn (Builder $except) => $except
+                                ->where($except->qualifyColumn('hotel_scope'), CourseHotelScope::Except)
+                                ->whereDoesntHave('scopedHotels', $inGroup));
+                    });
+            });
+
+            if ($hotelId !== null) {
+                $inner->orWhere($inner->qualifyColumn('hotel_id'), $hotelId);
+            }
+        });
+    }
+
+    /**
      * What one learner may see: published, their department, shared or their
      * hotel (ROLE-02, JOURNEY-03, spec 0003 Part E).
      *
@@ -203,7 +251,7 @@ class Course extends Model
             ->published()
             ->where('track', CourseTrack::Department)
             ->where('department_id', $user->learningDepartmentId() ?? 0)
-            ->sharedOrFor($user->hotel_id)
+            ->openToHotel($user->hotel_id)
             ->forLevel($user->english_level);
     }
 
@@ -230,7 +278,7 @@ class Course extends Model
         $query
             ->published()
             ->essentials()
-            ->sharedOrFor($user->hotel_id)
+            ->openToHotel($user->hotel_id)
             ->where(function (Builder $audience) use ($departmentId): void {
                 $audience
                     ->whereDoesntHave('audienceDepartments')

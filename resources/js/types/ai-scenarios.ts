@@ -95,6 +95,10 @@ export type AiScenarioEditor = {
     guestMood?: string;
     guestMoods?: AiScenarioSelectOption[];
     usefulPhrases?: string[];
+    /** The saved cover image (client report 2026-11-05). */
+    thumbnail?: { id: number; url: string; alt: string | null } | null;
+    /** POST a new image here; DELETE removes it. */
+    thumbnailUrl?: string;
     aiStatus?: 'pending' | 'running' | 'done' | 'failed' | null;
     aiDraft?: Record<string, unknown> | null;
     saveUrl?: string;

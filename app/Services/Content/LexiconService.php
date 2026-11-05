@@ -5,12 +5,14 @@ namespace App\Services\Content;
 use App\Enums\AudioSpeed;
 use App\Enums\GenerationStatus;
 use App\Jobs\GenerateLexiconDraft;
+use App\Jobs\TranslateContent;
 use App\Models\AudioClip;
 use App\Models\AuditLog;
 use App\Models\Block;
 use App\Models\LexiconItem;
 use App\Models\User;
 use App\Services\Audio\AudioLibrary;
+use App\Services\Meaning\InlineMeanings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +27,10 @@ use Illuminate\Support\Facades\DB;
  */
 class LexiconService
 {
-    public function __construct(private readonly AudioLibrary $audio) {}
+    public function __construct(
+        private readonly AudioLibrary $audio,
+        private readonly InlineMeanings $meanings,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -58,6 +63,18 @@ class LexiconService
     {
         return DB::transaction(function () use ($item, $data): LexiconItem {
             $item->fill($data);
+
+            // An old inline Arabic belongs to the English it was written for
+            // (kept in text_translations under that text); it must not become
+            // the meaning of the new English (client request 2026-11-05).
+            if ($item->isDirty('english_text') && ! array_key_exists('arabic_meaning', $data)) {
+                $item->arabic_meaning = null;
+            }
+
+            if ($item->isDirty('hotel_example') && ! array_key_exists('hotel_example_arabic', $data)) {
+                $item->hotel_example_arabic = null;
+            }
+
             AuditLog::record($item, 'lexicon.updated');
             $item->save();
 
@@ -77,6 +94,9 @@ class LexiconService
         /** @var int|null $max */
         $max = $block->lexiconItems()->max('block_lexicon_item.position');
         $block->lexiconItems()->attach($item->id, ['position' => ((int) $max) + 1]);
+
+        // The word's English and example are Show Meaning texts of the lesson.
+        TranslateContent::afterSave('lesson', $block->lesson_id);
     }
 
     /**
@@ -100,7 +120,10 @@ class LexiconService
 
     /**
      * Copy the draft into the columns, or the admin's edited version of it
-     * (GEN-03: reviewed and applied explicitly, never auto-published).
+     * (GEN-03: reviewed and applied explicitly, never auto-published). The
+     * Arabic meanings go to the per-text Show Meaning store as AI drafts of
+     * the word and of its example (client request 2026-11-05); a meaning
+     * the admin wrote by hand is never replaced.
      *
      * @param  array<string, mixed>|null  $edited  fields the admin changed before applying
      */
@@ -108,9 +131,10 @@ class LexiconService
     {
         return DB::transaction(function () use ($item, $edited): LexiconItem {
             $draft = $item->ai_draft ?? [];
+            $merged = array_merge($draft, $edited ?? []);
             $values = array_intersect_key(
-                array_merge($draft, $edited ?? []),
-                array_flip(['arabic_meaning', 'simple_explanation', 'hotel_example', 'hotel_example_arabic', 'ipa', 'part_of_speech']),
+                $merged,
+                array_flip(['simple_explanation', 'hotel_example', 'ipa', 'part_of_speech']),
             );
 
             foreach ($values as $key => $value) {
@@ -119,11 +143,18 @@ class LexiconService
                 }
             }
 
+            if ($item->isDirty('hotel_example')) {
+                $item->hotel_example_arabic = null;
+            }
+
             $item->source = LexiconItem::SOURCE_AI;
             $item->ai_draft = null;
             $item->ai_status = null;
             AuditLog::record($item, 'lexicon.draft_applied');
             $item->save();
+
+            $this->meanings->draft($item->english_text, is_string($merged['arabic_meaning'] ?? null) ? $merged['arabic_meaning'] : null);
+            $this->meanings->draft($item->hotel_example, is_string($merged['hotel_example_arabic'] ?? null) ? $merged['hotel_example_arabic'] : null);
 
             return $item;
         });

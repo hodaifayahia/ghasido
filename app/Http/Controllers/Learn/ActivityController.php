@@ -10,6 +10,7 @@ use App\Models\Block;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Services\Learning\ActivityPresenter;
+use App\Services\Learning\AttemptHistory;
 use App\Services\Learning\AttemptRecorder;
 use App\Services\Learning\BlockPresenter;
 use App\Services\Learning\LessonNavigator;
@@ -38,6 +39,7 @@ class ActivityController extends Controller
         private readonly BlockPresenter $blocks,
         private readonly LessonNavigator $navigator,
         private readonly AttemptRecorder $recorder,
+        private readonly AttemptHistory $history,
     ) {}
 
     public function show(Request $request, Lesson $lesson, Block $block, ActivityPlacement $placement): Response
@@ -52,20 +54,36 @@ class ActivityController extends Controller
         $result = is_array($result) && ($result['placementId'] ?? null) === $placement->id ? $result : null;
 
         // The page polls a spoken or written answer while it is judged
-        // (PERF-04): `?attempt=` rebuilds the result of the learner's own
-        // answer to this placement, never anyone else's.
+        // (PERF-04), and the attempt history opens an earlier try: `?attempt=`
+        // rebuilds the result of the learner's own answer to this placement.
+        // Another learner's attempt is a 403 (ROLE-02, SEC-01).
         $attemptId = (int) $request->query('attempt', 0);
 
         if ($attemptId > 0) {
             $attempt = Attempt::query()
                 ->whereKey($attemptId)
-                ->where('user_id', $user->id)
                 ->where('placement_id', $placement->id)
+                ->whereNull('test_attempt_id')
                 ->first();
+
+            if ($attempt !== null) {
+                Gate::authorize('view', $attempt);
+            }
 
             $result = $attempt === null ? null : [
                 'placementId' => $placement->id,
                 ...$this->recorder->resultFor($attempt),
+            ];
+        } elseif ($result === null) {
+            // Reopened later (after a logout, on another device): the latest
+            // saved answer with its result and feedback comes back from the
+            // server, never from the browser (PROG-01, PROG-04; client
+            // report 2026-11-05). "Try again" starts a new attempt.
+            $latest = $this->history->latestPractice($user, $placement);
+
+            $result = $latest === null ? null : [
+                'placementId' => $placement->id,
+                ...$this->recorder->resultFor($latest),
             ];
         }
 
@@ -83,6 +101,9 @@ class ActivityController extends Controller
             'backUrl' => $this->navigator->stepUrl($lesson, $block),
             'answerUrl' => route('learn.lessons.activity.answer', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement]),
             'result' => $result,
+            // Every earlier try, newest first, to compare (client report
+            // 2026-11-05).
+            'attempts' => $this->history->practice($user, $lesson, $block, $placement),
         ]);
     }
 
@@ -93,6 +114,18 @@ class ActivityController extends Controller
 
         Gate::authorize('view', $lesson);
         abort_unless($block->is_visible, 404);
+
+        // A retried request of a submission already saved shows that
+        // attempt again instead of writing (or refusing) a second one.
+        $repeat = $this->recorder->submitted($user, $request->submissionKey());
+
+        if ($repeat !== null && $repeat->placement_id === $placement->id) {
+            return to_route('learn.lessons.activity', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement])
+                ->with(self::RESULT_KEY, [
+                    'placementId' => $placement->id,
+                    ...$this->recorder->resultFor($repeat),
+                ]);
+        }
 
         $activity = $placement->activity()->firstOrFail();
 
@@ -113,6 +146,7 @@ class ActivityController extends Controller
             $placement,
             $request->answers(),
             $request->startedAt(),
+            $request->submissionKey(),
         );
 
         return to_route('learn.lessons.activity', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement])

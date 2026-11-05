@@ -10,6 +10,7 @@ import {
     Link2,
     List,
     ListOrdered,
+    Save,
     Send,
     Sparkles,
     Trash2,
@@ -17,7 +18,7 @@ import {
 } from '@lucide/vue';
 import { Link as InertiaLink } from '@inertiajs/vue3';
 import type { AcceptableValue } from 'reka-ui';
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import LessonsMockupCrop from '@/components/lessons/LessonsMockupCrop.vue';
 import { Button } from '@/components/ui/button';
@@ -41,13 +42,23 @@ import type { AiScenarioEditor, AiScenarioSavePayload } from '@/types';
 
 type Props = {
     editor: AiScenarioEditor;
+    /** A save of this scenario is on its way. */
+    saving?: boolean;
+    /** The cover image is uploading. */
+    uploading?: boolean;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    saving: false,
+    uploading: false,
+    class: undefined,
+});
 
 const emit = defineEmits<{
     save: [payload: AiScenarioSavePayload];
+    'upload-image': [file: File];
+    'remove-image': [];
     generate: [];
     'apply-draft': [];
     publish: [];
@@ -73,25 +84,95 @@ const imageName = ref('');
 const imageInput = ref<HTMLInputElement | null>(null);
 const descriptionInput = ref<HTMLTextAreaElement | null>(null);
 
+/*
+ * What the server holds for the fields of this page. Every server visit
+ * from another tab (a Test conversation, the voice settings, the AI draft
+ * polling, an image upload, a save refused by validation) brings a new
+ * editor object. Resetting the fields on every new object wiped what the
+ * admin had typed but not saved yet, so the Settings save then sent the old
+ * values back (client report 2026-11-05). The fields are now reset only
+ * when another scenario opens or the stored values really changed (a save,
+ * an applied AI draft).
+ */
+function serverFields(editor: AiScenarioEditor): string {
+    return JSON.stringify([
+        editor.title,
+        editor.department,
+        editor.level,
+        editor.description,
+        editor.situation ?? '',
+        editor.guestRole,
+        editor.employeeRole,
+        editor.objective ?? '',
+        editor.openingLine ?? '',
+        editor.guestMood ?? 'friendly',
+        editor.objectives,
+    ]);
+}
+
+const syncedId = ref(props.editor.id);
+const syncedFields = ref(serverFields(props.editor));
+
+function resetFields(editor: AiScenarioEditor): void {
+    title.value = editor.title;
+    department.value = editor.department;
+    level.value = editor.level;
+    description.value = editor.description;
+    situation.value = editor.situation ?? '';
+    guestRole.value = editor.guestRole;
+    employeeRole.value = editor.employeeRole;
+    objective.value = editor.objective ?? '';
+    openingLine.value = editor.openingLine ?? '';
+    guestMood.value = editor.guestMood ?? 'friendly';
+    goals.value = [...editor.objectives];
+    newObjective.value = '';
+    addingObjective.value = false;
+}
+
 watch(
-    () => props.editor,
-    (editor) => {
-        title.value = editor.title;
-        department.value = editor.department;
-        level.value = editor.level;
-        description.value = editor.description;
-        situation.value = editor.situation ?? '';
-        guestRole.value = editor.guestRole;
-        employeeRole.value = editor.employeeRole;
-        objective.value = editor.objective ?? '';
-        openingLine.value = editor.openingLine ?? '';
-        guestMood.value = editor.guestMood ?? 'friendly';
-        goals.value = [...editor.objectives];
-        clearCoverPreview();
-        newObjective.value = '';
-        addingObjective.value = false;
+    () => [props.editor.id, serverFields(props.editor)] as const,
+    ([id, fields]) => {
+        if (id === syncedId.value && fields === syncedFields.value) {
+            return;
+        }
+
+        if (id !== syncedId.value) {
+            clearCoverPreview();
+        }
+
+        syncedId.value = id;
+        syncedFields.value = fields;
+        resetFields(props.editor);
     },
-    { deep: true },
+);
+
+// Once the upload ends the stored image shows: the new one when it was
+// saved, the previous one when it was refused.
+watch(
+    () => props.uploading,
+    (uploading, before) => {
+        if (before && !uploading) {
+            clearCoverPreview();
+        }
+    },
+);
+
+/** Typed but not saved yet. */
+const dirty = computed(
+    () =>
+        JSON.stringify([
+            title.value,
+            department.value,
+            level.value,
+            description.value,
+            situation.value,
+            guestRole.value,
+            employeeRole.value,
+            objective.value,
+            openingLine.value,
+            guestMood.value,
+            goals.value,
+        ]) !== syncedFields.value,
 );
 
 function onSelect(
@@ -133,7 +214,7 @@ function save(settings?: AiScenarioSavePayload['settings']): void {
     });
 }
 
-defineExpose({ save });
+defineExpose({ save, dirty });
 
 function chooseImage(): void {
     imageInput.value?.click();
@@ -155,6 +236,19 @@ function onImageSelected(event: Event): void {
     clearCoverPreview();
     coverPreview.value = URL.createObjectURL(file);
     imageName.value = file.name;
+    input.value = '';
+    // Saved straight away, so it is never lost (client report 2026-11-05).
+    emit('upload-image', file);
+}
+
+function removeImage(): void {
+    const saved = props.editor.thumbnail ?? null;
+
+    clearCoverPreview();
+
+    if (saved !== null) {
+        emit('remove-image');
+    }
 }
 
 function clearCoverPreview(): void {
@@ -333,6 +427,17 @@ onBeforeUnmount(clearCoverPreview);
                             ? $t('Regenerate with AI')
                             : $t('Generate with AI')
                     }}
+                </Button>
+                <Button
+                    v-if="editor.saveUrl"
+                    type="button"
+                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-8 gap-1.5 rounded-md px-3 text-[11.5px] font-semibold text-white active:scale-[.97]"
+                    :disabled="saving"
+                    data-test="save-scenario-header-button"
+                    @click="save()"
+                >
+                    <Save class="size-3.5" aria-hidden="true" />
+                    {{ saving ? $t('Saving…') : $t('Save') }}
                 </Button>
             </div>
 
@@ -516,6 +621,13 @@ onBeforeUnmount(clearCoverPreview);
                         :alt="$t('Selected scenario cover')"
                         class="border-line aspect-[1200/628] w-full rounded-md border object-cover"
                     />
+                    <img
+                        v-else-if="editor.thumbnail"
+                        :src="editor.thumbnail.url"
+                        :alt="editor.thumbnail.alt ?? ''"
+                        class="border-line aspect-[1200/628] w-full rounded-md border object-cover"
+                        data-test="scenario-saved-image"
+                    />
                     <LessonsMockupCrop
                         v-else
                         :crop="editor.coverCrop"
@@ -536,6 +648,8 @@ onBeforeUnmount(clearCoverPreview);
                             type="button"
                             variant="outline"
                             class="border-line text-brand-700 hover:bg-brand-50 h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
+                            :disabled="uploading || !editor.thumbnailUrl"
+                            data-test="scenario-change-image"
                             @click="chooseImage"
                         >
                             <Image class="size-3.5" aria-hidden="true" />
@@ -546,9 +660,11 @@ onBeforeUnmount(clearCoverPreview);
                             variant="outline"
                             class="border-line text-danger-text hover:bg-danger-tint h-8 gap-1.5 rounded-md px-3 text-[12px] font-semibold shadow-none"
                             :disabled="
-                                coverPreview === null && imageName === ''
+                                uploading ||
+                                (coverPreview === null && !editor.thumbnail)
                             "
-                            @click="clearCoverPreview"
+                            data-test="scenario-remove-image"
+                            @click="removeImage"
                         >
                             <Trash2 class="size-3.5" aria-hidden="true" />
                             {{ $t('Remove') }}
@@ -558,6 +674,12 @@ onBeforeUnmount(clearCoverPreview);
                                 v-if="imageName"
                                 class="text-success-text block truncate"
                                 >{{ imageName }}</span
+                            >
+                            <span
+                                v-if="uploading"
+                                class="text-brand-700 block"
+                                role="status"
+                                >{{ $t('Saving the image…') }}</span
                             >
                             {{ $t('Recommended size: 1200 x 628 px') }}<br />
                             {{ $t('(JPG, PNG - Max 5MB)') }}
@@ -874,6 +996,31 @@ onBeforeUnmount(clearCoverPreview);
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- This page's own save (client report 2026-11-05: nothing on
+                 it was saved; only the Settings tab had a Save button). -->
+            <div
+                class="border-line flex flex-wrap items-center justify-end gap-3 border-t pt-3"
+            >
+                <span
+                    v-if="dirty"
+                    class="text-warning-text text-[12px] font-medium"
+                    role="status"
+                    data-test="scenario-unsaved-changes"
+                >
+                    {{ $t('You have unsaved changes.') }}
+                </span>
+                <Button
+                    type="button"
+                    class="bg-brand-600 shadow-btn hover:bg-brand-700 h-11 gap-1.5 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97] md:h-10"
+                    :disabled="saving || !editor.saveUrl"
+                    data-test="save-scenario-details-button"
+                    @click="save()"
+                >
+                    <Save class="size-4" aria-hidden="true" />
+                    {{ saving ? $t('Saving…') : $t('Save scenario') }}
+                </Button>
             </div>
         </div>
     </section>

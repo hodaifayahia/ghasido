@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ClipboardCheck } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { ClipboardCheck, Eye } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import { intlLocale } from '@/lib/i18n';
@@ -67,6 +68,15 @@ const submitted = computed(() =>
                     })
                 }}
             </p>
+            <Link
+                v-if="result?.url"
+                :href="result.url"
+                class="text-brand-700 focus-visible:ring-brand-600/40 inline-flex min-h-11 items-center gap-1.5 rounded-md text-sm font-semibold hover:underline focus-visible:ring-3 focus-visible:outline-none"
+                data-test="view-test-result-link"
+            >
+                <Eye class="size-4" aria-hidden="true" />
+                {{ $t('View result') }}
+            </Link>
         </div>
         <p
             v-if="result?.percent !== null && result?.percent !== undefined"

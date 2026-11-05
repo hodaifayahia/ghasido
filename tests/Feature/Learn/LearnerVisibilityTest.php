@@ -17,9 +17,10 @@ use Tests\TestCase;
 
 /**
  * Publish → learner visibility (ORG-04, CMS-04, CMS-05, JOURNEY-03, ROLE-02;
- * spec 0004): publishing a lesson makes its draft unit and course visible
- * too, the lesson reaches the employees of its department only, a hotel's
- * own lesson stays inside that hotel, and a draft never shows.
+ * spec 0004): publishing a lesson makes its draft unit visible too, its
+ * course stays hidden until the admin shows it (client request 2026-11-05),
+ * the lesson reaches the employees of its department only, a hotel's own
+ * lesson stays inside that hotel, and a draft never shows.
  */
 class LearnerVisibilityTest extends TestCase
 {
@@ -80,29 +81,66 @@ class LearnerVisibilityTest extends TestCase
         return $ids;
     }
 
-    public function test_publishing_a_lesson_publishes_its_draft_unit_and_course()
+    /**
+     * Publish the lesson, then show its course, as an admin does.
+     */
+    private function publishWithCourse(Lesson $lesson): void
+    {
+        $this->actingAs($this->admin)->post(route('lessons.publish', $lesson));
+        $this->actingAs($this->admin)
+            ->patch(route('courses.update', $lesson->course_id), ['status' => 'published'])
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_publishing_a_lesson_publishes_its_draft_unit_but_leaves_its_course_hidden()
     {
         $lesson = $this->draftLesson();
 
         $this->actingAs($this->admin)
             ->post(route('lessons.publish', $lesson))
             ->assertRedirect()
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertInertiaFlash('toast.type', 'info');
 
         $lesson->refresh();
         $this->assertSame(ContentStatus::Published, $lesson->status);
         $this->assertSame(ContentStatus::Published, $lesson->unit()->firstOrFail()->status);
+        $this->assertSame(ContentStatus::Draft, $lesson->course()->firstOrFail()->status);
+        $this->assertSame(1, AuditLog::query()->where('action', 'unit.published')->count());
+
+        $learner = $this->learner();
+        $this->submitPreTest($learner);
+        $this->assertNotContains($lesson->id, $this->visibleLessonIds($learner));
+
+        $this->actingAs($this->admin)
+            ->patch(route('courses.update', $lesson->course_id), ['status' => 'published'])
+            ->assertInertiaFlash('toast.type', 'success');
+
         $course = $lesson->course()->firstOrFail();
         $this->assertSame(ContentStatus::Published, $course->status);
         $this->assertNotNull($course->published_at);
-        $this->assertSame(1, AuditLog::query()->where('action', 'course.published')->count());
-        $this->assertSame(1, AuditLog::query()->where('action', 'unit.published')->count());
+        $this->assertContains($lesson->id, $this->visibleLessonIds($learner));
+    }
+
+    public function test_a_published_course_without_any_published_lesson_is_not_listed()
+    {
+        $lesson = $this->draftLesson();
+        $this->actingAs($this->admin)
+            ->patch(route('courses.update', $lesson->course_id), ['status' => 'published']);
+
+        $learner = $this->learner();
+        $this->submitPreTest($learner);
+
+        $this->actingAs($learner)
+            ->get(route('learn.lessons'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('courses', 0));
     }
 
     public function test_a_published_lesson_reaches_its_department_only()
     {
         $lesson = $this->draftLesson();
-        $this->actingAs($this->admin)->post(route('lessons.publish', $lesson));
+        $this->publishWithCourse($lesson);
 
         $learner = $this->learner();
         $this->submitPreTest($learner);
@@ -129,7 +167,7 @@ class LearnerVisibilityTest extends TestCase
     {
         $otherHotel = Hotel::factory()->create();
         $lesson = $this->draftLesson(hotel: $otherHotel);
-        $this->actingAs($this->admin)->post(route('lessons.publish', $lesson));
+        $this->publishWithCourse($lesson);
 
         $learner = $this->learner();
         $this->submitPreTest($learner);

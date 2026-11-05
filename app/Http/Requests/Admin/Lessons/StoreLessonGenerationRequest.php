@@ -21,6 +21,9 @@ use Illuminate\Validation\Validator;
  */
 class StoreLessonGenerationRequest extends FormRequest
 {
+    /** Characters: a whole lesson brief fits (client request 2026-11-05). */
+    public const int MAX_PROMPT = 20000;
+
     public function authorize(): bool
     {
         $user = $this->user('web');
@@ -50,7 +53,9 @@ class StoreLessonGenerationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'prompt' => ['required', 'string', 'min:5', 'max:4000'],
+            // Room for a whole lesson pasted from another tool, with exact
+            // details (client request 2026-11-05); stored in a TEXT column.
+            'prompt' => ['required', 'string', 'min:5', 'max:'.self::MAX_PROMPT],
             // "essentials" = an English Essentials topic (2026-10-18).
             'department_id' => $this->forEssentials()
                 ? ['required', 'string']

@@ -19,7 +19,10 @@ use Illuminate\Support\Carbon;
  *
  * The Arabic columns leave the server only behind a Show Meaning tap and
  * never on a test page (CTRL-02, CTRL-04): the shaper, not this model,
- * decides what is serialized, so nothing here is #[Hidden].
+ * decides what is serialized, so nothing here is #[Hidden]. Since
+ * 2026-11-05 they are legacy: the meanings of the English text and the
+ * hotel example live in `text_translations` (any helper language), and
+ * whatever is still written here fills that store (InlineMeanings).
  *
  * @property int $id
  * @property LexiconKind $kind
@@ -136,11 +139,14 @@ class LexiconItem extends Model
     }
 
     /**
-     * May Show Meaning reveal this item's Arabic (CTRL-03)?
+     * May Show Meaning reveal this item's meaning (CTRL-03)? The meaning is
+     * the stored translation of its English text in the learner's helper
+     * language (client request 2026-11-05), so it no longer depends on the
+     * old Arabic column being filled.
      */
     public function allowsShowMeaning(): bool
     {
-        return $this->show_meaning_enabled && $this->arabic_meaning !== null;
+        return $this->show_meaning_enabled;
     }
 
     public function hasPendingDraft(): bool

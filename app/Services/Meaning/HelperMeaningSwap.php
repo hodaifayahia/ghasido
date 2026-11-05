@@ -15,7 +15,9 @@ use App\Models\User;
  * English text in their language, or removed when there is none yet. The
  * Arabic never reaches them, and nothing is ever translated on the fly.
  *
- * Arabic readers get the payload unchanged.
+ * Arabic readers get the payload unchanged, unless `fillMissing` asks for
+ * the empty meanings to be filled from the store (a phrasebook word whose
+ * meaning is no longer written on the word; client request 2026-11-05).
  */
 final class HelperMeaningSwap
 {
@@ -39,16 +41,18 @@ final class HelperMeaningSwap
      * @param  T  $payload
      * @return T
      */
-    public function apply(array $payload, User $user): array
+    public function apply(array $payload, User $user, bool $fillMissing = false): array
     {
         $locale = $this->languages->forUser($user);
+        // Arabic readers keep what the content wrote; only gaps are filled.
+        $onlyGaps = $locale === 'ar';
 
-        if ($locale === 'ar') {
+        if ($onlyGaps && ! $fillMissing) {
             return $payload;
         }
 
         $texts = [];
-        $this->collect($payload, null, $texts);
+        $this->collect($payload, null, $texts, $onlyGaps);
 
         $translations = $texts === [] ? [] : TextTranslation::query()
             ->where('locale', $locale)
@@ -58,7 +62,7 @@ final class HelperMeaningSwap
             ->all();
 
         /** @var T $swapped */
-        $swapped = $this->swap($payload, null, $translations);
+        $swapped = $this->swap($payload, null, $translations, $onlyGaps);
 
         return $swapped;
     }
@@ -68,19 +72,24 @@ final class HelperMeaningSwap
      * @param  array<mixed>|null  $parent
      * @param  array<string, true>  $texts
      */
-    private function collect(array $node, ?array $parent, array &$texts): void
+    private function collect(array $node, ?array $parent, array &$texts, bool $onlyGaps): void
     {
         foreach (self::PAIRS as $key => $siblings) {
-            if (array_key_exists($key, $node) && is_string($english = $this->english($node, $parent, $key, $siblings))) {
+            if (array_key_exists($key, $node) && ! ($onlyGaps && $this->filled($node[$key])) && is_string($english = $this->english($node, $parent, $key, $siblings))) {
                 $texts[$english] = true;
             }
         }
 
         foreach ($node as $child) {
             if (is_array($child)) {
-                $this->collect($child, $node, $texts);
+                $this->collect($child, $node, $texts, $onlyGaps);
             }
         }
+    }
+
+    private function filled(mixed $value): bool
+    {
+        return is_string($value) && trim($value) !== '';
     }
 
     /**
@@ -89,18 +98,18 @@ final class HelperMeaningSwap
      * @param  array<string, string|null>  $translations
      * @return array<mixed>
      */
-    private function swap(array $node, ?array $parent, array $translations): array
+    private function swap(array $node, ?array $parent, array $translations, bool $onlyGaps): array
     {
         $original = $node;
 
         foreach ($node as $key => $child) {
             if (is_array($child)) {
-                $node[$key] = $this->swap($child, $original, $translations);
+                $node[$key] = $this->swap($child, $original, $translations, $onlyGaps);
             }
         }
 
         foreach (self::PAIRS as $key => $siblings) {
-            if (! array_key_exists($key, $original)) {
+            if (! array_key_exists($key, $original) || ($onlyGaps && $this->filled($original[$key]))) {
                 continue;
             }
 

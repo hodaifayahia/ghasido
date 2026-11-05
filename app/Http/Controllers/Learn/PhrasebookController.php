@@ -158,13 +158,16 @@ class PhrasebookController extends Controller
                 'audio' => $audio[$text] ?? $silent,
                 'example' => $lexicon?->hotel_example,
                 'exampleAudio' => $lexicon?->hotel_example === null ? null : ($audio[$lexicon->hotel_example] ?? $silent),
-                'showMeaning' => $lexicon === null ? $item->custom_arabic !== null : $lexicon->allowsShowMeaning(),
+                // A word's meanings are the stored translations of its
+                // English and its example (client request 2026-11-05): the
+                // swap below fills them in the learner's helper language.
+                'showMeaning' => $lexicon === null || $lexicon->allowsShowMeaning(),
                 'meaning' => $lexicon === null
-                    ? ($item->custom_arabic === null ? null : ['arabic' => $item->custom_arabic, 'explanation' => null, 'exampleArabic' => null])
+                    ? ['arabic' => $item->custom_arabic, 'explanation' => null, 'exampleArabic' => null]
                     : ($lexicon->allowsShowMeaning() ? [
-                        'arabic' => $lexicon->arabic_meaning,
+                        'arabic' => null,
                         'explanation' => $lexicon->simple_explanation,
-                        'exampleArabic' => $lexicon->hotel_example_arabic,
+                        'exampleArabic' => null,
                     ] : null),
                 'lesson' => $item->sourceLesson === null ? null : [
                     'id' => $item->sourceLesson->id,
@@ -185,7 +188,19 @@ class PhrasebookController extends Controller
         // 2026-09-30).
         $user = request()->user('web');
 
-        return $user instanceof User ? app(HelperMeaningSwap::class)->apply($entries, $user) : $entries;
+        $entries = $user instanceof User ? app(HelperMeaningSwap::class)->apply($entries, $user, fillMissing: true) : $entries;
+
+        // A saved sentence with no meaning in any store has nothing to show.
+        return array_map(static function (array $entry): array {
+            $meaning = $entry['meaning'] ?? null;
+
+            if ($entry['source'] === 'custom' && ! (is_array($meaning) && is_string($meaning['arabic'] ?? null))) {
+                $entry['showMeaning'] = false;
+                $entry['meaning'] = null;
+            }
+
+            return $entry;
+        }, $entries);
     }
 
     public function store(StorePhrasebookItemRequest $request): JsonResponse|RedirectResponse

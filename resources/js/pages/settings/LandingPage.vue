@@ -288,6 +288,47 @@ defineOptions({
                             :error="form.errors['content.hero.secondary_cta']"
                         />
                     </div>
+                    <!-- The lesson step the hero's phone plays (user
+                         request 2026-11-05). -->
+                    <div class="border-line grid gap-4 border-t pt-4">
+                        <p class="text-ink-slate text-[12px] leading-5">
+                            {{
+                                $t(
+                                    'The phone in the hero plays one lesson step: a guest line, its meaning and the employee’s reply. Keep the two lines in English in both languages.',
+                                )
+                            }}
+                        </p>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <LessonsField
+                                v-model="form.content.hero.demo_situation"
+                                :label="$t('Lesson situation')"
+                                :error="
+                                    form.errors['content.hero.demo_situation']
+                                "
+                            />
+                            <LessonsField
+                                v-model="form.content.hero.demo_note"
+                                :label="$t('Handwritten note')"
+                                :error="form.errors['content.hero.demo_note']"
+                            />
+                        </div>
+                        <LessonsField
+                            v-model="form.content.hero.demo_guest_line"
+                            :label="$t('Guest line (English)')"
+                            :error="form.errors['content.hero.demo_guest_line']"
+                        />
+                        <LessonsField
+                            v-model="form.content.hero.demo_meaning"
+                            dir="rtl"
+                            :label="$t('Meaning of the guest line (Arabic)')"
+                            :error="form.errors['content.hero.demo_meaning']"
+                        />
+                        <LessonsField
+                            v-model="form.content.hero.demo_reply"
+                            :label="$t('Employee reply (English)')"
+                            :error="form.errors['content.hero.demo_reply']"
+                        />
+                    </div>
                 </div>
             </PanelCard>
 

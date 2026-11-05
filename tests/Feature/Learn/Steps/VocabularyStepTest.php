@@ -65,10 +65,11 @@ class VocabularyStepTest extends TestCase
             );
     }
 
-    public function test_arabic_is_present_in_the_lesson_payload_and_the_ui_gates_it(): void
+    public function test_the_meaning_is_not_in_the_lesson_payload_and_is_fetched_on_the_tap(): void
     {
-        // A lesson page ships the Arabic (Show Meaning is a UI reveal here,
-        // CTRL-02); a test page carries none at all (CTRL-04, TEST-03).
+        // The meaning is the stored translation of the word (client request
+        // 2026-11-05): it leaves the server only on the Show Meaning tap
+        // (CTRL-02); only the English explanation ships.
         $learner = $this->learner();
         $this->submitPreTest($learner);
 
@@ -85,7 +86,15 @@ class VocabularyStepTest extends TestCase
             ->get(route('learn.lessons.step', ['lesson' => $lesson, 'block' => $block]))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('block.lexicon.0.showMeaning', true)
-                ->where('block.lexicon.0.meaning.arabic', 'حجز')
+                ->missing('block.lexicon.0.meaning.arabic')
+                ->missing('block.lexicon.0.meaning.exampleArabic')
+                ->has('block.lexicon.0.meaning.explanation')
             );
+
+        $this->actingAs($learner)
+            ->postJson(route('meaning'), ['text' => 'Reservation'])
+            ->assertOk()
+            ->assertJsonPath('status', 'done')
+            ->assertJsonPath('text', 'حجز');
     }
 }

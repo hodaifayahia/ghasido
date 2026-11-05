@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { CircleAlert, Info, LoaderCircle } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
+import type { MeaningState } from '@/composables/useMeaning';
 import { cn } from '@/lib/utils';
 import { useHelperLanguage } from '@/composables/useHelperLanguage';
 
@@ -9,6 +11,11 @@ import { useHelperLanguage } from '@/composables/useHelperLanguage';
  * explanation and the hotel example with its Arabic. Rendered only while
  * `shown`, and never inside a test (CTRL-04): the test payload carries no
  * Arabic at all.
+ *
+ * `state` is set when the meaning is fetched on the tap (useMeaning; client
+ * request 2026-11-05): while it loads, or when nobody has added it yet, the
+ * panel says so with an icon and words (ACC-02); the explanation still
+ * shows.
  */
 type Props = {
     shown: boolean;
@@ -17,6 +24,7 @@ type Props = {
     explanation?: string | null;
     example?: string | null;
     exampleArabic?: string | null;
+    state?: MeaningState;
     class?: HTMLAttributes['class'];
 };
 
@@ -25,7 +33,10 @@ const props = withDefaults(defineProps<Props>(), {
     explanation: null,
     example: null,
     exampleArabic: null,
+    state: 'ready',
 });
+
+const emit = defineEmits<{ retry: [] }>();
 
 // `arabic` / `exampleArabic` hold the meaning in the learner's helper
 // language (client request 2026-09-30); the server swaps them.
@@ -44,7 +55,7 @@ const helper = useHelperLanguage();
         "
     >
         <p
-            v-if="arabic"
+            v-if="state === 'ready' && arabic"
             :lang="helper.code.value"
             :dir="helper.dir.value"
             :class="
@@ -55,6 +66,40 @@ const helper = useHelperLanguage();
             "
         >
             {{ arabic }}
+        </p>
+        <p
+            v-else-if="state === 'missing'"
+            class="text-ink-slate flex flex-wrap items-center gap-2 text-sm"
+        >
+            <Info class="size-4 shrink-0" aria-hidden="true" />
+            <span>{{
+                $t('The meaning of this text has not been added yet.')
+            }}</span>
+        </p>
+        <p
+            v-else-if="state === 'error'"
+            class="text-danger-text flex flex-wrap items-center gap-2 text-sm"
+        >
+            <CircleAlert class="size-4 shrink-0" aria-hidden="true" />
+            <span>{{ $t('The meaning is not available right now.') }}</span>
+            <button
+                type="button"
+                class="text-brand-600 min-h-8 font-semibold underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                @click.stop.prevent="emit('retry')"
+            >
+                {{ $t('Try again') }}
+            </button>
+        </p>
+        <p
+            v-else-if="state === 'loading' || state === 'idle'"
+            role="status"
+            class="text-ink-slate flex flex-wrap items-center gap-2 text-sm"
+        >
+            <LoaderCircle
+                class="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+            />
+            <span>{{ $t('Finding the meaning…') }}</span>
         </p>
         <p v-if="explanation" class="text-ink-graphite mt-1 text-base">
             {{ explanation }}

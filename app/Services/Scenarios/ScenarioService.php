@@ -8,6 +8,7 @@ use App\Enums\ScenarioDifficulty;
 use App\Jobs\GenerateScenarioDraft;
 use App\Models\AiScenario;
 use App\Models\AuditLog;
+use App\Models\MediaAsset;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Models\VoiceLine;
@@ -70,6 +71,22 @@ final class ScenarioService
         return DB::transaction(function () use ($scenario, $data): AiScenario {
             $scenario->fill($data);
             AuditLog::record($scenario, 'scenario.updated');
+            $scenario->save();
+
+            return $scenario->refresh();
+        });
+    }
+
+    /**
+     * Point the scenario at its cover image, or clear it (client report
+     * 2026-11-05). The old asset stays in the library: lesson content may
+     * use it too, and media is never deleted from under a page.
+     */
+    public function setThumbnail(AiScenario $scenario, ?MediaAsset $asset): AiScenario
+    {
+        return DB::transaction(function () use ($scenario, $asset): AiScenario {
+            $scenario->thumbnail_media_id = $asset?->id;
+            AuditLog::record($scenario, $asset !== null ? 'scenario.thumbnail_updated' : 'scenario.thumbnail_removed');
             $scenario->save();
 
             return $scenario->refresh();

@@ -304,6 +304,12 @@ export type ActivityResult = {
     placementId: number;
     attemptId: number;
     attemptNo: number;
+    /** When this attempt was saved (ISO 8601). */
+    submittedAt?: string | null;
+    /** The learner's own stored answer (`attempts.raw_answer`). */
+    answers?: AnswerMap;
+    /** The learner's own recording of a spoken answer. */
+    recordingUrl?: string | null;
     score: number | null;
     maxScore: number | null;
     isCorrect: boolean | null;
@@ -313,6 +319,38 @@ export type ActivityResult = {
     aiStatus: string | null;
     /** The judged spoken or written answer, once evaluated. */
     feedback?: ActivityFeedback | null;
+};
+
+/**
+ * One earlier practice attempt in "Your attempts" (client report
+ * 2026-11-05): each try is its own saved row, newest first.
+ */
+export type PracticeAttemptRow = {
+    id: number;
+    attemptNo: number;
+    submittedAt: string | null;
+    score: number | null;
+    maxScore: number | null;
+    isCorrect: boolean | null;
+    aiStatus: string | null;
+    /** The answer in words. */
+    answer: string;
+    /** One line of feedback, once evaluated. */
+    feedback: string | null;
+    /** The learner's own recording of a spoken answer. */
+    recordingUrl: string | null;
+    /** The activity page showing this attempt. */
+    url: string;
+};
+
+/** One finished sitting of a test; the score only when shown (TEST-04). */
+export type TestSittingRow = {
+    id: number;
+    attemptNo: number;
+    submittedAt: string | null;
+    percent: number | null;
+    passed: boolean | null;
+    url: string;
 };
 
 /** A pronunciation check, or the AI verdict on a spoken / written answer. */

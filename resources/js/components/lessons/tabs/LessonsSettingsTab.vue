@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import type { AcceptableValue } from 'reka-ui';
 import { computed, ref, watch } from 'vue';
 import LevelSelect from '@/components/common/LevelSelect.vue';
+import LessonsCourseHotels from '@/components/lessons/LessonsCourseHotels.vue';
 import LessonsEssentialsSettings from '@/components/lessons/LessonsEssentialsSettings.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import { Button } from '@/components/ui/button';
@@ -328,6 +329,12 @@ const labelClass = 'text-brand-900 text-[12px] font-semibold tracking-[0.02em]';
                 }}
             </p>
         </dl>
+
+        <LessonsCourseHotels
+            v-if="editor.courseHotels"
+            :hotels="editor.courseHotels"
+            :readonly="!manage"
+        />
 
         <LessonsEssentialsSettings />
 

@@ -30,6 +30,9 @@
 @source '../../storage/framework/views/*.php';
 
 @custom-variant dark (&:is(.dark *));
+/* The sidebar's palm footer leaves out its artwork when the menu leaves it
+   less than 96px (AppSidebar.vue, 2026-11-05): a speck would look broken. */
+@custom-variant sb-footer-short (@container (max-height: 96px));
 
 /* ============================================================================
    Guesvia — English training for hotel staff
@@ -264,97 +267,54 @@
     --animate-welcome-float: welcome-float 7s ease-in-out infinite;
     --animate-welcome-bar: welcome-bar 5s linear both;
     --animate-welcome-exit: welcome-exit 420ms var(--ease-brand) both;
-    /* Public landing page (user request 2026-09-26): floating badges and
-       slowly drifting glow blobs. Section entrances are `v-reveal`, see
-       the `[data-reveal]` rules further down. */
-    --animate-landing-float: landing-float 6s ease-in-out infinite;
-    --animate-landing-float-slow: landing-float 7.5s ease-in-out infinite;
-    --animate-landing-drift: landing-drift 16s ease-in-out infinite alternate;
-    /* Half a cycle ahead, so two blobs in one section never move in step. */
-    --animate-landing-drift-offset: landing-drift 16s ease-in-out -8s infinite
-        alternate;
-    /* Hero moving background (user request 2026-10-18): a turning aurora
-       of brand, aqua and AI tints, glows that orbit, a panning dot grid
-       and sparks that rise and fade. Colours are the tokens above only. */
-    --animate-landing-aurora: landing-aurora 28s linear infinite;
-    --animate-landing-orbit: landing-orbit 20s ease-in-out infinite;
-    --animate-landing-orbit-reverse: landing-orbit 24s ease-in-out -10s infinite
-        reverse;
-    --animate-landing-grid: landing-grid 24s linear infinite;
-    --animate-landing-rise: landing-rise 9s ease-in infinite;
-    --background-image-landing-aurora: conic-gradient(
-        from 0deg,
-        var(--color-brand-100),
-        var(--color-aqua-tint),
-        var(--color-ai-tint),
-        var(--color-brand-200),
-        var(--color-app),
-        var(--color-brand-100)
-    );
-    --background-image-landing-dots: radial-gradient(
-        var(--color-brand-200) 1.2px,
-        transparent 1.3px
-    );
+    /* Public landing hero (user request 2026-11-05, replacing the
+       aurora, orbiting glows, dot grid and sparks of 2026-10-18): the
+       headline rises word by word, the hotel photo settles in, and the
+       phone's lesson step plays its audio waveform and Show Meaning tap.
+       Section entrances are `v-reveal`, see the `[data-reveal]` rules
+       further down. */
+    --animate-landing-word: landing-word 760ms var(--ease-brand) both;
+    --animate-landing-photo: landing-photo 1600ms var(--ease-brand) both;
+    --animate-landing-wave: landing-wave 900ms ease-in-out infinite;
+    --animate-landing-tap: landing-tap 700ms var(--ease-brand) both;
 
-    @keyframes landing-float {
+    @keyframes landing-word {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 0.42em, 0);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    @keyframes landing-photo {
+        from {
+            opacity: 0;
+            transform: scale(1.045);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+    @keyframes landing-wave {
         0%,
         100% {
-            transform: translate3d(0, 0, 0);
+            transform: scaleY(0.45);
         }
         50% {
-            transform: translate3d(0, -8px, 0);
+            transform: scaleY(1);
         }
     }
-    @keyframes landing-aurora {
+    @keyframes landing-tap {
         from {
-            transform: rotate(0deg) scale(1);
-        }
-        50% {
-            transform: rotate(180deg) scale(1.08);
+            opacity: 0.9;
+            transform: scale(0.3);
         }
         to {
-            transform: rotate(360deg) scale(1);
-        }
-    }
-    @keyframes landing-orbit {
-        0%,
-        100% {
-            transform: translate3d(0, 0, 0) scale(1);
-        }
-        33% {
-            transform: translate3d(-70px, 50px, 0) scale(1.15);
-        }
-        66% {
-            transform: translate3d(40px, 90px, 0) scale(0.92);
-        }
-    }
-    @keyframes landing-grid {
-        from {
-            background-position: 0 0;
-        }
-        to {
-            background-position: 240px 120px;
-        }
-    }
-    @keyframes landing-rise {
-        0% {
             opacity: 0;
-            transform: translate3d(0, 0, 0) scale(0.6);
-        }
-        15% {
-            opacity: 0.7;
-        }
-        100% {
-            opacity: 0;
-            transform: translate3d(0, -70vh, 0) scale(1.2);
-        }
-    }
-    @keyframes landing-drift {
-        from {
-            transform: translate3d(0, 0, 0) scale(1);
-        }
-        to {
-            transform: translate3d(-48px, 36px, 0) scale(1.12);
+            transform: scale(1.8);
         }
     }
 

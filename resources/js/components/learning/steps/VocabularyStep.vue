@@ -71,7 +71,7 @@ const tip = computed(() => props.block.settings.tip ?? null);
                     :text="featured.example"
                     :word="featured.text"
                     :audio="featured.exampleAudio"
-                    :arabic="featured.meaning?.exampleArabic ?? null"
+                    :meaning="featured.showMeaning"
                 />
             </div>
 

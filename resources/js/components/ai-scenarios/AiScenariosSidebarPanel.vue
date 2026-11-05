@@ -50,9 +50,33 @@ const previewMessage = ref('');
 const addingTag = ref(false);
 const newTag = ref('');
 
+/*
+ * Reset only when the stored settings really changed (a save, another
+ * scenario), never because the page's props were replaced by an unrelated
+ * visit such as a save of the details tab: that wiped what the admin had
+ * set here but not saved (client report 2026-11-05).
+ */
+function storedSettings(settings: AiScenarioSettings): string {
+    return JSON.stringify([
+        settings.saveUrl ?? '',
+        settings.attempts,
+        settings.feedbackStyle,
+        settings.focusAreas,
+        settings.allowHints,
+        settings.showSuggestions,
+        settings.tags,
+    ]);
+}
+
+let syncedSettings = storedSettings(props.settings);
+
 watch(
-    () => props.settings,
-    (settings) => {
+    () => storedSettings(props.settings),
+    (stored) => {
+        if (stored === syncedSettings) return;
+
+        syncedSettings = stored;
+        const settings = props.settings;
         attempts.value = settings.attempts;
         feedbackStyle.value = settings.feedbackStyle;
         focusAreas.value = settings.focusAreas.map((area) => ({ ...area }));
@@ -60,7 +84,6 @@ watch(
         showSuggestions.value = settings.showSuggestions;
         tags.value = [...settings.tags];
     },
-    { deep: true },
 );
 
 function onSelect(

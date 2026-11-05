@@ -3,7 +3,6 @@ import { Gauge, MessageSquare, Play, Turtle } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import VideoPlayer from '@/components/learning/video/VideoPlayer.vue';
 import { useI18n } from '@/composables/useI18n';
@@ -11,12 +10,15 @@ import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, StepBlockOf } from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 
 /*
  * Step 6, "Video" (LESSON-06, CTRL-01..03, PERF-02; photo_6): the player on
  * the left, Video Controls (Normal / Slower speed → playbackRate) and an
  * Example from the video on the right. The mockup draws the example's Arabic
- * revealed; per CTRL-02 it ships hidden and opens on Show Meaning.
+ * revealed; per CTRL-02 it ships hidden and opens on Show Meaning, which
+ * fetches the sentence's stored translation in the learner's helper
+ * language (client request 2026-11-05).
  */
 type Props = {
     lesson: LessonSummary;
@@ -77,7 +79,11 @@ const panelId = `video-example-${useId()}`;
                             {{ $t('Video Controls') }}
                         </h3>
                     </div>
-                    <p class="text-ink-slate mt-1">{{ controlsNote }}</p>
+                    <MeaningText
+                        as="p"
+                        :text="controlsNote"
+                        class="text-ink-slate mt-1"
+                    />
 
                     <div class="mt-4 grid grid-cols-2 gap-3">
                         <button
@@ -133,9 +139,12 @@ const panelId = `video-example-${useId()}`;
                             {{ $t('Example from the Video') }}
                         </h3>
                     </div>
-                    <p v-if="example.note" class="text-ink-slate mt-1">
-                        {{ example.note }}
-                    </p>
+                    <MeaningText
+                        v-if="example.note"
+                        as="p"
+                        :text="example.note"
+                        class="text-ink-slate mt-1"
+                    />
 
                     <div
                         class="bg-brand-50 mt-3 flex items-start gap-3 rounded-xl p-4"
@@ -153,7 +162,7 @@ const panelId = `video-example-${useId()}`;
                         />
                     </div>
 
-                    <template v-if="example.arabic">
+                    <template v-if="example.text">
                         <ShowMeaningButton
                             :shown="meaning.shown.value"
                             :controls="panelId"
@@ -161,10 +170,10 @@ const panelId = `video-example-${useId()}`;
                             class="mt-3"
                             @toggle="meaning.toggle()"
                         />
-                        <ShowMeaningPanel
+                        <StoredMeaningPanel
                             :id="panelId"
+                            :text="example.text"
                             :shown="meaning.shown.value"
-                            :arabic="example.arabic"
                             class="mt-3"
                         />
                     </template>

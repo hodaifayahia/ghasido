@@ -38,7 +38,18 @@ defineProps<Props>();
         <PageHeader
             :title="$t('English Essentials')"
             :description="$t('Choose what you need to practise.')"
-        />
+        >
+            <!-- The sprout the client chose for the section's title
+                 (client request 2026-11-05). -->
+            <template #leading>
+                <span
+                    class="bg-success-tint text-success grid size-11 shrink-0 place-items-center rounded-xl"
+                    aria-hidden="true"
+                >
+                    <Sprout class="size-6" />
+                </span>
+            </template>
+        </PageHeader>
 
         <p
             v-if="locked && topics.length > 0"
@@ -63,7 +74,7 @@ defineProps<Props>();
             :action="{ label: $t('Back to My Lessons'), href: lessons() }"
         />
 
-        <ul v-else class="flex list-none flex-col gap-3">
+        <ul v-else class="grid list-none gap-3 md:grid-cols-2">
             <li v-for="topic in topics" :key="topic.id">
                 <MeaningRow :text="topic.title">
                     <Link

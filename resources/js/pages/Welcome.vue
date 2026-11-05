@@ -6,7 +6,6 @@ import {
     ChartNoAxesCombined,
     Check,
     ChevronRight,
-    CircleCheck,
     Hotel,
     Globe,
     MessageCircleMore,
@@ -23,6 +22,7 @@ import { individualInclusions } from '@/components/checkout/individualPlan';
 import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
 import LandingFooter from '@/components/landing/LandingFooter.vue';
 import LandingHeader from '@/components/landing/LandingHeader.vue';
+import LandingHero from '@/components/landing/LandingHero.vue';
 import InstallAppButton from '@/components/landing/InstallAppButton.vue';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/composables/useI18n';
@@ -146,191 +146,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
         <LandingHeader :content="content" />
 
         <main>
-            <section
-                class="bg-app relative isolate overflow-hidden"
-                aria-labelledby="hero-title"
-            >
-                <!-- Moving background (user request 2026-10-18): a slowly
-                     turning aurora, three drifting glows, a panning dot grid
-                     and rising sparks. Decorative only; reduced motion
-                     stops every layer. -->
-                <div
-                    class="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none"
-                    aria-hidden="true"
-                >
-                    <div
-                        class="bg-landing-aurora animate-landing-aurora absolute top-1/2 left-1/2 size-[150vmax] -translate-x-1/2 -translate-y-1/2 opacity-60 blur-3xl motion-reduce:animate-none"
-                    />
-                    <div
-                        class="bg-brand-200/70 animate-landing-orbit absolute -end-24 -top-40 size-[34rem] rounded-full blur-3xl motion-reduce:animate-none"
-                    />
-                    <div
-                        class="bg-aqua-tint animate-landing-orbit-reverse absolute -start-40 top-1/3 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
-                    />
-                    <div
-                        class="bg-ai-tint animate-landing-drift-offset absolute -bottom-48 left-1/2 size-[28rem] -translate-x-1/2 rounded-full blur-3xl motion-reduce:animate-none"
-                    />
-                    <div
-                        class="bg-landing-dots animate-landing-grid absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_72%)] bg-size-[24px_24px] opacity-70 motion-reduce:animate-none"
-                    />
-                    <span
-                        v-for="spark in 10"
-                        :key="spark"
-                        class="bg-brand-400 animate-landing-rise absolute bottom-0 size-1.5 rounded-full opacity-0 motion-reduce:hidden"
-                        :style="{
-                            left: `${(spark * 37) % 100}%`,
-                            animationDelay: `${(spark * 1.3) % 9}s`,
-                            animationDuration: `${8 + (spark % 4) * 1.5}s`,
-                        }"
-                    />
-                </div>
-
-                <div
-                    class="relative mx-auto flex max-w-7xl flex-col items-center gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:gap-14 lg:px-10 lg:py-22"
-                >
-                    <div
-                        class="relative z-10 flex max-w-3xl min-w-0 flex-col items-center text-center"
-                    >
-                        <h1
-                            id="hero-title"
-                            v-reveal="80"
-                            class="font-heading text-ink-night text-[clamp(2.45rem,5vw,4.35rem)] leading-[1.04] font-bold tracking-[-0.05em] text-balance"
-                        >
-                            {{ content.hero.title }}
-                        </h1>
-                        <p
-                            v-reveal="160"
-                            class="text-ink-slate mt-6 max-w-2xl text-[16px] leading-7 text-balance sm:text-[18px] sm:leading-8"
-                        >
-                            {{ content.hero.description }}
-                        </p>
-                        <div
-                            v-reveal="240"
-                            class="mt-8 flex flex-wrap items-center justify-center gap-3"
-                        >
-                            <Button
-                                as-child
-                                class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 group h-12 rounded-md px-6 text-[14px] font-semibold"
-                            >
-                                <a href="#how-it-works">
-                                    {{ content.hero.primary_cta }}
-                                    <ArrowRight
-                                        class="size-4 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5"
-                                    />
-                                </a>
-                            </Button>
-                            <Button
-                                as-child
-                                variant="outline"
-                                class="border-line-strong bg-surface text-brand-700 shadow-card hover:bg-brand-50 h-12 rounded-md px-6 text-[14px] font-semibold"
-                            >
-                                <a href="#pricing">{{
-                                    content.hero.secondary_cta
-                                }}</a>
-                            </Button>
-                            <InstallAppButton variant="outline" />
-                        </div>
-                        <div
-                            class="border-line mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 border-t pt-5"
-                        >
-                            <div
-                                v-for="(point, index) in content.hero
-                                    .proof_points"
-                                :key="point"
-                                v-reveal="320 + index * 90"
-                                class="text-ink-indigo flex items-center gap-2 text-[11px] leading-5 font-semibold sm:text-[12px]"
-                            >
-                                <CircleCheck
-                                    :class="
-                                        index === 2
-                                            ? 'text-ai'
-                                            : 'text-brand-600'
-                                    "
-                                    class="size-4 shrink-0"
-                                />
-                                {{ point }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <figure
-                        v-reveal:rise="200"
-                        class="relative mx-auto w-full max-w-[860px] min-w-0 pb-10 sm:pb-14"
-                    >
-                        <div
-                            class="bg-brand-200/60 absolute -inset-3 rotate-1 rounded-xl"
-                            aria-hidden="true"
-                        />
-                        <div
-                            v-reveal:tilt="450"
-                            class="border-line bg-surface shadow-pop relative overflow-hidden rounded-xl border p-2 sm:p-3"
-                        >
-                            <div
-                                class="border-line flex h-8 items-center gap-1.5 border-b px-1.5 sm:h-10 sm:px-2"
-                            >
-                                <span
-                                    class="bg-danger/70 size-2 rounded-full sm:size-2.5"
-                                />
-                                <span
-                                    class="bg-warning/80 size-2 rounded-full sm:size-2.5"
-                                />
-                                <span
-                                    class="bg-success/80 size-2 rounded-full sm:size-2.5"
-                                />
-                                <span
-                                    class="bg-app ms-2 h-4 flex-1 rounded-sm sm:h-5"
-                                />
-                            </div>
-                            <img
-                                src="/landing/admin-dashboard-desktop-ghasido.png"
-                                :alt="content.hero.image_alt"
-                                width="1600"
-                                height="900"
-                                fetchpriority="high"
-                                class="mt-2 block aspect-[16/9] w-full rounded-lg object-cover object-top sm:mt-3"
-                            />
-                        </div>
-
-                        <div
-                            v-reveal:rise="650"
-                            class="border-brand-900 bg-brand-900 shadow-pop animate-landing-float absolute start-5 -bottom-1 w-[112px] overflow-hidden rounded-xl border-[5px] motion-reduce:animate-none sm:start-8 sm:-bottom-2 sm:w-[150px] sm:border-[6px] lg:-start-7 lg:w-[168px]"
-                        >
-                            <img
-                                src="/landing/employee-pretest-mobile-ghasido.png"
-                                :alt="
-                                    $t(
-                                        'GHASIDO employee pre-test on a mobile phone',
-                                    )
-                                "
-                                width="390"
-                                height="844"
-                                fetchpriority="high"
-                                class="block aspect-[390/844] w-full object-cover object-top"
-                            />
-                        </div>
-
-                        <div
-                            v-reveal:pop="850"
-                            class="border-line bg-surface shadow-hover animate-landing-float-slow absolute end-3 bottom-2 hidden max-w-[220px] items-center gap-3 rounded-lg border p-3 motion-reduce:animate-none sm:flex lg:-end-4"
-                        >
-                            <span
-                                class="bg-ai-tint text-ai grid size-10 shrink-0 place-items-center rounded-md"
-                            >
-                                <Sparkles class="size-5" />
-                            </span>
-                            <p
-                                class="text-ink-indigo text-[11px] leading-4 font-semibold"
-                            >
-                                {{
-                                    $t(
-                                        'Real practice. Clear progress. One connected platform.',
-                                    )
-                                }}
-                            </p>
-                        </div>
-                    </figure>
-                </div>
-            </section>
+            <LandingHero :content="content" />
 
             <section
                 id="how-it-works"
@@ -402,10 +218,6 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 class="bg-brand-900 text-surface relative scroll-mt-20 overflow-hidden py-14 sm:py-18 lg:py-20"
                 aria-labelledby="ai-title"
             >
-                <div
-                    class="bg-ai/20 animate-landing-drift pointer-events-none absolute -end-32 -top-40 size-[30rem] rounded-full blur-3xl motion-reduce:animate-none"
-                    aria-hidden="true"
-                />
                 <div
                     class="relative mx-auto grid max-w-7xl items-center gap-8 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12 lg:px-10"
                 >
@@ -1004,13 +816,16 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         v-reveal:zoom
                         class="bg-brand-900 text-surface shadow-pop relative overflow-hidden rounded-xl px-6 py-10 sm:px-12 sm:py-14 lg:px-16"
                     >
-                        <div
-                            class="bg-ai/25 animate-landing-drift pointer-events-none absolute -end-20 -top-40 size-96 rounded-full blur-3xl motion-reduce:animate-none"
+                        <!-- The client's palm island in outline, on the
+                             card's horizon (2026-11-05). -->
+                        <img
+                            src="/decor/palm-island.png"
+                            alt=""
                             aria-hidden="true"
-                        />
-                        <div
-                            class="bg-brand-600/30 animate-landing-drift-offset pointer-events-none absolute -start-24 -bottom-48 size-80 rounded-full blur-3xl motion-reduce:animate-none"
-                            aria-hidden="true"
+                            width="540"
+                            height="252"
+                            loading="lazy"
+                            class="pointer-events-none absolute -end-10 -bottom-6 hidden w-[380px] opacity-[0.14] brightness-0 invert select-none md:block rtl:-scale-x-100"
                         />
                         <div
                             class="relative grid items-center gap-7 lg:grid-cols-[1fr_auto]"

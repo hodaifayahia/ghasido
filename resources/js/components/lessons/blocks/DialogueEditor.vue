@@ -29,8 +29,10 @@ import type {
 /**
  * Dialogue block (spec 0003 B.10, photo_5): the scene photo and staff avatar,
  * the caption and tip, and the ordered conversation lines. Each line has a
- * speaker, its English and its Arabic (shown only behind Show Meaning,
- * CTRL-02); the line texts drive the stored audio (CTRL-05).
+ * speaker and its English, whose meaning is a Show Meaning translation in
+ * any helper language written with Translate meaning (CTRL-02; client
+ * request 2026-11-05: no fixed Arabic field); the line texts drive the
+ * stored audio (CTRL-05).
  */
 type Props = {
     block: LessonBlockRow;
@@ -38,7 +40,8 @@ type Props = {
     readOnly: boolean;
 };
 
-type Line = { speaker: string; text: string; arabic: string };
+/** `arabic` is the old fixed field, kept only until the English changes. */
+type Line = { speaker: string; text: string; arabic?: string | null };
 
 const props = defineProps<Props>();
 
@@ -81,6 +84,22 @@ function updateLine(index: number, patch: Partial<Line>): void {
     );
 }
 
+function setText(index: number, text: string): void {
+    setLines(
+        lines.value.map((row, i) => {
+            if (i !== index) {
+                return row;
+            }
+
+            // An old Arabic belongs to the English it was written for.
+            const next: Line = { ...row, text };
+            delete next.arabic;
+
+            return next;
+        }),
+    );
+}
+
 function onSpeaker(index: number, value: AcceptableValue): void {
     if (typeof value === 'string') {
         updateLine(index, { speaker: value });
@@ -88,7 +107,7 @@ function onSpeaker(index: number, value: AcceptableValue): void {
 }
 
 function addLine(): void {
-    setLines([...lines.value, { speaker: 'staff', text: '', arabic: '' }]);
+    setLines([...lines.value, { speaker: 'staff', text: '' }]);
 }
 
 function removeLine(index: number): void {
@@ -199,6 +218,7 @@ function removeLine(index: number): void {
                     </button>
                 </div>
                 <LessonsField
+                    meaning
                     :model-value="line.text"
                     data-tour="dialogue-english-field"
                     :label="$t('English')"
@@ -206,22 +226,10 @@ function removeLine(index: number): void {
                     :rows="2"
                     @update:model-value="
                         (value) =>
-                            updateLine(index, {
-                                text: typeof value === 'string' ? value : '',
-                            })
-                    "
-                />
-                <LessonsField
-                    :model-value="line.arabic"
-                    :label="$t('Arabic (behind Show Meaning)')"
-                    type="textarea"
-                    :rows="2"
-                    dir="rtl"
-                    @update:model-value="
-                        (value) =>
-                            updateLine(index, {
-                                arabic: typeof value === 'string' ? value : '',
-                            })
+                            setText(
+                                index,
+                                typeof value === 'string' ? value : '',
+                            )
                     "
                 />
             </div>

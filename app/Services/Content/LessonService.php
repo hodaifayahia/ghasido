@@ -3,6 +3,7 @@
 namespace App\Services\Content;
 
 use App\Enums\ContentStatus;
+use App\Enums\CourseHotelScope;
 use App\Models\Attempt;
 use App\Models\AuditLog;
 use App\Models\Block;
@@ -101,6 +102,28 @@ class LessonService
     }
 
     /**
+     * The hotel group of a shared course (client request 2026-11-05): with
+     * `hotel_scope` = only, the hotels that see it; with except, the hotels
+     * that do not. A course owned by one hotel keeps no group.
+     *
+     * @param  list<int>  $hotelIds
+     */
+    public function setHotelGroup(Course $course, array $hotelIds): void
+    {
+        if ($course->hotel_id !== null) {
+            $hotelIds = [];
+        }
+
+        DB::transaction(function () use ($course, $hotelIds): void {
+            $course->scopedHotels()->sync($hotelIds);
+            AuditLog::record($course, 'course.hotel_group_updated', [
+                'hotel_scope' => $course->hotel_scope->value,
+                'hotels' => $hotelIds,
+            ]);
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function updateCourse(Course $course, array $data): Course
@@ -109,6 +132,11 @@ class LessonService
             if (! $course->isEssentials()) {
                 // The icon is an Essentials topic's only.
                 unset($data['icon']);
+            }
+
+            if ($course->hotel_id !== null) {
+                // One hotel's own course: only that hotel sees it.
+                unset($data['hotel_scope']);
             }
 
             $course->fill($data);
@@ -197,9 +225,14 @@ class LessonService
 
             if ($actor->hotel_id !== null) {
                 $copy->hotel_id = $actor->hotel_id;
+                $copy->hotel_scope = CourseHotelScope::All;
             }
 
             $copy->save();
+
+            if ($copy->hotel_id === null && $course->hotel_scope !== CourseHotelScope::All) {
+                $copy->scopedHotels()->sync($course->scopedHotels()->pluck('hotels.id')->all());
+            }
 
             if ($course->isEssentials()) {
                 $copy->audienceDepartments()->sync($course->audienceDepartments()->pluck('departments.id')->all());
@@ -374,9 +407,11 @@ class LessonService
 
     /**
      * Publish a lesson so the learners of its department see it (ORG-04,
-     * CMS-05, JOURNEY-03). A lesson inside a draft unit or course would
-     * stay invisible, so publishing it also publishes those parents, and the
-     * return value says which ones so the admin is told.
+     * CMS-05, JOURNEY-03). A lesson inside a draft unit would stay
+     * invisible, so publishing it also publishes that unit. Its course is
+     * left as the admin set it (client request 2026-11-05: a course stays
+     * hidden until the admin shows it): `course` is true when the course is
+     * still hidden, so the admin is told.
      *
      * @return array{unit: bool, course: bool}
      */
@@ -398,12 +433,11 @@ class LessonService
                 $published['unit'] = true;
             }
 
+            // The course is NOT shown by publishing one of its lessons: the
+            // admin decides when a course appears to employees (client
+            // request 2026-11-05). `course` says it is still hidden.
             $course = $lesson->course()->first();
             if ($course !== null && ! $course->isPublished()) {
-                $course->status = ContentStatus::Published;
-                $course->published_at ??= Carbon::now();
-                AuditLog::record($course, 'course.published', ['via_lesson_id' => $lesson->id]);
-                $course->save();
                 $published['course'] = true;
             }
 

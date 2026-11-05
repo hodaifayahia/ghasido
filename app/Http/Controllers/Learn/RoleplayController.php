@@ -13,7 +13,9 @@ use App\Models\MediaAsset;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
+use App\Services\Learning\AttemptHistory;
 use App\Services\Learning\PayloadResolver;
+use App\Services\Learning\RoleplayFeedbackMeaning;
 use App\Services\Learning\RoleplayService;
 use App\Services\VoiceAgent\VoiceAgentSettings;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +38,7 @@ class RoleplayController extends Controller
     public function __construct(
         private readonly RoleplayService $roleplay,
         private readonly PayloadResolver $resolver,
+        private readonly AttemptHistory $history,
     ) {}
 
     public function ready(Request $request, Lesson $lesson, Block $block, AiScenario $scenario): Response
@@ -49,6 +52,10 @@ class RoleplayController extends Controller
             'startUrl' => route('learn.roleplay.start', ['lesson' => $lesson, 'block' => $block, 'scenario' => $scenario]),
             'backUrl' => route('learn.lessons.step', ['lesson' => $lesson, 'block' => $block]),
             'canStart' => $this->roleplay->canStart($user, $scenario),
+            // Every earlier conversation with its score and the way back to
+            // its feedback, so a new try never hides an old one (RP-11;
+            // client report 2026-11-05).
+            'attempts' => $this->history->roleplay($user, $scenario),
             // Live spoken call (spec 0004): offered alongside the text chat
             // when the scenario accepts voice and the server has a key.
             'voiceCall' => $scenario->acceptsVoice() && app(VoiceAgentSettings::class)->apiConfigured()
@@ -127,6 +134,14 @@ class RoleplayController extends Controller
     {
         $user = $this->learner($request);
         $this->assertOwned($user, $attempt);
+
+        // Feedback scored before its translations were drafted (an older
+        // attempt, a new helper language): draft the missing ones now, so a
+        // Show Meaning tap finds them. Never twice (client request
+        // 2026-11-05).
+        if ($attempt->feedback !== null) {
+            app(RoleplayFeedbackMeaning::class)->queue($attempt);
+        }
 
         return Inertia::render('employee/roleplay/Feedback', $this->feedbackPayload($attempt, $user));
     }

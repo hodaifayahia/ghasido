@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import LessonsAudioChips from '@/components/lessons/LessonsAudioChips.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import LexiconItemDialog from '@/components/lessons/blocks/LexiconItemDialog.vue';
+import MeaningFieldButton from '@/components/meaning/MeaningFieldButton.vue';
 import { settingField } from '@/components/lessons/lessonsBlocks';
 import { Button } from '@/components/ui/button';
 import type {
@@ -17,7 +18,9 @@ import type {
  * Vocabulary / Useful Expressions block (spec 0003 B.10, photo_2/photo_3): the
  * block's intro copy plus the word and expression rows. Each row is its own
  * lexicon record, edited in place with an AI draft and stored audio (CMS-06,
- * CTRL-02, GEN-01, TTS-01..03).
+ * CTRL-02, GEN-01, TTS-01..03). A word's meaning is its stored translation
+ * in any helper language, shown and edited with Translate meaning instead of
+ * a fixed Arabic line (client request 2026-11-05).
  */
 type Props = {
     block: LessonBlockRow;
@@ -148,6 +151,12 @@ function texts(item: LexiconItemRow): string[] {
                         <Languages class="size-3" aria-hidden="true" />
                         {{ $t('Show Meaning') }}
                     </span>
+                    <MeaningFieldButton
+                        v-if="item.showMeaningEnabled && !readOnly"
+                        compact
+                        :text="item.englishText"
+                        :label="item.englishText"
+                    />
                     <button
                         v-if="!readOnly"
                         type="button"
@@ -159,14 +168,6 @@ function texts(item: LexiconItemRow): string[] {
                         {{ $t('Edit') }}
                     </button>
                 </div>
-                <p
-                    v-if="item.arabicMeaning"
-                    class="font-arabic text-ink text-[13px]"
-                    dir="rtl"
-                    lang="ar"
-                >
-                    {{ item.arabicMeaning }}
-                </p>
                 <p
                     v-if="item.simpleExplanation"
                     class="text-ink-muted text-[12px]"

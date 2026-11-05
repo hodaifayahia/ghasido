@@ -29,6 +29,8 @@ class UnitController extends Controller
             'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $unit->id,
+            // Stay in the builder: the new row has no lesson yet.
+            'builder' => 1,
         ]);
     }
 
@@ -59,6 +61,8 @@ class UnitController extends Controller
             'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
             'unit' => $copy->id,
+            // Stay in the builder: the new row has no lesson yet.
+            'builder' => 1,
         ]);
     }
 

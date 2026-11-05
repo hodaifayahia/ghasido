@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronRight, CirclePlus } from '@lucide/vue';
+import {
+    ChevronDown,
+    ChevronRight,
+    CirclePlus,
+    EyeOff,
+    Layers,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
@@ -8,6 +14,7 @@ import LessonsAddDialog from '@/components/lessons/LessonsAddDialog.vue';
 import LessonsTreeActionDialog from '@/components/lessons/LessonsTreeActionDialog.vue';
 import LessonsTreeRowMenu from '@/components/lessons/LessonsTreeRowMenu.vue';
 import {
+    selectionPatch,
     toggleOpenPatch,
     visitLessons,
 } from '@/components/lessons/lessonsQuery';
@@ -122,7 +129,61 @@ function lessonTarget(lesson: LessonsTreeLesson): LessonsTreeTarget {
     return { kind: 'lesson', id: lesson.id, name: lesson.name ?? lesson.title };
 }
 
+/*
+ * One course at a time (client request 2026-11-05): with a course open the
+ * tree shows only that course's units and lessons, so departments with many
+ * courses do not mix their content. "All courses" lists every course again.
+ */
+const showAll = ref(false);
+
+const visibleCourses = computed((): LessonsTreeCourse[] => {
+    if (showAll.value || props.filters.course === '') {
+        return props.courses;
+    }
+
+    const open = props.courses.filter(
+        (course) => String(course.id) === props.filters.course,
+    );
+
+    return open.length > 0 ? open : props.courses;
+});
+
+const focused = computed(
+    () => visibleCourses.value.length < props.courses.length,
+);
+
+function openCourse(course: LessonsTreeCourse): void {
+    showAll.value = false;
+
+    if (String(course.id) === props.filters.course) {
+        toggleCourse(course);
+
+        return;
+    }
+
+    visitLessons(selectionPatch('course', String(course.id)));
+}
+
+/**
+ * A new course stays hidden from employees until the admin shows it
+ * (client request 2026-11-05); publishing a lesson no longer shows its
+ * course by itself.
+ */
+function setVisibility(target: LessonsTreeTarget, visible: boolean): void {
+    router.patch(
+        courseRoutes.update.url(target.id),
+        { status: visible ? 'published' : 'draft' },
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
 function onAction(target: LessonsTreeTarget, action: LessonsTreeAction): void {
+    if (action === 'publish' || action === 'unpublish') {
+        setVisibility(target, action === 'publish');
+
+        return;
+    }
+
     if (action === 'duplicate') {
         duplicate(target);
 
@@ -193,9 +254,24 @@ function duplicate(target: LessonsTreeTarget): void {
             }}
         </p>
 
+        <button
+            v-if="focused || showAll"
+            type="button"
+            class="text-brand-700 hover:bg-brand-50/70 focus-visible:ring-brand-600/15 mb-1.5 flex min-h-8 w-full items-center gap-1.5 rounded-md px-1 text-start text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none"
+            data-test="tree-all-courses-toggle"
+            @click="showAll = !showAll"
+        >
+            <Layers class="size-3.5 shrink-0" aria-hidden="true" />
+            {{
+                showAll
+                    ? $t('Show only the open course')
+                    : $t('All courses (:count)', { count: courses.length })
+            }}
+        </button>
+
         <div class="space-y-1.5">
             <div
-                v-for="course in courses"
+                v-for="course in visibleCourses"
                 :key="course.id"
                 class="rounded-md border border-transparent"
             >
@@ -205,7 +281,7 @@ function duplicate(target: LessonsTreeTarget): void {
                         :aria-expanded="course.expanded === true"
                         :data-test="`course-${course.id}-toggle`"
                         class="text-brand-900 hover:bg-brand-50/65 focus-visible:ring-brand-600/15 flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-[3px] text-start text-[12.5px] font-medium focus-visible:ring-3 focus-visible:outline-none"
-                        @click="toggleCourse(course)"
+                        @click="openCourse(course)"
                     >
                         <component
                             :is="course.expanded ? ChevronDown : ChevronRight"
@@ -224,6 +300,17 @@ function duplicate(target: LessonsTreeTarget): void {
                         </span>
                         <span class="truncate">{{ course.title }}</span>
                         <span
+                            v-if="course.status === 'draft'"
+                            class="rounded-pill bg-warning-tint text-warning-text inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold"
+                            :title="
+                                $t('Hidden from employees until you show it')
+                            "
+                            :data-test="`course-${course.id}-hidden`"
+                        >
+                            <EyeOff class="size-3" aria-hidden="true" />
+                            {{ $t('Hidden') }}
+                        </span>
+                        <span
                             v-if="course.levelLabel"
                             class="rounded-pill bg-ai-tint text-ai shrink-0 px-2 py-0.5 text-[10.5px] font-semibold"
                             :data-test="`course-${course.id}-level`"
@@ -238,6 +325,7 @@ function duplicate(target: LessonsTreeTarget): void {
                         :can-edit="course.canEdit !== false"
                         :can-copy="course.canCopy !== false"
                         :can-delete="course.canDelete !== false"
+                        :visibility="course.status ?? null"
                         @select="onAction(courseTarget(course), $event)"
                     />
                 </div>

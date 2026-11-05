@@ -87,7 +87,7 @@ final class LandingPageController extends Controller
             'content.journey.steps.*' => ['required', 'array:title,description'],
             'content.journey.steps.*.title' => ['required', 'string', 'max:120'],
             'content.journey.steps.*.description' => ['required', 'string', 'max:400'],
-            'content.hero' => ['required', 'array:eyebrow,title,description,primary_cta,secondary_cta,image_alt,proof_points'],
+            'content.hero' => ['required', 'array:eyebrow,title,description,primary_cta,secondary_cta,image_alt,proof_points,demo_situation,demo_guest_line,demo_meaning,demo_reply,demo_note'],
             // The hero has no eyebrow any more (user request 2026-10-18);
             // copies saved before still carry one, which is accepted and
             // never shown.
@@ -99,6 +99,12 @@ final class LandingPageController extends Controller
             'content.hero.image_alt' => ['required', 'string', 'max:240'],
             'content.hero.proof_points' => ['required', 'array', 'size:3'],
             'content.hero.proof_points.*' => ['required', 'string', 'max:60'],
+            // The hero phone's lesson step (user request 2026-11-05).
+            'content.hero.demo_situation' => ['required', 'string', 'max:80'],
+            'content.hero.demo_guest_line' => ['required', 'string', 'max:160'],
+            'content.hero.demo_meaning' => ['required', 'string', 'max:200'],
+            'content.hero.demo_reply' => ['required', 'string', 'max:160'],
+            'content.hero.demo_note' => ['required', 'string', 'max:60'],
             'content.why_us' => ['required', 'array:eyebrow,title,description,items'],
             'content.why_us.eyebrow' => ['required', 'string', 'max:100'],
             'content.why_us.title' => ['required', 'string', 'max:180'],

@@ -80,6 +80,21 @@ cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php
 
 Learners see nothing until the Super Admin fills and publishes them in **Lessons & Content → Department: English Essentials (all departments)**.
 
+### Client round 2026-11-05, once after the first deploy that includes it
+
+`migrate --force` (run by `remote-install.sh` / `server-deploy.sh`) adds the hotel groups of shared courses (`courses.hotel_scope`, `course_hotel`) and the other new tables. Nothing else is needed: existing courses stay "All hotels". Two behaviours change for the Super Admin:
+
+- A course is shown to employees only when the admin shows it (**Course Structure → ⋮ → Show to employees**). Publishing a lesson no longer shows its course by itself; courses already published stay visible.
+- A published course or Essentials topic with no published lesson is no longer listed for learners.
+
+If AI features look stopped, run the read-only check and fix what it reports (provider on `fake`, missing key, spent/paused credit on `/owner`, or no queue worker):
+
+```bash
+cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php artisan ai:doctor
+```
+
+Every AI job (lesson and image generation, role-play feedback, voice checks, translations) runs on the queue, so the two queue cron jobs above must exist; the bridge workers stop whenever the server restarts them.
+
 ## First install only
 
 Run `deploy-export.php` inside the Sail container (`docker exec -u sail -w /var/www/html ghasido-laravel.test-1 php docs/deploy/scripts/deploy-export.php`) to produce `storage/logs/deploy/database.sqlite` and `media-list.txt`, then `INITIAL=1 assemble.sh` and `INITIAL=1 upload.sh`. **Doing this again overwrites the live database with local data.**

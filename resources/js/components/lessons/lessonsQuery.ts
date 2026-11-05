@@ -12,6 +12,7 @@ export type LessonsQueryKey =
     | 'course'
     | 'unit'
     | 'lesson'
+    | 'builder'
     | 'tab'
     | 'open'
     | 'lib'
@@ -81,7 +82,13 @@ export function selectionPatch(
     value: string,
 ): LessonsQueryPatch {
     const order = ['hotel', 'department', 'course', 'unit', 'lesson'] as const;
-    const patch: LessonsQueryPatch = { [key]: value, open: null };
+    // `builder` keeps the builder open while the new selection has no
+    // lesson yet (an empty course, or an English Essentials topic).
+    const patch: LessonsQueryPatch = {
+        [key]: value,
+        open: null,
+        builder: '1',
+    };
 
     for (const child of order.slice(order.indexOf(key) + 1)) {
         patch[child] = null;

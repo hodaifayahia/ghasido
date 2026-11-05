@@ -7,12 +7,15 @@ use App\Enums\GuestMood;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Scenarios\StoreAiScenarioRequest;
 use App\Http\Requests\Admin\Scenarios\UpdateAiScenarioRequest;
+use App\Http\Requests\Admin\Scenarios\UpdateAiScenarioThumbnailRequest;
 use App\Models\AiScenario;
 use App\Models\Block;
 use App\Models\Department;
+use App\Models\MediaAsset;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Audio\AudioLibrary;
+use App\Services\Content\MediaService;
 use App\Services\Scenarios\ScenarioConfiguration;
 use App\Services\Scenarios\ScenarioService;
 use App\Services\Tts\TtsSettings;
@@ -59,6 +62,36 @@ class AiScenariosController extends Controller
         $scenarios->update($scenario, $request->scenarioData());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Scenario saved.')]);
+
+        return back();
+    }
+
+    /**
+     * Save the cover image the moment it is chosen (client report
+     * 2026-11-05: the image was only previewed in the browser and lost).
+     * Uploaded through MediaService: MIME + size checked, UUID name, GD
+     * resize and thumb variant (SEC-04, MED-01, MED-04, MED-07).
+     */
+    public function updateThumbnail(UpdateAiScenarioThumbnailRequest $request, AiScenario $scenario, ScenarioService $scenarios, MediaService $media): RedirectResponse
+    {
+        Gate::authorize('update', $scenario);
+
+        /** @var User $actor */
+        $actor = $request->user('web');
+        $asset = $media->upload($request->imageFile(), $request->mediaData(), $actor);
+        $scenarios->setThumbnail($scenario, $asset);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Scenario image saved.')]);
+
+        return back();
+    }
+
+    public function removeThumbnail(AiScenario $scenario, ScenarioService $scenarios): RedirectResponse
+    {
+        Gate::authorize('update', $scenario);
+        $scenarios->setThumbnail($scenario, null);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Scenario image removed.')]);
 
         return back();
     }
@@ -840,6 +873,9 @@ class AiScenariosController extends Controller
             'guestMood' => GuestMood::fromSettings($scenario->settings)->value,
             'guestMoods' => GuestMood::options(),
             'usefulPhrases' => $scenario->useful_phrases ?? [],
+            // The saved cover image (client report 2026-11-05).
+            'thumbnail' => $this->thumbnailPayload($scenario),
+            'thumbnailUrl' => route('ai-scenarios.thumbnail.update', $scenario),
             'aiStatus' => $scenario->ai_status?->value,
             'aiDraft' => $scenario->ai_draft,
             'saveUrl' => route('ai-scenarios.update', $scenario),
@@ -855,6 +891,22 @@ class AiScenariosController extends Controller
                 'label' => $department->name,
             ])->values()->all(),
         ]);
+    }
+
+    /**
+     * @return array{id: int, url: string, alt: string|null}|null
+     */
+    private function thumbnailPayload(AiScenario $scenario): ?array
+    {
+        $asset = $scenario->thumbnail_media_id !== null
+            ? MediaAsset::query()->find($scenario->thumbnail_media_id)
+            : null;
+
+        return $asset !== null ? [
+            'id' => $asset->id,
+            'url' => $asset->url(),
+            'alt' => $asset->alt_text,
+        ] : null;
     }
 
     /**

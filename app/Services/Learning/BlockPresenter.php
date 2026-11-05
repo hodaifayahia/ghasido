@@ -26,8 +26,12 @@ use Illuminate\Support\Collection;
  * scenario cards for AI role-play, the lesson summary for the complete
  * screen. The keys are always present so a page can type one shape.
  *
- * Arabic is included for lesson pages: it is rendered only behind Show
- * Meaning (CTRL-02), and this presenter never serves a test page (CTRL-04).
+ * No meaning ships in the step (CTRL-02): the words, the Listen & Repeat
+ * sentences, the dialogue lines and the video example reveal theirs through
+ * Show Meaning, which asks the server for the stored translation of the
+ * English text in the learner's helper language after the tap (client
+ * request 2026-11-05). The old inline Arabic of those blocks is dropped
+ * here; it lives on in `text_translations` (InlineMeanings).
  */
 class BlockPresenter
 {
@@ -56,7 +60,7 @@ class BlockPresenter
             'stepLabel' => $type->stepLabel(),
             'layout' => $block->layout,
             'accent' => $lesson?->speakingAccent()->value,
-            'settings' => $this->resolver->forAccent($accent)->resolve($block->settings ?? []),
+            'settings' => $this->withoutInlineMeanings($type, $this->resolver->forAccent($accent)->resolve($block->settings ?? [])),
             'lexicon' => $type->holdsLexicon() ? $this->lexicon($block, $user, $accent) : [],
             'activities' => $type->holdsActivities() ? $this->activities($block, $user) : [],
             'scenarios' => $type === BlockType::AiRoleplay ? $this->scenarios($block, $user) : [],
@@ -111,15 +115,51 @@ class BlockPresenter
             'audio' => $audio[$item->english_text] ?? $silent,
             'example' => $item->hotel_example,
             'exampleAudio' => $item->hotel_example === null ? null : ($audio[$item->hotel_example] ?? $silent),
+            // The meaning of the word and of its example is fetched on the
+            // tap (POST /meaning); only the English explanation ships.
             'showMeaning' => $item->allowsShowMeaning(),
             'meaning' => $item->allowsShowMeaning() ? [
-                'arabic' => $item->arabic_meaning,
                 'explanation' => $item->simple_explanation,
-                'exampleArabic' => $item->hotel_example_arabic,
             ] : null,
             'saved' => in_array($item->id, $saved, true),
             'featured' => $featuredId !== null && $item->id === $featuredId,
         ])->all());
+    }
+
+    /**
+     * Drop the inline Arabic of the Listen & Repeat sentences, the dialogue
+     * lines and the video example: Show Meaning fetches the translation of
+     * their English after the tap (CTRL-02; client request 2026-11-05).
+     *
+     * @param  array<mixed>  $settings
+     * @return array<mixed>
+     */
+    private function withoutInlineMeanings(BlockType $type, array $settings): array
+    {
+        $list = match ($type) {
+            BlockType::ListenRepeat => 'items',
+            BlockType::Dialogue => 'lines',
+            default => null,
+        };
+
+        if ($list !== null && is_array($settings[$list] ?? null)) {
+            $settings[$list] = array_map(
+                static function (mixed $row): mixed {
+                    if (is_array($row)) {
+                        unset($row['arabic']);
+                    }
+
+                    return $row;
+                },
+                $settings[$list],
+            );
+        }
+
+        if ($type === BlockType::Video && is_array($settings['example'] ?? null)) {
+            unset($settings['example']['arabic']);
+        }
+
+        return $settings;
     }
 
     /**

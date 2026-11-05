@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { WritableComputedRef } from 'vue';
 import LessonsAudioChips from '@/components/lessons/LessonsAudioChips.vue';
 import LessonsField from '@/components/lessons/LessonsField.vue';
 import LessonsMediaSlot from '@/components/lessons/LessonsMediaSlot.vue';
@@ -18,9 +19,10 @@ import type {
 
 /**
  * Video block (spec 0003 B.10, photo_6): the poster and optional video file,
- * the controls copy, and the "Example from the Video" sentence whose Arabic
- * stays behind Show Meaning (CTRL-02) and whose text drives the stored audio
- * (CTRL-05).
+ * the controls copy, and the "Example from the Video" sentence whose meaning
+ * is a Show Meaning translation in any helper language, written with
+ * Translate meaning (CTRL-02; client request 2026-11-05: no fixed Arabic
+ * field), and whose text drives the stored audio (CTRL-05).
  */
 type Props = {
     block: LessonBlockRow;
@@ -36,8 +38,21 @@ const subtitle = settingField(settings, 'subtitle');
 const controlsTitle = settingField(settings, 'controls_title');
 const controlsNote = settingField(settings, 'controls_note');
 const exampleTitle = settingField(settings, 'example_title');
-const exampleText = nestedField(settings, 'example', 'text');
-const exampleArabic = nestedField(settings, 'example', 'arabic');
+// An old fixed Arabic belongs to the English it was written for: it goes
+// when the sentence changes.
+const exampleText: WritableComputedRef<string | number | null> = computed({
+    get: () => {
+        const value = settingObject(settings.value, 'example').text;
+
+        return typeof value === 'string' ? value : null;
+    },
+    set: (value) => {
+        const example = { ...settingObject(settings.value, 'example') };
+        example.text = value ?? '';
+        delete example.arabic;
+        settings.value = { ...settings.value, example };
+    },
+});
 const exampleNote = nestedField(settings, 'example', 'note');
 const tip = settingField(settings, 'tip');
 
@@ -101,11 +116,10 @@ function onPoster(item: LessonMediaRef | null): void {
             v-model="exampleTitle"
             :label="$t('Example title')"
         />
-        <LessonsField v-model="exampleText" :label="$t('Example sentence')" />
         <LessonsField
-            v-model="exampleArabic"
-            :label="$t('Example Arabic (behind Show Meaning)')"
-            dir="rtl"
+            meaning
+            v-model="exampleText"
+            :label="$t('Example sentence')"
         />
         <LessonsField
             meaning

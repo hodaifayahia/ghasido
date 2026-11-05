@@ -68,6 +68,9 @@ class EnglishEssentialsTest extends TestCase
                 ->where('essentials.lessonsTotal', 1)
                 ->where('essentials.lessonsCompleted', 0)
                 ->where('essentials.url', route('learn.essentials.index'))
+                // Listed down the side of My Lessons (2026-11-05).
+                ->has('essentials.items', 1)
+                ->where('essentials.items.0.title', 'Letters & Spelling')
             );
 
         $this->actingAs($learner)
