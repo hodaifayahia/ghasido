@@ -14,6 +14,10 @@ Route::get('english-essentials', [EssentialsStudioController::class, 'index'])
     ->middleware(Permission::LessonsView->middleware())
     ->name('essentials-studio');
 
+Route::get('english-essentials/lessons/{lesson}/steps', [EssentialsStudioController::class, 'steps'])
+    ->middleware(Permission::LessonsView->middleware())
+    ->name('essentials-studio.lessons.steps');
+
 Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::post('english-essentials/topics', [EssentialsStudioController::class, 'storeTopic'])->name('essentials-studio.topics.store');
     Route::put('english-essentials/topics/order', [EssentialsStudioController::class, 'reorderTopics'])->name('essentials-studio.topics.reorder');

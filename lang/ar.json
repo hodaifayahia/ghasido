@@ -4666,5 +4666,10 @@
     "Words & pictures": "كلمات وصور",
     "e.g. Letters & Spelling": "مثال: الحروف والتهجئة",
     "e.g. Say the alphabet and spell a guest’s name.": "مثال: قل الحروف وتهجَّ اسم الضيف.",
-    "e.g. Spelling a guest’s name": "مثال: تهجئة اسم الضيف"
+    "e.g. Spelling a guest’s name": "مثال: تهجئة اسم الضيف",
+    ":lesson — :topic": ":lesson — :topic",
+    "Back to :topic": "العودة إلى :topic",
+    "Open full lesson editor": "فتح محرر الدرس الكامل",
+    ":count steps": ":count خطوات",
+    "Open each step in order and fill it in. Steps are saved one by one.": "افتح كل خطوة بالترتيب واملأها. تُحفظ الخطوات واحدة تلو الأخرى."
 }
