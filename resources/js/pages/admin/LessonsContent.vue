@@ -19,7 +19,7 @@ import PageHeader from '@/components/shell/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { tk } from '@/lib/i18n';
-import { dashboard, lessonsContent } from '@/routes';
+import { dashboard, essentialsStudio, lessonsContent } from '@/routes';
 import { edit as editLesson } from '@/routes/lessons';
 import type {
     LessonBlockRow,
@@ -266,13 +266,25 @@ function onPick(image: LessonLibraryImage): void {
         <template v-if="builderOpen">
             <!-- Left-aligned: the header photo accent covers the far end. -->
             <div class="flex flex-wrap items-center gap-2">
+                <!-- An English Essentials lesson goes back to its studio
+                     (client request 2026-11-05). -->
                 <Link
-                    :href="lessonsContent.url()"
+                    :href="
+                        editor.essentials
+                            ? essentialsStudio.url({
+                                  query: { topic: filters.course },
+                              })
+                            : lessonsContent.url()
+                    "
                     class="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-600/15 inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-[12px] font-semibold focus-visible:ring-3 focus-visible:outline-none md:min-h-0"
                     data-test="back-to-lesson-directory"
                 >
                     <ArrowLeft class="size-3.5" aria-hidden="true" />
-                    {{ $t('Back to Lesson Directory') }}
+                    {{
+                        editor.essentials
+                            ? $t('Back to English Essentials')
+                            : $t('Back to Lesson Directory')
+                    }}
                 </Link>
                 <LessonsEditorAiActions
                     :filters="filters"
