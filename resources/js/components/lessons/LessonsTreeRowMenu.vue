@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { Copy, EllipsisVertical, Pencil, Trash2 } from '@lucide/vue';
+import {
+    Copy,
+    EllipsisVertical,
+    Eye,
+    EyeOff,
+    Pencil,
+    Trash2,
+} from '@lucide/vue';
 import { useMediaQuery } from '@vueuse/core';
 import type { Component } from 'vue';
 import { computed, onMounted, ref } from 'vue';
@@ -36,6 +43,12 @@ type Props = {
     canDelete?: boolean;
     /** Always shown (the open lesson); otherwise see `slotClass`. */
     pinned?: boolean;
+    /**
+     * A course's visibility to employees: offers "Show to employees" when
+     * hidden, "Hide from employees" when visible (client request
+     * 2026-11-05). Omitted for units and lessons.
+     */
+    visibility?: 'published' | 'draft' | null;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -43,6 +56,7 @@ const props = withDefaults(defineProps<Props>(), {
     canCopy: true,
     canDelete: true,
     pinned: false,
+    visibility: null,
 });
 
 const emit = defineEmits<{
@@ -70,6 +84,22 @@ const items = computed<Item[]>(() => {
 
     if (props.canEdit) {
         list.push({ action: 'rename', label: tk('Rename'), icon: Pencil });
+    }
+
+    if (props.canEdit && props.visibility === 'draft') {
+        list.push({
+            action: 'publish',
+            label: tk('Show to employees'),
+            icon: Eye,
+        });
+    }
+
+    if (props.canEdit && props.visibility === 'published') {
+        list.push({
+            action: 'unpublish',
+            label: tk('Hide from employees'),
+            icon: EyeOff,
+        });
     }
 
     if (props.canCopy) {

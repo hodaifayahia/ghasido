@@ -4,6 +4,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     Award,
+    Bell,
     Coins,
     CreditCard,
     BookOpen,
@@ -16,6 +17,7 @@ import {
     LogOut,
     Settings,
     ShieldCheck,
+    Sprout,
     Star,
     User,
     UserRound,
@@ -69,6 +71,7 @@ import {
     phrasebook as learnPhrasebook,
     progress as learnProgress,
 } from '@/routes/learn';
+import { index as learnEssentials } from '@/routes/learn/essentials';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem, SidebarNavItem } from '@/types';
@@ -182,6 +185,18 @@ const mainNavItems: SidebarNavItem[] = [
         permission: 'lessons.view',
     },
     {
+        // English Essentials (client request 2026-11-05): opens the builder
+        // straight on the Essentials topics, built with the same lesson
+        // editor as the department courses.
+        title: tk('English Essentials'),
+        href: lessonsContent({
+            query: { hotel: 'shared', department: 'essentials', builder: '1' },
+        }),
+        icon: Sprout,
+        iconClass: outline,
+        permission: 'lessons.view',
+    },
+    {
         title: tk('AI Scenarios'),
         href: aiScenarios(),
         icon: Bot,
@@ -237,6 +252,12 @@ const mainNavItems: SidebarNavItem[] = [
                 iconClass: outline,
             },
             {
+                title: tk('English Essentials'),
+                href: learnEssentials(),
+                icon: Sprout,
+                iconClass: outline,
+            },
+            {
                 title: tk('My Phrasebook'),
                 href: learnPhrasebook(),
                 icon: Star,
@@ -248,9 +269,10 @@ const mainNavItems: SidebarNavItem[] = [
                 icon: SolidBarsIcon,
             },
             {
-                title: tk('Messages'),
+                title: tk('Notifications'),
                 href: learnMessages(),
-                icon: SolidMailIcon,
+                icon: Bell,
+                iconClass: outline,
             },
             {
                 title: tk('Certificate'),
@@ -310,15 +332,35 @@ const accountNavItems: SidebarNavItem[] = [
     },
 ];
 
+// The builder open on English Essentials lights its own entry, not
+// Lessons & Content (both share the /lessons-content path).
+const onEssentials = computed(
+    () =>
+        page.url.startsWith('/lessons-content') &&
+        page.url.includes('department=essentials'),
+);
+
 const adminNav = computed((): SidebarNav => ({
     main: {
-        items: mainNavItems.map((item) =>
-            item.title === 'Payments'
-                ? { ...item, badge: page.props.pendingPayments ?? 0 }
-                : item.title === 'Inbox'
-                  ? { ...item, badge: page.props.unreadInbox ?? 0 }
-                  : item,
-        ),
+        items: mainNavItems.map((item) => {
+            if (item.title === 'Payments') {
+                return { ...item, badge: page.props.pendingPayments ?? 0 };
+            }
+
+            if (item.title === 'Inbox') {
+                return { ...item, badge: page.props.unreadInbox ?? 0 };
+            }
+
+            if (item.title === 'English Essentials') {
+                return { ...item, isActive: onEssentials.value };
+            }
+
+            if (item.title === 'Lessons & Content' && onEssentials.value) {
+                return { ...item, isActive: false };
+            }
+
+            return item;
+        }),
     },
     account: { items: accountNavItems, class: 'gap-[5px]' },
 }));

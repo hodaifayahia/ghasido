@@ -92,7 +92,24 @@ function onSelect(target: FilterKey, value: AcceptableValue): void {
         return;
     }
 
-    visitLessons(selectionPatch(target, value));
+    // Keep the parents of the changed select from the page, not the URL:
+    // on /lessons/{id}/edit the URL has no query, so without them choosing
+    // "English Essentials" fell back to the first hotel (client report
+    // 2026-11-05).
+    const order: FilterKey[] = [
+        'hotel',
+        'department',
+        'course',
+        'unit',
+        'lesson',
+    ];
+    const parents: Partial<Record<FilterKey, string>> = {};
+
+    for (const key of order.slice(0, order.indexOf(target))) {
+        parents[key] = props.filters[key];
+    }
+
+    visitLessons({ ...parents, ...selectionPatch(target, value) });
 }
 
 function onTab(tab: LessonsTabKey): void {

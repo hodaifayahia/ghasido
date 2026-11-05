@@ -11,9 +11,9 @@ import type { CourseOutline, EssentialsSummary, JourneyState } from '@/types';
 /*
  * My Lessons (JOURNEY-01, JOURNEY-03; spec 0003 Part E). No client mockup
  * covers this page yet: it is the design system's cards, refined later by
- * the learn-support lane. English Essentials (client request 2026-10-18)
- * sits under the department training, in the same column, when anything
- * is published for the learner.
+ * the learn-support lane. English Essentials (client requests 2026-10-18,
+ * 2026-11-05) sits beside the department training as a vertical panel,
+ * under it on phones, when anything is published for the learner.
  */
 type Props = {
     courses: CourseOutline[];
@@ -43,23 +43,40 @@ defineProps<Props>();
             "
         />
 
-        <LearnerEmptyState
-            v-if="courses.length === 0"
-            :icon="BookOpen"
-            :text="
-                $t(
-                    'No lessons have been published for your department yet. Please check back soon.',
-                )
+        <!-- Department training on the left, English Essentials as a
+             vertical panel beside it on wide screens and under it on phones
+             (client request 2026-11-05). -->
+        <div
+            :class="
+                essentials
+                    ? 'grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start'
+                    : 'flex min-w-0 flex-col gap-4'
             "
-            :action="{ label: $t('Back to Home'), href: home() }"
-        />
+        >
+            <div class="flex min-w-0 flex-col gap-4">
+                <LearnerEmptyState
+                    v-if="courses.length === 0"
+                    :icon="BookOpen"
+                    :text="
+                        $t(
+                            'No lessons have been published for your department yet. Please check back soon.',
+                        )
+                    "
+                    :action="{ label: $t('Back to Home'), href: home() }"
+                />
 
-        <CourseOutlineCard
-            v-for="course in courses"
-            :key="course.id"
-            :course="course"
-        />
+                <CourseOutlineCard
+                    v-for="course in courses"
+                    :key="course.id"
+                    :course="course"
+                />
+            </div>
 
-        <EssentialsCard v-if="essentials" :essentials="essentials" />
+            <EssentialsCard
+                v-if="essentials"
+                :essentials="essentials"
+                class="xl:sticky xl:top-[calc(var(--spacing-topbar)+20px)]"
+            />
+        </div>
     </div>
 </template>

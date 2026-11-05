@@ -39,9 +39,15 @@ class EssentialsCatalogue
      */
     public function rows(User $user, array $completed): array
     {
-        return array_values($this->topics($user)->map(function (Course $course) use ($completed): array {
+        // A topic with no published lesson yet is not shown: an empty title
+        // would only lead nowhere (client request 2026-11-05).
+        return array_values($this->topics($user)->map(function (Course $course) use ($completed): ?array {
             /** @var list<int> $ids */
             $ids = $course->orderedLessons()->pluck('lessons.id')->map(fn ($id): int => (int) $id)->all();
+
+            if ($ids === []) {
+                return null;
+            }
 
             return [
                 'id' => $course->id,
@@ -53,7 +59,7 @@ class EssentialsCatalogue
                 'lessonsCompleted' => count(array_intersect($ids, $completed)),
                 'url' => route('learn.essentials.show', ['course' => $course]),
             ];
-        })->all());
+        })->filter()->values()->all());
     }
 
     /**
@@ -61,7 +67,7 @@ class EssentialsCatalogue
      * published for this learner yet (the card is then not shown).
      *
      * @param  list<int>  $completed
-     * @return array{topics: int, lessonsTotal: int, lessonsCompleted: int, url: string}|null
+     * @return array{topics: int, lessonsTotal: int, lessonsCompleted: int, url: string, items: list<array<string, mixed>>}|null
      */
     public function summary(User $user, array $completed): ?array
     {
@@ -76,6 +82,8 @@ class EssentialsCatalogue
             'lessonsTotal' => array_sum(array_map(fn (array $row): int => (int) $row['lessonsTotal'], $rows)),
             'lessonsCompleted' => array_sum(array_map(fn (array $row): int => (int) $row['lessonsCompleted'], $rows)),
             'url' => route('learn.essentials.index'),
+            // Listed down the side of My Lessons (client request 2026-11-05).
+            'items' => $rows,
         ];
     }
 }

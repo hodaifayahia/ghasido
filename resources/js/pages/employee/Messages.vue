@@ -19,12 +19,12 @@ defineProps<Props>();
 </script>
 
 <template>
-    <Head :title="$t('Messages')" />
-    <h1 class="sr-only">{{ $t('Messages') }}</h1>
+    <Head :title="$t('Notifications')" />
+    <h1 class="sr-only">{{ $t('Notifications') }}</h1>
 
     <div class="flex min-w-0 flex-col gap-4 px-4 pt-5 pb-8 md:px-6">
         <PageHeader
-            :title="$t('Messages')"
+            :title="$t('Notifications')"
             :description="
                 unread > 0
                     ? $tc(

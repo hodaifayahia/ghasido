@@ -139,4 +139,20 @@ class EnglishEssentialsAdminTest extends TestCase
 
         $this->assertNull($block->fresh()?->help_lesson_id);
     }
+
+    public function test_choosing_english_essentials_in_the_builder_keeps_the_builder_open_on_the_topics()
+    {
+        $topic = $this->topic();
+
+        // Client report 2026-11-05: choosing the entry fell back to the
+        // lesson directory, which lists the Reception lessons.
+        $this->actingAs($this->owner)
+            ->get(route('lessons-content', ['hotel' => 'shared', 'department' => 'essentials', 'builder' => 1]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('builderOpen', true)
+                ->where('filters.department', 'essentials')
+                ->where('courses.0.id', $topic->id)
+                ->has('courses', 1));
+    }
 }

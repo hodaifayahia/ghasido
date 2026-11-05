@@ -32,6 +32,8 @@ class CourseController extends Controller
             'hotel' => $course->hotel_id === null ? 'shared' : $course->hotel_id,
             'department' => ContentTree::departmentKey($course),
             'course' => $course->id,
+            // Stay in the builder: the new row has no lesson yet.
+            'builder' => 1,
         ]);
     }
 
@@ -45,7 +47,19 @@ class CourseController extends Controller
             $lessons->setAudience($course, $audience);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was updated.', ['title' => $course->title])]);
+        $hotelGroup = $request->hotelGroup();
+
+        if ($hotelGroup !== null) {
+            $lessons->setHotelGroup($course, $hotelGroup);
+        }
+
+        $status = $request->validated('status');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => match ($status) {
+            'published' => __(':title is now visible to employees.', ['title' => $course->title]),
+            'draft' => __(':title is now hidden from employees.', ['title' => $course->title]),
+            default => __(':title was updated.', ['title' => $course->title]),
+        }]);
 
         return back();
     }
@@ -67,6 +81,8 @@ class CourseController extends Controller
             'hotel' => $copy->hotel_id === null ? 'shared' : $copy->hotel_id,
             'department' => ContentTree::departmentKey($copy),
             'course' => $copy->id,
+            // Stay in the builder: the new row has no lesson yet.
+            'builder' => 1,
         ]);
     }
 

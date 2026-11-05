@@ -152,6 +152,16 @@ export type LessonsTreeUnit = {
     status?: LessonContentStatus;
 };
 
+/** Which hotels see a shared course (client request 2026-11-05). */
+export type LessonCourseHotelScope = 'all' | 'only' | 'except';
+
+export type LessonCourseHotels = {
+    scope: LessonCourseHotelScope;
+    hotelIds: number[];
+    options: { id: number; name: string }[];
+    url: string;
+};
+
 export type LessonsTreeCourse = {
     id: number;
     title: string;
@@ -175,7 +185,13 @@ export type LessonsTreeTarget = {
     name: string;
 };
 
-export type LessonsTreeAction = 'rename' | 'duplicate' | 'delete';
+export type LessonsTreeAction =
+    | 'rename'
+    | 'duplicate'
+    | 'delete'
+    /** A course only: show it to employees, or hide it again. */
+    | 'publish'
+    | 'unpublish';
 
 export type LessonMockupCrop = {
     x: number;
@@ -221,6 +237,8 @@ export type LessonEditor = {
     courseLevelUrl: string | null;
     /** The lesson belongs to an English Essentials topic (2026-10-18). */
     essentials?: boolean;
+    /** A shared course's hotel group; null for one hotel's own course. */
+    courseHotels?: LessonCourseHotels | null;
     previewUrl: string | null;
     updatedAt: string | null;
 };

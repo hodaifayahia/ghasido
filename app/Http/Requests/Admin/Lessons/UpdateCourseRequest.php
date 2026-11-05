@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Enums\CourseHotelScope;
 use App\Enums\EnglishLevel;
 use App\Enums\EssentialsIcon;
 use App\Models\Course;
@@ -36,6 +37,11 @@ class UpdateCourseRequest extends FormRequest
             'audience_department_ids' => ['sometimes', 'array', 'max:100'],
             'audience_department_ids.*' => ['integer', 'distinct', Rule::exists('departments', 'id')],
             'icon' => ['sometimes', 'nullable', 'string', Rule::enum(EssentialsIcon::class)],
+            // A shared course's hotel group (client request 2026-11-05):
+            // all hotels, only these, or all except these.
+            'hotel_scope' => ['sometimes', 'string', Rule::enum(CourseHotelScope::class)],
+            'hotel_ids' => ['sometimes', 'array', 'max:500'],
+            'hotel_ids.*' => ['integer', 'distinct', Rule::exists('hotels', 'id')],
         ];
     }
 
@@ -50,9 +56,26 @@ class UpdateCourseRequest extends FormRequest
             $data['level'] = null;
         }
 
-        unset($data['audience_department_ids']);
+        unset($data['audience_department_ids'], $data['hotel_ids']);
 
         return $data;
+    }
+
+    /**
+     * The new hotel group of a shared course, or null when not sent.
+     *
+     * @return list<int>|null
+     */
+    public function hotelGroup(): ?array
+    {
+        if (! $this->exists('hotel_ids')) {
+            return null;
+        }
+
+        /** @var array<int, int|string> $ids */
+        $ids = $this->validated('hotel_ids', []);
+
+        return array_values(array_map('intval', $ids));
     }
 
     /**

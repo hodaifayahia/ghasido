@@ -65,8 +65,13 @@ class LessonsContentController extends Controller
         if ($next !== null) {
             $query['unit'] = $next->unit_id;
             $query['lesson'] = $next->id;
-        } elseif ($unitId !== null) {
-            $query['unit'] = $unitId;
+        } else {
+            // No lesson left: stay in the builder on the course (or unit).
+            $query['builder'] = 1;
+
+            if ($unitId !== null) {
+                $query['unit'] = $unitId;
+            }
         }
 
         return $query;

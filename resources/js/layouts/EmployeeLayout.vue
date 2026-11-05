@@ -2,11 +2,12 @@
 import { usePage } from '@inertiajs/vue3';
 import {
     Award,
+    Bell,
     BookOpen,
-    CircleQuestionMark,
     ClipboardCheck,
     GraduationCap,
     LogOut,
+    Sprout,
     Star,
 } from '@lucide/vue';
 import type { SidebarNav } from '@/components/AppSidebar.vue';
@@ -29,6 +30,7 @@ import {
     postTest,
     progress,
 } from '@/routes/learn';
+import { index as essentialsIndex } from '@/routes/learn/essentials';
 import type { SidebarNavItem } from '@/types';
 
 /*
@@ -54,13 +56,28 @@ const mainItems: SidebarNavItem[] = [
         iconClass: outline,
     },
     {
+        // English Essentials (client request 2026-11-05): its own entry in
+        // the sidebar, with the sprout the client chose; still no bottom tab.
+        title: tk('English Essentials'),
+        href: essentialsIndex(),
+        icon: Sprout,
+        iconClass: outline,
+    },
+    {
         title: tk('My Phrasebook'),
         href: phrasebook(),
         icon: Star,
         iconClass: solid,
     },
     { title: tk('My Progress'), href: progress(), icon: SolidBarsIcon },
-    { title: tk('Messages'), href: messages(), icon: SolidMailIcon },
+    {
+        // The page lists reminders and alerts, so it is "Notifications"
+        // with a bell (client request 2026-11-05).
+        title: tk('Notifications'),
+        href: messages(),
+        icon: Bell,
+        iconClass: outline,
+    },
 ];
 
 const journeyItems: SidebarNavItem[] = [
@@ -94,10 +111,11 @@ const journeyItems: SidebarNavItem[] = [
 
 const accountItems: SidebarNavItem[] = [
     {
-        title: tk('Help'),
+        // Where learners write to the team and read the answers, so it is
+        // "Messages & Help" with the envelope (client request 2026-11-05).
+        title: tk('Messages & Help'),
         href: '/help',
-        icon: CircleQuestionMark,
-        iconClass: `${solid} [&>path]:fill-none [&>path]:stroke-surface`,
+        icon: SolidMailIcon,
     },
     {
         title: tk('Log out'),

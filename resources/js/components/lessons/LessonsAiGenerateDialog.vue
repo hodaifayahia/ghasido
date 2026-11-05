@@ -388,8 +388,8 @@ const selectTrigger =
                 <textarea
                     id="ai-generate-prompt"
                     v-model="prompt"
-                    rows="5"
-                    maxlength="4000"
+                    rows="8"
+                    maxlength="20000"
                     required
                     :placeholder="
                         $t(
@@ -399,6 +399,14 @@ const selectTrigger =
                     class="border-line bg-surface text-ink placeholder:text-ink-faint focus-visible:border-brand-600 focus-visible:ring-brand-600/15 min-h-28 w-full resize-y rounded-sm border px-3 py-2 text-[13.5px] leading-6 focus-visible:ring-3 focus-visible:outline-none"
                     data-test="ai-generate-prompt"
                 />
+                <p class="text-ink-faint text-end text-[11.5px] tabular-nums">
+                    {{
+                        $t(
+                            'You can paste a whole lesson plan here. :count / :max characters',
+                            { count: prompt.length, max: 20000 },
+                        )
+                    }}
+                </p>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-3">

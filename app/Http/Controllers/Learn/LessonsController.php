@@ -56,7 +56,13 @@ class LessonsController extends Controller
         $essentials = $this->essentials->summary($user, $completed);
 
         return Inertia::render('employee/Lessons', [
-            'courses' => $courses->map(fn (Course $course): array => $this->outline->present($course, $completed, $locked))->values()->all(),
+            // A published course with no published lesson yet stays off My
+            // Lessons (client request 2026-11-05).
+            'courses' => $courses
+                ->map(fn (Course $course): array => $this->outline->present($course, $completed, $locked))
+                ->filter(fn (array $course): bool => $course['units'] !== [])
+                ->values()
+                ->all(),
             'essentials' => $essentials === null ? null : $essentials + ['locked' => $locked],
             'journey' => $this->journey->summary($user),
         ]);
