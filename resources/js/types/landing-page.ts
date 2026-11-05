@@ -41,6 +41,15 @@ export type LandingPageContent = {
         secondary_cta: string;
         image_alt: string;
         proof_points: string[];
+        /** The lesson step the hero's phone plays (2026-11-05). */
+        demo_situation: string;
+        /** English learning content in both copies. */
+        demo_guest_line: string;
+        /** The learner's Arabic help for the guest line. */
+        demo_meaning: string;
+        /** English learning content in both copies. */
+        demo_reply: string;
+        demo_note: string;
     };
     why_us: {
         eyebrow: string;
@@ -146,7 +155,7 @@ export type LandingPaymentMethod = {
 };
 
 /** Who a plan is sold to: a hotel team, or one learner on their own. */
-export type PlanAudience = 'hotel' | 'individual';
+export type PlanAudience = "hotel" | "individual";
 
 export type LandingPlan = {
     id: number;
@@ -169,13 +178,13 @@ export type CheckoutDepartmentOption = {
     label: string;
 };
 
-export type PaymentSubmissionStatus = 'pending' | 'confirmed' | 'rejected';
+export type PaymentSubmissionStatus = "pending" | "confirmed" | "rejected";
 
 /** What the "Payment submitted" page shows about one payment. */
 export type CheckoutSubmittedPayment = {
     planName: string;
     amount: number;
-    currency: 'DZD' | 'USD';
+    currency: "DZD" | "USD";
     method: string;
     reference: string | null;
     hasReceipt: boolean;

@@ -72,3 +72,14 @@ export type PronunciationResult = {
     feedback: PronunciationFeedback | null;
     pollUrl: string;
 };
+
+/**
+ * A saved sentence check of a Listen & Repeat step, restored from the server
+ * after a logout (client report 2026-11-05): the full result, the sentence
+ * index and the learner's own recording (DATA-02).
+ */
+export type PronunciationHistoryEntry = PronunciationResult & {
+    item: number;
+    createdAt: string | null;
+    recordingUrl: string | null;
+};

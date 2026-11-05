@@ -218,10 +218,11 @@ class QuestionTypesAnswerTest extends TestCase
             ->has('result.feedback.check.words', 6)
         );
 
-        // Another learner cannot read this result through the poll.
+        // Another learner cannot read this result through the poll: a 403
+        // (ROLE-02; client report 2026-11-05).
         $other = $this->learner(['username' => 'amine']);
         $this->submitPreTest($other);
-        $this->poll($placement, $attempt, $other)->assertInertia(fn (Assert $page) => $page->where('result', null));
+        $this->poll($placement, $attempt, $other)->assertForbidden();
     }
 
     public function test_an_open_speaking_question_is_judged_by_the_ai_instead()

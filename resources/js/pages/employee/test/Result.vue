@@ -2,10 +2,12 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Award, BookOpen, CircleCheck } from '@lucide/vue';
 import { computed } from 'vue';
+import AttemptHistoryCard from '@/components/learning/attempts/AttemptHistoryCard.vue';
+import { fromTestSittings } from '@/components/learning/attempts/attemptHistory';
 import Celebration from '@/components/learning/Celebration.vue';
 import TestAnswerReview from '@/components/learning/test/TestAnswerReview.vue';
 import TestMotivationCard from '@/components/learning/test/TestMotivationCard.vue';
-import type { TestReviewRow } from '@/types';
+import type { TestReviewRow, TestSittingRow } from '@/types';
 import LevelSuggestionCard from '@/components/learning/level/LevelSuggestionCard.vue';
 
 /*
@@ -34,9 +36,19 @@ type Props = {
     continueUrl: string;
     certificateUrl: string;
     certificateAvailable: boolean;
+    /** Every finished sitting, newest first (client report 2026-11-05). */
+    sittings?: TestSittingRow[];
+    currentAttemptId?: number | null;
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    sittings: () => [],
+    currentAttemptId: null,
+});
+
+// Each sitting is its own saved row; the score shows only when the admin
+// shows results (TEST-04). One sitting needs no list.
+const history = computed(() => fromTestSittings(props.sittings));
 
 const showScore = computed(() => props.result !== null);
 </script>
@@ -151,5 +163,11 @@ const showScore = computed(() => props.result !== null);
         >
             <TestAnswerReview :rows="review" />
         </div>
+
+        <AttemptHistoryCard
+            v-if="history.length > 1"
+            :rows="history"
+            :current-id="currentAttemptId"
+        />
     </section>
 </template>

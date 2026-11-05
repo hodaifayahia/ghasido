@@ -33,7 +33,7 @@ final class MeaningTexts
     /** @return list<string> */
     public static function forLesson(Lesson $lesson): array
     {
-        $lesson->loadMissing(['blocks.placements.activity', 'blocks.scenarios']);
+        $lesson->loadMissing(['blocks.placements.activity', 'blocks.scenarios', 'blocks.lexiconItems']);
 
         $texts = [$lesson->title, $lesson->introduction];
 
@@ -51,6 +51,12 @@ final class MeaningTexts
     public static function forBlock(Block $block): array
     {
         $texts = self::strings($block->settings ?? []);
+
+        // A word or expression and its hotel example (client request
+        // 2026-11-05: their meanings are Show Meaning translations now).
+        foreach ($block->lexiconItems as $item) {
+            array_push($texts, $item->english_text, $item->hotel_example);
+        }
 
         foreach ($block->placements as $placement) {
             if ($placement->activity instanceof Activity) {

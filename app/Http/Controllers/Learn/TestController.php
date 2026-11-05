@@ -12,6 +12,7 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Learning\ActivityPresenter;
+use App\Services\Learning\AttemptHistory;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\TestReview;
 use App\Services\Learning\TestRunner;
@@ -39,6 +40,7 @@ class TestController extends Controller
         private readonly ActivityPresenter $presenter,
         private readonly JourneyService $journey,
         private readonly TestReview $review,
+        private readonly AttemptHistory $history,
     ) {}
 
     public function start(Request $request, Test $test): RedirectResponse
@@ -170,6 +172,11 @@ class TestController extends Controller
             'certificateUrl' => route('learn.certificate'),
             'certificateAvailable' => $isPost && $this->journey->certificateAvailable($user),
             'journey' => $this->journey->summary($user),
+            // Every finished sitting of this test, each its own row, with the
+            // score only as far as the admin shows it (TEST-04; client
+            // report 2026-11-05).
+            'sittings' => $this->history->testSittings($user, $test),
+            'currentAttemptId' => $attempt->id,
         ]);
     }
 

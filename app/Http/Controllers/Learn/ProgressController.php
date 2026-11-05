@@ -63,7 +63,7 @@ class ProgressController extends Controller
      * The learner's latest submitted sitting of one test type, shaped by the
      * test's own visibility setting (TEST-04).
      *
-     * @return array{submittedAt: string|null, percent: int|null, score: float|null, maxScore: float|null, passed: bool|null, visibility: string}|null
+     * @return array{submittedAt: string|null, percent: int|null, score: float|null, maxScore: float|null, passed: bool|null, visibility: string, url: string}|null
      */
     private function latestResult(User $user, TestType $type): ?array
     {
@@ -93,6 +93,9 @@ class ProgressController extends Controller
             'maxScore' => $showScore ? $summary['max_score'] : null,
             'passed' => $showScore ? $summary['passed'] : null,
             'visibility' => $visibility->value,
+            // The way back to the saved result page (client report
+            // 2026-11-05); it shows only what the test allows (TEST-04).
+            'url' => route('learn.tests.result', ['test' => $attempt->test_id, 'attempt' => $attempt->id]),
         ];
     }
 }

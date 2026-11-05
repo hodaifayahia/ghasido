@@ -22,6 +22,7 @@ import type {
     EssentialsReturn,
     LessonStepNav,
     LessonSummary,
+    PronunciationHistoryEntry,
     StepBlock,
 } from '@/types';
 
@@ -47,6 +48,8 @@ type Props = {
     returnTo?: EssentialsReturn | null;
     /** Where "back" leaves the lesson: Home, or the Essentials topic. */
     exitUrl?: string;
+    /** Saved pronunciation checks of a Listen & Repeat step (2026-11-05). */
+    pronunciationHistory?: PronunciationHistoryEntry[];
 };
 
 const props = defineProps<Props>();
@@ -154,6 +157,7 @@ const next = computed(() => {
         v-else-if="block.type === 'listen_repeat'"
         :lesson="lesson"
         :block="block"
+        :history="pronunciationHistory ?? []"
     />
     <DialogueStep
         v-else-if="block.type === 'dialogue'"

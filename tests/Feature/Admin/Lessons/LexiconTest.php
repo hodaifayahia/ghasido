@@ -8,6 +8,7 @@ use App\Enums\GenerationStatus;
 use App\Models\AudioClip;
 use App\Models\AuditLog;
 use App\Models\LexiconItem;
+use App\Models\TextTranslation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -90,7 +91,10 @@ class LexiconTest extends TestCase
         $item->refresh();
 
         $this->assertSame('ai', $item->source);
-        $this->assertNotNull($item->arabic_meaning);
+        // The Arabic is an AI draft of the word's Show Meaning, kept per
+        // text (client request 2026-11-05), not a fixed column.
+        $this->assertNull($item->arabic_meaning);
+        $this->assertDatabaseHas('text_translations', ['hash' => TextTranslation::hashOf('Towel'), 'locale' => 'ar', 'source' => 'ai', 'status' => 'done']);
         $this->assertSame('Edited before applying.', $item->simple_explanation);
         $this->assertNull($item->ai_draft);
         $this->assertSame(1, AuditLog::query()->where('action', 'lexicon.draft_applied')->count());

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Learn;
 
+use App\Enums\BlockType;
 use App\Http\Controllers\Controller;
 use App\Models\Block;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Services\Learning\AttemptHistory;
 use App\Services\Learning\BlockPresenter;
 use App\Services\Learning\EssentialsDetour;
 use App\Services\Learning\LessonNavigator;
@@ -32,6 +34,7 @@ class LessonStepController extends Controller
         private readonly LessonNavigator $navigator,
         private readonly ProgressService $progress,
         private readonly EssentialsDetour $detour,
+        private readonly AttemptHistory $history,
     ) {}
 
     public function show(Request $request, Lesson $lesson, Block $block): Response
@@ -61,6 +64,12 @@ class LessonStepController extends Controller
             'exitUrl' => $lesson->isEssentials()
                 ? route('learn.essentials.show', ['course' => $lesson->course_id])
                 : route('learn.home'),
+            // The learner's saved pronunciation checks on a Listen & Repeat
+            // step, so the last result and every earlier try come back after
+            // a logout (PROG-01, DATA-02; client report 2026-11-05).
+            'pronunciationHistory' => $block->type === BlockType::ListenRepeat
+                ? $this->history->pronunciation($user, $block)
+                : [],
         ]);
     }
 

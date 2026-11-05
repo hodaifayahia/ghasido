@@ -133,7 +133,7 @@ const steps: TourStep[] = [
         target: '[data-tour="lexicon-meaning-field"]',
         title: tk('9. Add Show Meaning content'),
         body: tk(
-            'Enter the Arabic meaning, a simple explanation, and a hotel example. The employee sees Arabic only after tapping Show Meaning.',
+            'Add a simple explanation and a hotel example. Use Translate meaning on the English word and on the example to add their meaning in any language. The employee sees it only after tapping Show Meaning.',
         ),
         tip: tk(
             'Review AI suggestions before applying them. AI drafts are not saved until you apply and save them.',
@@ -176,7 +176,7 @@ const steps: TourStep[] = [
         target: '[data-tour="add-dialogue-line"]',
         title: tk('13. Add a dialogue line'),
         body: tk(
-            'Click Add line, choose Staff or Guest, and write the English sentence. Add the Arabic meaning for Show Meaning.',
+            'Click Add line, choose Staff or Guest, and write the English sentence. Use Translate meaning to add its meaning for Show Meaning.',
         ),
         tip: tk('Example: Guest — Could I have an extra towel, please?'),
         placement: 'bottom',

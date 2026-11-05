@@ -20,8 +20,10 @@ import type {
 
 /**
  * Listen & Repeat block (spec 0003 B.10, photo_4): the two step captions, the
- * recorder labels, and the sentences the learner repeats. Each sentence keeps
- * its Arabic behind Show Meaning (CTRL-02); its text drives the stored audio
+ * recorder labels, and the sentences the learner repeats. Each sentence's
+ * meaning is a Show Meaning translation of its English in any helper
+ * language, written with Translate meaning (CTRL-02; client request
+ * 2026-11-05: no fixed Arabic field); its text drives the stored audio
  * (CTRL-05).
  */
 type Props = {
@@ -30,7 +32,8 @@ type Props = {
     readOnly: boolean;
 };
 
-type Item = { text: string; arabic: string; image: number | null };
+/** `arabic` is the old fixed field, kept only until the English changes. */
+type Item = { text: string; arabic?: string | null; image: number | null };
 
 const props = defineProps<Props>();
 
@@ -64,13 +67,29 @@ function updateItem(index: number, patch: Partial<Item>): void {
     );
 }
 
+function setText(index: number, text: string): void {
+    setItems(
+        items.value.map((row, i) => {
+            if (i !== index) {
+                return row;
+            }
+
+            // An old Arabic belongs to the English it was written for.
+            const next: Item = { ...row, text };
+            delete next.arabic;
+
+            return next;
+        }),
+    );
+}
+
 function onItemImage(index: number, item: LessonMediaRef | null): void {
     media.remember(item);
     updateItem(index, { image: item?.id ?? null });
 }
 
 function addItem(): void {
-    setItems([...items.value, { text: '', arabic: '', image: null }]);
+    setItems([...items.value, { text: '', image: null }]);
 }
 
 function removeItem(index: number): void {
@@ -169,30 +188,15 @@ function removeItem(index: number): void {
                 <div class="flex items-start justify-between gap-3">
                     <div class="grid flex-1 gap-2">
                         <LessonsField
+                            meaning
                             :model-value="item.text"
                             :label="$t('English')"
                             @update:model-value="
                                 (value) =>
-                                    updateItem(index, {
-                                        text:
-                                            typeof value === 'string'
-                                                ? value
-                                                : '',
-                                    })
-                            "
-                        />
-                        <LessonsField
-                            :model-value="item.arabic"
-                            :label="$t('Arabic (behind Show Meaning)')"
-                            dir="rtl"
-                            @update:model-value="
-                                (value) =>
-                                    updateItem(index, {
-                                        arabic:
-                                            typeof value === 'string'
-                                                ? value
-                                                : '',
-                                    })
+                                    setText(
+                                        index,
+                                        typeof value === 'string' ? value : '',
+                                    )
                             "
                         />
                     </div>

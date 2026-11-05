@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { Mic, Volume2 } from '@lucide/vue';
+import { ArrowLeft, ArrowRight, Mic, Volume2 } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
+import AttemptHistoryCard from '@/components/learning/attempts/AttemptHistoryCard.vue';
+import { fromPronunciation } from '@/components/learning/attempts/attemptHistory';
+import type { AttemptHistoryRow } from '@/components/learning/attempts/attemptHistory';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import PhrasebookButton from '@/components/learning/PhrasebookButton.vue';
 import PronunciationResult from '@/components/learning/pronunciation/PronunciationResult.vue';
@@ -8,14 +11,19 @@ import PronunciationWordDrill from '@/components/learning/pronunciation/Pronunci
 import RecorderButton from '@/components/learning/RecorderButton.vue';
 import RecordingPlayer from '@/components/learning/RecordingPlayer.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import SidePhotoCard from '@/components/learning/SidePhotoCard.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { usePronunciationCheck } from '@/composables/usePronunciationCheck';
 import { useShowMeaning } from '@/composables/useShowMeaning';
-import type { LessonSummary, PronunciationWord, StepBlockOf } from '@/types';
+import type {
+    LessonSummary,
+    PronunciationHistoryEntry,
+    PronunciationWord,
+    StepBlockOf,
+} from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 
 /*
  * Step 4, "Listen & Repeat" (LESSON-06, RESP-05, TEST-07, DATA-02; photo_4):
@@ -29,9 +37,11 @@ import MeaningText from '@/components/learning/meaning/MeaningText.vue';
 type Props = {
     lesson: LessonSummary;
     block: StepBlockOf<'listen_repeat'>;
+    /** The learner's saved checks on this step, newest first. */
+    history?: PronunciationHistoryEntry[];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { history: () => [] });
 
 const items = computed(() => props.block.settings.items ?? []);
 const index = ref(0);
@@ -51,10 +61,72 @@ const checking = computed(
     () => check.busy.value && check.result.value?.status !== 'done',
 );
 
+/*
+ * Saved checks come back from the server after a logout (client report
+ * 2026-11-05; PROG-01, DATA-02): the latest result of each sentence is
+ * shown until the learner records again, and every try stays listed to
+ * compare. Checks made on this visit join the list as they finish.
+ */
+const fresh = ref<PronunciationHistoryEntry[]>([]);
+const viewing = ref<PronunciationHistoryEntry | null>(null);
+const savedForItem = computed(() =>
+    [...fresh.value, ...props.history].filter(
+        (entry) => entry.item === index.value,
+    ),
+);
+const shownCheck = computed(
+    () => check.result.value ?? viewing.value ?? savedForItem.value[0] ?? null,
+);
+const shownRecording = computed((): Recorded | null => {
+    if (check.result.value !== null || checking.value) {
+        return currentRecording.value;
+    }
+
+    const saved = viewing.value ?? savedForItem.value[0] ?? null;
+
+    return saved?.recordingUrl
+        ? { url: saved.recordingUrl, durationMs: 0 }
+        : currentRecording.value;
+});
+const historyRows = computed(() => fromPronunciation(savedForItem.value));
+
+watch(
+    () => check.result.value,
+    (result) => {
+        if (
+            result === null ||
+            !result.settled ||
+            fresh.value.some((entry) => entry.id === result.id) ||
+            props.history.some((entry) => entry.id === result.id)
+        ) {
+            return;
+        }
+
+        fresh.value.unshift({
+            ...result,
+            item: index.value,
+            createdAt: new Date().toISOString(),
+            recordingUrl: currentRecording.value?.url ?? null,
+        });
+    },
+    { deep: true },
+);
+
+function viewSaved(row: AttemptHistoryRow): void {
+    const entry = savedForItem.value.find((saved) => saved.id === row.id);
+
+    if (entry) {
+        check.reset();
+        drillWord.value = null;
+        viewing.value = entry;
+    }
+}
+
 watch(index, () => {
     meaning.hide();
     check.reset();
     drillWord.value = null;
+    viewing.value = null;
 });
 
 function onRecorded(payload: {
@@ -68,6 +140,7 @@ function onRecorded(payload: {
         durationMs: payload.durationMs,
     };
     drillWord.value = null;
+    viewing.value = null;
 
     void check.check(
         {
@@ -82,6 +155,7 @@ function onRecorded(payload: {
 function onRecordAgain(): void {
     check.reset();
     drillWord.value = null;
+    viewing.value = null;
 }
 </script>
 
@@ -165,7 +239,7 @@ function onRecordAgain(): void {
 
                         <div class="flex w-full min-w-0 flex-1 flex-col gap-3">
                             <div
-                                v-if="currentRecording"
+                                v-if="shownRecording"
                                 class="bg-app-alt rounded-lg p-3"
                             >
                                 <p
@@ -174,8 +248,10 @@ function onRecordAgain(): void {
                                     {{ $t('Your recording') }}
                                 </p>
                                 <RecordingPlayer
-                                    :src="currentRecording.url"
-                                    :duration-ms="currentRecording.durationMs"
+                                    :src="shownRecording.url"
+                                    :duration-ms="
+                                        shownRecording.durationMs || null
+                                    "
                                 />
                             </div>
 
@@ -199,15 +275,15 @@ function onRecordAgain(): void {
                     </div>
 
                     <PronunciationResult
-                        v-if="check.result.value && !checking"
-                        :result="check.result.value"
+                        v-if="shownCheck && !checking"
+                        :result="shownCheck"
                         class="mt-4"
                         @drill="drillWord = $event"
                     />
 
                     <PronunciationWordDrill
                         v-if="drillWord"
-                        :key="`${check.result.value?.id}-${drillWord.index}`"
+                        :key="`${shownCheck?.id}-${drillWord.index}`"
                         :word="drillWord"
                         :lesson-id="lesson.id"
                         :block-id="block.id"
@@ -219,25 +295,59 @@ function onRecordAgain(): void {
             </div>
         </div>
 
+        <AttemptHistoryCard
+            v-if="historyRows.length > 0"
+            :rows="historyRows"
+            :current-id="checking ? null : (shownCheck?.id ?? null)"
+            @select="viewSaved"
+        />
+
+        <!-- Arrows beside the dots, as in the Dialogue step, so learners see
+             there is a next sentence (client request 2026-11-05). -->
         <div
             v-if="items.length > 1"
-            class="flex items-center justify-center gap-2"
+            class="flex items-center justify-center gap-3"
         >
             <button
-                v-for="(item, i) in items"
-                :key="i"
                 type="button"
-                :aria-label="$t('Sentence :number', { number: i + 1 })"
-                :aria-current="i === index"
-                class="focus-visible:ring-brand-600/40 size-3 rounded-full focus-visible:ring-3 focus-visible:outline-none"
-                :class="i === index ? 'bg-brand-600' : 'bg-brand-100'"
-                @click="index = i"
-            />
+                :aria-label="$t('Previous sentence')"
+                class="bg-brand-50 text-brand-600 hover:bg-brand-100 focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] disabled:opacity-40"
+                :disabled="index === 0"
+                data-test="listen-repeat-previous"
+                @click="index = Math.max(0, index - 1)"
+            >
+                <ArrowLeft class="size-5 rtl:rotate-180" aria-hidden="true" />
+            </button>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                    v-for="(item, i) in items"
+                    :key="i"
+                    type="button"
+                    :aria-label="$t('Sentence :number', { number: i + 1 })"
+                    :aria-current="i === index"
+                    class="focus-visible:ring-brand-600/40 size-3 rounded-full focus-visible:ring-3 focus-visible:outline-none"
+                    :class="i === index ? 'bg-brand-600' : 'bg-brand-100'"
+                    @click="index = i"
+                />
+            </div>
+            <button
+                type="button"
+                :aria-label="$t('Next sentence')"
+                class="bg-brand-50 text-brand-600 hover:bg-brand-100 focus-visible:ring-brand-600/40 grid size-11 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] disabled:opacity-40"
+                :disabled="index >= items.length - 1"
+                data-test="listen-repeat-next"
+                @click="index = Math.min(items.length - 1, index + 1)"
+            >
+                <ArrowRight class="size-5 rtl:rotate-180" aria-hidden="true" />
+            </button>
         </div>
 
         <div class="flex flex-wrap items-center justify-center gap-3">
+            <!-- The sentence's meaning is its stored translation in the
+                 learner's helper language, fetched on the tap (client
+                 request 2026-11-05). -->
             <ShowMeaningButton
-                v-if="current?.arabic"
+                v-if="current"
                 :shown="meaning.shown.value"
                 @toggle="meaning.toggle()"
             />
@@ -245,15 +355,15 @@ function onRecordAgain(): void {
                 v-if="current"
                 :saved="false"
                 :text="current.text"
-                :arabic="current.arabic ?? null"
                 :source-lesson-id="lesson.id"
             />
         </div>
 
-        <ShowMeaningPanel
-            v-if="current?.arabic"
+        <StoredMeaningPanel
+            v-if="current"
+            :key="index"
+            :text="current.text"
             :shown="meaning.shown.value"
-            :arabic="current.arabic"
             class="mx-auto w-full max-w-2xl"
         />
     </div>

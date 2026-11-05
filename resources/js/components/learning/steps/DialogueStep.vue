@@ -3,20 +3,22 @@ import { ArrowRight } from '@lucide/vue';
 import { computed, ref, useId, watch } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import SidePhotoCard from '@/components/learning/SidePhotoCard.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import { cn } from '@/lib/utils';
 import type { LessonSummary, StepBlockOf } from '@/types';
 import MeaningText from '@/components/learning/meaning/MeaningText.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 
 /*
  * Step 5, "Dialogue" (LESSON-06, CTRL-01..03; photo_5): the scene photo on
  * the left, a line-by-line conversation on the right — Step i/n with dots
  * and an advance arrow, the current line as a bubble with its speaker, the
- * Normal / Slow controls and Show Meaning. The last line reached lets the
- * footer Next complete the step.
+ * Normal / Slow controls and Show Meaning (the line's stored translation in
+ * the learner's helper language, fetched on the tap; client request
+ * 2026-11-05). The last line reached lets the footer Next complete the
+ * step.
  */
 type Props = {
     lesson: LessonSummary;
@@ -147,17 +149,18 @@ function go(to: number): void {
                         />
                     </div>
 
-                    <template v-if="current?.arabic">
+                    <template v-if="current">
                         <ShowMeaningButton
                             :shown="meaning.shown.value"
                             :controls="panelId"
                             :class="cn('mx-auto')"
                             @toggle="meaning.toggle()"
                         />
-                        <ShowMeaningPanel
+                        <StoredMeaningPanel
                             :id="panelId"
+                            :key="index"
+                            :text="current.text"
                             :shown="meaning.shown.value"
-                            :arabic="current.arabic"
                         />
                     </template>
                 </div>

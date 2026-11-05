@@ -29,6 +29,7 @@ use App\Models\User;
 use App\Services\Ai\AiLimitReached;
 use App\Services\Audio\AudioLibrary;
 use App\Services\Audio\PlayableTextCollector;
+use App\Services\Meaning\InlineMeanings;
 use App\Services\Owner\ApiCredit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
@@ -66,6 +67,7 @@ class LessonGenerator
         private readonly ActivityService $activities,
         private readonly AudioLibrary $audio,
         private readonly PlayableTextCollector $collector,
+        private readonly InlineMeanings $meanings,
     ) {}
 
     // ------------------------------------------------------------- starting
@@ -545,8 +547,6 @@ class LessonGenerator
             $item = $this->lexicon->create([
                 'kind' => $kind,
                 'english_text' => Str::limit($row['english'], 250, ''),
-                // Arabic only in the Show Meaning columns (CTRL-01, CTRL-02).
-                'arabic_meaning' => $row['arabic'] !== '' ? $row['arabic'] : null,
                 'simple_explanation' => $row['explanation'] !== '' ? $row['explanation'] : null,
                 'hotel_example' => $row['example'] !== '' ? $row['example'] : null,
                 'show_meaning_enabled' => true,
@@ -555,6 +555,9 @@ class LessonGenerator
             ], $actor, $block);
 
             $item->forceFill(['source' => LexiconItem::SOURCE_AI])->save();
+            // The Arabic is an AI draft of the word's Show Meaning, kept per
+            // text so any helper language works (client request 2026-11-05).
+            $this->meanings->draft($item->english_text, $row['arabic']);
             $first ??= $item->id;
         }
 
@@ -574,9 +577,13 @@ class LessonGenerator
             }
         }
 
+        foreach ($rows as $row) {
+            $this->meanings->draft($row['text'], $row['arabic']);
+        }
+
         $this->addBlock($lesson, BlockType::ListenRepeat, [
             'items' => array_map(
-                static fn (array $row): array => ['text' => $row['text'], 'arabic' => $row['arabic'] !== '' ? $row['arabic'] : null, 'image' => null],
+                static fn (array $row): array => ['text' => $row['text'], 'image' => null],
                 $rows,
             ),
         ]);
@@ -584,6 +591,10 @@ class LessonGenerator
 
     private function dialogueBlock(Lesson $lesson, LessonDraft $draft): void
     {
+        foreach ($draft->dialogue as $line) {
+            $this->meanings->draft($line['text'], $line['arabic']);
+        }
+
         $this->addBlock($lesson, BlockType::Dialogue, [
             'image' => null,
             'situation_caption' => __('Situation: :title', ['title' => $lesson->title], 'en'),
@@ -591,7 +602,6 @@ class LessonGenerator
                 static fn (array $line): array => [
                     'speaker' => str_contains(strtolower($line['speaker']), 'guest') ? 'guest' : 'staff',
                     'text' => $line['text'],
-                    'arabic' => $line['arabic'] !== '' ? $line['arabic'] : null,
                 ],
                 $draft->dialogue,
             ),

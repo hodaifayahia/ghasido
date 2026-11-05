@@ -3,25 +3,28 @@ import { MessageSquare } from '@lucide/vue';
 import { computed, useId } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 import { useShowMeaning } from '@/composables/useShowMeaning';
 import type { AudioPair } from '@/types';
 
 /*
  * The "Example" card under the featured word (photo_2): a brand-50 header
  * with the chat icon, then a white body with a speaker, the sentence (the
- * featured word in bold) and a small centred Show Meaning (CTRL-01..03).
+ * featured word in bold) and a small centred Show Meaning (CTRL-01..03):
+ * the stored translation of the sentence in the learner's helper language,
+ * fetched on the tap (client request 2026-11-05).
  */
 type Props = {
     text: string;
     word: string;
     audio: AudioPair | null;
-    arabic: string | null;
+    /** Show Meaning is on for the word (CTRL-03). */
+    meaning: boolean;
 };
 
 const props = defineProps<Props>();
 
-const meaning = useShowMeaning();
+const reveal = useShowMeaning();
 const panelId = `vocab-example-${useId()}`;
 
 const segments = computed(() => {
@@ -88,18 +91,18 @@ const segments = computed(() => {
                 </p>
             </div>
 
-            <template v-if="arabic">
+            <template v-if="meaning">
                 <ShowMeaningButton
-                    :shown="meaning.shown.value"
+                    :shown="reveal.shown.value"
                     :controls="panelId"
                     size="sm"
                     class="mx-auto"
-                    @toggle="meaning.toggle()"
+                    @toggle="reveal.toggle()"
                 />
-                <ShowMeaningPanel
+                <StoredMeaningPanel
                     :id="panelId"
-                    :shown="meaning.shown.value"
-                    :arabic="arabic"
+                    :text="text"
+                    :shown="reveal.shown.value"
                 />
             </template>
         </div>

@@ -31,8 +31,15 @@ final class LandingPageArabicDefaults
                 'description' => 'تجمع GHASIDO الدروس والاختبارات ولعب الأدوار مع الضيوف بالذكاء الاصطناعي والتقدم القابل للقياس في مسار تدريبي واحد وواضح لكل أقسام الفندق.',
                 'primary_cta' => 'اكتشف كيف تعمل',
                 'secondary_cta' => 'عرض الباقات',
-                'image_alt' => 'شاشات تدريب GHASIDO، تظهر فيها لوحة تحكم المسؤول واختبار قبلي لموظف على الهاتف',
+                'image_alt' => 'خطوة من درس GHASIDO على الهاتف: ضيف يتحدث في مكتب الاستقبال، فيُظهر الموظف المعنى بالعربية ويسجّل ردّه',
                 'proof_points' => ['مصممة لفرق الفنادق', 'تعمل بسلاسة على الهاتف', 'تدريب هادف بالذكاء الاصطناعي'],
+                // The guest line and the reply stay English: they are the
+                // learning content the phone shows.
+                'demo_situation' => 'مكتب الاستقبال · تسجيل وصول ضيف',
+                'demo_guest_line' => 'Good evening. I have a reservation under the name Haddad.',
+                'demo_meaning' => 'مساء الخير. لديّ حجز باسم حدّاد.',
+                'demo_reply' => 'Welcome, Mr Haddad. May I see your passport, please?',
+                'demo_note' => 'العربية فقط عند الطلب',
             ],
             'roles' => [
                 'eyebrow' => 'منصة واحدة وثلاث تجارب واضحة',

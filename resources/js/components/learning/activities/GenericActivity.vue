@@ -13,6 +13,7 @@ import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
 import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
 import { useI18n } from '@/composables/useI18n';
 import { useShowMeaning } from '@/composables/useShowMeaning';
+import { newSubmissionKey } from '@/lib/submissionKey';
 import { cn } from '@/lib/utils';
 import { store as storeRecording } from '@/routes/learn/recordings';
 import type {
@@ -70,6 +71,10 @@ const answers = reactive<AnswerMap>({});
 
 if (props.initialAnswers) {
     Object.assign(answers, props.initialAnswers);
+} else if (!isTest.value && props.result?.answers) {
+    // A reopened practice activity shows the learner's saved answer beside
+    // its verdict and feedback (PROG-01; client report 2026-11-05).
+    Object.assign(answers, props.result.answers);
 }
 
 // The test runner drives navigation from the parent page; it reads the
@@ -78,12 +83,35 @@ defineExpose({ collect: (): AnswerMap => ({ ...answers }) });
 const recordings = reactive<
     Record<string, { url: string; durationMs: number }>
 >({});
+// The saved recording of a reopened spoken answer plays again (DATA-02).
+if (!isTest.value && props.result?.recordingUrl) {
+    for (const [itemId, value] of Object.entries(answers)) {
+        if (
+            value !== null &&
+            typeof value === 'object' &&
+            'recording_media_id' in value &&
+            value.recording_media_id !== null
+        ) {
+            recordings[itemId] = {
+                url: props.result.recordingUrl,
+                durationMs: Number(value.duration_ms) || 0,
+            };
+        }
+    }
+}
 const uploading = ref(false);
 const startedAt = new Date().toISOString();
 
-const form = useForm<{ answers: AnswerMap; started_at: string }>({
+const form = useForm<{
+    answers: AnswerMap;
+    started_at: string;
+    submission_key: string;
+}>({
     answers: {},
     started_at: startedAt,
+    // One key per submission: a retried request finds its saved attempt
+    // instead of writing a second one (PROG-04).
+    submission_key: newSubmissionKey(),
 });
 
 type Loose = Record<string, unknown>;

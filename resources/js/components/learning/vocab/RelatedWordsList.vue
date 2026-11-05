@@ -2,7 +2,7 @@
 import { BookOpen, Eye } from '@lucide/vue';
 import { reactive } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
-import ShowMeaningPanel from '@/components/learning/ShowMeaningPanel.vue';
+import StoredMeaningPanel from '@/components/learning/meaning/StoredMeaningPanel.vue';
 import TipCard from '@/components/learning/TipCard.vue';
 import { cn } from '@/lib/utils';
 import type { LexiconEntry } from '@/types';
@@ -84,7 +84,7 @@ function toggle(id: number): void {
                         />
 
                         <button
-                            v-if="item.showMeaning && item.meaning"
+                            v-if="item.showMeaning"
                             type="button"
                             :aria-label="
                                 $t('Show the meaning of :text', {
@@ -106,11 +106,11 @@ function toggle(id: number): void {
                         </button>
                     </div>
 
-                    <ShowMeaningPanel
-                        v-if="item.meaning"
+                    <StoredMeaningPanel
+                        v-if="item.showMeaning"
+                        :text="item.text"
                         :shown="revealed.has(item.id)"
-                        :arabic="item.meaning.arabic"
-                        :explanation="item.meaning.explanation"
+                        :explanation="item.meaning?.explanation ?? null"
                         class="mt-2"
                     />
                 </li>

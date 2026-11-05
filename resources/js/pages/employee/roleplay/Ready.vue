@@ -11,13 +11,20 @@ import {
     Video,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import AttemptHistoryCard from '@/components/learning/attempts/AttemptHistoryCard.vue';
+import {
+    fromRoleplay,
+    type RoleplayAttemptRow,
+} from '@/components/learning/attempts/attemptHistory';
 import VoiceCall from '@/components/roleplay/VoiceCall.vue';
 import type { MediaRef, VoiceCallOffer } from '@/types';
 
 /*
  * Get Ready before a role-play (RP-01, RP-04; spec 0003 Part E, photo_16).
  * The scenario brief and the attempts left; starting queues the guest's
- * opening line.
+ * opening line. "Your attempts" lists every earlier conversation with its
+ * score and a way back to its feedback; a new try never hides an old one
+ * (RP-11; client report 2026-11-05).
  */
 type Scenario = {
     id: number;
@@ -45,9 +52,16 @@ type Props = {
     canStart: boolean;
     /** Live spoken call (spec 0004), offered beside the text chat. */
     voiceCall?: VoiceCallOffer | null;
+    /** The learner's earlier conversations on this scenario, newest first. */
+    attempts?: RoleplayAttemptRow[];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    voiceCall: null,
+    attempts: () => [],
+});
+
+const history = computed(() => fromRoleplay(props.attempts));
 
 const voiceCallOpen = ref(false);
 
@@ -240,6 +254,8 @@ function start(): void {
                     }}
                 </p>
             </div>
+
+            <AttemptHistoryCard v-if="history.length > 0" :rows="history" />
         </div>
 
         <aside class="grid content-start gap-4">

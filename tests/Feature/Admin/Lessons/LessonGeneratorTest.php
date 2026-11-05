@@ -21,6 +21,7 @@ use App\Models\Hotel;
 use App\Models\Lesson;
 use App\Models\LexiconItem;
 use App\Models\MediaAsset;
+use App\Models\TextTranslation;
 use App\Services\Ai\UsageMeter;
 use App\Services\Content\LessonGenerator;
 use Illuminate\Filesystem\Filesystem;
@@ -139,7 +140,12 @@ class LessonGeneratorTest extends TestCase
         $vocabulary = $lesson->blocks()->where('type', BlockType::Vocabulary->value)->firstOrFail();
         $words = $vocabulary->lexiconItems()->get();
         $this->assertCount(6, $words);
-        $this->assertTrue($words->every(fn (LexiconItem $item): bool => $item->kind === LexiconKind::Word && $item->source === LexiconItem::SOURCE_AI && $item->arabic_meaning !== null));
+        $this->assertTrue($words->every(fn (LexiconItem $item): bool => $item->kind === LexiconKind::Word && $item->source === LexiconItem::SOURCE_AI));
+        // The AI's Arabic is a Show Meaning draft of each word, kept per text
+        // so any helper language works (client request 2026-11-05).
+        foreach ($words as $word) {
+            $this->assertDatabaseHas('text_translations', ['hash' => TextTranslation::hashOf($word->english_text), 'locale' => 'ar', 'status' => 'done']);
+        }
         $this->assertSame($words->first()?->id, $vocabulary->setting('featured_lexicon_item_id'));
 
         $dialogue = $lesson->blocks()->where('type', BlockType::Dialogue->value)->firstOrFail();

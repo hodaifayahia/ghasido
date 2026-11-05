@@ -34,8 +34,16 @@ final class LandingPageContentStore
                 'description' => 'GHASIDO brings lessons, assessments, AI guest role-play and measurable progress into one clear training path for every hotel department.',
                 'primary_cta' => 'See how it works',
                 'secondary_cta' => 'View plans',
-                'image_alt' => 'GHASIDO training screens, with the admin dashboard and an employee pre-test on a phone',
+                'image_alt' => 'A GHASIDO lesson step on a phone: a guest speaks at the front desk, the employee reveals the Arabic meaning and records a reply',
                 'proof_points' => ['Built for hotel teams', 'Works beautifully on mobile', 'AI practice with purpose'],
+                // The lesson step the hero's phone plays (user request
+                // 2026-11-05). The two lines are English learning content in
+                // both copies; the meaning is the learner's Arabic help.
+                'demo_situation' => 'Front desk · Checking in a guest',
+                'demo_guest_line' => 'Good evening. I have a reservation under the name Haddad.',
+                'demo_meaning' => 'مساء الخير. لديّ حجز باسم حدّاد.',
+                'demo_reply' => 'Welcome, Mr Haddad. May I see your passport, please?',
+                'demo_note' => 'Arabic only when they ask',
             ],
             'roles' => [
                 'eyebrow' => 'One platform, three clear experiences',

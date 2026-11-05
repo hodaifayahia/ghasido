@@ -16,6 +16,7 @@ use App\Models\PronunciationAttempt;
 use App\Models\User;
 use App\Services\Pronunciation\PronunciationPresenter;
 use Carbon\CarbonInterface;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -46,7 +47,17 @@ class AttemptRecorder
         ActivityPlacement $placement,
         array $answers,
         ?CarbonInterface $startedAt = null,
+        ?string $submissionKey = null,
     ): Attempt {
+        // A retry of a submission already written returns that attempt:
+        // every new submission appends a row, a repeated one adds nothing
+        // (PROG-04; client report 2026-11-05).
+        $existing = $this->submitted($user, $submissionKey);
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
         $activity = $placement->activity()->firstOrFail();
         $version = $this->presenter->currentVersion($activity);
         $result = $this->scorer->scoreItems($activity->type, $version->items(), $answers);
@@ -61,35 +72,41 @@ class AttemptRecorder
         $recordingId = $this->recordingIdIn($user, $activity->type, $answers);
         $spoken = $activity->type === ActivityType::Speaking && $recordingId !== null;
 
-        $attempt = DB::transaction(function () use ($user, $lesson, $block, $placement, $activity, $version, $answers, $result, $startedAt, $submittedAt, $recordingId, $spoken): Attempt {
-            $attemptNo = (int) Attempt::query()
-                ->where('user_id', $user->id)
-                ->where('placement_id', $placement->id)
-                ->whereNull('test_attempt_id')
-                ->max('attempt_no') + 1;
+        try {
+            $attempt = DB::transaction(function () use ($user, $lesson, $block, $placement, $activity, $version, $answers, $result, $startedAt, $submittedAt, $recordingId, $spoken, $submissionKey): Attempt {
+                $attemptNo = (int) Attempt::query()
+                    ->where('user_id', $user->id)
+                    ->where('placement_id', $placement->id)
+                    ->whereNull('test_attempt_id')
+                    ->max('attempt_no') + 1;
 
-            $attempt = Attempt::query()->create([
-                'user_id' => $user->id,
-                'activity_id' => $activity->id,
-                'activity_version_id' => $version->id,
-                'placement_id' => $placement->id,
-                'test_attempt_id' => null,
-                'lesson_id' => $lesson->id,
-                'block_id' => $block->id,
-                'attempt_no' => $attemptNo,
-                'raw_answer' => $answers,
-                'response_media_id' => $recordingId,
-                'ai_status' => $activity->type === ActivityType::Writing || $spoken ? GenerationStatus::Pending : null,
-                'started_at' => $startedAt,
-                'submitted_at' => $submittedAt,
-                'time_taken_ms' => max(0, (int) $startedAt->diffInMilliseconds($submittedAt)),
-                ...$result->toAttemptColumns(),
-            ]);
+                $attempt = Attempt::query()->create([
+                    'user_id' => $user->id,
+                    'activity_id' => $activity->id,
+                    'activity_version_id' => $version->id,
+                    'placement_id' => $placement->id,
+                    'test_attempt_id' => null,
+                    'lesson_id' => $lesson->id,
+                    'block_id' => $block->id,
+                    'attempt_no' => $attemptNo,
+                    'raw_answer' => $answers,
+                    'response_media_id' => $recordingId,
+                    'ai_status' => $activity->type === ActivityType::Writing || $spoken ? GenerationStatus::Pending : null,
+                    'started_at' => $startedAt,
+                    'submitted_at' => $submittedAt,
+                    'time_taken_ms' => max(0, (int) $startedAt->diffInMilliseconds($submittedAt)),
+                    'submission_key' => $submissionKey,
+                    ...$result->toAttemptColumns(),
+                ]);
 
-            $this->progress->touch($user);
+                $this->progress->touch($user);
 
-            return $attempt;
-        });
+                return $attempt;
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            // The same submission landed twice at once: the first one won.
+            return $this->submitted($user, $submissionKey) ?? throw $exception;
+        }
 
         if ($activity->type === ActivityType::Writing) {
             EvaluateWrittenAnswer::dispatch($attempt->id);
@@ -117,6 +134,23 @@ class AttemptRecorder
     }
 
     /**
+     * The practice attempt this learner already wrote under this submission
+     * key, if any (a retried request of the same "Check").
+     */
+    public function submitted(User $user, ?string $submissionKey): ?Attempt
+    {
+        if ($submissionKey === null) {
+            return null;
+        }
+
+        return Attempt::query()
+            ->where('user_id', $user->id)
+            ->where('submission_key', $submissionKey)
+            ->whereNull('test_attempt_id')
+            ->first();
+    }
+
+    /**
      * What the practice page shows after an answer: the verdict per item and
      * the correct answers revealed (ACC-02 needs icon + text, so the page
      * gets booleans, not colours).
@@ -132,6 +166,15 @@ class AttemptRecorder
         return [
             'attemptId' => $attempt->id,
             'attemptNo' => $attempt->attempt_no,
+            'submittedAt' => $attempt->submitted_at?->toIso8601String(),
+            // The learner's own answer as stored, so a reopened activity
+            // shows what they chose next to the verdict (PROG-01, DATA-01).
+            'answers' => $attempt->raw_answer ?? [],
+            // The learner's own recording of a spoken answer, playable again
+            // (DATA-02); served only to its owner by media.show (PRIV-04).
+            'recordingUrl' => $attempt->response_media_id === null
+                ? null
+                : MediaAsset::query()->find($attempt->response_media_id)?->url(),
             'score' => $attempt->score === null ? null : (float) $attempt->score,
             'maxScore' => $attempt->max_score === null ? null : (float) $attempt->max_score,
             'isCorrect' => $attempt->is_correct,

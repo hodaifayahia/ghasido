@@ -22,6 +22,12 @@ import type {
  * TTS-01..03). The admin fills the fields by hand, or asks the AI for a draft
  * and applies it explicitly (nothing AI is auto-published); audio is generated
  * once and served from the stored file (CTRL-05).
+ *
+ * The meanings of the word and of its hotel example are no longer fixed
+ * Arabic fields (client request 2026-11-05): "Translate meaning" on those two
+ * English fields keeps them per text in any helper language, so switching the
+ * learners to French needs no lesson rewritten. The old Arabic columns are
+ * left untouched (DATA-10).
  */
 type Props = {
     block: LessonBlockRow;
@@ -39,10 +45,8 @@ type FormState = {
     english_text: string;
     part_of_speech: string;
     ipa: string;
-    arabic_meaning: string;
     simple_explanation: string;
     hotel_example: string;
-    hotel_example_arabic: string;
     image_media_id: number | null;
     show_meaning_enabled: boolean;
 };
@@ -52,10 +56,8 @@ function blank(): FormState {
         english_text: '',
         part_of_speech: '',
         ipa: '',
-        arabic_meaning: '',
         simple_explanation: '',
         hotel_example: '',
-        hotel_example_arabic: '',
         image_media_id: null,
         show_meaning_enabled: true,
     };
@@ -83,10 +85,8 @@ function fromItem(): void {
               english_text: i.englishText,
               part_of_speech: i.partOfSpeech ?? '',
               ipa: i.ipa ?? '',
-              arabic_meaning: i.arabicMeaning ?? '',
               simple_explanation: i.simpleExplanation ?? '',
               hotel_example: i.hotelExample ?? '',
-              hotel_example_arabic: i.hotelExampleArabic ?? '',
               image_media_id: i.imageId,
               show_meaning_enabled: i.showMeaningEnabled,
           }
@@ -134,10 +134,8 @@ function payload(): Record<string, string | number | boolean | null> {
         english_text: f.english_text,
         part_of_speech: f.part_of_speech || null,
         ipa: f.ipa || null,
-        arabic_meaning: f.arabic_meaning || null,
         simple_explanation: f.simple_explanation || null,
         hotel_example: f.hotel_example || null,
-        hotel_example_arabic: f.hotel_example_arabic || null,
         image_media_id: f.image_media_id,
         show_meaning_enabled: f.show_meaning_enabled,
     };
@@ -232,7 +230,7 @@ function onImage(item: LessonMediaRef | null): void {
         "
         :description="
             $t(
-                'The English is always shown; the Arabic and explanation stay behind Show Meaning.',
+                'The English is always shown; its meaning and the explanation stay behind Show Meaning.',
             )
         "
         size="lg"
@@ -241,6 +239,7 @@ function onImage(item: LessonMediaRef | null): void {
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_140px]">
                 <LessonsField
                     data-tour="lexicon-english-field"
+                    meaning
                     v-model="form.english_text"
                     :label="$t('English')"
                     :error="errors.english_text"
@@ -263,16 +262,10 @@ function onImage(item: LessonMediaRef | null): void {
                 @change="onImage"
             />
 
-            <div class="grid gap-4 md:grid-cols-2">
-                <LessonsField
-                    data-tour="lexicon-meaning-field"
-                    v-model="form.arabic_meaning"
-                    :label="$t('Arabic meaning')"
-                    type="textarea"
-                    :rows="2"
-                    dir="rtl"
-                    :error="errors.arabic_meaning"
-                />
+            <div
+                class="grid gap-4 md:grid-cols-2"
+                data-tour="lexicon-meaning-field"
+            >
                 <LessonsField
                     v-model="form.simple_explanation"
                     :label="$t('Simple explanation')"
@@ -280,21 +273,13 @@ function onImage(item: LessonMediaRef | null): void {
                     :rows="2"
                     :error="errors.simple_explanation"
                 />
-            </div>
-            <div class="grid gap-4 md:grid-cols-2">
                 <LessonsField
+                    meaning
                     v-model="form.hotel_example"
                     :label="$t('Hotel example')"
                     type="textarea"
                     :rows="2"
                     :error="errors.hotel_example"
-                />
-                <LessonsField
-                    v-model="form.hotel_example_arabic"
-                    :label="$t('Hotel example (Arabic)')"
-                    type="textarea"
-                    :rows="2"
-                    dir="rtl"
                 />
             </div>
 
@@ -351,7 +336,7 @@ function onImage(item: LessonMediaRef | null): void {
                 >
                     {{
                         $t(
-                            'Ask the AI to suggest the Arabic meaning, a simple explanation and a hotel example. Nothing is saved until you apply it.',
+                            'Ask the AI to suggest a simple explanation, a hotel example and a first Arabic meaning. Nothing is saved until you apply it.',
                         )
                     }}
                 </p>

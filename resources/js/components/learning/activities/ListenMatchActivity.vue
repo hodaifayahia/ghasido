@@ -7,6 +7,7 @@ import SpeedRow from '@/components/learning/practice/SpeedRow.vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import TaskCard from '@/components/learning/TaskCard.vue';
 import WaveformGlyph from '@/components/learning/WaveformGlyph.vue';
+import { newSubmissionKey } from '@/lib/submissionKey';
 import { cn } from '@/lib/utils';
 import type {
     ActivityResult,
@@ -36,13 +37,23 @@ type PairState = 'idle' | 'selected' | 'correct' | 'incorrect';
 const props = defineProps<Props>();
 
 const answers = reactive<Record<string, PairMap>>({});
+// A reopened activity shows the learner's saved pairs (PROG-01).
+Object.assign(
+    answers,
+    (props.result?.answers ?? {}) as Record<string, PairMap>,
+);
 const current = ref(0);
 const activePrompt = ref<string | null>(null);
 const speed = ref<'normal' | 'slow'>('normal');
 const startedAt = new Date().toISOString();
-const form = useForm<{ answers: Record<string, PairMap>; started_at: string }>({
+const form = useForm<{
+    answers: Record<string, PairMap>;
+    started_at: string;
+    submission_key: string;
+}>({
     answers: {},
     started_at: startedAt,
+    submission_key: newSubmissionKey(),
 });
 
 const items = computed(() => props.activity.items);

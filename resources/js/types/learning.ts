@@ -96,11 +96,13 @@ export type LexiconSettings = {
     subtitle?: string | null;
 };
 
-/** A sentence with its clips paired by the resolver (`<key>_audio`). */
+/**
+ * A sentence with its clips paired by the resolver (`<key>_audio`). Its
+ * meaning is fetched on the Show Meaning tap (client request 2026-11-05).
+ */
 export type PlayableText = {
     text: string;
     text_audio?: AudioPair;
-    arabic?: string | null;
 };
 
 export type ListenRepeatSettings = {
@@ -170,10 +172,13 @@ export type LexiconEntry = {
     example: string | null;
     exampleAudio: AudioPair | null;
     showMeaning: boolean;
+    /**
+     * The meanings of the word and its example are fetched on the tap
+     * (POST /meaning; client request 2026-11-05); only the English
+     * explanation ships.
+     */
     meaning: {
-        arabic: string | null;
         explanation: string | null;
-        exampleArabic: string | null;
     } | null;
     saved: boolean;
     featured: boolean;
@@ -351,6 +356,8 @@ export type EssentialsSummary = {
     lessonsCompleted: number;
     url: string;
     locked: boolean;
+    /** The topics, listed down the side of My Lessons. */
+    items: EssentialsTopic[];
 };
 
 /** One topic on the English Essentials page. */
@@ -392,7 +399,12 @@ export type PhrasebookEntry = {
     example: string | null;
     exampleAudio: AudioPair | null;
     showMeaning: boolean;
-    meaning: LexiconEntry['meaning'];
+    /** Filled in the learner's helper language by the server. */
+    meaning: {
+        arabic: string | null;
+        explanation: string | null;
+        exampleArabic: string | null;
+    } | null;
     lesson: { id: number; title: string } | null;
     savedAt: string;
     removeUrl: string;
@@ -453,6 +465,8 @@ export type TestResultSummary = {
     maxScore: number | null;
     passed: boolean | null;
     visibility: string;
+    /** The saved result page of this sitting (client report 2026-11-05). */
+    url?: string;
 };
 
 // --------------------------------------------------------------- messages
