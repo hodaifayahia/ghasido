@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from "@inertiajs/vue3";
+import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowRight,
     BookOpenCheck,
@@ -15,22 +15,26 @@ import {
     Sparkles,
     UserRound,
     UsersRound,
-} from "@lucide/vue";
-import { computed, ref } from "vue";
-import type { Component } from "vue";
-import { individualInclusions } from "@/components/checkout/individualPlan";
-import AlgeriaFlagIcon from "@/components/icons/AlgeriaFlagIcon.vue";
-import LandingFooter from "@/components/landing/LandingFooter.vue";
-import LandingHeader from "@/components/landing/LandingHeader.vue";
-import LandingHero from "@/components/landing/LandingHero.vue";
-import InstallAppButton from "@/components/landing/InstallAppButton.vue";
-import { Button } from "@/components/ui/button";
-import { useI18n } from "@/composables/useI18n";
-import { vReveal } from "@/directives/vReveal";
-import { cn } from "@/lib/utils";
-import { contact } from "@/routes";
-import { show as checkoutShow } from "@/routes/checkout";
-import type { LandingPageContent, LandingPaymentMethod, LandingPlan } from "@/types";
+} from '@lucide/vue';
+import { computed, ref } from 'vue';
+import type { Component } from 'vue';
+import { individualInclusions } from '@/components/checkout/individualPlan';
+import AlgeriaFlagIcon from '@/components/icons/AlgeriaFlagIcon.vue';
+import LandingFooter from '@/components/landing/LandingFooter.vue';
+import LandingHeader from '@/components/landing/LandingHeader.vue';
+import LandingHero from '@/components/landing/LandingHero.vue';
+import InstallAppButton from '@/components/landing/InstallAppButton.vue';
+import { Button } from '@/components/ui/button';
+import { useI18n } from '@/composables/useI18n';
+import { vReveal } from '@/directives/vReveal';
+import { cn } from '@/lib/utils';
+import { contact } from '@/routes';
+import { show as checkoutShow } from '@/routes/checkout';
+import type {
+    LandingPageContent,
+    LandingPaymentMethod,
+    LandingPlan,
+} from '@/types';
 
 const props = defineProps<{
     content: LandingPageContent;
@@ -43,38 +47,48 @@ const { t } = useI18n();
 
 // Algerian hotels pay in DZD, everyone else in USD (client decision
 // 2026-09-26); both prices are set per plan by the Super Admin.
-type Region = "dz" | "intl";
-const region = ref<Region>("dz");
+type Region = 'dz' | 'intl';
+const region = ref<Region>('dz');
 const regions = computed((): { key: Region; label: string }[] => [
-    { key: "dz", label: props.content.pricing.region_algeria },
-    { key: "intl", label: props.content.pricing.region_international },
+    { key: 'dz', label: props.content.pricing.region_algeria },
+    { key: 'intl', label: props.content.pricing.region_international },
 ]);
 // Hotel teams or one learner on their own (user request 2026-09-27).
 // Individual plans carry monthly AI points, never seats.
-type Audience = "hotel" | "individual";
-const audience = ref<Audience>("hotel");
-const audiences = computed((): { key: Audience; label: string; icon: Component }[] => [
-    { key: "hotel", label: t("Hotels"), icon: Hotel },
-    { key: "individual", label: t("Individuals"), icon: UserRound },
-]);
+type Audience = 'hotel' | 'individual';
+const audience = ref<Audience>('hotel');
+const audiences = computed(
+    (): { key: Audience; label: string; icon: Component }[] => [
+        { key: 'hotel', label: t('Hotels'), icon: Hotel },
+        { key: 'individual', label: t('Individuals'), icon: UserRound },
+    ],
+);
 const individualPlans = computed(() => props.individualPlans ?? []);
-const isIndividual = computed(() => audience.value === "individual");
-const shownPlans = computed(() => (isIndividual.value ? individualPlans.value : props.plans));
+const isIndividual = computed(() => audience.value === 'individual');
+const shownPlans = computed(() =>
+    isIndividual.value ? individualPlans.value : props.plans,
+);
 const featuredIndex = computed(() =>
     shownPlans.value.length >= 4 ? 2 : Math.min(1, shownPlans.value.length - 1),
 );
 
 /** Arrow keys move between the audience options, as in a radio group. */
 function onAudienceKey(event: KeyboardEvent): void {
-    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+    if (
+        !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    ) {
         return;
     }
 
     event.preventDefault();
-    audience.value = isIndividual.value ? "hotel" : "individual";
+    audience.value = isIndividual.value ? 'hotel' : 'individual';
 
-    const group = (event.currentTarget as HTMLElement).closest('[role="radiogroup"]');
-    group?.querySelector<HTMLElement>(`[data-audience="${audience.value}"]`)?.focus();
+    const group = (event.currentTarget as HTMLElement).closest(
+        '[role="radiogroup"]',
+    );
+    group
+        ?.querySelector<HTMLElement>(`[data-audience="${audience.value}"]`)
+        ?.focus();
 }
 
 function checkoutHref(plan: LandingPlan): string {
@@ -84,35 +98,40 @@ function checkoutHref(plan: LandingPlan): string {
 
     return checkoutShow.url(
         plan.slug,
-        region.value === "intl" ? { query: { region: "intl" } } : undefined,
+        region.value === 'intl' ? { query: { region: 'intl' } } : undefined,
     );
 }
 
 const aiIcons: Component[] = [MessageCircleMore, Mic2, Hotel];
 const whyIcons: Component[] = [Hotel, Smartphone, ChartNoAxesCombined];
-const featureIcons: Component[] = [BookOpenCheck, UsersRound, ChartNoAxesCombined];
+const featureIcons: Component[] = [
+    BookOpenCheck,
+    UsersRound,
+    ChartNoAxesCombined,
+];
 
-const formatDzd = (value: number): string => new Intl.NumberFormat("fr-DZ").format(value);
+const formatDzd = (value: number): string =>
+    new Intl.NumberFormat('fr-DZ').format(value);
 
 const formatUsd = (value: number): string =>
-    new Intl.NumberFormat("en-US", {
+    new Intl.NumberFormat('en-US', {
         minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
         maximumFractionDigits: 2,
     }).format(value);
 
 /** A plan with no USD price yet is quoted on request, never shown as $0. */
 function onRequest(plan: LandingPlan): boolean {
-    return region.value === "intl" && plan.priceUsd <= 0;
+    return region.value === 'intl' && plan.priceUsd <= 0;
 }
 
 function price(plan: LandingPlan): { amount: string; currency: string } {
-    if (region.value === "dz") {
-        return { amount: formatDzd(plan.priceDzd), currency: "DZD" };
+    if (region.value === 'dz') {
+        return { amount: formatDzd(plan.priceDzd), currency: 'DZD' };
     }
 
     return onRequest(plan)
-        ? { amount: t("On request"), currency: "" }
-        : { amount: `$${formatUsd(plan.priceUsd)}`, currency: "USD" };
+        ? { amount: t('On request'), currency: '' }
+        : { amount: `$${formatUsd(plan.priceUsd)}`, currency: 'USD' };
 }
 </script>
 
@@ -151,7 +170,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         >
                             {{ content.journey.title }}
                         </h2>
-                        <p v-reveal="160" class="text-ink-slate mt-4 text-[15px] leading-7">
+                        <p
+                            v-reveal="160"
+                            class="text-ink-slate mt-4 text-[15px] leading-7"
+                        >
                             {{ content.journey.description }}
                         </p>
                     </div>
@@ -175,11 +197,15 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 >
                                     {{ index + 1 }}
                                 </span>
-                                <h3 class="font-heading text-brand-900 text-[15px] font-semibold">
+                                <h3
+                                    class="font-heading text-brand-900 text-[15px] font-semibold"
+                                >
                                     {{ step.title }}
                                 </h3>
                             </div>
-                            <p class="text-ink-slate mt-3 ps-12 text-[12px] leading-5">
+                            <p
+                                class="text-ink-slate mt-3 ps-12 text-[12px] leading-5"
+                            >
                                 {{ step.description }}
                             </p>
                         </li>
@@ -209,7 +235,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         >
                             {{ content.ai.title }}
                         </h2>
-                        <p v-reveal="160" class="text-brand-100 mt-4 text-[15px] leading-7">
+                        <p
+                            v-reveal="160"
+                            class="text-brand-100 mt-4 text-[15px] leading-7"
+                        >
                             {{ content.ai.description }}
                         </p>
                         <!-- Short points only (client request 2026-09-30). -->
@@ -237,18 +266,24 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         v-reveal:zoom="100"
                         class="border-surface/15 bg-surface/10 shadow-pop overflow-hidden rounded-xl border p-2 sm:p-3"
                     >
-                        <div class="border-surface/10 flex h-9 items-center gap-2 border-b px-2">
+                        <div
+                            class="border-surface/10 flex h-9 items-center gap-2 border-b px-2"
+                        >
                             <span class="bg-surface/25 size-2 rounded-full" />
                             <span class="bg-surface/20 size-2 rounded-full" />
                             <span class="bg-surface/15 size-2 rounded-full" />
                             <span
                                 class="text-brand-200 ms-2 text-[10px] font-semibold tracking-wide uppercase"
-                                >{{ $t("AI scenario workspace") }}</span
+                                >{{ $t('AI scenario workspace') }}</span
                             >
                         </div>
                         <img
                             src="/landing/ai-roleplay-builder-ghasido.png"
-                            :alt="$t('GHASIDO AI role-play scenario builder and preview')"
+                            :alt="
+                                $t(
+                                    'GHASIDO AI role-play scenario builder and preview',
+                                )
+                            "
                             width="1280"
                             height="853"
                             loading="lazy"
@@ -300,16 +335,24 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 class="bg-brand-100 text-brand-700 grid size-10 shrink-0 place-items-center rounded-md"
                             >
                                 <component
-                                    :is="featureIcons[index % featureIcons.length]"
+                                    :is="
+                                        featureIcons[
+                                            index % featureIcons.length
+                                        ]
+                                    "
                                     class="size-5"
                                     aria-hidden="true"
                                 />
                             </span>
                             <div class="min-w-0">
-                                <h3 class="font-heading text-brand-900 text-[15px] font-semibold">
+                                <h3
+                                    class="font-heading text-brand-900 text-[15px] font-semibold"
+                                >
                                     {{ item.title }}
                                 </h3>
-                                <p class="text-ink-slate mt-1 text-[12.5px] leading-5">
+                                <p
+                                    class="text-ink-slate mt-1 text-[12.5px] leading-5"
+                                >
                                     {{ item.description }}
                                 </p>
                             </div>
@@ -320,14 +363,20 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         v-reveal:zoom="150"
                         class="border-line bg-surface shadow-hover mx-auto mt-6 max-w-5xl overflow-hidden rounded-xl border p-2 lg:mt-8"
                     >
-                        <div class="border-line flex h-8 items-center gap-1.5 border-b px-1">
+                        <div
+                            class="border-line flex h-8 items-center gap-1.5 border-b px-1"
+                        >
                             <span class="bg-danger/65 size-2 rounded-full" />
                             <span class="bg-warning/75 size-2 rounded-full" />
                             <span class="bg-success/75 size-2 rounded-full" />
                         </div>
                         <img
                             src="/landing/reports-and-export-ghasido.png"
-                            :alt="$t('GHASIDO reports with training statistics and progress')"
+                            :alt="
+                                $t(
+                                    'GHASIDO reports with training statistics and progress',
+                                )
+                            "
                             width="1280"
                             height="853"
                             loading="lazy"
@@ -343,7 +392,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 aria-labelledby="why-title"
             >
                 <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-                    <div class="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-12">
+                    <div
+                        class="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:gap-12"
+                    >
                         <div>
                             <p
                                 v-reveal
@@ -358,7 +409,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             >
                                 {{ content.why_us.title }}
                             </h2>
-                            <p v-reveal="160" class="text-ink-slate mt-4 text-[15px] leading-7">
+                            <p
+                                v-reveal="160"
+                                class="text-ink-slate mt-4 text-[15px] leading-7"
+                            >
                                 {{ content.why_us.description }}
                             </p>
                         </div>
@@ -380,7 +434,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     />
                                     {{ item.title }}
                                 </h3>
-                                <p class="text-ink-slate mt-1.5 text-[12px] leading-5">
+                                <p
+                                    class="text-ink-slate mt-1.5 text-[12px] leading-5"
+                                >
                                     {{ item.description }}
                                 </p>
                             </article>
@@ -530,7 +586,11 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 {{ content.pricing.featured_label }}
                             </span>
                             <h3
-                                :class="index === featuredIndex ? 'text-surface' : 'text-ink-night'"
+                                :class="
+                                    index === featuredIndex
+                                        ? 'text-surface'
+                                        : 'text-ink-night'
+                                "
                                 class="font-heading text-[21px] font-semibold"
                             >
                                 {{ plan.name }}
@@ -556,11 +616,16 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
 
                             <div
                                 :class="
-                                    index === featuredIndex ? 'border-surface/15' : 'border-line'
+                                    index === featuredIndex
+                                        ? 'border-surface/15'
+                                        : 'border-line'
                                 "
                                 class="mt-6 space-y-3 border-y py-5"
                             >
-                                <div v-if="!isIndividual" class="flex items-center gap-3">
+                                <div
+                                    v-if="!isIndividual"
+                                    class="flex items-center gap-3"
+                                >
                                     <UsersRound
                                         :class="
                                             index === featuredIndex
@@ -579,7 +644,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 <div class="flex items-center gap-3">
                                     <Sparkles
                                         :class="
-                                            index === featuredIndex ? 'text-brand-200' : 'text-ai'
+                                            index === featuredIndex
+                                                ? 'text-brand-200'
+                                                : 'text-ai'
                                         "
                                         class="size-5"
                                     />
@@ -589,8 +656,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                         }}</strong>
                                         {{
                                             isIndividual
-                                                ? $t("AI points per month")
-                                                : content.pricing.ai_points_label
+                                                ? $t('AI points per month')
+                                                : content.pricing
+                                                      .ai_points_label
                                         }}
                                     </p>
                                 </div>
@@ -599,7 +667,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             <ul class="mt-5 flex-1 space-y-3">
                                 <li
                                     v-for="item in isIndividual
-                                        ? individualInclusions.map((line) => $t(line))
+                                        ? individualInclusions.map((line) =>
+                                              $t(line),
+                                          )
                                         : content.pricing.inclusions"
                                     :key="item"
                                     :class="
@@ -609,14 +679,20 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     "
                                     class="flex items-start gap-2 text-[12px] leading-5"
                                 >
-                                    <Check class="text-success mt-0.5 size-4 shrink-0" />
+                                    <Check
+                                        class="text-success mt-0.5 size-4 shrink-0"
+                                    />
                                     {{ item }}
                                 </li>
                             </ul>
 
                             <Button
                                 as-child
-                                :variant="index === featuredIndex ? 'secondary' : 'default'"
+                                :variant="
+                                    index === featuredIndex
+                                        ? 'secondary'
+                                        : 'default'
+                                "
                                 :class="
                                     index === featuredIndex
                                         ? 'bg-surface text-brand-800 hover:bg-brand-50'
@@ -652,17 +728,24 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 >
                                     {{ content.contact.enterprise_title }}
                                 </h3>
-                                <p class="text-ink-indigo mt-1 text-[16px] font-semibold">
+                                <p
+                                    class="text-ink-indigo mt-1 text-[16px] font-semibold"
+                                >
                                     {{ content.contact.enterprise_subtitle }}
                                 </p>
-                                <p class="text-ink-slate mt-2 text-[13px] leading-6">
+                                <p
+                                    class="text-ink-slate mt-2 text-[13px] leading-6"
+                                >
                                     {{ content.contact.enterprise_description }}
                                 </p>
                             </div>
                         </div>
-                        <ul class="border-brand-200 space-y-2 lg:border-s lg:ps-8">
+                        <ul
+                            class="border-brand-200 space-y-2 lg:border-s lg:ps-8"
+                        >
                             <li
-                                v-for="point in content.contact.enterprise_points"
+                                v-for="point in content.contact
+                                    .enterprise_points"
                                 :key="point"
                                 class="text-ink-indigo flex items-start gap-2 text-[13px] leading-5"
                             >
@@ -673,7 +756,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                 {{ point }}
                             </li>
                         </ul>
-                        <div class="grid justify-items-start gap-2 lg:justify-items-center">
+                        <div
+                            class="grid justify-items-start gap-2 lg:justify-items-center"
+                        >
                             <Button
                                 as-child
                                 class="bg-brand-900 text-surface shadow-btn hover:bg-brand-800 rounded-pill h-12 px-7 text-[14px] font-semibold"
@@ -693,7 +778,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                         v-reveal:fade
                         class="mx-auto mt-7 flex max-w-3xl items-start justify-center gap-2 text-center"
                     >
-                        <ShieldCheck class="text-success mt-0.5 size-4 shrink-0" />
+                        <ShieldCheck
+                            class="text-success mt-0.5 size-4 shrink-0"
+                        />
                         <p class="text-ink-slate text-[12px] leading-5">
                             {{ content.pricing.footnote }}
                         </p>
@@ -707,7 +794,7 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                     >
                         <span
                             class="text-ink-slate text-[11px] font-semibold tracking-wide uppercase"
-                            >{{ $t("Available payment options") }}</span
+                            >{{ $t('Available payment options') }}</span
                         >
                         <span
                             v-for="method in paymentMethods"
@@ -720,7 +807,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                 </div>
             </section>
 
-            <section class="bg-surface py-16 sm:py-20" aria-labelledby="cta-title">
+            <section
+                class="bg-surface py-16 sm:py-20"
+                aria-labelledby="cta-title"
+            >
                 <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
                     <div
                         v-reveal:zoom
@@ -737,7 +827,9 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                             loading="lazy"
                             class="pointer-events-none absolute -end-10 -bottom-6 hidden w-[380px] opacity-[0.14] brightness-0 invert select-none md:block rtl:-scale-x-100"
                         />
-                        <div class="relative grid items-center gap-7 lg:grid-cols-[1fr_auto]">
+                        <div
+                            class="relative grid items-center gap-7 lg:grid-cols-[1fr_auto]"
+                        >
                             <div class="max-w-3xl">
                                 <p
                                     v-reveal="200"
@@ -759,7 +851,10 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                     {{ content.call_to_action.description }}
                                 </p>
                             </div>
-                            <div v-reveal="440" class="flex flex-wrap items-center gap-3">
+                            <div
+                                v-reveal="440"
+                                class="flex flex-wrap items-center gap-3"
+                            >
                                 <Button
                                     as-child
                                     class="bg-surface text-brand-800 hover:bg-brand-50 group h-12 rounded-md px-6 text-[14px] font-semibold"

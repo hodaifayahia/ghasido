@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { Link, usePage } from "@inertiajs/vue3";
-import { ArrowRight, ArrowUp, Mail, MessageCircleMore, Phone } from "@lucide/vue";
-import { usePreferredReducedMotion } from "@vueuse/core";
-import { computed } from "vue";
-import LanguageToggle from "@/components/landing/LanguageToggle.vue";
-import { vReveal } from "@/directives/vReveal";
-import { contact, dashboard, login } from "@/routes";
-import type { LandingPageContent } from "@/types";
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    ArrowRight,
+    ArrowUp,
+    Mail,
+    MessageCircleMore,
+    Phone,
+} from '@lucide/vue';
+import { usePreferredReducedMotion } from '@vueuse/core';
+import { computed } from 'vue';
+import LanguageToggle from '@/components/landing/LanguageToggle.vue';
+import { vReveal } from '@/directives/vReveal';
+import { contact, dashboard, login } from '@/routes';
+import type { LandingPageContent } from '@/types';
 
 /*
  * The public site's footer, shared by the landing page, Contact Us and
@@ -21,15 +27,17 @@ type Props = {
     anchorBase?: string;
 };
 
-const props = withDefaults(defineProps<Props>(), { anchorBase: "" });
+const props = withDefaults(defineProps<Props>(), { anchorBase: '' });
 
 const page = usePage();
 const signedIn = computed(() => Boolean(page.props.auth.user));
-const signInHref = computed(() => (signedIn.value ? dashboard().url : login().url));
+const signInHref = computed(() =>
+    signedIn.value ? dashboard().url : login().url,
+);
 const phone = computed(() => props.content.support.phone.trim());
 const email = computed(() => props.content.support.email.trim());
 const whatsappHref = computed(() => {
-    const number = props.content.support.whatsapp_number.replace(/\D/g, "");
+    const number = props.content.support.whatsapp_number.replace(/\D/g, '');
 
     return number ? `https://wa.me/${number}` : null;
 });
@@ -63,13 +71,14 @@ const reduced = usePreferredReducedMotion();
 function backToTop(): void {
     window.scrollTo({
         top: 0,
-        behavior: reduced.value === "reduce" ? "auto" : "smooth",
+        behavior: reduced.value === 'reduce' ? 'auto' : 'smooth',
     });
 }
 
 const linkClass =
-    "text-ink-indigo hover:text-brand-600 focus-visible:ring-brand-600 inline-flex min-h-11 items-center gap-2 rounded-sm text-[14px] transition-colors focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none md:min-h-9";
-const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] uppercase";
+    'text-ink-indigo hover:text-brand-600 focus-visible:ring-brand-600 inline-flex min-h-11 items-center gap-2 rounded-sm text-[14px] transition-colors focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none md:min-h-9';
+const headingClass =
+    'text-ink-slate text-[11.5px] font-bold tracking-[0.14em] uppercase';
 </script>
 
 <template>
@@ -88,11 +97,16 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
             class="pointer-events-none absolute end-[-24px] bottom-[99px] -z-10 hidden w-[320px] opacity-[0.1] select-none md:block rtl:-scale-x-100"
         />
 
-        <div class="mx-auto max-w-7xl px-5 pt-14 pb-8 sm:px-8 lg:px-10 lg:pt-16">
+        <div
+            class="mx-auto max-w-7xl px-5 pt-14 pb-8 sm:px-8 lg:px-10 lg:pt-16"
+        >
             <div
-                class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] lg:gap-12"
+                class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,0.9fr)] lg:gap-12"
             >
-                <div v-reveal:fade class="max-w-sm sm:col-span-2 lg:col-span-1">
+                <div
+                    v-reveal:fade
+                    class="col-span-2 max-w-sm sm:col-span-3 lg:col-span-1"
+                >
                     <Link
                         href="/"
                         :aria-label="$t('GHASIDO home')"
@@ -112,20 +126,31 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                     >
                         {{ content.footer.tagline }}
                     </p>
-                    <LanguageToggle class="border-line-strong bg-surface shadow-card mt-6 border" />
+                    <LanguageToggle
+                        class="border-line-strong bg-surface shadow-card mt-6 border"
+                    />
                 </div>
 
-                <nav v-reveal:fade="80" :aria-label="$t('Explore')" class="min-w-0">
-                    <h2 :class="headingClass">{{ $t("Explore") }}</h2>
+                <nav
+                    v-reveal:fade="80"
+                    :aria-label="$t('Explore')"
+                    class="min-w-0"
+                >
+                    <h2 :class="headingClass">{{ $t('Explore') }}</h2>
                     <ul class="mt-3 grid md:gap-1">
                         <li v-for="section in sections" :key="section.href">
-                            <a :href="section.href" :class="linkClass">{{ section.label }}</a>
+                            <a :href="section.href" :class="linkClass">{{
+                                section.label
+                            }}</a>
                         </li>
                     </ul>
                 </nav>
 
-                <div v-reveal:fade="160" class="min-w-0">
-                    <h2 :class="headingClass">{{ $t("Get in touch") }}</h2>
+                <div
+                    v-reveal:fade="160"
+                    class="order-last col-span-2 min-w-0 sm:order-none sm:col-span-1"
+                >
+                    <h2 :class="headingClass">{{ $t('Get in touch') }}</h2>
                     <p class="text-ink-slate mt-3 text-[13px] leading-6">
                         {{ content.contact.description }}
                     </p>
@@ -136,7 +161,10 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                                 :class="linkClass"
                                 dir="ltr"
                             >
-                                <Phone class="text-brand-600 size-4 shrink-0" aria-hidden="true" />
+                                <Phone
+                                    class="text-brand-600 size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
                                 {{ phone }}
                             </a>
                         </li>
@@ -146,7 +174,10 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                                 :class="linkClass"
                                 class="max-w-full break-all"
                             >
-                                <Mail class="text-brand-600 size-4 shrink-0" aria-hidden="true" />
+                                <Mail
+                                    class="text-brand-600 size-4 shrink-0"
+                                    aria-hidden="true"
+                                />
                                 {{ email }}
                             </a>
                         </li>
@@ -161,7 +192,7 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                                     class="text-brand-600 size-4 shrink-0"
                                     aria-hidden="true"
                                 />
-                                {{ $t("WhatsApp support") }}
+                                {{ $t('WhatsApp support') }}
                             </a>
                         </li>
                         <li>
@@ -180,8 +211,12 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                     </ul>
                 </div>
 
-                <nav v-reveal:fade="240" :aria-label="$t('Account')" class="min-w-0">
-                    <h2 :class="headingClass">{{ $t("Account") }}</h2>
+                <nav
+                    v-reveal:fade="240"
+                    :aria-label="$t('Account')"
+                    class="min-w-0"
+                >
+                    <h2 :class="headingClass">{{ $t('Account') }}</h2>
                     <ul class="mt-3 grid md:gap-1">
                         <li>
                             <Link :href="signInHref" :class="linkClass">
@@ -193,9 +228,11 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                             </Link>
                         </li>
                         <li>
-                            <a :href="`${anchorBase}#pricing`" :class="linkClass">{{
-                                content.navigation.get_started
-                            }}</a>
+                            <a
+                                :href="`${anchorBase}#pricing`"
+                                :class="linkClass"
+                                >{{ content.navigation.get_started }}</a
+                            >
                         </li>
                     </ul>
                 </nav>
@@ -205,7 +242,7 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                 class="border-line mt-12 flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between"
             >
                 <p class="text-ink-slate text-[12.5px]">
-                    © {{ year }} GHASIDO. {{ $t("All rights reserved.") }}
+                    © {{ year }} GHASIDO. {{ $t('All rights reserved.') }}
                 </p>
                 <button
                     type="button"
@@ -214,7 +251,7 @@ const headingClass = "text-ink-slate text-[11.5px] font-bold tracking-[0.14em] u
                     @click="backToTop"
                 >
                     <ArrowUp class="size-4" aria-hidden="true" />
-                    {{ $t("Back to top") }}
+                    {{ $t('Back to top') }}
                 </button>
             </div>
         </div>

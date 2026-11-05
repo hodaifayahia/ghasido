@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ArrowRight, Check, Hotel, Smartphone, Sparkles } from "@lucide/vue";
-import { usePreferredReducedMotion, useWindowScroll } from "@vueuse/core";
-import { computed } from "vue";
-import type { Component } from "vue";
-import InstallAppButton from "@/components/landing/InstallAppButton.vue";
-import LandingHeroPhone from "@/components/landing/LandingHeroPhone.vue";
-import { Button } from "@/components/ui/button";
-import { vReveal } from "@/directives/vReveal";
-import type { LandingPageContent } from "@/types";
+import { ArrowRight, Check, Hotel, Smartphone, Sparkles } from '@lucide/vue';
+import { usePreferredReducedMotion, useWindowScroll } from '@vueuse/core';
+import { computed } from 'vue';
+import type { Component } from 'vue';
+import InstallAppButton from '@/components/landing/InstallAppButton.vue';
+import LandingHeroPhone from '@/components/landing/LandingHeroPhone.vue';
+import { Button } from '@/components/ui/button';
+import { vReveal } from '@/directives/vReveal';
+import type { LandingPageContent } from '@/types';
 
 /*
  * The landing page's first screen (user request 2026-11-05: an
@@ -25,14 +25,16 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const words = computed(() => props.content.hero.title.split(/\s+/).filter(Boolean));
+const words = computed(() =>
+    props.content.hero.title.split(/\s+/).filter(Boolean),
+);
 
 const reduced = usePreferredReducedMotion();
 const { y } = useWindowScroll();
 
 /** Scroll distance the parallax follows; it stops past the first screen. */
 const shift = computed(() =>
-    reduced.value === "reduce" ? 0 : Math.min(Math.max(y.value, 0), 900),
+    reduced.value === 'reduce' ? 0 : Math.min(Math.max(y.value, 0), 900),
 );
 const photoStyle = computed(() => ({
     transform: `translate3d(0, ${(shift.value * 0.12).toFixed(1)}px, 0)`,
@@ -49,7 +51,10 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
 </script>
 
 <template>
-    <section class="bg-surface relative isolate overflow-hidden" aria-labelledby="hero-title">
+    <section
+        class="bg-surface relative isolate overflow-hidden"
+        aria-labelledby="hero-title"
+    >
         <div
             class="relative mx-auto grid max-w-7xl gap-6 px-5 pt-10 pb-12 sm:px-8 sm:pt-14 md:gap-10 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-10 lg:pt-12 lg:pb-14"
         >
@@ -63,7 +68,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                             class="animate-landing-word inline-block motion-reduce:animate-none"
                             :style="{ animationDelay: `${80 + index * 55}ms` }"
                             >{{ word }}</span
-                        >{{ " " }}
+                        >{{ ' ' }}
                     </template>
                 </h1>
                 <p
@@ -80,7 +85,10 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                         as-child
                         class="bg-brand-600 text-surface shadow-btn hover:bg-brand-700 group h-12 rounded-md px-6 text-[14px] font-semibold"
                     >
-                        <a href="#how-it-works" data-test="landing-hero-primary">
+                        <a
+                            href="#how-it-works"
+                            data-test="landing-hero-primary"
+                        >
                             {{ content.hero.primary_cta }}
                             <ArrowRight
                                 class="size-4 transition-[translate] duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none rtl:group-hover:-translate-x-0.5"
@@ -113,7 +121,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                             width="1008"
                             height="550"
                             fetchpriority="high"
-                            class="animate-landing-photo block aspect-[1008/550] w-full [mask-composite:intersect] [mask-image:linear-gradient(to_bottom,black_30%,transparent_88%),linear-gradient(to_right,transparent_0%,black_36%)] object-cover motion-reduce:animate-none rtl:-scale-x-100"
+                            class="animate-landing-photo block aspect-[1008/550] w-full [mask-image:linear-gradient(to_bottom,black_52%,transparent_94%),linear-gradient(to_right,transparent_0%,black_36%)] [mask-composite:intersect] object-cover motion-reduce:animate-none rtl:-scale-x-100"
                         />
                     </div>
                 </div>
@@ -126,7 +134,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                     <div :style="deviceStyle" class="md:absolute md:inset-0">
                         <div
                             v-reveal:rise="260"
-                            class="mx-auto w-[272px] sm:w-[292px] md:absolute md:start-[2%] md:top-1"
+                            class="mx-auto w-[296px] md:absolute md:start-[2%] md:top-1"
                         >
                             <LandingHeroPhone :hero="content.hero" />
                         </div>
@@ -138,7 +146,7 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                             aria-hidden="true"
                         >
                             <div
-                                class="bg-tint-note shadow-card font-script text-brand-800 max-w-[176px] rotate-2 rounded-sm px-4 py-2.5 text-[23px] leading-[1.05] font-bold rtl:-rotate-2 rtl:font-arabic rtl:text-[15px] rtl:leading-6"
+                                class="bg-tint-note shadow-card font-script text-brand-800 rtl:font-arabic max-w-[176px] rotate-2 rounded-sm px-4 py-2.5 text-[23px] leading-[1.05] font-bold rtl:-rotate-2 rtl:text-[15px] rtl:leading-6"
                             >
                                 {{ content.hero.demo_note }}
                             </div>
@@ -186,7 +194,9 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                                     <span
                                         v-if="index < steps.length - 1"
                                         :class="
-                                            index < currentStep ? 'bg-success' : 'bg-tint-connector'
+                                            index < currentStep
+                                                ? 'bg-success'
+                                                : 'bg-tint-connector'
                                         "
                                         class="absolute start-[11px] top-6 bottom-0 w-0.5"
                                     />
@@ -200,8 +210,13 @@ const proofIcons: Component[] = [Hotel, Smartphone, Sparkles];
                                         "
                                         class="font-heading relative grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold"
                                     >
-                                        <Check v-if="index < currentStep" class="size-3.5" />
-                                        <template v-else>{{ index + 1 }}</template>
+                                        <Check
+                                            v-if="index < currentStep"
+                                            class="size-3.5"
+                                        />
+                                        <template v-else>{{
+                                            index + 1
+                                        }}</template>
                                     </span>
                                     <span
                                         :class="

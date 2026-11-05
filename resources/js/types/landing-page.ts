@@ -155,7 +155,7 @@ export type LandingPaymentMethod = {
 };
 
 /** Who a plan is sold to: a hotel team, or one learner on their own. */
-export type PlanAudience = "hotel" | "individual";
+export type PlanAudience = 'hotel' | 'individual';
 
 export type LandingPlan = {
     id: number;
@@ -178,13 +178,13 @@ export type CheckoutDepartmentOption = {
     label: string;
 };
 
-export type PaymentSubmissionStatus = "pending" | "confirmed" | "rejected";
+export type PaymentSubmissionStatus = 'pending' | 'confirmed' | 'rejected';
 
 /** What the "Payment submitted" page shows about one payment. */
 export type CheckoutSubmittedPayment = {
     planName: string;
     amount: number;
-    currency: "DZD" | "USD";
+    currency: 'DZD' | 'USD';
     method: string;
     reference: string | null;
     hasReceipt: boolean;

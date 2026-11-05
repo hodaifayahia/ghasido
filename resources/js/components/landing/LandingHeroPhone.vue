@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { Check, ChevronLeft, Eye, EyeOff, Mic, Turtle, UserRound, Volume2 } from "@lucide/vue";
+import {
+    Check,
+    ChevronLeft,
+    Eye,
+    EyeOff,
+    Mic,
+    Turtle,
+    UserRound,
+    Volume2,
+} from '@lucide/vue';
 import {
     useDocumentVisibility,
     useIntersectionObserver,
     usePreferredReducedMotion,
-} from "@vueuse/core";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
-import type { HTMLAttributes } from "vue";
-import { useI18n } from "@/composables/useI18n";
-import { cn } from "@/lib/utils";
-import type { LandingPageContent } from "@/types";
+} from '@vueuse/core';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import type { HTMLAttributes } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { cn } from '@/lib/utils';
+import type { LandingPageContent } from '@/types';
 
 /*
  * The landing hero's phone (user request 2026-11-05): one lesson step of
@@ -23,8 +32,8 @@ import type { LandingPageContent } from "@/types";
  * on screen; with reduced motion it rests on the finished step.
  */
 type Props = {
-    hero: LandingPageContent["hero"];
-    class?: HTMLAttributes["class"];
+    hero: LandingPageContent['hero'];
+    class?: HTMLAttributes['class'];
 };
 
 const props = defineProps<Props>();
@@ -64,14 +73,14 @@ function schedule(): void {
 watch(
     [onScreen, documentVisibility, reduced],
     () => {
-        if (reduced.value === "reduce") {
+        if (reduced.value === 'reduce') {
             stop();
             phase.value = finalPhase;
 
             return;
         }
 
-        if (onScreen.value && documentVisibility.value === "visible") {
+        if (onScreen.value && documentVisibility.value === 'visible') {
             schedule();
         } else {
             stop();
@@ -88,18 +97,23 @@ const meaningShown = computed(() => phase.value >= 3);
 const replyShown = computed(() => phase.value >= 4);
 const saved = computed(() => phase.value >= finalPhase);
 
-const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
+const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 15, 8];
 </script>
 
 <template>
     <div
         ref="root"
-        :class="cn('bg-ink-night shadow-pop rounded-[2.75rem] p-2.5 select-none', props.class)"
+        :class="
+            cn(
+                'bg-ink-night shadow-pop rounded-[2.75rem] p-2.5 select-none',
+                props.class,
+            )
+        "
         aria-hidden="true"
         data-test="landing-hero-phone"
     >
         <div
-            class="bg-app relative flex h-[548px] flex-col overflow-hidden rounded-[2.2rem] px-3.5 pt-9 pb-4"
+            class="bg-app relative flex min-h-[548px] flex-col overflow-hidden rounded-[2.2rem] px-3.5 pt-9 pb-4"
         >
             <span
                 class="bg-ink-night rounded-pill absolute top-2.5 left-1/2 h-[18px] w-[86px] -translate-x-1/2"
@@ -113,8 +127,15 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                     <ChevronLeft class="size-4" />
                 </span>
                 <div class="min-w-0 flex-1">
-                    <p class="text-ink-slate text-[10.5px] leading-4 font-semibold">
-                        {{ $t("Step :current of :total", { current: 4, total: 9 }) }}
+                    <p
+                        class="text-ink-slate text-[10.5px] leading-4 font-semibold"
+                    >
+                        {{
+                            $t('Step :current of :total', {
+                                current: 4,
+                                total: 9,
+                            })
+                        }}
                     </p>
                     <p
                         class="font-heading text-ink-night line-clamp-2 text-[12.5px] leading-[1.3] font-semibold"
@@ -123,12 +144,16 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                     </p>
                 </div>
             </div>
-            <div class="bg-tint-track rounded-pill mt-2.5 h-1.5 overflow-hidden">
+            <div
+                class="bg-tint-track rounded-pill mt-2.5 h-1.5 overflow-hidden"
+            >
                 <div class="bg-brand-600 rounded-pill h-full w-[44%]" />
             </div>
 
             <!-- The guest's line with the Normal / Slow audio pair. -->
-            <div class="border-line bg-surface shadow-card mt-3.5 rounded-lg border p-3">
+            <div
+                class="border-line bg-surface shadow-card mt-3.5 rounded-lg border p-3"
+            >
                 <div class="flex items-center gap-2">
                     <span
                         class="bg-tint-grid text-ink-graphite grid size-6 place-items-center rounded-full"
@@ -136,7 +161,7 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                         <UserRound class="size-3.5" />
                     </span>
                     <span class="text-ink-slate text-[11px] font-semibold">
-                        {{ $t("Guest") }}
+                        {{ $t('Guest') }}
                     </span>
                 </div>
                 <p
@@ -152,20 +177,24 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                         :class="
                             cn(
                                 'bg-brand-50 text-brand-700 flex h-9 items-center gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold transition-shadow duration-300 motion-reduce:transition-none',
-                                playing && 'animate-pulse-ring motion-reduce:animate-none',
+                                playing &&
+                                    'animate-pulse-ring motion-reduce:animate-none',
                             )
                         "
                     >
                         <Volume2 class="text-brand-600 size-4" />
-                        {{ $t("Normal") }}
+                        {{ $t('Normal') }}
                     </span>
                     <span
                         class="bg-success-tint text-success-text flex h-9 items-center gap-1.5 rounded-md px-2.5 text-[11.5px] font-semibold"
                     >
                         <Turtle class="size-4" />
-                        {{ $t("Slow") }}
+                        {{ $t('Slow') }}
                     </span>
-                    <span class="ms-auto flex h-6 items-center gap-[2.5px]" dir="ltr">
+                    <span
+                        class="ms-auto flex h-6 min-w-0 items-center gap-[2.5px] overflow-hidden"
+                        dir="ltr"
+                    >
                         <span
                             v-for="(height, index) in bars"
                             :key="index"
@@ -202,23 +231,32 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                         :is="meaningShown ? EyeOff : Eye"
                         class="text-ink-graphite relative size-5 shrink-0"
                     />
-                    <span class="relative flex flex-col items-center leading-tight">
+                    <span
+                        class="relative flex flex-col items-center leading-tight"
+                    >
                         <span
                             lang="ar"
                             dir="rtl"
                             class="font-arabic text-ink text-[13px] !leading-5 font-semibold"
                         >
-                            {{ meaningShown ? "إخفاء المعنى" : "إظهار المعنى" }}
+                            {{ meaningShown ? 'إخفاء المعنى' : 'إظهار المعنى' }}
                         </span>
-                        <span v-if="locale === 'en'" class="text-ink-slate text-[10.5px]">
-                            {{ meaningShown ? $t("Hide Meaning") : $t("Show Meaning") }}
+                        <span
+                            v-if="locale === 'en'"
+                            class="text-ink-slate text-[10.5px]"
+                        >
+                            {{
+                                meaningShown
+                                    ? $t('Hide Meaning')
+                                    : $t('Show Meaning')
+                            }}
                         </span>
                     </span>
                 </div>
                 <div
                     :class="
                         cn(
-                            'grid transition-[grid-template-rows,opacity,margin] duration-500 ease-brand motion-reduce:transition-none',
+                            'ease-brand grid transition-[grid-template-rows,opacity,margin] duration-500 motion-reduce:transition-none',
                             meaningShown
                                 ? 'mt-2 grid-rows-[1fr] opacity-100'
                                 : 'mt-0 grid-rows-[0fr] opacity-0',
@@ -241,13 +279,15 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
             <div
                 :class="
                     cn(
-                        'mt-3.5 transition-[opacity,translate] duration-500 ease-brand motion-reduce:transition-none',
-                        replyShown ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
+                        'ease-brand mt-3.5 transition-[opacity,translate] duration-500 motion-reduce:transition-none',
+                        replyShown
+                            ? 'translate-y-0 opacity-100'
+                            : 'translate-y-3 opacity-0',
                     )
                 "
             >
                 <p class="text-ink-slate text-end text-[11px] font-semibold">
-                    {{ $t("Your reply") }}
+                    {{ $t('Your reply') }}
                 </p>
                 <p
                     lang="en"
@@ -265,14 +305,14 @@ const bars = [6, 11, 17, 9, 20, 14, 7, 16, 21, 12, 8, 15, 10, 5];
                         <span
                             class="bg-danger size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
                         />
-                        {{ $t("Recording…") }}
+                        {{ $t('Recording…') }}
                     </span>
                     <span
                         v-else
                         class="bg-success-tint text-success-text rounded-pill animate-pop-in inline-flex h-8 items-center gap-1.5 px-3 text-[11px] font-semibold motion-reduce:animate-none"
                     >
                         <Check class="size-3.5" />
-                        {{ $t("Saved to your progress") }}
+                        {{ $t('Saved to your progress') }}
                     </span>
                 </div>
             </div>
