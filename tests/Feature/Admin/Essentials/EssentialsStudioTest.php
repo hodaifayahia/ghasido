@@ -149,6 +149,36 @@ class EssentialsStudioTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_fill_in_steps_opens_the_lessons_own_steps_page_with_a_way_back()
+    {
+        $topic = $this->topic();
+        $lesson = Lesson::factory()->withBlocks([BlockType::Vocabulary, BlockType::ListenRepeat, BlockType::Complete])
+            ->create(['unit_id' => $topic->units()->firstOrFail()->id, 'title' => 'Telling the time']);
+
+        $this->actingAs($this->owner)
+            ->get(route('essentials-studio', ['topic' => $topic->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('openTopic.lessons.0.editUrl', route('essentials-studio.lessons.steps', $lesson)));
+
+        $this->actingAs($this->owner)
+            ->get(route('essentials-studio.lessons.steps', $lesson))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('admin/EssentialsLessonSteps')
+                ->where('topic.id', $topic->id)
+                ->where('backUrl', route('essentials-studio', ['topic' => $topic->id]))
+                ->where('editor.id', $lesson->id)
+                ->has('lessonBlocks', 3)
+                ->has('blockTypes'));
+    }
+
+    public function test_the_steps_page_refuses_a_department_lesson()
+    {
+        $this->actingAs($this->owner)
+            ->get(route('essentials-studio.lessons.steps', $this->lesson))
+            ->assertNotFound();
+    }
+
     public function test_a_hotels_own_topic_is_not_listed_with_the_shared_catalogue()
     {
         $other = Hotel::factory()->create();

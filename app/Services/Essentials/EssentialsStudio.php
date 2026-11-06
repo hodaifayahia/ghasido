@@ -144,7 +144,7 @@ class EssentialsStudio
                 ->all()),
             'helpLinks' => (int) ($helpCounts[$lesson->id] ?? 0),
             'learners' => (int) ($learnerCounts[$lesson->id] ?? 0),
-            'editUrl' => route('lessons.edit', ['lesson' => $lesson]),
+            'editUrl' => route('essentials-studio.lessons.steps', ['lesson' => $lesson]),
             'previewUrl' => route('lessons.preview', ['lesson' => $lesson]),
             'publishUrl' => route('lessons.publish', ['lesson' => $lesson]),
             'destroyUrl' => route('lessons.destroy', ['lesson' => $lesson]),

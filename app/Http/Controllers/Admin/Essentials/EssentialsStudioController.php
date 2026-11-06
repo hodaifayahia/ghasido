@@ -10,8 +10,10 @@ use App\Http\Requests\Admin\Essentials\StoreEssentialsTopicRequest;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Services\Content\ContentTree;
 use App\Services\Content\LessonService;
 use App\Services\Essentials\EssentialsStudio;
+use App\Services\Tts\TtsSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -36,6 +38,48 @@ class EssentialsStudioController extends Controller
         $user = $request->user('web');
 
         return Inertia::render('admin/EnglishEssentials', $studio->page($user, (int) $request->query('topic', 0)));
+    }
+
+    /**
+     * "Fill in steps" (client request 2026-11-05): a page of its own for one
+     * Essentials lesson's steps, opened from the studio and leading back to
+     * its topic, instead of the department lesson builder. The step data
+     * and editors are the builder's own (BLD-03, LESSON-02), so a step
+     * saves exactly as it does there.
+     */
+    public function steps(Request $request, Lesson $lesson, ContentTree $tree, TtsSettings $tts): Response
+    {
+        Gate::authorize('view', $lesson);
+        abort_if($lesson->isArchived(), 404);
+
+        $lesson->loadMissing('course');
+        abort_unless($lesson->course?->isEssentials() ?? false, 404);
+
+        /** @var User $user */
+        $user = $request->user('web');
+
+        $request->query->set('hotel', $lesson->hotel_id === null ? ContentTree::SHARED : (string) $lesson->hotel_id);
+        $request->query->set('department', (string) ContentTree::departmentKey($lesson->course));
+        $request->query->set('course', (string) $lesson->course_id);
+        $request->query->set('unit', (string) $lesson->unit_id);
+        $request->query->set('lesson', (string) $lesson->id);
+
+        $props = $tree->build($request, $user);
+        $pick = static fn (string $key): mixed => is_callable($props[$key]) ? ($props[$key])() : $props[$key];
+
+        return Inertia::render('admin/EssentialsLessonSteps', [
+            'topic' => ['id' => $lesson->course->id, 'title' => $lesson->course->title],
+            'backUrl' => route('essentials-studio', ['topic' => $lesson->course_id]),
+            'fullEditorUrl' => route('lessons.edit', ['lesson' => $lesson]),
+            'previewUrl' => route('lessons.preview', ['lesson' => $lesson]),
+            'editor' => $pick('editor'),
+            'essentials' => $pick('essentials'),
+            'lessonBlocks' => $pick('lessonBlocks'),
+            'blockTypes' => $pick('blockTypes'),
+            'scenarios' => $pick('scenarios'),
+            'library' => $pick('library'),
+            'tts' => $tts->payload(),
+        ]);
     }
 
     public function storeTopic(StoreEssentialsTopicRequest $request, LessonService $lessons): RedirectResponse
