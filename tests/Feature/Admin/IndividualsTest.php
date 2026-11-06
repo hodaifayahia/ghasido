@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Hotel;
 use App\Models\IndividualSubscription;
 use App\Models\User;
+use App\Services\Accounts\AccountRemoval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,6 +39,29 @@ class IndividualsTest extends TestCase
                 ->where('individuals.0.id', $individual->id)
                 // The learner's level (client request 2026-09-30).
                 ->where('individuals.0.level', 'Advanced'));
+    }
+
+    public function test_a_deleted_individual_is_left_out_of_the_list_and_the_counts(): void
+    {
+        $kept = User::factory()->employee()->create(['hotel_id' => null]);
+        IndividualSubscription::factory()->for($kept)->create();
+        $deleted = User::factory()->employee()->create(['hotel_id' => null]);
+        IndividualSubscription::factory()->for($deleted)->create();
+        $admin = User::factory()->superAdmin()->create();
+
+        app(AccountRemoval::class)->removeUser($deleted, $admin);
+
+        // Client request 2026-11-06: "don't show the deleted accounts".
+        $this->actingAs($admin)
+            ->get(route('individuals'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('individuals', 1)
+                ->where('individuals.0.id', $kept->id)
+                ->where('stats.total', 1));
+
+        // The row itself is kept for reports (DATA-10).
+        $this->assertNotNull($deleted->fresh()?->removed_at);
     }
 
     public function test_the_super_admin_adds_an_individual_with_several_departments(): void

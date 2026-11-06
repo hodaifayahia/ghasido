@@ -67,7 +67,7 @@ class IndividualsController extends Controller
         $rows = collect($page->items())->map(fn (User $user): array => $this->row($user, $meter))->values()->all();
 
         $today = Date::today();
-        $all = IndividualSubscription::query()->whereHas('user', fn (Builder $query) => $query->whereNull('hotel_id'));
+        $all = IndividualSubscription::query()->whereHas('user', fn (Builder $query) => $query->whereNull('hotel_id')->whereNull('removed_at'));
 
         return Inertia::render('admin/Individuals', [
             'individuals' => $rows,
@@ -183,7 +183,9 @@ class IndividualsController extends Controller
      */
     private function individuals(): Builder
     {
-        return User::query()->whereNull('hotel_id')->whereHas('individualSubscription');
+        // A deleted account (AccountRemoval) keeps its rows for reports
+        // (DATA-10) but no longer appears here (client request 2026-11-06).
+        return User::query()->whereNull('hotel_id')->whereNull('removed_at')->whereHas('individualSubscription');
     }
 
     private function assertIndividual(User $user): void
