@@ -289,6 +289,7 @@ function onPick(image: LessonLibraryImage): void {
                 <LessonsEditorAiActions
                     :filters="filters"
                     :editor="editor"
+                    :step-count="lessonBlocks.length"
                     class="ms-2"
                     @generate="generateOpen = true"
                 />

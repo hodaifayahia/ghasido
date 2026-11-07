@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Languages, Sparkles, Users } from '@lucide/vue';
-import { computed } from 'vue';
+import { Languages, Sparkles, Users, WandSparkles } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import TransText from '@/components/common/TransText.vue';
+import LessonsAiFillDialog from '@/components/lessons/LessonsAiFillDialog.vue';
 import { Button } from '@/components/ui/button';
 import { useCan } from '@/composables/useCan';
 import { t } from '@/lib/i18n';
@@ -20,10 +21,26 @@ import type { LessonEditor, LessonsFilters } from '@/types';
 type Props = {
     filters: LessonsFilters;
     editor: LessonEditor;
+    /** The open lesson's steps, so "Fill with AI" can warn it replaces them. */
+    stepCount?: number;
     class?: HTMLAttributes['class'];
 };
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { stepCount: 0 });
+
+// "Fill this lesson with AI" (client request 2026-11-07).
+const fillOpen = ref(false);
+
+const fillContext = computed((): string => {
+    const unit = props.filters.units.find(
+        (option) => option.value === props.filters.unit,
+    );
+    const course = props.filters.courses.find(
+        (option) => option.value === props.filters.course,
+    );
+
+    return [unit?.label, course?.label].filter(Boolean).join(' · ');
+});
 
 const emit = defineEmits<{
     generate: [];
@@ -89,6 +106,25 @@ const visibleTo = computed((): string | null => {
             <Sparkles class="size-3.5" aria-hidden="true" />
             {{ $t('Generate with AI') }}
         </Button>
+        <!-- Write THIS lesson from a brief (client request 2026-11-07). -->
+        <Button
+            v-if="manage && editor.id !== null"
+            type="button"
+            data-test="fill-lesson-with-ai-button"
+            class="bg-brand-600 hover:bg-brand-700 shadow-btn h-11 gap-1.5 rounded-md px-3 text-[11.5px] font-semibold text-white active:scale-[.97] md:h-8"
+            @click="fillOpen = true"
+        >
+            <WandSparkles class="size-3.5" aria-hidden="true" />
+            {{ $t('Fill this lesson with AI') }}
+        </Button>
+        <LessonsAiFillDialog
+            v-if="manage && editor.id !== null"
+            v-model:open="fillOpen"
+            :lesson-id="editor.id"
+            :lesson-title="editor.title"
+            :context="fillContext"
+            :has-steps="stepCount > 1"
+        />
         <!-- This lesson's Show Meaning translations (user request 2026-09-26). -->
         <Button
             v-if="manage && editor.id !== null"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Lessons;
 
+use App\Concerns\ImageUploadRules;
 use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Models\MediaAsset;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rules\File;
  */
 class StoreMediaRequest extends FormRequest
 {
+    use ImageUploadRules;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', MediaAsset::class) ?? false;
@@ -35,7 +38,7 @@ class StoreMediaRequest extends FormRequest
             // Safari, Firefox).
             'audio' => File::types(['mp3', 'wav', 'm4a', 'webm', 'mp4', 'ogg', 'oga'])->max(20 * 1024),
             'video' => File::types(['mp4', 'webm'])->max(200 * 1024),
-            default => File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5 * 1024),
+            default => $this->imageFileRule(),
         };
 
         return [
@@ -57,8 +60,15 @@ class StoreMediaRequest extends FormRequest
      */
     public function messages(): array
     {
+        $kind = (string) $this->input('kind', 'image');
+
         return [
-            'file.max' => __('The file is too large. Images may be up to 5 MB.'),
+            ...($kind === 'image' ? $this->imageMessages('file') : [
+                'file.uploaded' => __('The server refused this file before it arrived: its upload limit is :limit.', ['limit' => self::serverUploadLimit()]),
+                'file.max' => $kind === 'audio'
+                    ? __('The file is too large. Audio may be up to 20 MB.')
+                    : __('The file is too large. Videos may be up to 200 MB.'),
+            ]),
             'alt_text.required' => __('Describe the image for screen readers.'),
         ];
     }

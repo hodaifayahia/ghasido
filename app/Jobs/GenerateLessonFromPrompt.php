@@ -7,6 +7,7 @@ use App\Enums\AiFeature;
 use App\Enums\ContentGenerationType;
 use App\Enums\GenerationStatus;
 use App\Models\ContentGeneration;
+use App\Services\Ai\AiErrorExplainer;
 use App\Services\Ai\UsageMeter;
 use App\Services\Content\LessonGenerator;
 use App\Support\Queues;
@@ -72,7 +73,15 @@ class GenerateLessonFromPrompt implements ShouldBeUnique, ShouldQueue
         $generation->markRunning(ContentGeneration::STAGE_WRITING);
 
         $topic = $generation->outlineLesson($this->lessonIndex);
-        $notes = $generation->type === ContentGenerationType::Course
+        $target = $generator->targetLesson($generation);
+
+        if ($target !== null) {
+            // "Fill this lesson" (client request 2026-11-07): the AI writes
+            // the admin's own lesson, on its title, from their brief.
+            $topic = ['title' => $target->title, 'topic' => $target->title];
+        }
+
+        $notes = $target !== null ? $generator->targetNotes($generation, $target) : ($generation->type === ContentGenerationType::Course
             ? sprintf(
                 'Lesson %d of %d in the course "%s". Lesson title: %s. Admin request: %s',
                 $this->lessonIndex + 1,
@@ -81,7 +90,7 @@ class GenerateLessonFromPrompt implements ShouldBeUnique, ShouldQueue
                 $topic['title'],
                 $generation->prompt,
             )
-            : '';
+            : '');
 
         $draft = $ai->generateLesson(
             $topic['topic'],
@@ -134,6 +143,10 @@ class GenerateLessonFromPrompt implements ShouldBeUnique, ShouldQueue
             ? __('Planning the course failed')
             : __('Writing lesson :number failed', ['number' => $this->lessonIndex + 1]);
 
-        $generation->markFailed(sprintf('%s: %s', $step, $exception?->getMessage() ?? __('unknown error')));
+        $generation->markFailed(sprintf('%s: %s', $step, AiErrorExplainer::explain($exception, __('unknown error'))));
+
+        // A "fill this lesson" request leaves the lesson as it was.
+        $target = app(LessonGenerator::class)->targetLesson($generation);
+        $target?->forceFill(['ai_status' => GenerationStatus::Failed])->save();
     }
 }

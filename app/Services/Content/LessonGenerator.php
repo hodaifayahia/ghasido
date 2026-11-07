@@ -35,6 +35,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -136,6 +137,95 @@ class LessonGenerator
         GenerateLessonFromPrompt::dispatch($generation->id, $isCourse ? null : 0);
 
         return $generation;
+    }
+
+    /**
+     * Fill one existing lesson with AI (client request 2026-11-07): the
+     * admin created the lesson where it belongs, with its title, and asks
+     * the AI to write it from a detailed brief. The lesson keeps its title,
+     * unit and course; only its steps, introduction and objectives are
+     * written, as a draft the admin reviews (GEN-03). A lesson employees
+     * already used is never rewritten (DATA-10): the admin copies it first.
+     *
+     * @param  array{prompt: string, level: string, images: bool, audio: bool}  $data
+     *
+     * @throws ValidationException when the lesson already holds learner records
+     */
+    public function startForLesson(User $actor, Lesson $lesson, array $data): ContentGeneration
+    {
+        if (($this->lessons->learnerRecordCounts([$lesson->id])[$lesson->id] ?? 0) > 0) {
+            throw ValidationException::withMessages([
+                'prompt' => __('Employees have already used this lesson, so the AI cannot rewrite it. Make a copy of the lesson and fill the copy.'),
+            ]);
+        }
+
+        $this->assertWithinLimits($actor, 1, $data['images']);
+
+        $course = $lesson->course()->firstOrFail();
+
+        $generation = DB::transaction(function () use ($actor, $lesson, $course, $data): ContentGeneration {
+            $generation = ContentGeneration::query()->create([
+                'user_id' => $actor->id,
+                'type' => ContentGenerationType::Lesson,
+                'prompt' => trim($data['prompt']),
+                'department_id' => $course->department_id,
+                'hotel_id' => $course->hotel_id,
+                'level' => $data['level'],
+                'options' => [
+                    'images' => $data['images'],
+                    'audio' => $data['audio'],
+                    'lesson_count' => 1,
+                    'created_course' => false,
+                    'target_lesson_id' => $lesson->id,
+                ],
+                'status' => GenerationStatus::Pending,
+                'stage' => ContentGeneration::STAGE_WRITING,
+                'course_id' => $course->id,
+                'unit_id' => $lesson->unit_id,
+                'lessons_total' => 1,
+            ]);
+
+            $lesson->forceFill(['ai_status' => GenerationStatus::Pending])->save();
+
+            AuditLog::record($generation, 'content.generation_requested', [
+                'created' => ['type' => 'lesson_fill', 'lesson_id' => $lesson->id, 'course_id' => $course->id],
+            ]);
+
+            return $generation;
+        });
+
+        GenerateLessonFromPrompt::dispatch($generation->id, 0);
+
+        return $generation;
+    }
+
+    /**
+     * The existing lesson a "fill this lesson" generation writes into.
+     */
+    public function targetLesson(ContentGeneration $generation): ?Lesson
+    {
+        $id = ($generation->options ?? [])['target_lesson_id'] ?? null;
+
+        return is_numeric($id) ? Lesson::query()->find((int) $id) : null;
+    }
+
+    /**
+     * The notes sent with the AI request of a "fill this lesson"
+     * generation: the lesson's own title, unit and course, so the AI writes
+     * this lesson and nothing else, and the admin's brief word for word.
+     */
+    public function targetNotes(ContentGeneration $generation, Lesson $lesson): string
+    {
+        $unit = $lesson->unit()->first();
+        $course = $lesson->course()->first();
+
+        return sprintf(
+            'Write the content of an existing lesson. Lesson title (keep it exactly): "%s". Unit: "%s". Course: "%s". Stay strictly on this lesson\'s topic and follow every detail of the admin\'s instructions: %s',
+            $lesson->title,
+            $unit->title ?? '',
+            $course->title ?? '',
+            $generation->prompt,
+        );
     }
 
     /**
@@ -316,17 +406,34 @@ class LessonGenerator
 
         $unit = Unit::query()->findOrFail($generation->unit_id);
         $course = $unit->course()->firstOrFail();
+        $target = $this->targetLesson($generation);
 
-        $lesson = DB::transaction(function () use ($generation, $index, $draft, $actor, $unit, $course): Lesson {
-            $title = $draft->title !== '' ? $draft->title : ($generation->outlineLesson($index)['title'] ?: __('AI lesson', [], 'en'));
+        $lesson = DB::transaction(function () use ($generation, $index, $draft, $actor, $unit, $course, $target): Lesson {
+            if ($target !== null) {
+                // "Fill this lesson": its title, unit and course stay; its
+                // old steps make way for the written ones.
+                foreach ($target->blocks()->get() as $block) {
+                    $this->blocks->destroy($block);
+                }
 
-            $lesson = $this->lessons->createLesson($unit, Str::limit($title, 120, ''), false);
-            $lesson->forceFill([
-                'introduction' => $draft->situationText !== '' ? $draft->situationText : $draft->subtitle,
-                'objectives' => $draft->objectives,
-                'estimated_minutes' => 15,
-                'ai_status' => GenerationStatus::Done,
-            ])->save();
+                $lesson = $target;
+                $lesson->forceFill([
+                    'introduction' => $draft->situationText !== '' ? $draft->situationText : $draft->subtitle,
+                    'objectives' => $draft->objectives,
+                    'estimated_minutes' => $lesson->estimated_minutes ?? 15,
+                    'ai_status' => GenerationStatus::Done,
+                ])->save();
+            } else {
+                $title = $draft->title !== '' ? $draft->title : ($generation->outlineLesson($index)['title'] ?: __('AI lesson', [], 'en'));
+
+                $lesson = $this->lessons->createLesson($unit, Str::limit($title, 120, ''), false);
+                $lesson->forceFill([
+                    'introduction' => $draft->situationText !== '' ? $draft->situationText : $draft->subtitle,
+                    'objectives' => $draft->objectives,
+                    'estimated_minutes' => 15,
+                    'ai_status' => GenerationStatus::Done,
+                ])->save();
+            }
 
             $this->situationBlock($lesson, $draft);
             $this->lexiconBlock($lesson, BlockType::Vocabulary, LexiconKind::Word, $draft->vocabulary, $actor, $course);

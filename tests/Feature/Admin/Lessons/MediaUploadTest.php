@@ -73,6 +73,21 @@ class MediaUploadTest extends TestCase
         $this->assertDatabaseCount('media_assets', 0);
     }
 
+    public function test_a_renamed_non_image_is_refused_with_a_message_that_says_why()
+    {
+        // An iPhone HEIC renamed .jpg reads as something else by content:
+        // the admin is told so, not just "invalid" (client report
+        // 2026-11-05).
+        $path = tempnam(sys_get_temp_dir(), 'heic');
+        file_put_contents($path, "\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic".str_repeat("\x00", 256));
+        $fake = new UploadedFile($path, 'photo.jpg', null, null, true);
+
+        $this->actingAs($this->owner)
+            ->from(route('lessons-content'))
+            ->post(route('media.store'), ['file' => $fake, 'alt_text' => 'A photo'])
+            ->assertSessionHasErrors(['file' => __('This file is not a real JPG, PNG or WebP image, even if its name says so (iPhone HEIC and AVIF photos are often renamed). Open it and save or export it as JPG or PNG, then upload it again.')]);
+    }
+
     public function test_a_json_upload_returns_the_picker_row()
     {
         $this->actingAs($this->owner)

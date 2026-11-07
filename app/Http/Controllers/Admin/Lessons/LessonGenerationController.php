@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lessons\FillLessonWithAiRequest;
 use App\Http\Requests\Admin\Lessons\GenerateImageRequest;
 use App\Http\Requests\Admin\Lessons\StoreLessonGenerationRequest;
 use App\Models\ContentGeneration;
 use App\Models\Course;
+use App\Models\Lesson;
 use App\Models\User;
 use App\Services\Ai\AiLimitReached;
 use App\Services\Content\ContentTree;
@@ -32,6 +34,24 @@ class LessonGenerationController extends Controller
 
         try {
             $generation = $generator->start($user, $request->generationData());
+        } catch (AiLimitReached $e) {
+            return response()->json(['message' => $e->getMessage()], 429);
+        }
+
+        return response()->json(['generation' => $generator->present($generation->refresh())], 202);
+    }
+
+    /**
+     * "Fill this lesson with AI" (client request 2026-11-07): write one
+     * existing lesson, on its own title, unit and course, from a brief.
+     */
+    public function fill(FillLessonWithAiRequest $request, Lesson $lesson, LessonGenerator $generator): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user('web');
+
+        try {
+            $generation = $generator->startForLesson($user, $lesson, $request->generationData($lesson));
         } catch (AiLimitReached $e) {
             return response()->json(['message' => $e->getMessage()], 429);
         }

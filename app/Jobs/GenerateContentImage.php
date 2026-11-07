@@ -9,6 +9,7 @@ use App\Models\ContentGeneration;
 use App\Models\Lesson;
 use App\Models\LexiconItem;
 use App\Models\MediaAsset;
+use App\Services\Ai\AiErrorExplainer;
 use App\Services\Ai\UsageMeter;
 use App\Services\Content\LessonGenerator;
 use App\Services\Content\MediaService;
@@ -148,7 +149,7 @@ class GenerateContentImage implements ShouldBeUnique, ShouldQueue
         app(LessonGenerator::class)->imageFinished(
             $this->generationId,
             false,
-            $exception?->getMessage() ?? __('Image generation failed.'),
+            AiErrorExplainer::explain($exception, __('Image generation failed.')),
         );
     }
 }
