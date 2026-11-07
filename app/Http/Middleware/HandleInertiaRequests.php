@@ -12,12 +12,14 @@ use App\Models\HotelAiPointTopUpRequest;
 use App\Models\LevelChangeRequest;
 use App\Models\PaymentSubmission;
 use App\Models\Reminder;
+use App\Models\ReminderReply;
 use App\Models\User;
 use App\Services\I18n\InterfaceLanguages;
 use App\Services\Learning\JourneyService;
 use App\Services\Learning\LevelLock;
 use App\Services\Learning\TrainingDepartments;
 use App\Services\Meaning\HelperLanguages;
+use App\Services\Reminders\ReminderReplyDirectory;
 use App\Services\Subscriptions\AiPointsBalanceService;
 use App\Support\Locales;
 use Illuminate\Http\Request;
@@ -125,6 +127,11 @@ class HandleInertiaRequests extends Middleware
         $contactMessages = $user?->can(Permission::LandingManage->value)
             ? ContactMessage::query()->whereNull('read_at')->orderByDesc('created_at')->limit(10)->get()
             : collect();
+        // Learners' replies to a message that allowed them, scoped to the
+        // manager's hotel (client request 2026-11-07).
+        $messageReplies = $user !== null && $user->can(Permission::MessagesView->value)
+            ? app(ReminderReplyDirectory::class)->latestUnread($user)
+            : collect();
 
         // A reminder with no link of its own opens the learner's messages;
         // other roles have no reminder page, so the click only marks it read.
@@ -139,9 +146,7 @@ class HandleInertiaRequests extends Middleware
                 'subject' => $reminder->subject,
                 'body' => $reminder->body,
                 'sentAt' => $reminder->noticedAt()?->toIso8601String() ?? '',
-                'expiresAt' => $reminder->noticedAt()?->copy()
-                    ->addHours(Reminder::IN_APP_EXPIRY_HOURS)
-                    ->toIso8601String() ?? '',
+                'expiresAt' => $reminder->visibleUntil()?->toIso8601String() ?? '',
                 'read' => $reminder->read_at !== null,
                 'readUrl' => route('notifications.read', ['reminder' => $reminder]),
                 // Where a click goes (client request 2026-10-03).
@@ -219,6 +224,19 @@ class HandleInertiaRequests extends Middleware
                 'readUrl' => route('inbox.level-requests.seen', ['levelRequest' => $levelRequest]),
                 'url' => route('inbox', ['tab' => 'levels'], false),
             ]))
+            ->concat($messageReplies->map(fn (ReminderReply $reply): array => [
+                'id' => -5_000_000 - $reply->id,
+                'channel' => 'in_app',
+                'subject' => __('Reply from :name', ['name' => $reply->user->name ?? '']),
+                'body' => ($reply->rating !== null ? str_repeat('★', $reply->rating).' ' : '')
+                    .Str::limit((string) ($reply->body ?? ''), 120)
+                    .' · '.($reply->reminder?->template->name ?? $reply->reminder->subject ?? ''),
+                'sentAt' => $reply->updated_at?->toIso8601String() ?? '',
+                'expiresAt' => null,
+                'read' => false,
+                'readUrl' => route('messages-reminders.replies.read', ['batch' => (string) $reply->reminder?->batch]),
+                'url' => route('messages-reminders', ['replies' => $reply->reminder?->batch], false),
+            ]))
             ->sortByDesc('sentAt')
             ->values();
 
@@ -279,7 +297,8 @@ class HandleInertiaRequests extends Middleware
                     + $unreadPayments
                     + $hotelRequests->whereNull('request_read_at')->count()
                     + $contactMessages->count()
-                    + $levelRequests->whereNull('read_at')->count(),
+                    + $levelRequests->whereNull('read_at')->count()
+                    + $messageReplies->count(),
                 'items' => $notificationItems->all(),
             ],
             // The employee journey's gates and figures (JOURNEY-01..05, PROG-05;

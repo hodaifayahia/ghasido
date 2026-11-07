@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 
@@ -38,12 +39,16 @@ use Illuminate\Support\Facades\Date;
  * @property Carbon|null $read_at
  * @property string|null $provider_message_id
  * @property string|null $link where a click on the notification goes, if not the inbox
+ * @property string|null $batch groups the rows one Send wrote, one per recipient
+ * @property bool $allow_replies the recipient may answer it (client request 2026-11-07)
+ * @property bool $ask_rating the answer may carry a 1-5 rating
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User|null $user
  * @property-read ReminderTemplate|null $template
  * @property-read AutomationRule|null $automationRule
  * @property-read User|null $sender
+ * @property-read ReminderReply|null $reply
  */
 #[Fillable([
     'user_id',
@@ -60,11 +65,21 @@ use Illuminate\Support\Facades\Date;
     'read_at',
     'provider_message_id',
     'link',
+    'batch',
+    'allow_replies',
+    'ask_rating',
 ])]
 class Reminder extends Model
 {
     /** In-app notices stop appearing after a day; their audit rows remain. */
     public const IN_APP_EXPIRY_HOURS = 24;
+
+    /**
+     * A message that asks for replies stays in the notification center for
+     * a week rather than a day, so a learner who signs in a few days later
+     * can still answer it (client request 2026-11-07).
+     */
+    public const REPLY_WINDOW_DAYS = 7;
 
     /** @use HasFactory<ReminderFactory> */
     use HasFactory;
@@ -86,6 +101,8 @@ class Reminder extends Model
             'scheduled_for' => 'datetime',
             'sent_at' => 'datetime',
             'read_at' => 'datetime',
+            'allow_replies' => 'boolean',
+            'ask_rating' => 'boolean',
         ];
     }
 
@@ -115,10 +132,17 @@ class Reminder extends Model
         return $this->belongsTo(User::class, 'sent_by');
     }
 
+    /** @return HasOne<ReminderReply, $this> */
+    public function reply(): HasOne
+    {
+        return $this->hasOne(ReminderReply::class);
+    }
+
     // ----------------------------------------------------------------- scopes
 
     /**
-     * Reminders visible to their recipient for 24 hours. An email reminder is
+     * Reminders visible to their recipient for 24 hours (a week when they
+     * ask for replies, REPLY_WINDOW_DAYS). An email reminder is
      * also an in-app notice from the moment it is written: the employee sees
      * it in the bell and in Messages at once, whether the email is still
      * queued, was blocked (no address or no consent) or failed (REM-08,
@@ -129,15 +153,23 @@ class Reminder extends Model
      */
     public function scopeVisibleInNotificationCenter(Builder $query): void
     {
-        $cutoff = Date::now()->subHours(self::IN_APP_EXPIRY_HOURS);
+        $now = Date::now();
+        $cutoff = $now->copy()->subHours(self::IN_APP_EXPIRY_HOURS);
+        $replyCutoff = $now->copy()->subDays(self::REPLY_WINDOW_DAYS);
+
+        // A day for a plain notice, a week for one that asks for replies.
+        $recent = fn (Builder $within, string $column) => $within->where(fn (Builder $window) => $window
+            ->where($column, '>', $cutoff)
+            ->orWhere(fn (Builder $replies) => $replies
+                ->where('allow_replies', true)
+                ->where($column, '>', $replyCutoff)));
 
         $query
             ->whereIn('channel', [ReminderChannel::InApp->value, ReminderChannel::Email->value])
             ->where(fn (Builder $visible) => $visible
-                ->where(fn (Builder $sent) => $sent
+                ->where(fn (Builder $sent) => $recent($sent
                     ->where('status', ReminderStatus::Sent->value)
-                    ->whereNotNull('sent_at')
-                    ->where('sent_at', '>', $cutoff))
+                    ->whereNotNull('sent_at'), 'sent_at'))
                 ->orWhere(fn (Builder $email) => $email
                     ->where('channel', ReminderChannel::Email->value)
                     ->whereIn('status', [
@@ -146,11 +178,29 @@ class Reminder extends Model
                         ReminderStatus::Failed->value,
                     ])
                     ->whereNull('sent_at')
-                    ->where(fn (Builder $recent) => $recent
-                        ->where('scheduled_for', '>', $cutoff)
-                        ->orWhere(fn (Builder $now) => $now
-                            ->whereNull('scheduled_for')
-                            ->where('created_at', '>', $cutoff)))));
+                    ->where(fn (Builder $pending) => $pending
+                        ->where(fn (Builder $scheduled) => $recent($scheduled, 'scheduled_for'))
+                        ->orWhere(fn (Builder $now) => $recent($now->whereNull('scheduled_for'), 'created_at')))));
+    }
+
+    /** When the notice leaves the notification center. */
+    public function visibleUntil(): ?CarbonInterface
+    {
+        $noticed = $this->noticedAt();
+
+        if ($noticed === null) {
+            return null;
+        }
+
+        return $this->allow_replies
+            ? $noticed->copy()->addDays(self::REPLY_WINDOW_DAYS)
+            : $noticed->copy()->addHours(self::IN_APP_EXPIRY_HOURS);
+    }
+
+    /** Still in the recipient's notification center. */
+    public function isVisibleInNotificationCenter(): bool
+    {
+        return self::query()->visibleInNotificationCenter()->whereKey($this->id)->exists();
     }
 
     /** When the notice reached the employee's account. */

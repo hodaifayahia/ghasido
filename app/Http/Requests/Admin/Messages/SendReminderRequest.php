@@ -41,6 +41,9 @@ class SendReminderRequest extends FormRequest
             'recipients' => ['required_unless:select_all,1,true', 'array'],
             'recipients.*' => ['integer', 'distinct'],
             'scheduled_for' => ['nullable', 'date', 'after:now'],
+            // Replies to this message (client request 2026-11-07).
+            'allow_replies' => ['sometimes', 'boolean'],
+            'ask_rating' => ['sometimes', 'boolean'],
             'hotel' => ['nullable', 'string', 'max:40'],
             'department' => ['nullable', 'string', 'max:40'],
             'consent' => ['nullable', 'string', 'max:40'],
@@ -76,6 +79,18 @@ class SendReminderRequest extends FormRequest
         $value = $this->validated('scheduled_for');
 
         return is_string($value) && $value !== '' ? Date::parse($value) : null;
+    }
+
+    /** The recipients may answer this message. */
+    public function allowReplies(): bool
+    {
+        return $this->boolean('allow_replies');
+    }
+
+    /** Their answer may carry a 1-5 rating; only with replies allowed. */
+    public function askRating(): bool
+    {
+        return $this->allowReplies() && $this->boolean('ask_rating');
     }
 
     public function selectAll(): bool

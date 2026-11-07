@@ -40,12 +40,14 @@ class ReminderPolicy
 
     /**
      * Delete one log entry: the messaging permission, inside the actor's
-     * own hotel for a manager.
+     * own hotel for a manager. A row the learner answered is kept with its
+     * answer (DATA-10, client request 2026-11-07).
      */
     public function delete(User $user, Reminder $reminder): bool
     {
         return $user->can(Permission::MessagesManage->value)
-            && $this->reaches($user, $reminder);
+            && $this->reaches($user, $reminder)
+            && ! $reminder->reply()->exists();
     }
 
     private function reaches(User $user, Reminder $reminder): bool

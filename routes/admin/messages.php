@@ -4,6 +4,7 @@ use App\Enums\Permission;
 use App\Http\Controllers\Admin\Messages\AutomationRuleController;
 use App\Http\Controllers\Admin\Messages\ReminderDraftController;
 use App\Http\Controllers\Admin\Messages\ReminderLogController;
+use App\Http\Controllers\Admin\Messages\ReminderReplyController;
 use App\Http\Controllers\Admin\Messages\ReminderSendController;
 use App\Http\Controllers\Admin\Messages\ReminderTemplateController;
 use App\Http\Controllers\Admin\MessagesRemindersController;
@@ -19,6 +20,13 @@ Route::middleware(Permission::MessagesView->middleware())->group(function () {
         ->name('messages-reminders');
     Route::get('messages-reminders/templates/preview', [ReminderTemplateController::class, 'preview'])
         ->name('messages-reminders.templates.preview');
+
+    // Replies to a message that allowed them are listed on the screen
+    // itself; this marks one message's replies read (client request
+    // 2026-11-07). The service scopes a manager to their own hotel.
+    Route::post('messages-reminders/replies/{batch}/read', [ReminderReplyController::class, 'read'])
+        ->where('batch', '[A-Za-z0-9\-]{1,36}')
+        ->name('messages-reminders.replies.read');
 });
 
 Route::middleware(Permission::MessagesManage->middleware())->group(function () {

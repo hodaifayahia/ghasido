@@ -29,6 +29,8 @@ class ReminderSendController extends Controller
             $request->template(),
             $request->channel(),
             $scheduledFor,
+            $request->allowReplies(),
+            $request->askRating(),
         );
 
         $parts = [];

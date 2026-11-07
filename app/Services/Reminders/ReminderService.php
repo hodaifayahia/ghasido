@@ -14,6 +14,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Str;
 
 /**
  * The one place a reminder is written and sent (REM-01..REM-06).
@@ -45,6 +46,8 @@ final class ReminderService
      * @param  User|null  $sender  the admin or manager pressing Send; null for the runner
      * @param  AutomationRule|null  $rule  the rule behind an automatic send
      * @param  CarbonInterface|null  $scheduledFor  leave null to send at once
+     * @param  bool  $allowReplies  the recipients may answer it (client request 2026-11-07)
+     * @param  bool  $askRating  their answer may carry a 1-5 rating
      * @return Collection<int, Reminder> one row per recipient, in the order given
      */
     public function send(
@@ -54,10 +57,21 @@ final class ReminderService
         ?User $sender,
         ?AutomationRule $rule = null,
         ?CarbonInterface $scheduledFor = null,
+        bool $allowReplies = false,
+        bool $askRating = false,
     ): Collection {
         if ($recipients->isEmpty()) {
             return new Collection;
         }
+
+        // One id for the rows this send writes, so the replies to one
+        // message can be read together.
+        $batch = (string) Str::uuid();
+        $replies = [
+            'batch' => $batch,
+            'allow_replies' => $allowReplies,
+            'ask_rating' => $allowReplies && $askRating,
+        ];
 
         if ($recipients instanceof EloquentCollection) {
             $recipients->loadMissing(['hotel', 'department']);
@@ -66,7 +80,7 @@ final class ReminderService
         $reminders = [];
 
         foreach ($recipients as $user) {
-            $reminders[] = $this->sendToOne($user, $template, $channel, $sender, $rule, $scheduledFor);
+            $reminders[] = $this->sendToOne($user, $template, $channel, $sender, $rule, $scheduledFor, $replies);
         }
 
         $reminders = new Collection($reminders);
@@ -81,6 +95,9 @@ final class ReminderService
             'scheduled_for' => $scheduledFor?->toIso8601String(),
             'sent_by' => $sender?->id,
             'automation_rule_id' => $rule?->id,
+            'batch' => $batch,
+            'allow_replies' => $replies['allow_replies'],
+            'ask_rating' => $replies['ask_rating'],
         ]);
 
         return $reminders;
@@ -190,6 +207,9 @@ final class ReminderService
         return null;
     }
 
+    /**
+     * @param  array{batch: string, allow_replies: bool, ask_rating: bool}  $replies
+     */
     private function sendToOne(
         User $user,
         ReminderTemplate $template,
@@ -197,6 +217,7 @@ final class ReminderService
         ?User $sender,
         ?AutomationRule $rule,
         ?CarbonInterface $scheduledFor,
+        array $replies,
     ): Reminder {
         $reminder = new Reminder([
             'user_id' => $user->id,
@@ -206,6 +227,7 @@ final class ReminderService
             'subject' => $this->renderer->render($template->subject, $user),
             'body' => $this->renderer->render($template->body, $user),
             'sent_by' => $sender?->id,
+            ...$replies,
         ]);
 
         if ($channel === ReminderChannel::Email) {

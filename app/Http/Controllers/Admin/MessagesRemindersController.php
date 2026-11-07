@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Services\Reminders\MessagesDirectory;
+use App\Services\Reminders\ReminderReplyDirectory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -22,7 +23,7 @@ use Inertia\Response;
  */
 class MessagesRemindersController extends Controller
 {
-    public function __invoke(Request $request, MessagesDirectory $directory): Response
+    public function __invoke(Request $request, MessagesDirectory $directory, ReminderReplyDirectory $replies): Response
     {
         // The route already carries permission:messages.view. The policy
         // check is the authorization proper, so it holds even if the route's
@@ -32,6 +33,15 @@ class MessagesRemindersController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
-        return Inertia::render('admin/MessagesReminders', $directory->build($request, $actor));
+        return Inertia::render('admin/MessagesReminders', [
+            ...$directory->build($request, $actor),
+            // The Replies panel (client request 2026-11-07): loaded only when
+            // it is opened, by a partial reload. `replies` names the message
+            // to show first (a bell click or a log row).
+            'replyMessages' => Inertia::optional(fn (): array => $replies->threads(
+                $actor,
+                is_string($request->query('replies')) ? $request->query('replies') : null,
+            )),
+        ]);
     }
 }

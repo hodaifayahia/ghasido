@@ -29,6 +29,8 @@ class ReminderBatchService
     /**
      * @param  list<int>  $ids  explicit recipients; ignored when $selectAll
      * @param  array{hotel?: string, department?: string, consent?: string, activity?: string, search?: string}  $filters  the screen filters behind "select all"
+     * @param  bool  $allowReplies  the recipients may answer (client request 2026-11-07)
+     * @param  bool  $askRating  with a 1-5 rating
      * @return array{total: int, delivered: int, scheduled: int, blocked: int, skipped: int}
      *
      * @throws AuthorizationException when an id is not one of the actor's employees
@@ -41,6 +43,8 @@ class ReminderBatchService
         ReminderTemplate $template,
         ReminderChannel $channel,
         ?CarbonInterface $scheduledFor,
+        bool $allowReplies = false,
+        bool $askRating = false,
     ): array {
         $recipients = $selectAll
             ? $this->everyoneMatching($actor, $filters)
@@ -52,7 +56,16 @@ class ReminderBatchService
             fn (User $user): bool => $user->status === AccountStatus::Active,
         );
 
-        $sent = $this->reminders->send($active->values(), $template, $channel, $actor, null, $scheduledFor);
+        $sent = $this->reminders->send(
+            $active->values(),
+            $template,
+            $channel,
+            $actor,
+            null,
+            $scheduledFor,
+            $allowReplies,
+            $askRating,
+        );
 
         return $this->reminders->summarise($sent) + ['skipped' => $inactive->count()];
     }
