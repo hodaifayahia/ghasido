@@ -15,6 +15,7 @@ use App\Jobs\GenerateContentImage;
 use App\Jobs\GenerateLessonFromPrompt;
 use App\Models\Activity;
 use App\Models\AiUsage;
+use App\Models\BlockCompletion;
 use App\Models\ContentGeneration;
 use App\Models\Course;
 use App\Models\Hotel;
@@ -305,5 +306,61 @@ class LessonGeneratorTest extends TestCase
             ->assertJsonPath('generation.media.alt', 'A folded white towel');
 
         $this->assertSame($response->json('generation.media.id'), $item->refresh()->image_media_id);
+    }
+
+    public function test_fill_this_lesson_writes_the_admins_own_lesson_in_place()
+    {
+        // Client request 2026-11-07: the AI must write the lesson the admin
+        // created, in its unit, with its title, not a new one elsewhere.
+        Queue::fake();
+        $this->lesson->update(['title' => 'Spelling a guest name']);
+        $before = $this->lesson->blocks()->count();
+        $this->assertGreaterThan(0, $before);
+
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('lessons.ai-fill', $this->lesson), [
+                'prompt' => 'Teach the alphabet with hotel names, then ask the guest to spell their surname.',
+            ])
+            ->assertStatus(202);
+
+        $id = (int) $response->json('generation.id');
+        Queue::assertPushed(GenerateLessonFromPrompt::class);
+        $this->assertSame(GenerationStatus::Pending, $this->lesson->fresh()?->ai_status);
+
+        $this->runLessonJob($id, 0);
+
+        $lesson = $this->lesson->fresh();
+        $this->assertNotNull($lesson);
+        $this->assertSame('Spelling a guest name', $lesson->title);
+        $this->assertSame($this->unit->id, $lesson->unit_id);
+        $this->assertSame(GenerationStatus::Done, $lesson->ai_status);
+        $this->assertSame($lesson->id, ContentGeneration::query()->findOrFail($id)->lessonIdFor(0));
+        $this->assertSame(
+            [BlockType::Situation, BlockType::Vocabulary, BlockType::Expressions, BlockType::ListenRepeat, BlockType::Dialogue, BlockType::Practice, BlockType::Complete],
+            $lesson->blocks()->get()->map(fn ($block) => $block->type)->all(),
+        );
+        // No second lesson was created anywhere.
+        $this->assertSame(1, Lesson::query()->where('unit_id', $this->unit->id)->count());
+    }
+
+    public function test_a_lesson_employees_already_used_is_not_rewritten()
+    {
+        Queue::fake();
+        $block = $this->lesson->blocks()->firstOrFail();
+        BlockCompletion::factory()->create(['lesson_id' => $this->lesson->id, 'block_id' => $block->id]);
+
+        $this->actingAs($this->owner)
+            ->postJson(route('lessons.ai-fill', $this->lesson), ['prompt' => 'Rewrite it all please.'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('prompt');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_a_manager_cannot_fill_a_lesson_with_ai()
+    {
+        $this->actingAs($this->manager())
+            ->postJson(route('lessons.ai-fill', $this->lesson), ['prompt' => 'Write this lesson.'])
+            ->assertForbidden();
     }
 }

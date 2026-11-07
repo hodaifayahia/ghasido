@@ -143,6 +143,10 @@ Route::middleware([
 
             Route::get('messages', [MessagesController::class, 'index'])->name('messages');
             Route::post('messages/{reminder}/read', [MessagesController::class, 'read'])->name('messages.read');
+            // Answer a message sent with replies allowed (client request 2026-11-07).
+            Route::put('messages/{reminder}/reply', [MessagesController::class, 'reply'])
+                ->middleware('throttle:20,1')
+                ->name('messages.reply');
 
             Route::post('recordings', [RecordingController::class, 'store'])->name('recordings.store');
 

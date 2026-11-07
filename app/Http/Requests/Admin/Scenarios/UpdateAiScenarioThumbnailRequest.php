@@ -2,13 +2,13 @@
 
 namespace App\Http\Requests\Admin\Scenarios;
 
+use App\Concerns\ImageUploadRules;
 use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Enums\Permission;
 use App\Models\AiScenario;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Validation\Rules\File;
 
 /**
  * The scenario's cover image, saved the moment it is chosen (client report
@@ -18,6 +18,8 @@ use Illuminate\Validation\Rules\File;
  */
 class UpdateAiScenarioThumbnailRequest extends FormRequest
 {
+    use ImageUploadRules;
+
     public function authorize(): bool
     {
         return $this->route('scenario') instanceof AiScenario
@@ -28,7 +30,7 @@ class UpdateAiScenarioThumbnailRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'image' => ['required', 'file', File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5 * 1024)],
+            'image' => ['required', 'file', $this->imageFileRule()],
             'alt_text' => ['required', 'string', 'max:255'],
         ];
     }
@@ -37,7 +39,7 @@ class UpdateAiScenarioThumbnailRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'image.max' => __('The file is too large. Images may be up to 5 MB.'),
+            ...$this->imageMessages('image'),
             'alt_text.required' => __('Describe the image for screen readers.'),
         ];
     }

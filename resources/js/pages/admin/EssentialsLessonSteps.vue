@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Eye, PencilRuler } from '@lucide/vue';
-import { computed } from 'vue';
+import { ArrowLeft, Eye, PencilRuler, WandSparkles } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
+import LessonsAiFillDialog from '@/components/lessons/LessonsAiFillDialog.vue';
 import LessonsBlockList from '@/components/lessons/LessonsBlockList.vue';
 import PageHeader from '@/components/shell/PageHeader.vue';
 import { t, tk } from '@/lib/i18n';
@@ -48,6 +49,9 @@ defineOptions({
 
 const stepCount = computed(() => props.lessonBlocks.length);
 
+// Write this lesson from a brief (client request 2026-11-07).
+const fillOpen = ref(false);
+
 const secondaryAction =
     'border-line bg-surface text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600/20 inline-flex h-11 items-center gap-1.5 rounded-md border px-3 text-[13px] font-semibold focus-visible:ring-3 focus-visible:outline-none md:h-10';
 </script>
@@ -77,6 +81,16 @@ const secondaryAction =
             </Link>
 
             <div class="ms-auto flex flex-wrap items-center gap-2">
+                <button
+                    v-if="editor.id !== null"
+                    type="button"
+                    class="bg-brand-600 hover:bg-brand-700 shadow-btn focus-visible:ring-brand-600/30 inline-flex h-11 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold text-white focus-visible:ring-3 focus-visible:outline-none active:scale-[.97] md:h-10"
+                    data-test="essentials-fill-with-ai"
+                    @click="fillOpen = true"
+                >
+                    <WandSparkles class="size-4" aria-hidden="true" />
+                    {{ t('Fill this lesson with AI') }}
+                </button>
                 <a
                     :href="previewUrl"
                     target="_blank"
@@ -117,5 +131,13 @@ const secondaryAction =
                 :library="library"
             />
         </PanelCard>
+        <LessonsAiFillDialog
+            v-if="editor.id !== null"
+            v-model:open="fillOpen"
+            :lesson-id="editor.id"
+            :lesson-title="editor.title"
+            :context="topic.title"
+            :has-steps="stepCount > 1"
+        />
     </div>
 </template>

@@ -249,6 +249,59 @@ class MediaService
     }
 
     /**
+     * Whether GD can open this image without running out of memory. A
+     * photo can be well under 5 MB on disk yet huge in pixels (a 48 MP
+     * phone photo is 8000×6000, ~190 MB decoded), and a fatal "memory
+     * exhausted" turned such uploads into a server error (client report
+     * 2026-11-05). The memory limit is raised for this request when the
+     * host allows it; when it does not, the image is stored as uploaded,
+     * without the resized copy, instead of failing.
+     */
+    private function canDecode(string $binary, int $maxWidth): bool
+    {
+        $info = @getimagesizefromstring($binary);
+
+        if ($info === false) {
+            return false;
+        }
+
+        [$width, $height] = $info;
+        $targetHeight = $width > $maxWidth ? (int) ceil($height * $maxWidth / max(1, $width)) : 0;
+        // ~5 bytes a pixel for the decoded image and the resized copy,
+        // plus headroom for the rest of the request.
+        $needed = (int) (($width * $height + $maxWidth * $targetHeight) * 5) + 48 * 1024 * 1024;
+
+        $limit = self::bytes((string) ini_get('memory_limit'));
+
+        if ($limit < 0 || memory_get_usage(true) + $needed <= $limit) {
+            return true;
+        }
+
+        $raised = (int) ceil((memory_get_usage(true) + $needed) / (1024 * 1024));
+
+        return @ini_set('memory_limit', $raised.'M') !== false
+            && self::bytes((string) ini_get('memory_limit')) >= memory_get_usage(true) + $needed;
+    }
+
+    private static function bytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '' || $value === '-1') {
+            return -1;
+        }
+
+        $number = (int) $value;
+
+        return match (strtoupper(substr($value, -1))) {
+            'G' => $number * 1024 ** 3,
+            'M' => $number * 1024 ** 2,
+            'K' => $number * 1024,
+            default => $number,
+        };
+    }
+
+    /**
      * Scale an image down to a width with GD, keeping the format. Returns
      * null when GD cannot read it (or it is already small enough for a
      * main image) so the original bytes are kept.
@@ -257,7 +310,7 @@ class MediaService
      */
     private function resize(string $binary, string $mime, int $maxWidth): ?array
     {
-        if (! function_exists('imagecreatefromstring')) {
+        if (! function_exists('imagecreatefromstring') || ! $this->canDecode($binary, $maxWidth)) {
             return null;
         }
 

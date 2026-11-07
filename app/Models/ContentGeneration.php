@@ -33,7 +33,7 @@ use Illuminate\Support\Facades\DB;
  * @property int|null $department_id
  * @property int|null $hotel_id
  * @property string|null $level
- * @property array{images?: bool, audio?: bool, lesson_count?: int, created_course?: bool}|null $options
+ * @property array{images?: bool, audio?: bool, lesson_count?: int, created_course?: bool, target_lesson_id?: int}|null $options
  * @property GenerationStatus $status
  * @property string|null $stage
  * @property string|null $failed_reason

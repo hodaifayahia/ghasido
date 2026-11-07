@@ -48,6 +48,8 @@ class MessagesDirectory
     /** The stat card's window for "scheduled" reminders, in days. */
     public const SCHEDULED_WINDOW_DAYS = 7;
 
+    public function __construct(private readonly ReminderReplyDirectory $replies) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -76,6 +78,17 @@ class MessagesDirectory
         /** @var list<Reminder> $logRows */
         $logRows = $logs->items();
 
+        // Replies beside each message that allowed them (client request
+        // 2026-11-07): one grouped count for the messages on this page.
+        $replyFigures = $this->replies->figures($actor, array_values(array_unique(array_filter(array_map(
+            static fn (Reminder $reminder): ?string => $reminder->allow_replies ? $reminder->batch : null,
+            $logRows,
+        )))));
+        $answered = array_flip($this->replies->answered(array_map(
+            static fn (Reminder $reminder): int => $reminder->id,
+            array_values(array_filter($logRows, static fn (Reminder $reminder): bool => $reminder->allow_replies)),
+        )));
+
         $templates = ReminderTemplate::query()->orderBy('name')->get();
         $rules = AutomationRule::query()->with('template')->orderBy('name')->get();
 
@@ -92,7 +105,16 @@ class MessagesDirectory
             'recipientsPagination' => $this->pagination($recipients),
             'templates' => $templates->map(fn (ReminderTemplate $template): array => $this->template($template))->all(),
             'automations' => $rules->map(fn (AutomationRule $rule): array => $this->rule($rule))->all(),
-            'logs' => array_map(fn (Reminder $reminder): array => $this->log($reminder), $logRows),
+            'logs' => array_map(
+                fn (Reminder $reminder): array => $this->log(
+                    $reminder,
+                    $replyFigures[(string) $reminder->batch] ?? null,
+                    isset($answered[$reminder->id]),
+                ),
+                $logRows,
+            ),
+            // The Replies button's badge (client request 2026-11-07).
+            'repliesUnread' => $this->replies->unreadCount($actor),
             'logsPagination' => $this->pagination($logs),
             'options' => [
                 'channels' => array_map(
@@ -296,9 +318,11 @@ class MessagesDirectory
     }
 
     /**
+     * @param  array{recipients: int, replies: int}|null  $figures  the message's replies, when it allowed them
+     * @param  bool  $replied  this recipient answered it
      * @return array<string, mixed>
      */
-    private function log(Reminder $reminder): array
+    private function log(Reminder $reminder, ?array $figures, bool $replied): array
     {
         $moment = $reminder->status === ReminderStatus::Scheduled
             ? $reminder->scheduled_for
@@ -313,6 +337,14 @@ class MessagesDirectory
             'status' => $reminder->status->value,
             'reason' => $reminder->blocked_reason,
             'automatic' => $reminder->automation_rule_id !== null,
+            'batch' => $reminder->allow_replies ? $reminder->batch : null,
+            'allowReplies' => $reminder->allow_replies,
+            'replied' => $replied,
+            'replyCount' => $figures['replies'] ?? 0,
+            'recipientCount' => $figures['recipients'] ?? 0,
+            // A row the learner answered keeps its answer: it cannot be
+            // deleted from the log (ReminderPolicy::delete, DATA-10).
+            'deletable' => ! $replied,
         ];
     }
 
@@ -457,5 +489,10 @@ class MessagesDirectory
     public static function formatDate(?CarbonInterface $date): string
     {
         return $date === null ? '—' : $date->format(self::DATE_FORMAT);
+    }
+
+    public static function formatDateTime(?CarbonInterface $date): string
+    {
+        return $date === null ? '—' : $date->format(self::DATETIME_FORMAT);
     }
 }

@@ -27,6 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'locale']);
 
+        // A learner's reply to a message is kept exactly as written (client
+        // request 2026-11-07). A path check: this global middleware runs
+        // before the route is matched.
+        $middleware->trimStrings(except: [
+            fn (Request $request): bool => $request->is('learn/messages/*/reply'),
+        ]);
+
         $middleware->web(append: [
             HandleAppearance::class,
             // Before Inertia shares its props, so they are in the chosen

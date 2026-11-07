@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { Bell, Clock, FileText, RotateCcw, Send } from '@lucide/vue';
+import {
+    Bell,
+    Clock,
+    FileText,
+    MessageSquareReply,
+    RotateCcw,
+    Send,
+} from '@lucide/vue';
 import type { AcceptableValue } from 'reka-ui';
 import { reactive, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -29,6 +36,8 @@ type Props = {
     templatesCount: number;
     rulesCount: number;
     logTotal: number;
+    /** Unread replies to messages that allowed them (client request 2026-11-07). */
+    repliesUnread: number;
     class?: HTMLAttributes['class'];
 };
 
@@ -45,12 +54,16 @@ const emit = defineEmits<{
     openTemplates: [];
     openRules: [];
     openLog: [];
+    /** The replies learners sent to messages that allowed them. */
+    openReplies: [];
 }>();
 
 type ManageButton = {
-    key: 'templates' | 'rules' | 'log';
+    key: 'templates' | 'rules' | 'log' | 'replies';
     label: string;
     count: () => number;
+    /** The count is unread items: shown as an alert when above zero. */
+    alert?: boolean;
     icon: typeof FileText;
     iconClass: string;
     test: string;
@@ -84,6 +97,16 @@ const manageButtons: ManageButton[] = [
         iconClass: 'text-warning',
         test: 'open-full-log-button',
         open: () => emit('openLog'),
+    },
+    {
+        key: 'replies',
+        label: tk('Replies'),
+        count: () => props.repliesUnread,
+        alert: true,
+        icon: MessageSquareReply,
+        iconClass: 'text-success',
+        test: 'open-replies-button',
+        open: () => emit('openReplies'),
     },
 ];
 
@@ -219,9 +242,9 @@ function resetFilters(): void {
             </Button>
         </div>
 
-        <!-- Templates, rules and the log open as modals beside Send (REM-03, REM-04, REM-06). -->
+        <!-- Templates, rules, the log and the replies open as modals beside Send (REM-03, REM-04, REM-06). -->
         <div
-            class="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:items-center md:justify-end"
+            class="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:justify-end"
         >
             <Button
                 v-for="button in manageButtons"
@@ -243,8 +266,18 @@ function resetFilters(): void {
                     >{{ $t(button.label) }}</span
                 >
                 <span
-                    class="bg-brand-50 text-brand-700 rounded-pill ms-auto inline-flex min-w-5 shrink-0 items-center justify-center px-1.5 text-[11px] leading-5 font-semibold md:ms-0"
+                    :class="
+                        cn(
+                            'rounded-pill ms-auto inline-flex min-w-5 shrink-0 items-center justify-center px-1.5 text-[11px] leading-5 font-semibold md:ms-0',
+                            button.alert && button.count() > 0
+                                ? 'bg-danger text-white'
+                                : 'bg-brand-50 text-brand-700',
+                        )
+                    "
                 >
+                    <span v-if="button.alert" class="sr-only">{{
+                        $t('Unread:')
+                    }}</span>
                     {{ button.count() }}
                 </span>
             </Button>
@@ -252,7 +285,7 @@ function resetFilters(): void {
             <Button
                 v-if="canSend"
                 type="button"
-                class="bg-brand-600 shadow-btn hover:bg-brand-700 col-span-3 h-11 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97] md:h-10"
+                class="bg-brand-600 shadow-btn hover:bg-brand-700 col-span-2 h-11 rounded-md px-4 text-[12.5px] font-semibold text-white active:scale-[.97] md:h-10"
                 data-test="send-group-reminder-button"
                 @click="emit('send')"
             >

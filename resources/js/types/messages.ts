@@ -100,6 +100,45 @@ export type MessageLog = {
     status: MessageLogStatus;
     reason: string | null;
     automatic: boolean;
+    /** The message this row belongs to, when it allowed replies. */
+    batch: string | null;
+    allowReplies: boolean;
+    /** This recipient answered it. */
+    replied: boolean;
+    /** Replies and recipients of the whole message, as far as you can see. */
+    replyCount: number;
+    recipientCount: number;
+    /** False once the recipient answered: the row is kept (DATA-10). */
+    deletable: boolean;
+};
+
+/** One learner's answer to a message (client request 2026-11-07). */
+export type MessageReply = {
+    id: number;
+    name: string;
+    hotel: string;
+    department: string;
+    /** As written; null when the learner only rated. */
+    body: string | null;
+    rating: number | null;
+    repliedAt: string;
+    edited: boolean;
+    unread: boolean;
+};
+
+/** A message sent with replies allowed, and the answers to it. */
+export type MessageReplyThread = {
+    batch: string;
+    title: string;
+    subject: string;
+    channel: string;
+    sentAt: string;
+    askRating: boolean;
+    recipients: number;
+    replyCount: number;
+    unread: number;
+    averageRating: number | null;
+    replies: MessageReply[];
 };
 
 export type MessagePagination = {

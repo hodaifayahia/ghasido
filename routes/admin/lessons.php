@@ -82,6 +82,8 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::get('lesson-generations/courses', [LessonGenerationController::class, 'courses'])->name('lesson-generations.courses');
     Route::post('lesson-generations/images', [LessonGenerationController::class, 'image'])->name('lesson-generations.image');
     Route::post('lesson-generations', [LessonGenerationController::class, 'store'])->name('lesson-generations.store');
+    // Fill one existing lesson from a brief (client request 2026-11-07).
+    Route::post('lessons/{lesson}/ai-fill', [LessonGenerationController::class, 'fill'])->name('lessons.ai-fill');
     Route::get('lesson-generations/{generation}', [LessonGenerationController::class, 'show'])->name('lesson-generations.show');
     Route::post('lesson-generations/{generation}/retry', [LessonGenerationController::class, 'retry'])->name('lesson-generations.retry');
 });
