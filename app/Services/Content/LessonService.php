@@ -663,6 +663,55 @@ class LessonService
     }
 
     /**
+     * Move a lesson to a position in a unit, the same one or another unit of
+     * any course (client request 2026-11-07: drag a lesson, or move it up,
+     * down or to another unit or course). Its course and hotel follow the
+     * new unit (Lesson::saving). Its blocks, answers and completions stay
+     * attached to the lesson (DATA-10).
+     *
+     * @param  int|null  $position  1-based; null puts it at the end
+     */
+    public function moveLesson(Lesson $lesson, Unit $target, ?int $position = null): Lesson
+    {
+        return DB::transaction(function () use ($lesson, $target, $position): Lesson {
+            $from = ['unit_id' => $lesson->unit_id, 'course_id' => $lesson->course_id, 'position' => $lesson->position];
+
+            /** @var list<int> $order */
+            $order = Lesson::query()
+                ->where('unit_id', $target->id)
+                ->whereKeyNot($lesson->id)
+                ->notArchived()
+                ->orderBy('position')
+                ->orderBy('id')
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            $index = $position === null ? count($order) : max(0, min(count($order), $position - 1));
+            array_splice($order, $index, 0, [$lesson->id]);
+
+            $lesson->unit_id = $target->id;
+            $lesson->position = $index + 1;
+            $lesson->save();
+
+            foreach ($order as $i => $id) {
+                Lesson::query()->whereKey($id)->update(['position' => $i + 1]);
+            }
+
+            if ($from['unit_id'] !== $target->id) {
+                $this->renumberLessons($from['unit_id']);
+            }
+
+            AuditLog::record($lesson, 'lesson.moved', [
+                'from' => $from,
+                'to' => ['unit_id' => $target->id, 'course_id' => $target->course_id, 'position' => $index + 1],
+            ]);
+
+            return $lesson;
+        });
+    }
+
+    /**
      * Positions 1..n for the lessons still in the library of one unit.
      */
     private function renumberLessons(int $unitId): void

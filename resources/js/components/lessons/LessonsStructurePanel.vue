@@ -5,12 +5,14 @@ import {
     ChevronRight,
     CirclePlus,
     EyeOff,
+    GripVertical,
     Layers,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { HTMLAttributes } from 'vue';
 import PanelCard from '@/components/common/PanelCard.vue';
 import LessonsAddDialog from '@/components/lessons/LessonsAddDialog.vue';
+import LessonsMoveDialog from '@/components/lessons/LessonsMoveDialog.vue';
 import LessonsTreeActionDialog from '@/components/lessons/LessonsTreeActionDialog.vue';
 import LessonsTreeRowMenu from '@/components/lessons/LessonsTreeRowMenu.vue';
 import {
@@ -190,9 +192,110 @@ function onAction(target: LessonsTreeTarget, action: LessonsTreeAction): void {
         return;
     }
 
+    if (action !== 'rename' && action !== 'delete') {
+        return;
+    }
+
     actionTarget.value = target;
     actionMode.value = action;
     actionOpen.value = true;
+}
+
+/*
+ * Moving lessons (client request 2026-11-07): drag a lesson by its handle
+ * onto another lesson (it takes that place) or onto a unit (it goes last),
+ * or use Move up / Move down / Move to… in its menu, which also work with
+ * a keyboard and on touch screens where dragging does not (ACC-03).
+ */
+const moving = ref(false);
+const dragging = ref<number | null>(null);
+const dropTarget = ref<string | null>(null);
+const moveOpen = ref(false);
+const moveLesson = ref<LessonsTreeTarget | null>(null);
+
+function sendMove(
+    lessonId: number,
+    unitId: number,
+    position: number | null,
+): void {
+    if (moving.value) {
+        return;
+    }
+
+    router.patch(
+        lessonRoutes.move.url(lessonId),
+        { unit_id: unitId, position },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => {
+                moving.value = true;
+            },
+            onFinish: () => {
+                moving.value = false;
+            },
+        },
+    );
+}
+
+function onLessonAction(
+    unit: LessonsTreeUnit,
+    index: number,
+    lesson: LessonsTreeLesson,
+    action: LessonsTreeAction,
+): void {
+    if (action === 'move_up') {
+        sendMove(lesson.id, unit.id, index);
+
+        return;
+    }
+
+    if (action === 'move_down') {
+        sendMove(lesson.id, unit.id, index + 2);
+
+        return;
+    }
+
+    if (action === 'move_to') {
+        moveLesson.value = lessonTarget(lesson);
+        moveOpen.value = true;
+
+        return;
+    }
+
+    onAction(lessonTarget(lesson), action);
+}
+
+function onDragStart(event: DragEvent, lesson: LessonsTreeLesson): void {
+    dragging.value = lesson.id;
+    event.dataTransfer?.setData('text/plain', String(lesson.id));
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+    }
+}
+
+function onDragEnd(): void {
+    dragging.value = null;
+    dropTarget.value = null;
+}
+
+function onDragOver(event: DragEvent, key: string): void {
+    if (dragging.value === null) {
+        return;
+    }
+
+    event.preventDefault();
+    dropTarget.value = key;
+}
+
+function onDrop(unit: LessonsTreeUnit, position: number | null): void {
+    const lessonId = dragging.value;
+    onDragEnd();
+
+    if (lessonId !== null) {
+        sendMove(lessonId, unit.id, position);
+    }
 }
 
 /** A draft copy lands at the end of the same parent and opens. */
@@ -340,7 +443,16 @@ function duplicate(target: LessonsTreeTarget): void {
                         class="pb-1"
                     >
                         <div
-                            class="group/row relative flex items-center gap-0.5"
+                            :class="
+                                cn(
+                                    'group/row relative flex items-center gap-0.5 rounded-md',
+                                    dropTarget === `u${unit.id}` &&
+                                        'bg-brand-50 ring-brand-300 ring-2',
+                                )
+                            "
+                            @dragover="onDragOver($event, `u${unit.id}`)"
+                            @dragleave="dropTarget = null"
+                            @drop.prevent="onDrop(unit, null)"
                         >
                             <button
                                 type="button"
@@ -376,10 +488,29 @@ function duplicate(target: LessonsTreeTarget): void {
                             class="border-line ms-[9px] mt-1 space-y-1 border-s ps-3"
                         >
                             <div
-                                v-for="lesson in unit.lessons ?? []"
+                                v-for="(lesson, index) in unit.lessons ?? []"
                                 :key="lesson.id"
-                                class="group/row relative flex items-center gap-0.5"
+                                :class="
+                                    cn(
+                                        'group/row relative flex items-center gap-0.5 rounded-md',
+                                        dragging === lesson.id && 'opacity-40',
+                                        dropTarget === `l${lesson.id}` &&
+                                            dragging !== lesson.id &&
+                                            'before:bg-brand-600 before:absolute before:inset-x-1 before:-top-0.5 before:h-0.5 before:rounded-full',
+                                    )
+                                "
+                                :draggable="manage && course.canEdit !== false"
+                                :data-test="`lesson-${lesson.id}-row`"
+                                @dragstart="onDragStart($event, lesson)"
+                                @dragend="onDragEnd"
+                                @dragover="onDragOver($event, `l${lesson.id}`)"
+                                @drop.prevent="onDrop(unit, index + 1)"
                             >
+                                <GripVertical
+                                    v-if="manage && course.canEdit !== false"
+                                    class="text-ink-faint hidden size-3.5 shrink-0 cursor-grab pointer-fine:block"
+                                    :aria-label="$t('Drag to move')"
+                                />
                                 <button
                                     type="button"
                                     :aria-current="
@@ -408,8 +539,21 @@ function duplicate(target: LessonsTreeTarget): void {
                                     :can-edit="course.canEdit !== false"
                                     :can-copy="course.canEdit !== false"
                                     :can-delete="course.canDelete !== false"
+                                    :can-move-up="
+                                        course.canEdit !== false && index > 0
+                                    "
+                                    :can-move-down="
+                                        course.canEdit !== false &&
+                                        index < (unit.lessons ?? []).length - 1
+                                    "
+                                    :can-move-to="course.canEdit !== false"
                                     @select="
-                                        onAction(lessonTarget(lesson), $event)
+                                        onLessonAction(
+                                            unit,
+                                            index,
+                                            lesson,
+                                            $event,
+                                        )
                                     "
                                 />
                             </div>
@@ -433,6 +577,12 @@ function duplicate(target: LessonsTreeTarget): void {
             v-model:open="actionOpen"
             :target="actionTarget"
             :mode="actionMode"
+        />
+
+        <LessonsMoveDialog
+            v-model:open="moveOpen"
+            :lesson-id="moveLesson?.id ?? null"
+            :lesson-name="moveLesson?.name ?? ''"
         />
 
         <LessonsAddDialog

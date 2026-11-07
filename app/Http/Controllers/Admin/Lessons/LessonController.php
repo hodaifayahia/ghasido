@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lessons\MoveLessonRequest;
 use App\Http\Requests\Admin\Lessons\StoreLessonRequest;
 use App\Http\Requests\Admin\Lessons\UpdateLessonRequest;
+use App\Models\Course;
 use App\Models\Lesson;
+use App\Models\Unit;
+use App\Models\User;
 use App\Services\Content\ContentTree;
 use App\Services\Content\LessonService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +87,65 @@ class LessonController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * Move a lesson within its unit or to another unit or course (client
+     * request 2026-11-07): drag and drop, Move up / Move down, Move to.
+     */
+    public function move(MoveLessonRequest $request, Lesson $lesson, LessonService $lessons): RedirectResponse
+    {
+        $target = $request->target();
+        $changedUnit = $lesson->unit_id !== $target->id;
+
+        $lessons->moveLesson($lesson, $target, $request->position());
+
+        if ($changedUnit) {
+            $target->loadMissing('course');
+            Inertia::flash('toast', ['type' => 'success', 'message' => __(':title was moved to :unit (:course).', [
+                'title' => $lesson->title,
+                'unit' => $target->title,
+                'course' => $target->course->title ?? '',
+            ])]);
+        }
+
+        return back();
+    }
+
+    /**
+     * Where a lesson can be moved: every course the admin may edit, with
+     * its units, in the same hotel scope as the builder (CMS-04, SEC-01).
+     */
+    public function moveTargets(Request $request, Lesson $lesson): JsonResponse
+    {
+        Gate::authorize('update', $lesson);
+
+        /** @var User $user */
+        $user = $request->user('web');
+
+        $courses = Course::query()
+            ->notArchived()
+            ->sharedOrFor($user->hotel_id)
+            ->with(['department:id,name', 'units' => fn ($units) => $units->notArchived()->withCount(['lessons' => fn ($lessons) => $lessons->notArchived()])])
+            ->orderBy('track')
+            ->orderBy('department_id')
+            ->orderBy('position')
+            ->get()
+            ->filter(fn (Course $course): bool => $user->can('update', $course));
+
+        return response()->json([
+            'currentUnitId' => $lesson->unit_id,
+            'courses' => $courses->map(fn (Course $course): array => [
+                'id' => $course->id,
+                'title' => $course->title,
+                'group' => $course->isEssentials() ? __('English Essentials') : ($course->department->name ?? ''),
+                'units' => $course->units->map(fn (Unit $unit): array => [
+                    'id' => $unit->id,
+                    'title' => $unit->title,
+                    'lessons' => (int) ($unit->getAttribute('lessons_count') ?? 0),
+                ])->values()->all(),
+            ])->values()->all(),
+        ]);
     }
 
     public function duplicate(Lesson $lesson, LessonService $lessons): RedirectResponse
