@@ -191,7 +191,11 @@ export type LessonsTreeAction =
     | 'delete'
     /** A course only: show it to employees, or hide it again. */
     | 'publish'
-    | 'unpublish';
+    | 'unpublish'
+    /** A lesson only: move it (client request 2026-11-07). */
+    | 'move_up'
+    | 'move_down'
+    | 'move_to';
 
 export type LessonMockupCrop = {
     x: number;

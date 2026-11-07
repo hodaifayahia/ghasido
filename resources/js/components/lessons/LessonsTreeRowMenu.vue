@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import {
+    ArrowDown,
+    ArrowUp,
     Copy,
     EllipsisVertical,
     Eye,
     EyeOff,
+    FolderInput,
     Pencil,
     Trash2,
 } from '@lucide/vue';
@@ -49,6 +52,14 @@ type Props = {
      * 2026-11-05). Omitted for units and lessons.
      */
     visibility?: 'published' | 'draft' | null;
+    /**
+     * A lesson's moves (client request 2026-11-07): up and down inside its
+     * unit, and "Move to…" another unit or course. Omitted for courses and
+     * units.
+     */
+    canMoveUp?: boolean;
+    canMoveDown?: boolean;
+    canMoveTo?: boolean;
 };
 
 const props = withDefaults(defineProps<Props>(), {
@@ -57,6 +68,9 @@ const props = withDefaults(defineProps<Props>(), {
     canDelete: true,
     pinned: false,
     visibility: null,
+    canMoveUp: false,
+    canMoveDown: false,
+    canMoveTo: false,
 });
 
 const emit = defineEmits<{
@@ -99,6 +113,26 @@ const items = computed<Item[]>(() => {
             action: 'unpublish',
             label: tk('Hide from employees'),
             icon: EyeOff,
+        });
+    }
+
+    if (props.canMoveUp) {
+        list.push({ action: 'move_up', label: tk('Move up'), icon: ArrowUp });
+    }
+
+    if (props.canMoveDown) {
+        list.push({
+            action: 'move_down',
+            label: tk('Move down'),
+            icon: ArrowDown,
+        });
+    }
+
+    if (props.canMoveTo) {
+        list.push({
+            action: 'move_to',
+            label: tk('Move to another unit or course…'),
+            icon: FolderInput,
         });
     }
 
@@ -175,7 +209,7 @@ const triggerClass =
                             {{ name }}
                         </SheetTitle>
                         <SheetDescription class="text-ink-slate text-[12.5px]">
-                            {{ $t('Rename, copy or delete') }}
+                            {{ $t('Rename, move, copy or delete') }}
                         </SheetDescription>
                     </SheetHeader>
                     <ul class="mt-2 grid gap-1">

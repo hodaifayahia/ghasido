@@ -48,6 +48,10 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::patch('lessons/{lesson}', [LessonController::class, 'update'])->name('lessons.update');
     Route::post('lessons/{lesson}/publish', [LessonController::class, 'publish'])->name('lessons.publish');
     Route::post('lessons/{lesson}/duplicate', [LessonController::class, 'duplicate'])->name('lessons.duplicate');
+    // Move a lesson within its unit or to another unit or course (client
+    // request 2026-11-07).
+    Route::patch('lessons/{lesson}/move', [LessonController::class, 'move'])->name('lessons.move');
+    Route::get('lessons/{lesson}/move-targets', [LessonController::class, 'moveTargets'])->name('lessons.move-targets');
     Route::post('lessons/{lesson}/archive', [LessonController::class, 'archive'])->name('lessons.archive');
     Route::delete('lessons/{lesson}', [LessonController::class, 'destroy'])->name('lessons.destroy');
 

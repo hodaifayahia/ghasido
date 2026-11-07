@@ -95,6 +95,16 @@ cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php
 
 Every AI job (lesson and image generation, role-play feedback, voice checks, translations) runs on the queue, so the two queue cron jobs above must exist; the bridge workers stop whenever the server restarts them.
 
+### Changing an AI key from SSH (2026-11-07)
+
+`ai:set-key` stores a key exactly as the owner console does (encrypted with `APP_KEY`, used by the next call, and it takes priority over `.env`). The key is typed at a hidden prompt, so it never lands in the shell history:
+
+```bash
+cd ~/domains/ghasido.com/guesvia && /usr/bin/php artisan ai:set-key anthropic
+```
+
+`qwen` and `deepgram` work the same way; `--clear` goes back to the `.env` key. Then check with `php artisan ai:doctor`.
+
 ## First install only
 
 Run `deploy-export.php` inside the Sail container (`docker exec -u sail -w /var/www/html ghasido-laravel.test-1 php docs/deploy/scripts/deploy-export.php`) to produce `storage/logs/deploy/database.sqlite` and `media-list.txt`, then `INITIAL=1 assemble.sh` and `INITIAL=1 upload.sh`. **Doing this again overwrites the live database with local data.**

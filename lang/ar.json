@@ -4728,5 +4728,18 @@
     "Your reply was sent": "تم إرسال ردك",
     "Your reply was updated.": "تم تحديث ردك.",
     "average :rating": "المتوسط :rating",
-    "edited": "معدَّل"
+    "edited": "معدَّل",
+    ":title was moved to :unit (:course).": "نُقل :title إلى :unit (:course).",
+    "Choose the course and the unit. The lesson keeps its steps and everything employees did in it.": "اختر الدورة والوحدة. يحتفظ الدرس بخطواته وبكل ما أنجزه الموظفون فيه.",
+    "Current unit": "الوحدة الحالية",
+    "Drag to move": "اسحب للنقل",
+    "First in the unit": "الأول في الوحدة",
+    "Last in the unit": "الأخير في الوحدة",
+    "Move lesson": "نقل الدرس",
+    "Move to another unit or course…": "نقل إلى وحدة أو دورة أخرى…",
+    "Move “:name”": "نقل «:name»",
+    "Position": "الموضع",
+    "Rename, move, copy or delete": "إعادة تسمية أو نقل أو نسخ أو حذف",
+    "The courses could not be loaded. Please try again.": "تعذّر تحميل الدورات. حاول مرة أخرى.",
+    "This course has no unit yet. Add a unit to it first.": "لا توجد وحدة في هذه الدورة بعد. أضف وحدة أولًا."
 }
