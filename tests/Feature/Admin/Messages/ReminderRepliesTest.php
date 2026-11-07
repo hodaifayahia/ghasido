@@ -3,7 +3,6 @@
 namespace Tests\Feature\Admin\Messages;
 
 use App\Enums\AccountStatus;
-use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Department;
 use App\Models\Hotel;
 use App\Models\Reminder;
@@ -158,8 +157,8 @@ class ReminderRepliesTest extends TestCase
             );
 
         $this->actingAs($this->admin)
-            ->get(route('messages-reminders', ['replies' => $reminder->batch]), $this->partial('replyMessages'))
-            ->assertInertia(fn (Assert $page) => $page
+            ->get(route('messages-reminders', ['replies' => $reminder->batch]))
+            ->assertInertia(fn (Assert $page) => $page->reloadOnly('replyMessages', fn (Assert $reload) => $reload
                 ->has('replyMessages', 1)
                 ->where('replyMessages.0.batch', $reminder->batch)
                 ->where('replyMessages.0.title', 'Your opinion')
@@ -169,7 +168,7 @@ class ReminderRepliesTest extends TestCase
                 ->where('replyMessages.0.replies.0.name', 'Samira Haddad')
                 ->where('replyMessages.0.replies.0.body', 'Changed my mind.')
                 ->where('replyMessages.0.replies.0.rating', 5)
-            );
+            ));
 
         $this->actingAs($this->admin)
             ->post(route('messages-reminders.replies.read', ['batch' => $reminder->batch]))
@@ -286,14 +285,14 @@ class ReminderRepliesTest extends TestCase
         }
 
         $this->actingAs($manager)
-            ->get(route('messages-reminders', ['replies' => $batch]), $this->partial('replyMessages'))
-            ->assertInertia(fn (Assert $page) => $page
+            ->get(route('messages-reminders', ['replies' => $batch]))
+            ->assertInertia(fn (Assert $page) => $page->reloadOnly('replyMessages', fn (Assert $reload) => $reload
                 ->has('replyMessages', 1)
                 ->where('replyMessages.0.recipients', 1)
                 ->where('replyMessages.0.replyCount', 1)
                 ->has('replyMessages.0.replies', 1)
                 ->where('replyMessages.0.replies.0.name', 'Own Learner')
-            );
+            ));
 
         $this->actingAs($manager)
             ->get(route('messages-reminders'))
@@ -363,22 +362,5 @@ class ReminderRepliesTest extends TestCase
             'ask_rating' => $askRating,
             'sent_at' => $sentAt ?? now(),
         ]);
-    }
-
-    /**
-     * Headers of an Inertia partial reload asking for one optional prop.
-     *
-     * @return array<string, string>
-     */
-    private function partial(string $prop): array
-    {
-        $version = (string) app(HandleInertiaRequests::class)->version(request());
-
-        return [
-            'X-Inertia' => 'true',
-            'X-Inertia-Version' => $version,
-            'X-Inertia-Partial-Component' => 'admin/MessagesReminders',
-            'X-Inertia-Partial-Data' => $prop,
-        ];
     }
 }

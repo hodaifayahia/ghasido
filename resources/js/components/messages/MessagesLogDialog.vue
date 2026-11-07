@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Trash2 } from '@lucide/vue';
+import { CircleCheck, MessageSquareReply, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import MessagesDeleteDialog from '@/components/messages/MessagesDeleteDialog.vue';
 import MessagesModal from '@/components/messages/MessagesModal.vue';
@@ -28,7 +28,27 @@ const { t } = useI18n();
 
 const emit = defineEmits<{
     page: [page: number];
+    /** Open the replies to the message this row belongs to. */
+    replies: [batch: string];
 }>();
+
+// A message that allowed replies: did this recipient answer, and how many
+// of the message's recipients did (client request 2026-11-07).
+function repliesText(log: MessageLog): string {
+    return t('Replies: :replies/:recipients', {
+        replies: log.replyCount,
+        recipients: log.recipientCount,
+    });
+}
+
+function openReplies(log: MessageLog): void {
+    if (log.batch !== null) {
+        emit('replies', log.batch);
+    }
+}
+
+const replyButton =
+    'text-brand-700 hover:bg-brand-50 focus-visible:ring-brand-600/15 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-md px-1.5 text-start text-[11.5px] font-semibold focus-visible:ring-3 focus-visible:outline-none md:min-h-8';
 
 const tone: Record<MessageLogStatus, string> = {
     sent: 'bg-success-tint text-success-text',
@@ -142,7 +162,7 @@ function confirmDelete(): void {
                             </p>
                         </div>
                         <button
-                            v-if="canDelete"
+                            v-if="canDelete && log.deletable"
                             type="button"
                             :class="deleteButton"
                             :aria-label="
@@ -180,6 +200,30 @@ function confirmDelete(): void {
                     >
                         {{ reasonText(log) }}
                     </p>
+                    <button
+                        v-if="log.allowReplies && log.batch !== null"
+                        type="button"
+                        :class="replyButton"
+                        :data-test="`log-${log.id}-replies-button`"
+                        @click="openReplies(log)"
+                    >
+                        <component
+                            :is="log.replied ? CircleCheck : MessageSquareReply"
+                            :class="
+                                cn(
+                                    'size-3.5 shrink-0',
+                                    log.replied
+                                        ? 'text-success'
+                                        : 'text-ink-muted',
+                                )
+                            "
+                            aria-hidden="true"
+                        />
+                        {{ log.replied ? $t('Replied') : $t('No reply yet') }}
+                        <span class="text-ink-muted font-medium"
+                            >· {{ repliesText(log) }}</span
+                        >
+                    </button>
                 </li>
             </ul>
 
@@ -263,9 +307,44 @@ function confirmDelete(): void {
                                 >
                                     {{ reasonText(log) }}
                                 </span>
+                                <button
+                                    v-if="
+                                        log.allowReplies && log.batch !== null
+                                    "
+                                    type="button"
+                                    :class="replyButton"
+                                    :data-test="`log-${log.id}-replies-button`"
+                                    @click="openReplies(log)"
+                                >
+                                    <component
+                                        :is="
+                                            log.replied
+                                                ? CircleCheck
+                                                : MessageSquareReply
+                                        "
+                                        :class="
+                                            cn(
+                                                'size-3.5 shrink-0',
+                                                log.replied
+                                                    ? 'text-success'
+                                                    : 'text-ink-muted',
+                                            )
+                                        "
+                                        aria-hidden="true"
+                                    />
+                                    {{
+                                        log.replied
+                                            ? $t('Replied')
+                                            : $t('No reply yet')
+                                    }}
+                                    <span class="text-ink-muted font-medium"
+                                        >· {{ repliesText(log) }}</span
+                                    >
+                                </button>
                             </td>
                             <td v-if="canDelete" class="px-2 py-2 text-end">
                                 <button
+                                    v-if="log.deletable"
                                     type="button"
                                     :class="deleteButton"
                                     :aria-label="

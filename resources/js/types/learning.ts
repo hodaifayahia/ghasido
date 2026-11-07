@@ -481,6 +481,17 @@ export type LearnerMessage = {
     readAt: string | null;
     read: boolean;
     readUrl: string;
+    /** The sender asked for an answer (client request 2026-11-07). */
+    allowReplies: boolean;
+    /** The answer may carry a 1-5 rating. */
+    askRating: boolean;
+    reply: LearnerMessageReply | null;
+};
+
+export type LearnerMessageReply = {
+    body: string | null;
+    rating: number | null;
+    repliedAt: string | null;
 };
 
 // ------------------------------------------------------------ certificate

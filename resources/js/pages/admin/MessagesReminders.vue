@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import MessagesLogDialog from '@/components/messages/MessagesLogDialog.vue';
 import MessagesRecipientsPanel from '@/components/messages/MessagesRecipientsPanel.vue';
+import MessagesRepliesDialog from '@/components/messages/MessagesRepliesDialog.vue';
 import MessagesRuleDialog from '@/components/messages/MessagesRuleDialog.vue';
 import MessagesRulesModal from '@/components/messages/MessagesRulesModal.vue';
 import MessagesSendDialog from '@/components/messages/MessagesSendDialog.vue';
@@ -17,6 +18,7 @@ import {
     messagesReminders as messagesRemindersRoute,
 } from '@/routes';
 import { tk } from '@/lib/i18n';
+import { read as readReplies } from '@/routes/messages-reminders/replies';
 import { toggle } from '@/routes/messages-reminders/rules';
 import type {
     MessageAbilities,
@@ -28,6 +30,7 @@ import type {
     MessageOptions,
     MessagePagination,
     MessageRecipient,
+    MessageReplyThread,
     MessageSendSelection,
     MessageTemplate,
 } from '@/types';
@@ -43,6 +46,10 @@ type Props = {
     logsPagination: MessagePagination;
     options: MessageOptions;
     abilities: MessageAbilities;
+    /** Unread replies to messages that allowed them (client request 2026-11-07). */
+    repliesUnread: number;
+    /** Loaded only when the Replies panel opens (a partial reload). */
+    replyMessages?: MessageReplyThread[];
 };
 
 const props = defineProps<Props>();
@@ -258,6 +265,65 @@ function toggleRule(rule: MessageAutomationRule): void {
 
 const logOpen = ref(false);
 
+// ---------------------------------------------------------------- replies
+//
+// Learners' answers to messages sent with "Allow replies" (client request
+// 2026-11-07). The list is an optional prop, fetched when the panel opens,
+// and kept here so a later reload that leaves it out does not empty it.
+
+const repliesOpen = ref(false);
+const repliesFocus = ref<string | null>(null);
+const repliesLoading = ref(false);
+const replyThreads = ref<MessageReplyThread[] | null>(
+    props.replyMessages ?? null,
+);
+
+watch(
+    () => props.replyMessages,
+    (threads) => {
+        if (threads !== undefined) {
+            replyThreads.value = threads;
+        }
+    },
+);
+
+function openReplies(batch: string | null = null): void {
+    repliesFocus.value = batch;
+    repliesOpen.value = true;
+
+    router.reload({
+        only: ['replyMessages'],
+        data: batch === null ? {} : { replies: batch },
+        onStart: () => {
+            repliesLoading.value = true;
+        },
+        onFinish: () => {
+            repliesLoading.value = false;
+        },
+    });
+}
+
+function markRepliesRead(batch: string): void {
+    router.post(
+        readReplies.url(batch),
+        {},
+        {
+            only: ['repliesUnread', 'notifications'],
+            preserveScroll: true,
+            preserveState: true,
+        },
+    );
+}
+
+// A bell click lands here with ?replies=<message>: open that message.
+onMounted(() => {
+    const batch = new URLSearchParams(window.location.search).get('replies');
+
+    if (batch !== null && batch !== '') {
+        openReplies(batch);
+    }
+});
+
 // The "all" entries are filters, not audiences a rule can be limited to.
 const ruleHotels = computed(() =>
     props.filters.hotels.filter((option) => option.value !== DEFAULTS.hotel),
@@ -298,11 +364,13 @@ const ruleDepartments = computed(() =>
             :templates-count="templates.length"
             :rules-count="automations.length"
             :log-total="logsPagination.total"
+            :replies-unread="repliesUnread"
             @filter="applyFilters"
             @send="openSend()"
             @open-templates="templatesOpen = true"
             @open-rules="rulesOpen = true"
             @open-log="logOpen = true"
+            @open-replies="openReplies()"
         />
 
         <MessagesRecipientsPanel
@@ -374,5 +442,14 @@ const ruleDepartments = computed(() =>
         :loading="logLoading"
         :can-delete="abilities.deleteLogs"
         @page="goToLogPage"
+        @replies="openReplies"
+    />
+
+    <MessagesRepliesDialog
+        v-model:open="repliesOpen"
+        :threads="replyThreads"
+        :loading="repliesLoading"
+        :focus="repliesFocus"
+        @read="markRepliesRead"
     />
 </template>

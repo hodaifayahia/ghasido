@@ -57,11 +57,23 @@ const summary = computed(() => {
 
 const schedule = ref(false);
 const scheduledFor = ref('');
+// Ask the recipients to answer, e.g. for their evaluation and suggestions
+// (client request 2026-11-07); the rating only goes with replies.
+const allowReplies = ref(false);
+const askRating = ref(false);
 
 watch(open, (isOpen) => {
     if (isOpen) {
         schedule.value = false;
         scheduledFor.value = '';
+        allowReplies.value = false;
+        askRating.value = false;
+    }
+});
+
+watch(allowReplies, (allowed) => {
+    if (!allowed) {
+        askRating.value = false;
     }
 });
 
@@ -223,6 +235,50 @@ function onSuccess(): void {
                     <InputError :message="errors.scheduled_for" />
                 </template>
             </div>
+
+            <fieldset
+                class="border-line grid gap-1 rounded-md border px-3 py-2"
+                data-test="send-replies-fieldset"
+            >
+                <legend class="sr-only">{{ $t('Replies') }}</legend>
+                <label
+                    class="text-brand-900 flex min-h-11 items-center gap-2 text-[12.5px] font-medium"
+                >
+                    <input
+                        v-model="allowReplies"
+                        type="checkbox"
+                        name="allow_replies"
+                        value="1"
+                        class="accent-brand-600 size-4 shrink-0"
+                        data-test="send-allow-replies-checkbox"
+                    />
+                    <span>
+                        {{ $t('Allow replies') }}
+                        <span class="text-ink-slate block text-[11.5px]">
+                            {{
+                                $t(
+                                    'Employees can answer this message, e.g. with their evaluation and suggestions.',
+                                )
+                            }}
+                        </span>
+                    </span>
+                </label>
+                <label
+                    v-if="allowReplies"
+                    class="text-brand-900 flex min-h-11 items-center gap-2 ps-6 text-[12.5px] font-medium"
+                >
+                    <input
+                        v-model="askRating"
+                        type="checkbox"
+                        name="ask_rating"
+                        value="1"
+                        class="accent-brand-600 size-4 shrink-0"
+                        data-test="send-ask-rating-checkbox"
+                    />
+                    {{ $t('Ask for a rating from 1 to 5 stars') }}
+                </label>
+                <InputError :message="errors.allow_replies" />
+            </fieldset>
 
             <div
                 class="mt-1 flex flex-col-reverse gap-2 md:flex-row md:justify-end"

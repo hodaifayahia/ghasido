@@ -3,6 +3,7 @@ import { Form } from '@inertiajs/vue3';
 import { Mail, MailOpen } from '@lucide/vue';
 import { computed } from 'vue';
 import type { HTMLAttributes } from 'vue';
+import MessageReplyForm from '@/components/learning/MessageReplyForm.vue';
 import { intlLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { read } from '@/routes/learn/messages';
@@ -10,7 +11,9 @@ import type { LearnerMessage } from '@/types';
 
 /*
  * One in-app reminder (REM-01, REM-04): subject, date, body, and "Mark as
- * read", which stamps `read_at` and counts the topbar bell down.
+ * read", which stamps `read_at` and counts the topbar bell down. A message
+ * sent with replies allowed carries the reply form (client request
+ * 2026-11-07).
  */
 type Props = {
     message: LearnerMessage;
@@ -102,6 +105,7 @@ const sent = computed(() =>
                     {{ $t('Mark as read') }}
                 </button>
             </Form>
+            <MessageReplyForm v-if="message.allowReplies" :message="message" />
         </div>
     </article>
 </template>

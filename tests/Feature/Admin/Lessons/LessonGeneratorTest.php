@@ -15,6 +15,7 @@ use App\Jobs\GenerateContentImage;
 use App\Jobs\GenerateLessonFromPrompt;
 use App\Models\Activity;
 use App\Models\AiUsage;
+use App\Models\BlockCompletion;
 use App\Models\ContentGeneration;
 use App\Models\Course;
 use App\Models\Hotel;
@@ -346,7 +347,7 @@ class LessonGeneratorTest extends TestCase
     {
         Queue::fake();
         $block = $this->lesson->blocks()->firstOrFail();
-        \App\Models\BlockCompletion::factory()->create(['lesson_id' => $this->lesson->id, 'block_id' => $block->id]);
+        BlockCompletion::factory()->create(['lesson_id' => $this->lesson->id, 'block_id' => $block->id]);
 
         $this->actingAs($this->owner)
             ->postJson(route('lessons.ai-fill', $this->lesson), ['prompt' => 'Rewrite it all please.'])
