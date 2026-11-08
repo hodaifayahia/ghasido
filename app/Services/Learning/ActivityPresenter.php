@@ -16,7 +16,7 @@ use App\Models\User;
  * The items come from the CURRENT version's payload with media ids resolved
  * and every playable sentence paired with its clips. In test mode the
  * answers (`correct`, `order`, `pairs`, the `accepted` answers of a short
- * answer or of every blank) and every Arabic field are stripped
+ * answer or of every blank), every hint and every Arabic field are stripped
  * before the payload leaves the server: on a test page, "disabled" is
  * otherwise only a UI state (CTRL-04, TEST-03).
  */
@@ -28,6 +28,16 @@ class ActivityPresenter
 
     /** @var list<string> */
     private const array ANSWER_KEYS = ['correct', 'order', 'pairs', 'accepted', 'model_answer'];
+
+    /**
+     * Help a learner may see in practice but never during a Pre-test or
+     * Post-test: a hint points at the answer (TEST-03; security audit
+     * 2026-11-08). `explanation` is kept out as well should a payload ever
+     * carry one.
+     *
+     * @var list<string>
+     */
+    private const array TEST_HIDDEN_KEYS = ['hint', 'explanation'];
 
     /**
      * A listening question's script, stripped from a test page so only the
@@ -169,7 +179,7 @@ class ActivityPresenter
     }
 
     /**
-     * Remove the answer keys and every Arabic field, recursively.
+     * Remove the answer keys, the hints and every Arabic field, recursively.
      *
      * @param  array<array-key, mixed>  $data
      * @return array<array-key, mixed>
@@ -179,7 +189,7 @@ class ActivityPresenter
         $out = [];
 
         foreach ($data as $key => $value) {
-            if (is_string($key) && (in_array($key, self::ANSWER_KEYS, true) || self::isArabicKey($key))) {
+            if (is_string($key) && (in_array($key, self::ANSWER_KEYS, true) || in_array($key, self::TEST_HIDDEN_KEYS, true) || self::isArabicKey($key))) {
                 continue;
             }
 

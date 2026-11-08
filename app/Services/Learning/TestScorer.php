@@ -42,6 +42,17 @@ class TestScorer
         $toEvaluate = [];
 
         DB::transaction(function () use ($attempt, $status, &$toEvaluate): void {
+            // A sitting is finished once: a second finish (a double click, a
+            // late timer racing the learner) neither re-scores it nor moves
+            // it to another terminal state (security audit 2026-11-08).
+            $fresh = TestAttempt::query()->whereKey($attempt->id)->lockForUpdate()->first();
+
+            if ($fresh === null || $fresh->status->isTerminal()) {
+                $attempt->refresh();
+
+                return;
+            }
+
             $test = $attempt->test()->firstOrFail();
             $answers = $attempt->answers()->get()->keyBy('activity_id');
 

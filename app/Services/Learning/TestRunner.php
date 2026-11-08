@@ -13,6 +13,7 @@ use App\Models\TestAttempt;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The Pre-test / Post-test sitting (TEST-05, TEST-06, TIME-05, DATA-01,
@@ -43,7 +44,7 @@ class TestRunner
 
         if ($open !== null) {
             if ($this->isExpired($open)) {
-                $this->scorer->finish($open, TestAttemptStatus::Expired);
+                $this->finishExpired($open);
             } else {
                 return $open;
             }
@@ -149,6 +150,66 @@ class TestRunner
     }
 
     /**
+     * The question as a sitting shows it: options shuffled by the test's
+     * rule, and the ids of ordering lines and matching prompts / targets
+     * swapped for opaque tokens of this sitting, the lines and targets in
+     * this sitting's own order. Stored ids are written `s1, s2, s3` and pair
+     * prompt k with target k, so on a test page they would spell the answer
+     * (TEST-03; security audit 2026-11-08). saveAnswer() turns the tokens
+     * back into the real ids, so the stored answer and the research export
+     * keep naming the real lines (TEST-06, DATA-01).
+     *
+     * @param  array<string, mixed>  $activity  ActivityPresenter::present() output
+     * @return array<string, mixed>
+     */
+    public function presentForSitting(array $activity, Test $test, TestAttempt $attempt): array
+    {
+        $activity = $this->presentOptions($activity, $test, $attempt);
+        $lists = self::tokenLists(is_string($activity['type'] ?? null) ? ActivityType::tryFrom($activity['type']) : null);
+
+        if ($lists === [] || ! is_array($activity['items'] ?? null)) {
+            return $activity;
+        }
+
+        $placementId = is_scalar($activity['id'] ?? null) ? (string) $activity['id'] : '';
+        $items = [];
+
+        foreach ($activity['items'] as $item) {
+            if (is_array($item)) {
+                $itemId = is_scalar($item['id'] ?? null) ? (string) $item['id'] : '';
+
+                foreach ($lists as $list => $shuffle) {
+                    if (is_array($item[$list] ?? null) && array_is_list($item[$list])) {
+                        $item[$list] = self::tokeniseList($item[$list], $attempt, $placementId, $itemId, $list, $shuffle);
+                    }
+                }
+            }
+
+            $items[] = $item;
+        }
+
+        $activity['items'] = $items;
+
+        return $activity;
+    }
+
+    /**
+     * A stored answer (real ids) as the sitting's page knows it (tokens),
+     * so a revisited question restores the learner's choice without
+     * showing the real ids.
+     */
+    public function answerForSitting(TestAttempt $attempt, ActivityPlacement $placement, mixed $answer): mixed
+    {
+        if (! is_array($answer)) {
+            return $answer;
+        }
+
+        $activity = $placement->activity()->firstOrFail();
+
+        return $this->translateAnswer($attempt, $placement, $activity->type, $this->presenter->currentVersion($activity)->items(), $answer, toReal: false);
+    }
+
+    /**
      * The 1-based question, or a 404 when the number is out of range.
      */
     public function questionAt(Test $test, int $number, ?TestAttempt $attempt = null): ActivityPlacement
@@ -193,8 +254,44 @@ class TestRunner
      */
     public function saveAnswer(TestAttempt $attempt, ActivityPlacement $placement, array $answer, ?int $timeTakenMs): Attempt
     {
+        // Only an open sitting within its deadline takes an answer; the row
+        // is re-read under a lock so a finish racing this write wins
+        // (TEST-06, TIME-05; security audit 2026-11-08).
+        return DB::transaction(function () use ($attempt, $placement, $answer, $timeTakenMs): Attempt {
+            $fresh = TestAttempt::query()->whereKey($attempt->id)->lockForUpdate()->first();
+
+            abort_if($fresh === null || ! $fresh->status->acceptsAnswers() || $this->isExpired($fresh), 409);
+
+            return $this->writeAnswer($attempt, $placement, $answer, $timeTakenMs);
+        });
+    }
+
+    /**
+     * Close a sitting whose deadline has passed by the test's timeout rule:
+     * `submit` scores what was answered in time, `unanswered` marks it
+     * expired (TIME-03; security audit 2026-11-08).
+     */
+    public function finishExpired(TestAttempt $attempt): void
+    {
+        $test = $attempt->test()->firstOrFail();
+
+        $this->scorer->finish(
+            $attempt,
+            $test->onTimeout() === 'unanswered' ? TestAttemptStatus::Expired : TestAttemptStatus::Submitted,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $answer
+     */
+    private function writeAnswer(TestAttempt $attempt, ActivityPlacement $placement, array $answer, ?int $timeTakenMs): Attempt
+    {
         $activity = $placement->activity()->firstOrFail();
         $version = $this->presenter->currentVersion($activity);
+        // The page answered with this sitting's tokens; store the real ids
+        // (TEST-06). A value that is no token of this sitting (a guessed
+        // real id) is stored as null and scores nothing.
+        $answer = $this->translateAnswer($attempt, $placement, $activity->type, $version->items(), $answer, toReal: true);
 
         $row = $attempt->answers()
             ->where('activity_id', $activity->id)
@@ -225,6 +322,144 @@ class TestRunner
             'activity_id' => $activity->id,
             'started_at' => Date::now(),
         ]);
+    }
+
+    /**
+     * The lists of an item whose ids are tokenised in a sitting, each with
+     * whether its order is shuffled too (a matching item keeps its prompts
+     * in place; their ids are what pair them with the targets).
+     *
+     * @return array<string, bool>
+     */
+    private static function tokenLists(?ActivityType $type): array
+    {
+        return match ($type?->answerShape()) {
+            AnswerShape::OrderedList => ['sentences' => true, 'cards' => true],
+            AnswerShape::PairMap => ['prompts' => false, 'targets' => true],
+            default => [],
+        };
+    }
+
+    /**
+     * An opaque id for one entry of one item of one question of this
+     * sitting: keyed with the app key, so it cannot be worked out from the
+     * page, and different in every sitting.
+     */
+    private static function token(TestAttempt $attempt, string $placementId, string $itemId, string $list, string $id): string
+    {
+        $key = config('app.key');
+
+        return 'x'.substr(hash_hmac('sha256', implode('|', [$attempt->id, $placementId, $itemId, $list, $id]), is_string($key) ? $key : ''), 0, 10);
+    }
+
+    /**
+     * @param  list<mixed>  $entries
+     * @return list<mixed>
+     */
+    private static function tokeniseList(array $entries, TestAttempt $attempt, string $placementId, string $itemId, string $list, bool $shuffle): array
+    {
+        $out = [];
+
+        foreach ($entries as $entry) {
+            if (is_array($entry) && is_scalar($entry['id'] ?? null)) {
+                $entry['id'] = self::token($attempt, $placementId, $itemId, $list, (string) $entry['id']);
+            }
+
+            $out[] = $entry;
+        }
+
+        if (! $shuffle) {
+            return $out;
+        }
+
+        return self::shuffleOptions($out, 'sitting:'.$attempt->id.'|question:'.$placementId.'|item:'.$itemId.'|'.$list);
+    }
+
+    /**
+     * Turn this sitting's tokens into the real ids (`$toReal`) or back.
+     * Only ordering and matching answers change; an entry that is not one
+     * of the item's ids on the other side becomes null (an ordering) or is
+     * dropped (a matching prompt), so it can never match the answer.
+     *
+     * @param  list<array<string, mixed>>  $items  the version's stored items
+     * @param  array<array-key, mixed>  $answer
+     * @return array<array-key, mixed>
+     */
+    private function translateAnswer(TestAttempt $attempt, ActivityPlacement $placement, ActivityType $type, array $items, array $answer, bool $toReal): array
+    {
+        $lists = self::tokenLists($type);
+
+        if ($lists === []) {
+            return $answer;
+        }
+
+        $placementId = (string) $placement->id;
+
+        foreach ($items as $item) {
+            $itemId = is_scalar($item['id'] ?? null) ? (string) $item['id'] : '';
+            /** @var array<string, array<string, string>> $maps */
+            $maps = [];
+
+            foreach (array_keys($lists) as $list) {
+                $maps[$list] = [];
+
+                foreach (is_array($item[$list] ?? null) ? $item[$list] : [] as $entry) {
+                    if (is_array($entry) && is_scalar($entry['id'] ?? null)) {
+                        $real = (string) $entry['id'];
+                        $token = self::token($attempt, $placementId, $itemId, $list, $real);
+
+                        if ($toReal) {
+                            $maps[$list][$token] = $real;
+                        } else {
+                            $maps[$list][$real] = $token;
+                        }
+                    }
+                }
+            }
+
+            if (array_key_exists($itemId, $answer)) {
+                $answer[$itemId] = self::translateValue($answer[$itemId], $maps);
+            } elseif (count($items) === 1 && $answer !== []) {
+                // A single item question may post its answer bare
+                // (ActivityScorer::answerFor()).
+                $bare = self::translateValue($answer, $maps);
+
+                return is_array($bare) ? $bare : $answer;
+            }
+        }
+
+        return $answer;
+    }
+
+    /**
+     * @param  array<string, array<string, string>>  $maps
+     */
+    private static function translateValue(mixed $value, array $maps): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (isset($maps['prompts'], $maps['targets'])) {
+            $pairs = [];
+
+            foreach ($value as $prompt => $target) {
+                $mapped = $maps['prompts'][(string) $prompt] ?? null;
+
+                if ($mapped !== null) {
+                    $pairs[$mapped] = is_scalar($target) ? ($maps['targets'][(string) $target] ?? null) : null;
+                }
+            }
+
+            return $pairs;
+        }
+
+        $lines = array_merge($maps['sentences'] ?? [], $maps['cards'] ?? []);
+
+        return array_map(
+            static fn (mixed $id): ?string => is_scalar($id) ? ($lines[(string) $id] ?? null) : null,
+            array_values($value),
+        );
     }
 
     /**
@@ -272,11 +507,18 @@ class TestRunner
         return $order;
     }
 
+    /**
+     * Seconds after the deadline during which the client's own auto-submit
+     * (fired at 0:00) still lands, so the answer on screen at timeout is not
+     * lost (PROG-04, TEST-06). Past it, the sitting is closed (TIME-05).
+     */
+    public const int DEADLINE_GRACE_SECONDS = 15;
+
     public function isExpired(TestAttempt $attempt): bool
     {
         return $attempt->deadline_at !== null
             && $attempt->status === TestAttemptStatus::InProgress
-            && Date::now()->greaterThan($attempt->deadline_at);
+            && Date::now()->greaterThan($attempt->deadline_at->copy()->addSeconds(self::DEADLINE_GRACE_SECONDS));
     }
 
     /**
