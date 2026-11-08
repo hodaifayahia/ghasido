@@ -7,6 +7,7 @@ use App\Http\Resources\Employees\EmployeeRowResource;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Employees\EmployeeDirectory;
+use App\Services\Reports\Exporters\DatasetExport;
 use App\Support\SimpleXlsxWriter;
 use Generator;
 use Illuminate\Http\Request;
@@ -91,7 +92,8 @@ class EmployeesExport
             fputcsv($handle, self::HEADERS);
 
             foreach ($rows() as $row) {
-                fputcsv($handle, $row);
+                // Formula injection neutralised (security audit 2026-11-08).
+                fputcsv($handle, DatasetExport::csvCells($row));
             }
 
             fclose($handle);

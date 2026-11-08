@@ -89,7 +89,7 @@ final class ReportExporter
             fputcsv($out, $export->headers(), ',', '"', '\\', "\r\n");
 
             foreach ($export->rows() as $row) {
-                fputcsv($out, DatasetExport::cells($row), ',', '"', '\\', "\r\n");
+                fputcsv($out, DatasetExport::csvCells($row), ',', '"', '\\', "\r\n");
             }
 
             fclose($out);

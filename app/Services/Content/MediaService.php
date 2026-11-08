@@ -44,7 +44,11 @@ class MediaService
         if (($data['kind'] ?? null) === MediaKind::Audio && $kind === MediaKind::Video) {
             $kind = MediaKind::Audio;
         }
-        $extension = strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? 'bin'));
+        // The stored name's extension comes from the detected content, never
+        // from the name the uploader chose: a valid image named "x.html" or
+        // "x.svg" must not be served from the public disk as HTML or SVG
+        // (SEC-04; security audit 2026-11-08).
+        $extension = self::safeExtension($mime, $file->guessExtension());
         $now = now();
         $directory = sprintf('content/%s/%s/%s', $kind->value, $now->format('Y'), $now->format('m'));
         $uuid = (string) Str::uuid();
@@ -281,6 +285,37 @@ class MediaService
 
         return @ini_set('memory_limit', $raised.'M') !== false
             && self::bytes((string) ini_get('memory_limit')) >= memory_get_usage(true) + $needed;
+    }
+
+    /**
+     * The extension for a stored upload, from its detected MIME type: only
+     * the media types the app accepts, never a scriptable one.
+     */
+    private static function safeExtension(string $mime, ?string $guessed): string
+    {
+        $known = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'audio/mpeg' => 'mp3',
+            'audio/wav' => 'wav',
+            'audio/x-wav' => 'wav',
+            'audio/mp4' => 'm4a',
+            'audio/x-m4a' => 'm4a',
+            'audio/webm' => 'webm',
+            'audio/ogg' => 'ogg',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'video/ogg' => 'ogg',
+        ];
+
+        if (isset($known[$mime])) {
+            return $known[$mime];
+        }
+
+        $guessed = strtolower((string) $guessed);
+
+        return in_array($guessed, ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'wav', 'm4a', 'webm', 'ogg', 'oga', 'mp4'], true) ? $guessed : 'bin';
     }
 
     private static function bytes(string $value): int

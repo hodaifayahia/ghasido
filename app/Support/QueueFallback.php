@@ -32,7 +32,7 @@ final class QueueFallback
     private const int ALIVE_SECONDS = 90;
 
     /** One drain's time budget; the next request starts another if needed. */
-    public const int DRAIN_SECONDS = 240;
+    public const int DRAIN_SECONDS = 120;
 
     private static bool $draining = false;
 
