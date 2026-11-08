@@ -1,0 +1,124 @@
+name: deploy
+
+# Continuous deployment to Hostinger (docs/deploy/ci-cd.md).
+#
+# Runs after the `tests` workflow passes on a push to main, and deploys
+# exactly the commit that was tested: it signs in to the server over SSH and
+# runs docs/deploy/scripts/server-deploy.sh from the server's git clone,
+# the same command as a manual deploy. Can also be started by hand from the
+# Actions tab (deploys the current main).
+#
+# No third-party actions: only the runner's own ssh and curl, with the
+# server's host key pinned in a secret.
+
+on:
+  workflow_run:
+    workflows: [tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; a newer one waits instead of cutting a running one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: ${{ vars.APP_URL || 'https://ghasido.com' }}
+
+    steps:
+      - name: Check the deploy secrets
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          missing=0
+          for name in SSH_HOST SSH_USER SSH_KEY SSH_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret HOSTINGER_${name} is not set (see docs/deploy/ci-cd.md)."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy on the server
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || '65002' }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          # The commit the tests passed on; empty for a manual run.
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_SRC: ${{ vars.DEPLOY_SRC || 'ghasido-src' }}
+          DEPLOY_DOMAIN: ${{ vars.DEPLOY_DOMAIN || 'ghasido.com' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
+            "$SSH_USER@$SSH_HOST" \
+            "DEPLOY_SHA='$DEPLOY_SHA' DEPLOY_SRC='$DEPLOY_SRC' DOMAIN='$DEPLOY_DOMAIN' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$HOME/$DEPLOY_SRC"
+          git fetch --quiet origin main
+          git checkout --quiet main
+          git merge --ff-only --quiet origin/main
+          if [ -n "$DEPLOY_SHA" ] && [ "$(git rev-parse HEAD)" != "$DEPLOY_SHA" ]; then
+            echo "main has moved on to $(git rev-parse --short HEAD); the run for that commit deploys it."
+            exit 0
+          fi
+          app="$HOME/domains/$DOMAIN/guesvia"
+          # A snapshot of the live SQLite database before migrations run;
+          # the last 10 are kept. (On MySQL, Hostinger's own backups apply.)
+          if grep -q '^DB_CONNECTION=sqlite' "$app/.env" && [ -f "$app/database/database.sqlite" ]; then
+            mkdir -p "$app/database/backups"
+            out="$app/database/backups/database-$(date +%Y%m%d-%H%M%S)-predeploy.sqlite"
+            php -r '$db = new PDO("sqlite:" . $argv[1]); $db->exec("VACUUM INTO " . $db->quote($argv[2]));' "$app/database/database.sqlite" "$out"
+            chmod 640 "$out"
+            ls -1t "$app"/database/backups/*-predeploy.sqlite | tail -n +11 | xargs -r rm -f
+            echo "== backup: $out"
+          fi
+          bash docs/deploy/scripts/server-deploy.sh
+          cd "$app"
+          echo "== ai:doctor (report only)"
+          php artisan ai:doctor || true
+          REMOTE
+
+      - name: Check the site answers
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://ghasido.com' }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$APP_URL/up" || true)
+            echo "GET $APP_URL/up -> $code"
+            [ "$code" = 200 ] && exit 0
+            sleep 10
+          done
+          echo "::error::$APP_URL/up did not answer 200 after the deploy."
+          exit 1
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
