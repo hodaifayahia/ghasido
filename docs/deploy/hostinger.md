@@ -95,6 +95,10 @@ cd ~/domains/lightgrey-dinosaur-781122.hostingersite.com/guesvia && /usr/bin/php
 
 Every AI job (lesson and image generation, role-play feedback, voice checks, translations) runs on the queue, so the two queue cron jobs above must exist; the bridge workers stop whenever the server restarts them.
 
+### When no queue worker runs (2026-11-08)
+
+Every AI job waits on the database queue. If no worker is alive (no cron jobs, or the bridge workers were stopped), the site now works through the queue itself after each signed-in page load (`App\Support\QueueFallback`, one drain at a time, up to 4 minutes, after the response is sent). That keeps AI from spinning forever, but jobs then wait for someone to open a page: the three cron jobs above remain the reliable setup. `QUEUE_FALLBACK=false` in `.env` turns the fallback off.
+
 ### Changing an AI key from SSH (2026-11-07)
 
 `ai:set-key` stores a key exactly as the owner console does (encrypted with `APP_KEY`, used by the next call, and it takes priority over `.env`). The key is typed at a hidden prompt, so it never lands in the shell history:
