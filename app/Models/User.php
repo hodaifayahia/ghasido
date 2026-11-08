@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
@@ -104,6 +105,43 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /**
+     * Deactivating an account ends every place it is still signed in:
+     * database sessions are deleted and the remember-me token is cycled, so
+     * an old cookie cannot come back (AUTH-08; security audit 2026-11-08).
+     * EnsureHotelAccess still logs out a session on its next request; this
+     * closes the routes and cookies that never pass through it.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if ($user->isDirty('status') && $user->status === AccountStatus::Inactive) {
+                $user->setRememberToken(Str::random(60));
+            }
+        });
+
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('status') && $user->status === AccountStatus::Inactive) {
+                $user->endDatabaseSessions();
+            }
+        });
+    }
+
+    /**
+     * Delete this user's rows from the database session table, when the
+     * session driver is the database (SESSION_DRIVER=database).
+     */
+    public function endDatabaseSessions(): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::table((string) config('session.table', 'sessions'))
+            ->where('user_id', $this->getKey())
+            ->delete();
+    }
 
     /**
      * The language of the emails this user receives, password reset

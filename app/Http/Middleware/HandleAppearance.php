@@ -20,7 +20,11 @@ class HandleAppearance
         // must not follow the OS dark preference. Default to light; the
         // appearance toggle still honours an explicit dark choice on the
         // starter's auth/settings screens.
-        View::share('appearance', $request->cookie('appearance') ?? 'light');
+        // The cookie is not encrypted and reaches an inline script: only
+        // the three known values pass (security audit 2026-11-08).
+        $appearance = $request->cookie('appearance');
+
+        View::share('appearance', in_array($appearance, ['light', 'dark', 'system'], true) ? $appearance : 'light');
 
         return $next($request);
     }

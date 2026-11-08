@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified', 'hotel.access'])->group(function () {
 
 // Settings → AI models: Super Admin only, a 403 for everyone else (API-04,
 // ROLE-01, SEC-01). The gate is repeated in the controller.
-Route::middleware(['auth', 'can:manage-ai-models'])->group(function () {
+Route::middleware(['auth', 'hotel.access', 'can:manage-ai-models'])->group(function () {
     Route::get('settings/ai-models', [AiModelsController::class, 'edit'])->name('ai-models.edit');
     Route::patch('settings/ai-models', [AiModelsController::class, 'update'])->name('ai-models.update');
     Route::post('settings/ai-models/check/{capability}', [AiModelsController::class, 'check'])
@@ -80,7 +80,7 @@ Route::middleware(['auth', 'can:manage-ai-models'])->group(function () {
 // Settings → Email: the SMTP mailbox every email is sent from, Super Admin
 // only (client request 2026-09-29, ROLE-01). The gate is repeated in the
 // controller.
-Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
+Route::middleware(['auth', 'hotel.access', 'can:manage-mail-settings'])->group(function () {
     Route::get('settings/email', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
     Route::patch('settings/email', [MailSettingsController::class, 'update'])->name('mail-settings.update');
     Route::post('settings/email/test', [MailSettingsController::class, 'test'])
@@ -94,7 +94,7 @@ Route::middleware(['auth', 'can:manage-mail-settings'])->group(function () {
 // Settings → Learning: the level-up threshold, Super Admin only (client
 // request 2026-09-30, ADM-02, ROLE-01). The gate is repeated in the
 // controller.
-Route::middleware(['auth', 'can:manage-learning-settings'])->group(function () {
+Route::middleware(['auth', 'hotel.access', 'can:manage-learning-settings'])->group(function () {
     Route::get('settings/learning', [LearningSettingsController::class, 'edit'])->name('learning-settings.edit');
     Route::patch('settings/learning', [LearningSettingsController::class, 'update'])->name('learning-settings.update');
     Route::put('settings/learning/languages', [LearningSettingsController::class, 'languages'])->name('learning-settings.languages');

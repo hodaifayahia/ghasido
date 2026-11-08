@@ -17,6 +17,7 @@ use App\Services\Hotels\SeatQuotaService;
 use App\Services\Reminders\ReminderService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -66,10 +67,37 @@ class EmployeeService
         $status = AccountStatus::from($data['status']);
         $defaultPoints = $hotel->subscriptionPlan()->value('points_per_employee') ?? 2000;
 
-        if ($status === AccountStatus::Active) {
-            $this->seats->assertSeatAvailable($hotel, $department);
-        }
+        return $this->underSeatLock((int) $hotel->id, function () use ($hotel, $department, $data, $creator, $status, $defaultPoints): User {
+            if ($status === AccountStatus::Active) {
+                $this->seats->assertSeatAvailable($hotel, $department);
+            }
 
+            return $this->createAccount($data, $creator, $status, (int) $defaultPoints);
+        });
+    }
+
+    /**
+     * Seat checks and the write that takes the seat run under one lock per
+     * hotel, so parallel requests cannot all read the same free seat and
+     * pass (SUB-02; security audit 2026-11-08). A cache lock rather than a
+     * row lock, because SQLite (the Hostinger database) has no SELECT FOR
+     * UPDATE.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $callback
+     * @return TResult
+     */
+    private function underSeatLock(int $hotelId, callable $callback): mixed
+    {
+        return Cache::lock('seats:hotel:'.$hotelId, 30)->block(10, $callback);
+    }
+
+    /**
+     * @param  array{name: string, username: string, email: string|null, hotel_id: int, department_id: int, status: string, allow_reminder_emails: bool, password: string}  $data
+     */
+    private function createAccount(array $data, User $creator, AccountStatus $status, int $defaultPoints): User
+    {
         return DB::transaction(function () use ($data, $creator, $status, $defaultPoints): User {
             $employee = new User;
             $employee->fill([
@@ -83,7 +111,7 @@ class EmployeeService
                 'email_consent_at' => $this->consentAt($data['allow_reminder_emails'], $data['email'], null),
                 'participant_code' => User::generateParticipantCode(),
                 'created_by' => $creator->id,
-                'ai_points_allocated' => (int) $defaultPoints,
+                'ai_points_allocated' => $defaultPoints,
             ]);
             $employee->save();
             $employee->setRole(Role::Employee);
@@ -110,13 +138,25 @@ class EmployeeService
                 || $employee->hotel_id !== $data['hotel_id']
                 || $employee->department_id !== $data['department_id']);
 
-        if ($becomesActive) {
+        if (! $becomesActive) {
+            return $this->applyUpdate($employee, $data, $status);
+        }
+
+        return $this->underSeatLock((int) $data['hotel_id'], function () use ($employee, $data, $status): User {
             $this->seats->assertSeatAvailable(
                 Hotel::query()->withoutGlobalScopes()->findOrFail($data['hotel_id']),
                 Department::query()->findOrFail($data['department_id']),
             );
-        }
 
+            return $this->applyUpdate($employee, $data, $status);
+        });
+    }
+
+    /**
+     * @param  array{name: string, username: string, email: string|null, hotel_id: int, department_id: int, status: string, allow_reminder_emails: bool, password?: string}  $data
+     */
+    private function applyUpdate(User $employee, array $data, AccountStatus $status): User
+    {
         return $this->change($employee, 'employee.updated', function (User $employee) use ($data, $status): void {
             $employee->fill([
                 'name' => $data['name'],
@@ -142,12 +182,21 @@ class EmployeeService
 
         $employee->loadMissing(['hotel' => fn ($query) => $query->withoutGlobalScopes(), 'department']);
 
-        if ($employee->hotel !== null && $employee->department !== null) {
-            $this->seats->assertSeatAvailable($employee->hotel, $employee->department);
+        $activate = fn (): User => $this->change($employee, 'employee.activated', function (User $employee): void {
+            $employee->status = AccountStatus::Active;
+        });
+
+        if ($employee->hotel === null || $employee->department === null) {
+            return $activate();
         }
 
-        return $this->change($employee, 'employee.activated', function (User $employee): void {
-            $employee->status = AccountStatus::Active;
+        $hotel = $employee->hotel;
+        $department = $employee->department;
+
+        return $this->underSeatLock((int) $hotel->id, function () use ($hotel, $department, $activate): User {
+            $this->seats->assertSeatAvailable($hotel, $department);
+
+            return $activate();
         });
     }
 

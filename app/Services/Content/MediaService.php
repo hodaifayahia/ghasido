@@ -289,9 +289,10 @@ class MediaService
 
     /**
      * The extension for a stored upload, from its detected MIME type: only
-     * the media types the app accepts, never a scriptable one.
+     * the media types the app accepts, never a scriptable one. Shared with
+     * the learner recording store (security audit 2026-11-08).
      */
-    private static function safeExtension(string $mime, ?string $guessed): string
+    public static function safeExtension(string $mime, ?string $guessed): string
     {
         $known = [
             'image/jpeg' => 'jpg',

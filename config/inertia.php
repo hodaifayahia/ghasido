@@ -78,6 +78,19 @@ return [
     |
     */
 
+    /*
+    | Page data is encrypted in the browser's history state in production, and
+    | logging out clears it (App\Http\Responses\LogoutResponse), so Back on
+    | a shared device shows nothing of the previous user (security audit
+    | 2026-11-08). Needs HTTPS (crypto.subtle), which production always has.
+    */
+
+    'history' => [
+
+        'encrypt' => (bool) env('INERTIA_ENCRYPT_HISTORY', env('APP_ENV') === 'production'),
+
+    ],
+
     'testing' => [
 
         'ensure_pages_exist' => true,

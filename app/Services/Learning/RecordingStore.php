@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Models\VoiceRecording;
+use App\Services\Content\MediaService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,9 @@ class RecordingStore
 {
     public function store(User $user, UploadedFile $file, Model $recordable, ?int $durationMs): VoiceRecording
     {
-        $extension = strtolower($file->getClientOriginalExtension() ?: ($file->guessExtension() ?? 'webm'));
+        // The stored name's extension comes from the detected MIME type,
+        // never from the client's file name (security audit 2026-11-08).
+        $extension = MediaService::safeExtension((string) ($file->getMimeType() ?? ''), $file->guessExtension());
         $name = Str::uuid().'.'.$extension;
 
         $path = Storage::disk(MediaAsset::DISK_LOCAL)->putFileAs('recordings/'.$user->id, $file, $name);
