@@ -88,6 +88,24 @@ class MediaUploadTest extends TestCase
             ->assertSessionHasErrors(['file' => __('This file is not a real JPG, PNG or WebP image, even if its name says so (iPhone HEIC and AVIF photos are often renamed). Open it and save or export it as JPG or PNG, then upload it again.')]);
     }
 
+    public function test_the_stored_extension_comes_from_the_content_not_the_client_name()
+    {
+        // A real PNG named "page.html" is stored as .png, never .html
+        // (security audit 2026-11-08).
+        $png = UploadedFile::fake()->image('page.png', 40, 40);
+        $path = tempnam(sys_get_temp_dir(), 'png');
+        copy($png->getRealPath(), $path);
+
+        $this->actingAs($this->owner)
+            ->post(route('media.store'), [
+                'file' => new UploadedFile($path, 'page.html', null, null, true),
+                'alt_text' => 'A small square',
+            ]);
+
+        $asset = MediaAsset::query()->latest('id')->firstOrFail();
+        $this->assertStringEndsWith('.png', $asset->path);
+    }
+
     public function test_a_json_upload_returns_the_picker_row()
     {
         $this->actingAs($this->owner)

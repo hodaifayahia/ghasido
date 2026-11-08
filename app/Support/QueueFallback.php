@@ -32,7 +32,10 @@ final class QueueFallback
     private const int ALIVE_SECONDS = 90;
 
     /** One drain's time budget; the next request starts another if needed. */
-    public const int DRAIN_SECONDS = 240;
+    public const int DRAIN_SECONDS = 120;
+
+    /** Drain budget + the longest job timeout + a margin. */
+    public const int LOCK_SECONDS = self::DRAIN_SECONDS + 600 + 60;
 
     private static bool $draining = false;
 
@@ -67,7 +70,11 @@ final class QueueFallback
             return false;
         }
 
-        $lock = Cache::lock(self::LOCK, self::DRAIN_SECONDS + 60);
+        // The lock outlives the drain budget plus the longest job timeout
+        // (600 s): --max-time is only checked between jobs, so a drain can
+        // run that long, and a second drain must not start meanwhile
+        // (security audit 2026-11-08).
+        $lock = Cache::lock(self::LOCK, self::LOCK_SECONDS);
 
         if (! $lock->get()) {
             return false;

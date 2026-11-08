@@ -3,6 +3,8 @@
 namespace App\Services\Learning;
 
 use App\Enums\EnglishLevel;
+use App\Models\ActivityPlacement;
+use App\Models\Attempt;
 use App\Models\Block;
 use App\Models\BlockCompletion;
 use App\Models\Course;
@@ -40,7 +42,7 @@ class ProgressService
 
             $lessonJustCompleted = false;
 
-            if ($this->allVisibleBlocksDone($user, $lesson)) {
+            if ($this->allVisibleBlocksDone($user, $lesson) && $this->practicePassed($user, $lesson)) {
                 $completion = LessonCompletion::query()->firstOrCreate(
                     ['user_id' => $user->id, 'lesson_id' => $lesson->id],
                     ['completed_at' => now()],
@@ -170,6 +172,72 @@ class ProgressService
                 'submitted' => $this->journey->postTestSubmitted($user),
             ],
         ];
+    }
+
+    /**
+     * The lesson's `practice_passed` rule (JOURNEY-04): every published,
+     * auto-scored activity placed on a visible step of the lesson needs a
+     * practice attempt whose score reaches `min_score` percent (the best
+     * attempt counts). Spoken and written activities are judged by the AI
+     * later and carry no automatic score, so they do not hold the lesson
+     * back. A missing `min_score` asks for one scored attempt of each.
+     * Every other rule is satisfied by the steps alone. A pass recorded
+     * after the last step counts on the learner's next step completion
+     * (security audit 2026-11-08).
+     */
+    private function practicePassed(User $user, Lesson $lesson): bool
+    {
+        $condition = is_array($lesson->completion_condition) ? $lesson->completion_condition : [];
+
+        if (($condition['rule'] ?? null) !== 'practice_passed') {
+            return true;
+        }
+
+        $minimum = is_numeric($condition['min_score'] ?? null) ? (float) $condition['min_score'] : 0.0;
+
+        $placements = ActivityPlacement::query()
+            ->where('placeable_type', (new Block)->getMorphClass())
+            ->whereIn('placeable_id', $lesson->visibleBlocks()->select('id'))
+            ->with('activity')
+            ->get()
+            ->filter(fn (ActivityPlacement $placement): bool => $placement->activity !== null
+                && $placement->activity->isPublished()
+                && $placement->activity->isAutoScored());
+
+        foreach ($placements as $placement) {
+            $best = Attempt::query()
+                ->where('user_id', $user->id)
+                ->where('placement_id', $placement->id)
+                ->whereNull('test_attempt_id')
+                ->whereNotNull('score')
+                ->where('max_score', '>', 0)
+                ->get(['score', 'max_score'])
+                ->map(fn (Attempt $attempt): float => (float) $attempt->score / (float) $attempt->max_score * 100)
+                ->max();
+
+            if ($best !== null && $best + 0.0001 >= $minimum) {
+                continue;
+            }
+
+            // A learner who has used every allowed attempt cannot pass any
+            // more: the activity then counts as done, so a limited activity
+            // never locks the lesson, the Post-test and the certificate for
+            // good (JOURNEY-04; security audit pass 3).
+            $allowed = (int) $placement->activity->attempts_allowed;
+            $used = Attempt::query()
+                ->where('user_id', $user->id)
+                ->where('placement_id', $placement->id)
+                ->whereNull('test_attempt_id')
+                ->count();
+
+            if ($allowed > 0 && $used >= $allowed) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private function allVisibleBlocksDone(User $user, Lesson $lesson): bool

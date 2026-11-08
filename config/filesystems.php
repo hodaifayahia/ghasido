@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // No signed file-serving route for the private disk: every
+            // private file goes through MediaController's policy check
+            // (security audit 2026-11-08).
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

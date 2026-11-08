@@ -72,7 +72,7 @@ class GenerateContentImage implements ShouldBeUnique, ShouldQueue
         $alt = trim((string) ($target['alt'] ?? ''));
         $size = ($target['size'] ?? '') === ImageProvider::SIZE_SQUARE ? ImageProvider::SIZE_SQUARE : ImageProvider::SIZE_LANDSCAPE;
 
-        if (! $this->targetExists($target)) {
+        if (! $this->targetAllowed($target, $generation)) {
             $generator->imageFinished($generation->id, false, __('The item this image was for no longer exists.'));
 
             return;
@@ -101,16 +101,27 @@ class GenerateContentImage implements ShouldBeUnique, ShouldQueue
     /**
      * @param  array{type?: string, id?: int, key?: string}  $target
      */
-    private function targetExists(array $target): bool
+    private function targetAllowed(array $target, ContentGeneration $generation): bool
     {
         $id = (int) ($target['id'] ?? 0);
 
-        return match ($target['type'] ?? 'none') {
-            'lesson' => Lesson::query()->whereKey($id)->exists(),
-            'lexicon' => LexiconItem::query()->whereKey($id)->exists(),
-            'block' => Block::query()->whereKey($id)->exists(),
-            default => true,
+        $model = match ($target['type'] ?? 'none') {
+            'lesson' => Lesson::query()->find($id),
+            'lexicon' => LexiconItem::query()->find($id),
+            'block' => Block::query()->find($id),
+            default => false,
         };
+
+        if ($model === false) {
+            return true;
+        }
+
+        // The target must still exist and still be editable by the admin
+        // who asked, checked again when the image is attached (ROLE-02;
+        // security audit 2026-11-08).
+        return $model !== null
+            && $generation->user !== null
+            && $generation->user->can('update', $model);
     }
 
     /**

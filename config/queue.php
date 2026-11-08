@@ -53,7 +53,10 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // Above the longest job timeout (600 s), so a job that is still
+            // running is never handed to a second worker and billed twice
+            // (security audit 2026-11-08).
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 960),
             'after_commit' => false,
         ],
 

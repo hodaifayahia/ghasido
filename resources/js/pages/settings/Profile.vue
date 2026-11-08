@@ -47,6 +47,9 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+// Only the Super Admin may remove their own account (DATA-10); everyone
+// else is removed by the Super Admin, with their data kept.
+const canDeleteSelf = computed(() => user.value?.role === 'super_admin');
 </script>
 
 <template>
@@ -189,5 +192,5 @@ const user = computed(() => page.props.auth.user);
         </Form>
     </div>
 
-    <DeleteUser />
+    <DeleteUser v-if="canDeleteSelf" />
 </template>

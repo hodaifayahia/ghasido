@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\GenerationStatus;
-use App\Enums\TestAttemptStatus;
-use App\Models\TestAttempt;
 use App\Models\TextTranslation;
 use App\Models\User;
 use App\Services\Meaning\HelperLanguages;
@@ -41,7 +39,7 @@ final class MeaningController extends Controller
         /** @var User $user */
         $user = $request->user('web');
 
-        abort_if($this->sittingWithoutMeaning($user), 403, __('Show Meaning is switched off during this test.'));
+        abort_if($user->hasOpenSittingWithoutMeaning(), 403, __('Show Meaning is switched off during this test.'));
 
         $text = TextTranslation::normalise((string) $data['text']);
 
@@ -67,15 +65,5 @@ final class MeaningController extends Controller
         }
 
         return response()->json(['status' => 'missing', 'text' => null, ...$language]);
-    }
-
-    private function sittingWithoutMeaning(User $user): bool
-    {
-        return TestAttempt::query()
-            ->where('user_id', $user->id)
-            ->where('status', TestAttemptStatus::InProgress)
-            ->with('test')
-            ->get()
-            ->contains(fn (TestAttempt $attempt): bool => $attempt->isOpen() && $attempt->test !== null && ! $attempt->test->showsMeaning());
     }
 }

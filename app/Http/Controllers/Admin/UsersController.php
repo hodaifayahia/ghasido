@@ -142,6 +142,16 @@ class UsersController extends Controller
             __('Only a Super Admin can change another Super Admin account.'),
         );
 
+        // Security audit 2026-11-08: the account's current role must sit
+        // within the actor's own permissions too, so a delegate cannot reset
+        // the password of (or demote) a more privileged account (ROLE-01).
+        $currentRole = Role::query()->whereIn('id', $user->roles()->pluck('roles.id'))->first();
+        abort_if(
+            $currentRole instanceof Role && ($actor === null || ! $this->canAssignRole($actor, $currentRole)),
+            403,
+            __('You cannot grant access beyond your own permissions.'),
+        );
+
         $data = $request->accountChanges();
         $role = Role::query()->findOrFail((int) $data['role_id']);
         $this->assertAssignableRole($request->user('web'), $role);

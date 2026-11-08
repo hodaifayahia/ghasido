@@ -20,7 +20,41 @@ class UpdateRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(Permission::RolesManage->value) ?? false;
+        $user = $this->user('web');
+        $role = $this->route('role');
+
+        if ($user === null || ! $role instanceof Role || ! $user->can(Permission::RolesManage->value)) {
+            return false;
+        }
+
+        if ($user->hasRole(RoleEnum::SuperAdmin->value)) {
+            return true;
+        }
+
+        // Security audit 2026-11-08: a delegate holding roles.manage may not
+        // touch the Super Admin role or their own role, may not edit a role
+        // that already holds more than they do, and may only grant
+        // permissions they hold themselves (ROLE-01).
+        if ($role->name === RoleEnum::SuperAdmin->value || $user->hasRole($role->name)) {
+            return false;
+        }
+
+        // Roles are platform-wide: a hotel-bound delegate edits none of
+        // them, and no delegate edits a system role, whose holders sit in
+        // every hotel (ROLE-02; security audit pass 3).
+        if ($user->hotel_id !== null || RoleEnum::isSystem($role->name)) {
+            return false;
+        }
+
+        $held = $user->permissionNames();
+
+        if ($role->permissions()->whereNotIn('name', $held)->exists()) {
+            return false;
+        }
+
+        $permissions = $this->input('permissions', []);
+
+        return ! is_array($permissions) || array_diff(array_filter($permissions, 'is_string'), $held) === [];
     }
 
     protected function prepareForValidation(): void

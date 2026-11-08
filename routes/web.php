@@ -53,7 +53,10 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:10,1')
         ->name('checkout.store');
     Route::get('hotel-signup', [HotelSignupController::class, 'create'])->name('hotel-signup');
-    Route::post('hotel-signup', [HotelSignupController::class, 'store'])->name('hotel-signup.store');
+    // Throttled like checkout and contact (security audit 2026-11-08).
+    Route::post('hotel-signup', [HotelSignupController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('hotel-signup.store');
 });
 
 // Signed in is enough: the role decides which dashboard renders, so a user

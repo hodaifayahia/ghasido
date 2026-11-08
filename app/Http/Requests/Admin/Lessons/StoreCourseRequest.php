@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Lessons;
 use App\Enums\CourseTrack;
 use App\Enums\EnglishLevel;
 use App\Enums\EssentialsIcon;
+use App\Enums\Role;
 use App\Models\Course;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,36 @@ class StoreCourseRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Course::class) ?? false;
+        $user = $this->user('web');
+
+        if ($user === null || ! $user->can('create', Course::class)) {
+            return false;
+        }
+
+        // Security audit 2026-11-08: below the Super Admin a new course
+        // belongs to the actor's own hotel (shared only for staff with no
+        // hotel), never to another hotel (ROLE-02, SEC-01, CMS-04).
+        if ($user->hasRole(Role::SuperAdmin->value)) {
+            return true;
+        }
+
+        return $this->hotelId() === $user->hotel_id;
+    }
+
+    /**
+     * The hotel the new course belongs to. Left blank ("Shared") by hotel
+     * staff, it falls back to their own hotel: only the Super Admin and
+     * staff with no hotel author shared content (security audit 2026-11-08).
+     */
+    public function hotelId(): ?int
+    {
+        if ($this->filled('hotel_id')) {
+            return $this->integer('hotel_id');
+        }
+
+        $user = $this->user('web');
+
+        return $user === null || $user->hasRole(Role::SuperAdmin->value) ? null : $user->hotel_id;
     }
 
     /**
@@ -66,7 +96,7 @@ class StoreCourseRequest extends FormRequest
             'department_id' => $essentials ? null : (int) $data['department_id'],
             'track' => $essentials ? CourseTrack::Essentials->value : CourseTrack::Department->value,
             'icon' => $essentials ? ($data['icon'] ?? null) : null,
-            'hotel_id' => isset($data['hotel_id']) && $data['hotel_id'] !== '' ? (int) $data['hotel_id'] : null,
+            'hotel_id' => $this->hotelId(),
             'description' => $data['description'] ?? null,
             'tone' => $data['tone'] ?? 'brand',
             // Essentials are the beginner basics for every level.

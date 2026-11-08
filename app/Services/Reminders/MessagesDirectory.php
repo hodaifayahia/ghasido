@@ -92,6 +92,14 @@ class MessagesDirectory
         $templates = ReminderTemplate::query()->orderBy('name')->get();
         $rules = AutomationRule::query()->with('template')->orderBy('name')->get();
 
+        // Security audit 2026-11-08: below the Super Admin, only the rules
+        // that reach the actor's hotel (every hotel, or a list naming it),
+        // so another hotel's targeting never shows (ROLE-02, REM-07).
+        if (! $actor->hasRole(Role::SuperAdmin->value)) {
+            $rules = $rules->filter(static fn (AutomationRule $rule): bool => $rule->hotelIds() === []
+                || ($actor->hotel_id !== null && in_array($actor->hotel_id, $rule->hotelIds(), true)))->values();
+        }
+
         return [
             'stats' => $this->stats($actor),
             'filters' => [
@@ -104,7 +112,7 @@ class MessagesDirectory
             'recipients' => array_map(fn (User $user): array => $this->recipient($user), $recipientRows),
             'recipientsPagination' => $this->pagination($recipients),
             'templates' => $templates->map(fn (ReminderTemplate $template): array => $this->template($template))->all(),
-            'automations' => $rules->map(fn (AutomationRule $rule): array => $this->rule($rule))->all(),
+            'automations' => $rules->map(fn (AutomationRule $rule): array => $this->rule($rule, $actor))->all(),
             'logs' => array_map(
                 fn (Reminder $reminder): array => $this->log(
                     $reminder,
@@ -299,8 +307,27 @@ class MessagesDirectory
     /**
      * @return array<string, mixed>
      */
-    private function rule(AutomationRule $rule): array
+    private function rule(AutomationRule $rule, User $actor): array
     {
+        $hotelIds = $rule->hotelIds();
+        $departmentIds = $rule->departmentIds();
+        $audience = $rule->audience_label ?? __('All hotels');
+
+        // Security audit 2026-11-08: the stored label and ids may name
+        // other hotels and their departments. Below the Super Admin, keep
+        // only the actor's hotel and the departments they can see, and
+        // rebuild the label from those (ROLE-02).
+        if (! $actor->hasRole(Role::SuperAdmin->value)) {
+            $hotelIds = array_values(array_intersect($hotelIds, [$actor->hotel_id ?? 0]));
+            $departmentIds = $departmentIds === [] ? [] : array_values(Department::query()
+                ->whereIn('id', $departmentIds)
+                ->where(fn (Builder $scope) => $scope->whereNull('hotel_id')->orWhere('hotel_id', $actor->hotel_id ?? 0))
+                ->pluck('id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all());
+            $audience = app(AutomationRuleService::class)->audienceLabel($hotelIds, $departmentIds);
+        }
+
         return [
             'id' => $rule->id,
             'name' => $rule->name,
@@ -309,9 +336,9 @@ class MessagesDirectory
             'days' => $rule->days,
             'templateId' => $rule->template_id,
             'templateName' => $rule->template->name ?? '',
-            'audience' => $rule->audience_label ?? __('All hotels'),
-            'hotelIds' => $rule->hotelIds(),
-            'departmentIds' => $rule->departmentIds(),
+            'audience' => $audience,
+            'hotelIds' => $hotelIds,
+            'departmentIds' => $departmentIds,
             'active' => $rule->is_active,
             'lastRunAt' => $rule->last_run_at === null ? null : $rule->last_run_at->format(self::DATETIME_FORMAT),
         ];

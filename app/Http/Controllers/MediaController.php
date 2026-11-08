@@ -36,7 +36,14 @@ class MediaController extends Controller
         return Storage::disk($media->disk)->response(
             $media->path,
             $media->original_name ?? basename($media->path),
-            ['Content-Type' => $media->mime],
+            [
+                'Content-Type' => $media->mime,
+                // The browser must not sniff a stored file into a type that
+                // runs script, and a document opened directly is sandboxed
+                // (security audit 2026-11-08).
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => 'sandbox',
+            ],
         );
     }
 }

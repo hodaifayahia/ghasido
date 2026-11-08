@@ -48,6 +48,9 @@ class OwnerSessionController extends Controller
 
         // Only the owner's keys are dropped: an app session in the same
         // browser (the web guard) stays signed in.
+        // The session id is rotated too, so it does not survive the logout
+        // on a shared browser (security audit 2026-11-08).
+        $request->session()->migrate(true);
         $request->session()->regenerateToken();
 
         return to_route('owner.login');

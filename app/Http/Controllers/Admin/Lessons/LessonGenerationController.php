@@ -70,7 +70,11 @@ class LessonGenerationController extends Controller
     {
         Gate::authorize('retry', $generation);
 
-        $generator->retry($generation);
+        try {
+            $generator->retry($generation);
+        } catch (AiLimitReached $e) {
+            return response()->json(['message' => $e->getMessage()], 429);
+        }
 
         return response()->json(['generation' => $generator->present($generation->refresh())], 202);
     }

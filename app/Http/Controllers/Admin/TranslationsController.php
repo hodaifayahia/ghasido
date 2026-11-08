@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\GenerationStatus;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Jobs\TranslateText;
 use App\Models\Course;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,7 +44,7 @@ class TranslationsController extends Controller
 
     public function index(Request $request): Response
     {
-        $this->authorizeEditor($request);
+        $editor = $this->authorizeEditor($request);
 
         $scope = $this->scope($request);
         $locale = $this->locale($request);
@@ -103,9 +105,9 @@ class TranslationsController extends Controller
                 'total' => TextTranslation::query()->where('locale', $locale)->where('status', GenerationStatus::Done->value)->count(),
             ],
             'options' => [
-                'lessons' => Lesson::query()->orderBy('title')->get(['id', 'title'])->map(fn (Lesson $lesson): array => ['value' => 'lesson:'.$lesson->id, 'label' => $lesson->title])->all(),
-                'tests' => Test::query()->orderBy('title')->get(['id', 'title'])->map(fn (Test $test): array => ['value' => 'test:'.$test->id, 'label' => $test->title])->all(),
-                'courses' => Course::query()->orderBy('title')->get(['id', 'title'])->map(fn (Course $course): array => ['value' => 'course:'.$course->id, 'label' => $course->title])->all(),
+                'lessons' => $this->inReach(Lesson::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Lesson $lesson): array => ['value' => 'lesson:'.$lesson->id, 'label' => $lesson->title])->all(),
+                'tests' => $this->inReach(Test::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Test $test): array => ['value' => 'test:'.$test->id, 'label' => $test->title])->all(),
+                'courses' => $this->inReach(Course::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Course $course): array => ['value' => 'course:'.$course->id, 'label' => $course->title])->all(),
             ],
         ]);
     }
@@ -113,7 +115,7 @@ class TranslationsController extends Controller
     /** Write or correct one meaning by hand; the AI never replaces it. */
     public function save(Request $request, MeaningTranslations $translations): RedirectResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $written = $this->writtenText($request);
         $text = TextTranslation::normalise((string) $request->input('text'));
@@ -132,7 +134,7 @@ class TranslationsController extends Controller
      */
     public function generate(Request $request, MeaningTranslations $translations): RedirectResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
         $scope = $this->scope($request);
         $locale = $this->locale($request);
 
@@ -193,7 +195,7 @@ class TranslationsController extends Controller
      */
     public function draft(Request $request): JsonResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $data = $request->validate([
             'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
@@ -207,6 +209,12 @@ class TranslationsController extends Controller
 
         if ($translation->exists && $translation->source === MeaningTranslations::SOURCE_MANUAL) {
             return response()->json(['item' => $this->row($text, $translation)]);
+        }
+
+        // A draft already on its way is not started twice (security audit
+        // 2026-11-08: repeated clicks each spent an AI call).
+        if ($translation->exists && in_array($translation->status, [GenerationStatus::Pending, GenerationStatus::Running], true)) {
+            return response()->json(['item' => $this->row($text, $translation)], 202);
         }
 
         // The owner's AI credit is checked before anything is spent (D7a).
@@ -235,7 +243,7 @@ class TranslationsController extends Controller
     /** Save one field's meaning as written by hand (JSON twin of save()). */
     public function write(Request $request, MeaningTranslations $translations): JsonResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $written = $this->writtenText($request);
         $text = TextTranslation::normalise((string) $request->input('text'));
@@ -300,6 +308,49 @@ class TranslationsController extends Controller
     }
 
     /**
+     * Writing a meaning changes it for every hotel that shows the same
+     * English text (rows are keyed by the text, not by a hotel), so only
+     * platform staff and the Super Admin write them; a hotel-bound editor
+     * reads (ROLE-02; security audit pass 3).
+     */
+    private function authorizeWriter(Request $request): User
+    {
+        $user = $this->authorizeEditor($request);
+
+        abort_unless(
+            $user->hotel_id === null || $user->hasRole(Role::SuperAdmin->value),
+            403,
+            __('Only platform staff can change shared translations.'),
+        );
+
+        return $user;
+    }
+
+    /**
+     * Below the Super Admin, only shared content and the editor's own
+     * hotel's (security audit 2026-11-08, ROLE-02).
+     *
+     * @template TModel of Lesson|Test|Course
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function inReach(Builder $query, User $editor): Builder
+    {
+        if ($editor->hasRole(Role::SuperAdmin->value)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $inner) use ($editor): void {
+            $inner->whereNull('hotel_id');
+
+            if ($editor->hotel_id !== null) {
+                $inner->orWhere('hotel_id', $editor->hotel_id);
+            }
+        });
+    }
+
+    /**
      * The lesson, test or course chosen with `?content=lesson:12`.
      *
      * @return array{kind: string, id: int, title: string, texts: list<string>}|null
@@ -314,19 +365,24 @@ class TranslationsController extends Controller
 
         $id = (int) $m[2];
 
+        // Security audit 2026-11-08: the chosen content must be one the
+        // editor may change, shared or their own hotel's (ROLE-02, SEC-01).
         if ($m[1] === 'lesson') {
             $lesson = Lesson::query()->findOrFail($id);
+            Gate::authorize('update', $lesson);
 
             return ['kind' => 'lesson', 'id' => $id, 'title' => $lesson->title, 'texts' => MeaningTexts::forLesson($lesson)];
         }
 
         if ($m[1] === 'test') {
             $test = Test::query()->findOrFail($id);
+            Gate::authorize('update', $test);
 
             return ['kind' => 'test', 'id' => $id, 'title' => $test->title, 'texts' => MeaningTexts::forTest($test)];
         }
 
         $course = Course::query()->findOrFail($id);
+        Gate::authorize('update', $course);
 
         return ['kind' => 'course', 'id' => $id, 'title' => $course->title, 'texts' => MeaningTexts::forCourse($course)];
     }

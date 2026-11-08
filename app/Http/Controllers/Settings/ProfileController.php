@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Models\User;
+use App\Services\Accounts\AccountRemoval;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,15 +69,17 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Remove the signed-in Super Admin's own account. The account is
+     * anonymised and its records kept (AccountRemoval, DATA-10), never
+     * hard-deleted: a delete cascaded through answers and recordings.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, AccountRemoval $removal): RedirectResponse
     {
-        $user = $request->user();
+        $user = $this->user($request);
 
         Auth::logout();
 
-        $user->delete();
+        $removal->removeUser($user, $user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

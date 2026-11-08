@@ -129,12 +129,18 @@ class TestRulesTest extends TestCase
         $learner = $this->learner();
         $attempt = $this->start($learner, $test);
 
-        $this->questionPage($learner, $test, $attempt)
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('activity.items.0.sentences.0.id', 's2')
-                ->where('activity.items.0.sentences.1.id', 's1')
-                ->where('activity.items.0.sentences.2.id', 's3')
-            );
+        // Option shuffling leaves the lines alone; their ids are this
+        // sitting's opaque tokens, never the stored `s1..sN` that spell the
+        // answer (security audit 2026-11-08).
+        /** @var list<array{id: string, text: string}> $sentences */
+        $sentences = $this->questionPage($learner, $test, $attempt)
+            ->viewData('page')['props']['activity']['items'][0]['sentences'];
+
+        $this->assertEqualsCanonicalizing(
+            ['Greet the guest.', 'Ask for the booking name.', 'Give the key card.'],
+            array_column($sentences, 'text'),
+        );
+        $this->assertSame([], array_intersect(['s1', 's2', 's3'], array_column($sentences, 'id')));
     }
 
     // ---------------------------------------------------------- single_attempt

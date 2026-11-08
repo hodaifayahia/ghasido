@@ -62,7 +62,7 @@ class CheckoutRequest extends FormRequest
         $rules = [
             'region' => ['nullable', Rule::in(['dz', 'intl'])],
             'phone' => ['required', 'string', 'max:40', 'regex:/^\+?[0-9().\s-]{7,40}$/'],
-            'password' => ['required', 'confirmed', 'string', Password::min(8), 'max:72'],
+            'password' => ['required', 'confirmed', 'string', Password::defaults(), 'max:72'],
         ];
 
         $rules += $this->plan()->isIndividual()

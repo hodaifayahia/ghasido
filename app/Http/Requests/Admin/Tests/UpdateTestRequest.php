@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Tests;
 use App\Enums\EnglishLevel;
 use App\Enums\Permission;
 use App\Enums\ResultsVisibility;
+use App\Enums\Role;
 use App\Enums\TestType;
 use App\Models\Test;
 use Illuminate\Foundation\Http\FormRequest;
@@ -18,8 +19,22 @@ class UpdateTestRequest extends FormRequest
     public function authorize(): bool
     {
         $test = $this->route('test');
+        $user = $this->user('web');
 
-        return $test instanceof Test && ($this->user()?->can(Permission::TestsManage->value) ?? false);
+        if (! $test instanceof Test || $user === null || ! $user->can(Permission::TestsManage->value)) {
+            return false;
+        }
+
+        // Security audit 2026-11-08: below the Super Admin, a test keeps its
+        // hotel or moves to the actor's own hotel; it can never be handed to
+        // another hotel, nor turned shared by hotel staff (ROLE-02, SEC-01).
+        if (! $this->exists('hotel_id') || $user->hasRole(Role::SuperAdmin->value)) {
+            return true;
+        }
+
+        $target = $this->filled('hotel_id') ? $this->integer('hotel_id') : null;
+
+        return $target === $test->hotel_id || $target === $user->hotel_id;
     }
 
     protected function prepareForValidation(): void
@@ -68,7 +83,13 @@ class UpdateTestRequest extends FormRequest
 
         $validated['type'] = TestType::from((string) $validated['type']);
         $validated['department_id'] = isset($validated['department_id']) ? (int) $validated['department_id'] : null;
-        $validated['hotel_id'] = $this->filled('hotel_id') ? (int) $validated['hotel_id'] : null;
+        // Security audit 2026-11-08: an update that does not send hotel_id
+        // keeps the test's hotel instead of silently making it shared.
+        if ($this->exists('hotel_id')) {
+            $validated['hotel_id'] = $this->filled('hotel_id') ? (int) $validated['hotel_id'] : null;
+        } else {
+            unset($validated['hotel_id']);
+        }
         $validated['title'] = trim((string) $validated['title']);
 
         if (array_key_exists('level', $validated) && ($validated['level'] ?? '') === '') {

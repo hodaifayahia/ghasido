@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Models\PronunciationAttempt;
 use App\Models\User;
 
@@ -17,7 +18,12 @@ class PronunciationAttemptPolicy
 {
     public function view(User $user, PronunciationAttempt $attempt): bool
     {
+        // Security audit 2026-11-08: transcripts.view on a hotel-bound role
+        // reaches its own hotel's attempts only (ROLE-02, ROLE-04).
         return $attempt->user_id === $user->id
-            || $user->can(Permission::TranscriptsView->value);
+            || $user->hasRole(Role::SuperAdmin->value)
+            || ($user->can(Permission::TranscriptsView->value)
+                && $attempt->hotel_id !== null
+                && $attempt->hotel_id === $user->hotel_id);
     }
 }

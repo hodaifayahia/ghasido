@@ -118,6 +118,31 @@ abstract class DatasetExport
         return array_map(static fn (mixed $value): string|int|float => self::cell($value), $row);
     }
 
+    /**
+     * Cells for a CSV file, with formula injection neutralised (security
+     * audit 2026-11-08): learner free text that starts with =, +, -, @, a
+     * tab or a carriage return would run as a formula when the file is
+     * opened in Excel or Sheets, so it gets a leading apostrophe (OWASP
+     * CSV injection). Numbers stay numbers; the stored answers are not
+     * changed (DATA-03). XLSX needs none of this: its text cells are
+     * inline strings, never evaluated.
+     *
+     * @param  list<mixed>  $row
+     * @return list<string|int|float>
+     */
+    public static function csvCells(array $row): array
+    {
+        return array_map(static function (mixed $value): string|int|float {
+            $cell = self::cell($value);
+
+            if (is_string($cell) && $cell !== '' && in_array($cell[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                return "'".$cell;
+            }
+
+            return $cell;
+        }, $row);
+    }
+
     protected static function decimal(?string $value): ?float
     {
         return $value === null ? null : (float) $value;

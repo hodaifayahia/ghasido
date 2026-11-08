@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
@@ -238,6 +239,17 @@ class AppServiceProvider extends ServiceProvider
         DB::prohibitDestructiveCommands(
             app()->isProduction(),
         );
+
+        // Every link the app writes (password-reset emails, approval and
+        // reminder emails sent from a queue drain inside a request) uses
+        // APP_URL, never the Host header of whoever sent the request
+        // (security audit 2026-11-08: host-header-poisoned email links).
+        $root = (string) config('app.url');
+
+        if (app()->isProduction() && str_starts_with($root, 'http')) {
+            URL::forceRootUrl($root);
+            URL::forceScheme((string) parse_url($root, PHP_URL_SCHEME));
+        }
 
         Password::defaults(fn (): ?Password => app()->isProduction()
             ? Password::min(12)

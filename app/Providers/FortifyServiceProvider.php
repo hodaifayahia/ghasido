@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Middleware\EnsureHotelAccess;
+use App\Http\Responses\LogoutResponse;
 use App\Models\User;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -16,8 +17,10 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LogoutResponse as LogoutResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Laravel\Passkeys\Passkeys;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -26,7 +29,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LogoutResponseContract::class, LogoutResponse::class);
     }
 
     /**
@@ -98,6 +101,26 @@ class FortifyServiceProvider extends ServiceProvider
 
             return $user;
         });
+
+        // A passkey sign-in never reaches the callback above, so it gets the
+        // same account and hotel check: a deactivated account, or one whose
+        // hotel may not sign in, cannot use a passkey either (AUTH-08,
+        // SUB-05; security audit 2026-11-08).
+        Passkeys::authorizeLoginUsing(
+            fn (Request $request, mixed $user): bool => $user instanceof User
+                && EnsureHotelAccess::blockedMessageFor($user) === null,
+        );
+
+        // Fortify's own password confirmation looks the account up again by
+        // the `email` column, which picks the wrong account when the signed-in
+        // user has no email. Check the password against the signed-in user
+        // itself (security audit 2026-11-08).
+        Fortify::confirmPasswordsUsing(
+            fn (mixed $user, ?string $password = null): bool => $user instanceof User
+                && $password !== null
+                && $password !== ''
+                && Hash::check($password, $user->password),
+        );
 
         // `last_login_at` feeds the Needs Attention lists and the inactivity
         // reminders (DATA-06, REM-03). Written on the Login event rather than

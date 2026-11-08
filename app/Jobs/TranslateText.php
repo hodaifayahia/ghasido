@@ -102,11 +102,18 @@ class TranslateText implements ShouldBeUnique, ShouldQueue
 
         $text = trim($draft->text);
 
-        $translation->forceFill([
-            'translation' => $text !== '' ? $text : null,
-            'status' => $text !== '' ? GenerationStatus::Done : GenerationStatus::Failed,
-            'failed_reason' => $text !== '' ? null : 'empty translation',
-        ])->save();
+        // Written only if no admin wrote the meaning by hand while the AI
+        // call was running: a hand-written translation is never replaced
+        // (user request 2026-09-26; security audit 2026-11-08).
+        TextTranslation::query()
+            ->whereKey($translation->id)
+            ->where('source', '!=', 'manual')
+            ->update([
+                'translation' => $text !== '' ? $text : null,
+                'status' => ($text !== '' ? GenerationStatus::Done : GenerationStatus::Failed)->value,
+                'failed_reason' => $text !== '' ? null : 'empty translation',
+                'updated_at' => now(),
+            ]);
     }
 
     private static function quotaExhausted(RequestException $e): bool

@@ -83,7 +83,7 @@ class TranscribeAndEvaluateSpokenAnswer implements ShouldBeUnique, ShouldQueue
             $transcript = $stt->transcribe(LocalMediaFile::path($media), $media->mime ?? 'audio/webm');
             $attempt->forceFill(['transcript' => $transcript])->save();
 
-            $meter->record($attempt->user, AiFeature::Stt, self::sttUsage($media->duration_ms));
+            $meter->record($attempt->user, AiFeature::Stt, self::sttUsage($media->billableDurationMs()));
         }
 
         // Practice at the learner's level, a test answer on the fixed scale;

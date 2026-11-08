@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Enums\Role;
+use App\Models\Department;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -159,6 +160,18 @@ final class ReportFilters
         $hotelId = self::idParam($request, 'hotel');
 
         if ($hotelId !== null && $hotelId !== $viewer->hotel_id) {
+            return false;
+        }
+
+        // A department filter must be shared or the viewer's hotel's: its
+        // name is printed in the export header (security audit 2026-11-08).
+        $departmentId = self::idParam($request, 'department');
+
+        if ($departmentId !== null && ! Department::query()
+            ->withoutGlobalScopes()
+            ->whereKey($departmentId)
+            ->where(fn ($query) => $query->whereNull('hotel_id')->orWhere('hotel_id', $viewer->hotel_id))
+            ->exists()) {
             return false;
         }
 

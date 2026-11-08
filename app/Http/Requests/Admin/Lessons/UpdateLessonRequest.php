@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Lessons;
 
 use App\Enums\Accent;
 use App\Models\Lesson;
+use App\Models\Unit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,8 +18,24 @@ class UpdateLessonRequest extends FormRequest
     public function authorize(): bool
     {
         $lesson = $this->route('lesson');
+        $user = $this->user('web');
 
-        return $lesson instanceof Lesson && ($this->user()?->can('update', $lesson) ?? false);
+        if (! $lesson instanceof Lesson || $user === null || ! $user->can('update', $lesson)) {
+            return false;
+        }
+
+        if (! $this->has('unit_id')) {
+            return true;
+        }
+
+        // Security audit 2026-11-08: moving the lesson re-homes it to the
+        // target unit's hotel (the lesson hook copies the course's
+        // hotel_id), so the target course must be one the actor may edit,
+        // exactly as MoveLessonRequest requires (ROLE-02, SEC-01). An
+        // unknown unit fails validation below, not authorization.
+        $target = Unit::query()->with('course')->find($this->integer('unit_id'));
+
+        return $target === null || ($target->course !== null && $user->can('update', $target->course));
     }
 
     /**

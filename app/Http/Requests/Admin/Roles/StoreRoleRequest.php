@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Roles;
 
 use App\Enums\Permission;
 use App\Enums\Role as RoleEnum;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,32 @@ class StoreRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(Permission::RolesManage->value) ?? false;
+        $user = $this->user('web');
+
+        if ($user === null || ! $user->can(Permission::RolesManage->value)) {
+            return false;
+        }
+
+        // Security audit 2026-11-08: below the Super Admin, a role can only
+        // be given permissions the actor holds themselves (ROLE-01).
+        // Roles are platform-wide, so a hotel-bound delegate creates none
+        // (ROLE-02; security audit pass 3).
+        return $user->hasRole(RoleEnum::SuperAdmin->value)
+            || ($user->hotel_id === null && $this->withinCeiling($user, $this->input('permissions', [])));
+    }
+
+    /**
+     * Whether every requested permission is one the actor already holds.
+     */
+    private function withinCeiling(User $user, mixed $permissions): bool
+    {
+        if (! is_array($permissions)) {
+            return true; // Malformed input fails validation instead.
+        }
+
+        $requested = array_filter($permissions, 'is_string');
+
+        return array_diff($requested, $user->permissionNames()) === [];
     }
 
     protected function prepareForValidation(): void

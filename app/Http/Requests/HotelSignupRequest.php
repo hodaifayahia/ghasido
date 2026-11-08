@@ -67,7 +67,7 @@ class HotelSignupRequest extends FormRequest
                 'required',
                 'confirmed',
                 'string',
-                Password::min(8),
+                Password::defaults(),
                 'max:72',
             ],
             ...$this->helperLanguageRules(),

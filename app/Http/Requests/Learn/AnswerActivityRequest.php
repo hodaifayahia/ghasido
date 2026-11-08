@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Learn;
 
 use Carbon\CarbonInterface;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Date;
 
@@ -23,13 +24,35 @@ class AnswerActivityRequest extends FormRequest
     }
 
     /**
-     * @return array<string, list<string>>
+     * The longest text one item answer may hold. A written answer is sent
+     * verbatim to the AI evaluator, so an unbounded one is unbounded spend
+     * (WRITE-04, AIL-01; security audit 2026-11-08).
+     */
+    public const int MAX_TEXT_LENGTH = 5000;
+
+    /** The largest whole answer payload, JSON encoded. */
+    public const int MAX_PAYLOAD_LENGTH = 50000;
+
+    /**
+     * @return array<string, list<string|Closure>>
      */
     public function rules(): array
     {
         return [
-            'answers' => ['required', 'array'],
-            'answers.*' => ['nullable'],
+            'answers' => ['required', 'array', 'max:200', function (string $attribute, mixed $value, Closure $fail): void {
+                $json = json_encode($value);
+
+                if ($json === false || strlen($json) > self::MAX_PAYLOAD_LENGTH) {
+                    $fail(__('This answer is too long.'));
+                }
+            }],
+            'answers.*' => ['nullable', function (string $attribute, mixed $value, Closure $fail): void {
+                $text = is_array($value) ? ($value['text'] ?? null) : $value;
+
+                if (is_string($text) && mb_strlen($text) > self::MAX_TEXT_LENGTH) {
+                    $fail(__('Please keep your answer under :max characters.', ['max' => self::MAX_TEXT_LENGTH]));
+                }
+            }],
             // The hidden field the page sets when the activity opens, so
             // time taken is measured from when the learner saw it.
             'started_at' => ['nullable', 'date'],

@@ -95,12 +95,14 @@ class TestController extends Controller
                 'onTimeout' => $test->onTimeout(),
             ],
             'question' => ['number' => $number, 'total' => $total],
-            'activity' => $this->runner->presentOptions(
+            'activity' => $this->runner->presentForSitting(
                 $this->presenter->present($placement, $user, ActivityPresenter::MODE_TEST),
                 $test,
                 $attempt,
             ),
-            'savedAnswer' => $saved[$number] ?? null,
+            // In this sitting's tokens, never the real line / pair ids
+            // (TEST-03; security audit 2026-11-08).
+            'savedAnswer' => $this->runner->answerForSitting($attempt, $placement, $saved[$number] ?? null),
             'questions' => $questions->values()->map(fn (object $placement, int $index): array => [
                 'number' => $index + 1,
                 'answered' => array_key_exists($index + 1, $saved),
@@ -116,7 +118,10 @@ class TestController extends Controller
         $user = $this->learner($request);
         $this->assertOwned($user, $test, $attempt);
 
-        if ($this->finishIfExpired($attempt)) {
+        // A closed sitting takes no more answers, and neither does one whose
+        // deadline has passed: it is closed here by the timeout rule first
+        // (TIME-05, TEST-06; security audit 2026-11-08).
+        if ($this->finishIfExpired($attempt) || ! $attempt->status->acceptsAnswers()) {
             return $this->toResult($test, $attempt);
         }
 
@@ -133,7 +138,14 @@ class TestController extends Controller
         $user = $this->learner($request);
         $this->assertOwned($user, $test, $attempt);
 
-        if ($attempt->status === TestAttemptStatus::InProgress) {
+        // A finish that arrives after the deadline is not an on-time submit:
+        // the sitting closes by the test's timeout rule and the late answer
+        // is not stored (TIME-03, TIME-05; security audit 2026-11-08).
+        if ($this->finishIfExpired($attempt)) {
+            return $this->toResult($test, $attempt);
+        }
+
+        if ($attempt->status->acceptsAnswers()) {
             $placement = $this->runner->questionAt($test, $request->number(), $attempt);
             $this->runner->saveAnswer($attempt, $placement, $request->answer(), $request->timeTakenMs());
             $this->scorer->finish($attempt);
@@ -245,7 +257,7 @@ class TestController extends Controller
     private function finishIfExpired(TestAttempt $attempt): bool
     {
         if ($this->runner->isExpired($attempt)) {
-            $this->scorer->finish($attempt, TestAttemptStatus::Expired);
+            $this->runner->finishExpired($attempt);
 
             return true;
         }

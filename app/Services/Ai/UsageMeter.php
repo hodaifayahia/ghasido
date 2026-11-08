@@ -8,12 +8,14 @@ use App\Enums\ApiAccount;
 use App\Enums\Role;
 use App\Models\AiModelPrice;
 use App\Models\AiUsage;
+use App\Models\Attempt;
 use App\Models\Hotel;
 use App\Models\IndividualSubscription;
 use App\Models\RoleplayAttempt;
 use App\Models\User;
 use App\Services\Owner\ApiCredit;
 use App\Services\Owner\CreditAlerts;
+use App\Services\Subscriptions\HotelAiPointTopUpService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -34,9 +36,10 @@ use Throwable;
  *
  * Limits count role-play guest turns (`roleplay_turn` rows written today,
  * app timezone) per employee and per hotel against config guesvia.ai.limits.
- * Every other feature is metered but not capped: an evaluation or a lexicon
- * draft is triggered by finishing work, not by chatting, and blocking it
- * would strand an attempt half-scored.
+ * Every other feature is metered but not capped here, except a practice
+ * answer's AI evaluation: practiceEvaluationRefusal() is checked before it
+ * is queued, and a refused one keeps the saved answer without the paid call
+ * (security audit 2026-11-08).
  */
 final class UsageMeter
 {
@@ -249,7 +252,13 @@ final class UsageMeter
         $elapsedMilliseconds = max(0, (int) abs($attempt->started_at->diffInMilliseconds(Date::now())));
         $blocks = max(1, (int) ceil($elapsedMilliseconds / 600000));
 
-        return $this->availablePoints($user) >= $blocks * $rate;
+        // The hotel's pool for this month must cover the call too, not only
+        // the employee's standing allocation (AIL-01; security audit
+        // 2026-11-08).
+        $hotelRemaining = $this->hotelPoolRemaining($user);
+
+        return $this->availablePoints($user) >= $blocks * $rate
+            && ($hotelRemaining === null || $hotelRemaining >= $blocks * $rate);
     }
 
     /** Charge one completed live call in rounded-up ten-minute blocks. */
@@ -346,9 +355,125 @@ final class UsageMeter
     {
         $metered = $user->hotel_id !== null || $this->individualPlan($user) !== null;
 
-        if ($user->hasRole(Role::Employee->value) && $metered && $this->availablePoints($user) < $required) {
-            throw AiLimitReached::forPoints($required, max(0, $this->availablePoints($user)));
+        if (! $user->hasRole(Role::Employee->value) || ! $metered) {
+            return;
         }
+
+        $available = $this->availablePoints($user);
+
+        if ($available < $required) {
+            throw AiLimitReached::forPoints($required, max(0, $available));
+        }
+
+        // An allocation is a standing number on the employee, but the hotel
+        // pool behind it (plan + this month's top-ups) is monthly: last
+        // month's top-up must not fund this month's spend. The hotel's
+        // points used this month must stay within this month's pool
+        // (AIL-01, SUB-01; security audit 2026-11-08).
+        $hotelRemaining = $this->hotelPoolRemaining($user);
+
+        if ($hotelRemaining !== null && $hotelRemaining < $required) {
+            throw AiLimitReached::forPoints($required, max(0, min($available, $hotelRemaining)));
+        }
+    }
+
+    /**
+     * What is left of the employee's hotel pool this month, or null when no
+     * monthly pool applies (an individual subscriber, a hotel without a
+     * plan, or someone who is not an employee).
+     */
+    public function hotelPoolRemaining(User $user): ?int
+    {
+        if ($user->hotel_id === null || ! $user->hasRole(Role::Employee->value)) {
+            return null;
+        }
+
+        $hotel = $this->hotelFor($user);
+        $plan = $hotel?->subscriptionPlan;
+
+        if ($hotel === null || $plan === null) {
+            return null;
+        }
+
+        return app(HotelAiPointTopUpService::class)->poolFor($hotel, $plan) - $this->hotelPointsUsedThisMonth($hotel->id);
+    }
+
+    /**
+     * The hotel's points spent this month: every charged AI action plus its
+     * employees' charged voice calls, counted as the manager's balance
+     * counts them (AiPointsBalanceService).
+     */
+    public function hotelPointsUsedThisMonth(int $hotelId): int
+    {
+        $from = Date::now()->startOfMonth();
+
+        $actions = (int) AiUsage::query()
+            ->where('hotel_id', $hotelId)
+            ->where('occurred_at', '>=', $from)
+            ->sum('points_charged');
+
+        $voice = (int) RoleplayAttempt::query()
+            ->where('is_preview', false)
+            ->where('started_at', '>=', $from)
+            ->whereHas('user', fn (Builder $users) => $users->where('hotel_id', $hotelId))
+            ->sum('ai_points_charged');
+
+        return $actions + $voice;
+    }
+
+    /**
+     * Why a practice answer's AI evaluation may not be queued now, as a
+     * learner-facing sentence, or null when it may (AIL-01, AIL-03, API-03;
+     * security audit 2026-11-08).
+     *
+     * The answer itself is always saved (DATA-01); only the paid call is
+     * skipped. Checked before dispatch: the owner's credit, an individual
+     * plan without AI, the points the job will charge (`$actions` metered
+     * calls, e.g. 2 for transcribe + judge), and a daily cap on practice
+     * evaluations per learner.
+     *
+     * @param  list<string>  $capabilities  the provider capabilities the job needs
+     */
+    public function practiceEvaluationRefusal(User $user, int $actions = 1, array $capabilities = ['ai']): ?string
+    {
+        try {
+            $this->assertCredit($user, ...$capabilities);
+
+            $individual = $this->individualPlan($user);
+
+            if ($individual !== null && ! $individual->ai_enabled) {
+                throw AiLimitReached::forIndividualPlan(AiFeature::WritingEval);
+            }
+
+            $this->assertPointsAvailable($user, $this->aiActionCost($user) * max(0, $actions));
+        } catch (AiLimitReached $exception) {
+            return $exception->getMessage();
+        }
+
+        if ($this->practiceEvaluationsToday($user) >= self::perEmployeeDailyPracticeEvaluations()) {
+            return __('You have had many answers checked by AI today. This answer is saved; AI feedback opens again tomorrow.');
+        }
+
+        return null;
+    }
+
+    /**
+     * Practice answers of this learner sent for an AI evaluation today
+     * (writing, or a spoken answer judged from its transcript).
+     */
+    public function practiceEvaluationsToday(User $user): int
+    {
+        return Attempt::query()
+            ->where('user_id', $user->id)
+            ->whereNull('test_attempt_id')
+            ->whereNotNull('ai_status')
+            ->where('created_at', '>=', Date::now()->startOfDay())
+            ->count();
+    }
+
+    public static function perEmployeeDailyPracticeEvaluations(): int
+    {
+        return (int) config('guesvia.ai.limits.per_employee_daily_practice_evaluations', 100);
     }
 
     /**

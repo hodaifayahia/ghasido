@@ -245,7 +245,10 @@ final class DashScopeImageProvider implements ImageProvider
             ? $info['mime']
             : strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
 
-        if (! str_starts_with($mime, 'image/')) {
+        // Raster images only: an SVG (script-capable) or any other type is
+        // refused, whatever the provider's Content-Type says (security
+        // audit 2026-11-08).
+        if (! in_array($mime, ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'], true)) {
             throw new RuntimeException('The image provider returned a file that is not an image.');
         }
 
