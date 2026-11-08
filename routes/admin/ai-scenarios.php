@@ -44,9 +44,13 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
     Route::post('ai-scenarios/{scenario}/duplicate', [AiScenariosController::class, 'duplicate'])
         ->name('ai-scenarios.duplicate');
 
+    // Previews spend the owner's AI credit: throttled (security audit
+    // 2026-11-08).
     Route::post('ai-scenarios/preview', [AiScenarioPreviewController::class, 'store'])
+        ->middleware('throttle:10,1')
         ->name('ai-scenarios.preview.store');
     Route::post('ai-scenarios/preview/{attempt}/message', [AiScenarioPreviewController::class, 'message'])
+        ->middleware('throttle:30,1')
         ->name('ai-scenarios.preview.message');
     Route::post('ai-scenarios/preview/{attempt}/end', [AiScenarioPreviewController::class, 'end'])
         ->name('ai-scenarios.preview.end');
@@ -60,8 +64,10 @@ Route::middleware(Permission::ScenariosManage->middleware())->group(function () 
     Route::patch('ai-scenarios/{scenario}/voice-agent', [VoiceAgentSettingsController::class, 'updateScenario'])
         ->name('ai-scenarios.voice-agent.scenario');
     Route::post('ai-scenarios/{scenario}/voice-preview', [AiScenarioVoiceCallController::class, 'start'])
+        ->middleware('throttle:6,1')
         ->name('ai-scenarios.voice-preview.start');
     Route::post('ai-scenarios/voice-preview/{attempt}/turns', [AiScenarioVoiceCallController::class, 'turn'])
+        ->middleware('throttle:120,1')
         ->name('ai-scenarios.voice-preview.turn');
     Route::post('ai-scenarios/voice-preview/{attempt}/reply', [AiScenarioVoiceCallController::class, 'reply'])
         ->middleware('throttle:60,1')

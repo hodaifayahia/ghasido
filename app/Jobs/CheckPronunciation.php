@@ -172,7 +172,8 @@ class CheckPronunciation implements ShouldBeUnique, ShouldQueue
         $meter->record($attempt->user, AiFeature::PronunciationCheck, UsageMeter::audioUsage(
             $transcript->provider,
             $transcript->model,
-            $attempt->duration_ms ?? $attempt->recording->duration_ms ?? $attempt->recording->media->duration_ms ?? null,
+            $attempt->recording?->media?->billableDurationMs($attempt->duration_ms ?? $attempt->recording->duration_ms)
+                ?? $attempt->duration_ms,
         ), chargePoints: false);
 
         return $transcript;

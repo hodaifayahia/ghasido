@@ -29,7 +29,14 @@ class GenerateImageRequest extends FormRequest
 
         $target = $this->targetModel();
 
-        return $target === null || $user->can('update', $target);
+        // A named target must exist now and be editable by this user: an
+        // id that does not exist yet could otherwise be filled later by
+        // another hotel's row (ROLE-02; security audit 2026-11-08).
+        if ($this->filled('target_type')) {
+            return $target !== null && $user->can('update', $target);
+        }
+
+        return true;
     }
 
     /**

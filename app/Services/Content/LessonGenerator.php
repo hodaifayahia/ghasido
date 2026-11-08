@@ -272,6 +272,25 @@ class LessonGenerator
      */
     public function retry(ContentGeneration $generation): ContentGeneration
     {
+        // Only a run that failed, or lost images, is redone: a running or
+        // finished run is left alone, so retry can never become a way to
+        // generate (and bill) more than the daily limits allow (AIL-01..03;
+        // security audit 2026-11-08).
+        $redo = $generation->status === GenerationStatus::Failed
+            || ($generation->status === GenerationStatus::Done && $generation->images_failed > 0);
+
+        if (! $redo) {
+            return $generation;
+        }
+
+        if ($generation->user !== null) {
+            if ($generation->type === ContentGenerationType::Image || $generation->images_failed > 0) {
+                $this->assertImagesWithinLimits($generation->user, max(1, $generation->images_failed));
+            } else {
+                app(ApiCredit::class)->assertCapabilities('ai');
+            }
+        }
+
         $generation->forceFill([
             'status' => GenerationStatus::Pending,
             'failed_reason' => null,

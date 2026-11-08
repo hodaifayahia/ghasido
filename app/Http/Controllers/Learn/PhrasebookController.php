@@ -188,7 +188,13 @@ class PhrasebookController extends Controller
         // 2026-09-30).
         $user = request()->user('web');
 
-        $entries = $user instanceof User ? app(HelperMeaningSwap::class)->apply($entries, $user, fillMissing: true) : $entries;
+        // During a test with Show Meaning off, no stored translation is
+        // looked up for the learner's own saved text: the phrasebook must
+        // not become a second Show Meaning (CTRL-04; security audit
+        // 2026-11-08).
+        $entries = $user instanceof User
+            ? app(HelperMeaningSwap::class)->apply($entries, $user, fillMissing: ! $user->hasOpenSittingWithoutMeaning())
+            : $entries;
 
         // A saved sentence with no meaning in any store has nothing to show.
         return array_map(static function (array $entry): array {

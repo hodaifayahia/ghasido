@@ -211,6 +211,12 @@ class TranslationsController extends Controller
             return response()->json(['item' => $this->row($text, $translation)]);
         }
 
+        // A draft already on its way is not started twice (security audit
+        // 2026-11-08: repeated clicks each spent an AI call).
+        if ($translation->exists && in_array($translation->status, [GenerationStatus::Pending, GenerationStatus::Running], true)) {
+            return response()->json(['item' => $this->row($text, $translation)], 202);
+        }
+
         // The owner's AI credit is checked before anything is spent (D7a).
         try {
             app(ApiCredit::class)->assertCapabilities('ai');

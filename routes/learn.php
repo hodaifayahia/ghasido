@@ -148,7 +148,9 @@ Route::middleware([
             Route::get('phrasebook', [PhrasebookController::class, 'index'])->name('phrasebook');
             Route::get('phrasebook/review', [PhrasebookController::class, 'review'])->name('phrasebook.review');
             Route::post('phrasebook/{item}/review', [PhrasebookController::class, 'recordReview'])->name('phrasebook.review.store');
-            Route::post('phrasebook', [PhrasebookController::class, 'store'])->name('phrasebook.store');
+            Route::post('phrasebook', [PhrasebookController::class, 'store'])
+                ->middleware('throttle:60,1')
+                ->name('phrasebook.store');
             Route::delete('phrasebook/{item}', [PhrasebookController::class, 'destroy'])->name('phrasebook.destroy');
 
             Route::get('progress', [ProgressController::class, 'index'])->name('progress');

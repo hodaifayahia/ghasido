@@ -129,6 +129,22 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
     }
 
     /**
+     * True while this learner has an open sitting of a test whose admin
+     * switched Show Meaning off (CTRL-04, TEST-03): no translation of any
+     * text may reach them then, through any door (security audit
+     * 2026-11-08).
+     */
+    public function hasOpenSittingWithoutMeaning(): bool
+    {
+        return TestAttempt::query()
+            ->where('user_id', $this->id)
+            ->where('status', TestAttemptStatus::InProgress)
+            ->with('test')
+            ->get()
+            ->contains(fn (TestAttempt $attempt): bool => $attempt->isOpen() && $attempt->test !== null && ! $attempt->test->showsMeaning());
+    }
+
+    /**
      * Delete this user's rows from the database session table, when the
      * session driver is the database (SESSION_DRIVER=database).
      */

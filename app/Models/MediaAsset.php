@@ -192,6 +192,26 @@ class MediaAsset extends Model
         return $storageUrl;
     }
 
+    /**
+     * The audio length to bill speech-to-text by: the recorded length, but
+     * never less than the file size allows at a generous bitrate, so a
+     * client that reports 0 ms (or nothing) for a long file is still
+     * metered for it (API-03; security audit 2026-11-08).
+     */
+    public function billableDurationMs(?int $claimedMs = null): ?int
+    {
+        $claimed = max((int) ($claimedMs ?? 0), (int) ($this->duration_ms ?? 0));
+        $bytes = (int) ($this->size_bytes ?? 0);
+
+        // Uncompressed audio at 48 kHz/16-bit mono, or 320 kbit/s for any
+        // compressed format: real recordings are smaller, so this is a floor.
+        $bytesPerSecond = str_contains($this->mime, 'wav') ? 96000 : 40000;
+        $fromSize = $bytes > 0 ? (int) ceil($bytes / $bytesPerSecond * 1000) : 0;
+        $billable = max($claimed, $fromSize);
+
+        return $billable > 0 ? $billable : null;
+    }
+
     public function isPublic(): bool
     {
         return $this->disk === self::DISK_PUBLIC;
