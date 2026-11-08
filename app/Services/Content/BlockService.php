@@ -3,10 +3,12 @@
 namespace App\Services\Content;
 
 use App\Enums\BlockType;
+use App\Models\Activity;
 use App\Models\AiScenario;
 use App\Models\AuditLog;
 use App\Models\Block;
 use App\Models\Lesson;
+use App\Models\LexiconItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -180,6 +182,9 @@ class BlockService
      */
     public function syncLexicon(Block $block, array $ids): void
     {
+        $attached = $block->lexiconItems()->pluck('lexicon_items.id')->map(static fn (mixed $id): int => (int) $id)->all();
+        $this->assertInHotelScope($block, LexiconItem::class, $ids, $attached, 'lexicon_item_ids');
+
         $sync = [];
         foreach ($ids as $index => $id) {
             $sync[$id] = ['position' => $index + 1];
@@ -197,6 +202,13 @@ class BlockService
     public function syncActivities(Block $block, array $ids): void
     {
         $existing = $block->placements()->get()->keyBy('activity_id');
+        $this->assertInHotelScope(
+            $block,
+            Activity::class,
+            $ids,
+            $existing->keys()->map(static fn (mixed $id): int => (int) $id)->all(),
+            'activity_ids',
+        );
 
         foreach ($ids as $index => $activityId) {
             $placement = $existing->get($activityId);
@@ -212,6 +224,45 @@ class BlockService
         }
 
         $block->placements()->whereNotIn('activity_id', $ids)->delete();
+    }
+
+    /**
+     * Security audit 2026-11-08: a newly attached lexicon item or activity
+     * must be shared (no hotel) or the lesson's own hotel's, as for
+     * scenarios above, so no hotel's content leaks into another hotel's
+     * lesson (ROLE-02, SEC-01). Rows already on the block stay attachable,
+     * so re-saving an existing step never fails.
+     *
+     * @param  class-string<LexiconItem|Activity>  $model
+     * @param  list<int>  $ids
+     * @param  array<int>  $attached
+     */
+    private function assertInHotelScope(Block $block, string $model, array $ids, array $attached, string $field): void
+    {
+        $new = array_values(array_unique(array_diff($ids, $attached)));
+
+        if ($new === []) {
+            return;
+        }
+
+        $hotelId = $block->lesson()->value('hotel_id');
+
+        $allowed = $model::query()
+            ->whereIn('id', $new)
+            ->where(function ($query) use ($hotelId): void {
+                $query->whereNull('hotel_id');
+
+                if ($hotelId !== null) {
+                    $query->orWhere('hotel_id', (int) $hotelId);
+                }
+            })
+            ->count();
+
+        if ($allowed !== count($new)) {
+            throw ValidationException::withMessages([
+                $field => __('Select items shared across hotels or from this lesson’s hotel.'),
+            ]);
+        }
     }
 
     /**

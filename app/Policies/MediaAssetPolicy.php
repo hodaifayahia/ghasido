@@ -31,8 +31,14 @@ class MediaAssetPolicy
             return true;
         }
 
+        // Security audit 2026-11-08: transcripts.view granted to a
+        // hotel-bound role reads its own hotel's recordings only; across
+        // hotels it is the Super Admin's alone (ROLE-02, ROLE-04, PRIV-04).
         if ($asset->library === MediaLibrary::Recordings) {
-            return $user->can(Permission::TranscriptsView->value);
+            return $user->hasRole(Role::SuperAdmin->value)
+                || ($user->can(Permission::TranscriptsView->value)
+                    && $asset->hotel_id !== null
+                    && $asset->hotel_id === $user->hotel_id);
         }
 
         return $asset->hotel_id !== null

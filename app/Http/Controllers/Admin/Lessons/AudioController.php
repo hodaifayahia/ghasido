@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Lessons;
 
 use App\Enums\AudioSpeed;
 use App\Enums\MediaKind;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
 use App\Models\MediaAsset;
@@ -103,6 +104,13 @@ class AudioController extends Controller
     public function replace(Request $request, AudioLibrary $audio): RedirectResponse
     {
         Gate::authorize('create', MediaAsset::class);
+
+        // Security audit 2026-11-08: a clip is one stored file per text,
+        // voice and speed, shared by every lesson and hotel that plays that
+        // sentence, so replacing it changes other hotels' lessons too. Like
+        // the bulk generation above it is the platform owner's action
+        // (ROLE-02, ROLE-03, TTS-03).
+        abort_unless($request->user('web')?->hasRole(Role::SuperAdmin->value) ?? false, 403);
 
         $validated = $request->validate([
             'text' => ['required', 'string', 'max:500'],

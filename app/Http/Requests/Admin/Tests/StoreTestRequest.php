@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin\Tests;
 
 use App\Enums\EnglishLevel;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Enums\TestType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -15,7 +16,36 @@ class StoreTestRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(Permission::TestsManage->value) ?? false;
+        $user = $this->user('web');
+
+        if ($user === null || ! $user->can(Permission::TestsManage->value)) {
+            return false;
+        }
+
+        // Security audit 2026-11-08: below the Super Admin a new test belongs
+        // to the actor's own hotel (shared only for staff with no hotel), so
+        // nobody authors content into another hotel (ROLE-02, SEC-01).
+        if ($user->hasRole(Role::SuperAdmin->value)) {
+            return true;
+        }
+
+        return $this->hotelId() === $user->hotel_id;
+    }
+
+    /**
+     * The hotel the new test belongs to. Left blank ("Shared") by hotel
+     * staff, it falls back to their own hotel: only the Super Admin and
+     * staff with no hotel author shared content (security audit 2026-11-08).
+     */
+    public function hotelId(): ?int
+    {
+        if ($this->filled('hotel_id')) {
+            return $this->integer('hotel_id');
+        }
+
+        $user = $this->user('web');
+
+        return $user === null || $user->hasRole(Role::SuperAdmin->value) ? null : $user->hotel_id;
     }
 
     protected function prepareForValidation(): void
@@ -54,7 +84,7 @@ class StoreTestRequest extends FormRequest
             'title' => trim((string) $this->validated('title')),
             'type' => TestType::from((string) $this->validated('type')),
             'department_id' => $this->validated('department_id') === null ? null : (int) $this->validated('department_id'),
-            'hotel_id' => $this->filled('hotel_id') ? (int) $this->validated('hotel_id') : null,
+            'hotel_id' => $this->hotelId(),
             'time_limit_seconds' => $time === null || (int) $time === 0 ? null : (int) $time * 60,
             'level' => $this->filled('level') ? (string) $this->validated('level') : null,
         ];

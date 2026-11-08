@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\GenerationStatus;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Jobs\TranslateText;
 use App\Models\Course;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,7 +44,7 @@ class TranslationsController extends Controller
 
     public function index(Request $request): Response
     {
-        $this->authorizeEditor($request);
+        $editor = $this->authorizeEditor($request);
 
         $scope = $this->scope($request);
         $locale = $this->locale($request);
@@ -103,9 +105,9 @@ class TranslationsController extends Controller
                 'total' => TextTranslation::query()->where('locale', $locale)->where('status', GenerationStatus::Done->value)->count(),
             ],
             'options' => [
-                'lessons' => Lesson::query()->orderBy('title')->get(['id', 'title'])->map(fn (Lesson $lesson): array => ['value' => 'lesson:'.$lesson->id, 'label' => $lesson->title])->all(),
-                'tests' => Test::query()->orderBy('title')->get(['id', 'title'])->map(fn (Test $test): array => ['value' => 'test:'.$test->id, 'label' => $test->title])->all(),
-                'courses' => Course::query()->orderBy('title')->get(['id', 'title'])->map(fn (Course $course): array => ['value' => 'course:'.$course->id, 'label' => $course->title])->all(),
+                'lessons' => $this->inReach(Lesson::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Lesson $lesson): array => ['value' => 'lesson:'.$lesson->id, 'label' => $lesson->title])->all(),
+                'tests' => $this->inReach(Test::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Test $test): array => ['value' => 'test:'.$test->id, 'label' => $test->title])->all(),
+                'courses' => $this->inReach(Course::query(), $editor)->orderBy('title')->get(['id', 'title'])->map(fn (Course $course): array => ['value' => 'course:'.$course->id, 'label' => $course->title])->all(),
             ],
         ]);
     }
@@ -300,6 +302,30 @@ class TranslationsController extends Controller
     }
 
     /**
+     * Below the Super Admin, only shared content and the editor's own
+     * hotel's (security audit 2026-11-08, ROLE-02).
+     *
+     * @template TModel of Lesson|Test|Course
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function inReach(Builder $query, User $editor): Builder
+    {
+        if ($editor->hasRole(Role::SuperAdmin->value)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $inner) use ($editor): void {
+            $inner->whereNull('hotel_id');
+
+            if ($editor->hotel_id !== null) {
+                $inner->orWhere('hotel_id', $editor->hotel_id);
+            }
+        });
+    }
+
+    /**
      * The lesson, test or course chosen with `?content=lesson:12`.
      *
      * @return array{kind: string, id: int, title: string, texts: list<string>}|null
@@ -314,19 +340,24 @@ class TranslationsController extends Controller
 
         $id = (int) $m[2];
 
+        // Security audit 2026-11-08: the chosen content must be one the
+        // editor may change, shared or their own hotel's (ROLE-02, SEC-01).
         if ($m[1] === 'lesson') {
             $lesson = Lesson::query()->findOrFail($id);
+            Gate::authorize('update', $lesson);
 
             return ['kind' => 'lesson', 'id' => $id, 'title' => $lesson->title, 'texts' => MeaningTexts::forLesson($lesson)];
         }
 
         if ($m[1] === 'test') {
             $test = Test::query()->findOrFail($id);
+            Gate::authorize('update', $test);
 
             return ['kind' => 'test', 'id' => $id, 'title' => $test->title, 'texts' => MeaningTexts::forTest($test)];
         }
 
         $course = Course::query()->findOrFail($id);
+        Gate::authorize('update', $course);
 
         return ['kind' => 'course', 'id' => $id, 'title' => $course->title, 'texts' => MeaningTexts::forCourse($course)];
     }
