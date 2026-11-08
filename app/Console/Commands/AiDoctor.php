@@ -78,7 +78,7 @@ class AiDoctor extends Command
             $this->line(sprintf('  failed in the last 24h: %d', $failed));
 
             if ($pending > 0 && is_numeric($oldest) && (int) $oldest < now()->subMinutes(5)->getTimestamp()) {
-                $this->warn(sprintf('    The oldest job has waited %d minutes: no queue worker is running. Add the two queue cron jobs in hPanel (docs/deploy/hostinger.md).', intdiv(now()->getTimestamp() - (int) $oldest, 60)));
+                $this->warn(sprintf('    The oldest job has waited %d minutes: no queue worker is running. The site now works through the queue itself after each signed-in page load, but add the two queue cron jobs in hPanel (docs/deploy/hostinger.md) so AI work never waits for someone to open a page.', intdiv(now()->getTimestamp() - (int) $oldest, 60)));
                 $problems++;
             }
 

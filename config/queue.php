@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Fallback drain (App\Support\QueueFallback, client report 2026-11-08)
+    |--------------------------------------------------------------------------
+    |
+    | With no queue worker alive, a signed-in request works through the
+    | database queue after its response. Off in the test suite, where a
+    | test decides when jobs run.
+    |
+    */
+
+    'fallback' => (bool) env('QUEUE_FALLBACK', env('APP_ENV') !== 'testing'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
     |

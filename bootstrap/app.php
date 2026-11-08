@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureHotelAccess;
 use App\Http\Middleware\EnsureOwnerAuthenticated;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\KeepQueueMoving;
 use App\Http\Middleware\ResolveTrainingDepartment;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\UseEnglishForData;
@@ -50,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // Admin accounts complete their contact profile first (owner
             // request 2026-09-25; spec 0007, D12).
             EnsureAdminProfileCompleted::class,
+            // Keeps queued AI work moving when no worker runs (2026-11-08).
+            KeepQueueMoving::class,
         ]);
 
         // Authorization is decided at the route boundary, server side

@@ -27,11 +27,13 @@ use App\Services\Tts\DeepgramTtsProvider;
 use App\Services\Tts\FakeTtsProvider;
 use App\Services\Tts\OpenAiCompatibleTtsProvider;
 use App\Services\Tts\TtsSettings;
+use App\Support\QueueFallback;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Translation\Loader;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
@@ -192,6 +194,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A running queue worker stamps a heartbeat, so the web requests
+        // know when no worker is alive and keep the queue moving
+        // themselves (App\Support\QueueFallback, client report 2026-11-08).
+        Queue::looping(fn () => QueueFallback::beat());
+
         $this->configureDefaults();
         $this->configureSuperAdmin();
 
