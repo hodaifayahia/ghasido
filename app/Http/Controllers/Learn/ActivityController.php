@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Learn;
 
+use App\Enums\GenerationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Learn\AnswerActivityRequest;
 use App\Models\ActivityPlacement;
@@ -148,6 +149,16 @@ class ActivityController extends Controller
             $request->startedAt(),
             $request->submissionKey(),
         );
+
+        // Saved, but the AI evaluation was not queued: say why (the daily
+        // cap, the points, a paused AI), never the provider's error text
+        // (AIL-03, PERF-04; security audit 2026-11-08).
+        if ($attempt->wasRecentlyCreated && $attempt->ai_status === GenerationStatus::Failed && $attempt->ai_failed_reason !== null) {
+            Inertia::flash('toast', [
+                'type' => 'warning',
+                'message' => $attempt->ai_failed_reason,
+            ]);
+        }
 
         return to_route('learn.lessons.activity', ['lesson' => $lesson, 'block' => $block, 'placement' => $placement])
             ->with(self::RESULT_KEY, [

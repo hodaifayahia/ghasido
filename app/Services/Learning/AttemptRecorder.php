@@ -14,6 +14,7 @@ use App\Models\Lesson;
 use App\Models\MediaAsset;
 use App\Models\PronunciationAttempt;
 use App\Models\User;
+use App\Services\Ai\UsageMeter;
 use App\Services\Pronunciation\PronunciationPresenter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -35,6 +36,7 @@ class AttemptRecorder
         private readonly ActivityScorer $scorer,
         private readonly ActivityPresenter $presenter,
         private readonly ProgressService $progress,
+        private readonly UsageMeter $meter,
     ) {}
 
     /**
@@ -71,9 +73,28 @@ class AttemptRecorder
 
         $recordingId = $this->recordingIdIn($user, $activity->type, $answers);
         $spoken = $activity->type === ActivityType::Speaking && $recordingId !== null;
+        $pronunciation = $spoken && self::asksPronunciation($version->items(), $answers);
+        $evaluates = $activity->type === ActivityType::Writing || $spoken;
+
+        // Every AI evaluation spends the owner's credit and the learner's
+        // points, so it is checked BEFORE it is queued: credit, plan, points
+        // (the job charges per metered call) and a daily cap. Over the limit
+        // the answer is still saved (DATA-01, PROG-04); only the paid call
+        // is skipped and the attempt ends `failed` with the reason, which
+        // the page shows as "saved, not evaluated" (AIL-01, AIL-03, PERF-04;
+        // security audit 2026-11-08).
+        $refusal = ! $evaluates ? null : $this->meter->practiceEvaluationRefusal(
+            $user,
+            match (true) {
+                $pronunciation => 0,
+                $spoken => 2,
+                default => 1,
+            },
+            $spoken ? ['stt', 'ai'] : ['ai'],
+        );
 
         try {
-            $attempt = DB::transaction(function () use ($user, $lesson, $block, $placement, $activity, $version, $answers, $result, $startedAt, $submittedAt, $recordingId, $spoken, $submissionKey): Attempt {
+            $attempt = DB::transaction(function () use ($user, $lesson, $block, $placement, $activity, $version, $answers, $result, $startedAt, $submittedAt, $recordingId, $evaluates, $refusal, $submissionKey): Attempt {
                 $attemptNo = (int) Attempt::query()
                     ->where('user_id', $user->id)
                     ->where('placement_id', $placement->id)
@@ -91,7 +112,12 @@ class AttemptRecorder
                     'attempt_no' => $attemptNo,
                     'raw_answer' => $answers,
                     'response_media_id' => $recordingId,
-                    'ai_status' => $activity->type === ActivityType::Writing || $spoken ? GenerationStatus::Pending : null,
+                    'ai_status' => match (true) {
+                        ! $evaluates => null,
+                        $refusal !== null => GenerationStatus::Failed,
+                        default => GenerationStatus::Pending,
+                    },
+                    'ai_failed_reason' => $refusal,
                     'started_at' => $startedAt,
                     'submitted_at' => $submittedAt,
                     'time_taken_ms' => max(0, (int) $startedAt->diffInMilliseconds($submittedAt)),
@@ -108,6 +134,10 @@ class AttemptRecorder
             return $this->submitted($user, $submissionKey) ?? throw $exception;
         }
 
+        if ($refusal !== null) {
+            return $attempt;
+        }
+
         if ($activity->type === ActivityType::Writing) {
             EvaluateWrittenAnswer::dispatch($attempt->id);
         }
@@ -118,8 +148,6 @@ class AttemptRecorder
         // A sentence to say is a pronunciation check (client report
         // 2026-09-29, spec 0006); an open question is judged by the AI.
         if ($spoken) {
-            $pronunciation = self::asksPronunciation($version->items(), $answers);
-
             // A void closure: PendingDispatch sends on destruct, inside rescue().
             rescue(function () use ($attempt, $pronunciation): void {
                 if ($pronunciation) {

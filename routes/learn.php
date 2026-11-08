@@ -97,7 +97,12 @@ Route::middleware([
                 Route::post('lessons/{lesson}/steps/{block}/complete', [LessonStepController::class, 'complete'])->name('lessons.step.complete');
                 Route::get('lessons/{lesson}/steps/{block}/essentials', [EssentialsController::class, 'help'])->name('lessons.step.essentials');
                 Route::get('lessons/{lesson}/steps/{block}/activities/{placement}', [ActivityController::class, 'show'])->name('lessons.activity');
-                Route::post('lessons/{lesson}/steps/{block}/activities/{placement}/answers', [ActivityController::class, 'answer'])->name('lessons.activity.answer');
+                // A written or spoken answer queues a paid AI evaluation:
+                // throttled here, capped per day in AttemptRecorder (AIL-01;
+                // security audit 2026-11-08).
+                Route::post('lessons/{lesson}/steps/{block}/activities/{placement}/answers', [ActivityController::class, 'answer'])
+                    ->middleware('throttle:30,1')
+                    ->name('lessons.activity.answer');
 
                 // Pronunciation check of a speaking step (spec 0006): JSON,
                 // throttled; the daily cap lives in the controller.
@@ -118,8 +123,15 @@ Route::middleware([
             // Live spoken role-play through the Deepgram Voice Agent (spec
             // 0004). JSON endpoints: start returns a short-lived session,
             // turn stores one caption, end queues the evaluation.
-            Route::post('lessons/{lesson}/steps/{block}/roleplay/{scenario}/voice', [VoiceCallController::class, 'start'])->name('roleplay.voice.start');
-            Route::post('roleplay/attempts/{attempt}/voice/turns', [VoiceCallController::class, 'turn'])->name('roleplay.voice.turn');
+            // Each start mints a billed Deepgram session and each caption may
+            // meter a turn: both throttled, starts also capped per day in
+            // VoiceCallService (AIL-01, API-03; security audit 2026-11-08).
+            Route::post('lessons/{lesson}/steps/{block}/roleplay/{scenario}/voice', [VoiceCallController::class, 'start'])
+                ->middleware('throttle:6,1')
+                ->name('roleplay.voice.start');
+            Route::post('roleplay/attempts/{attempt}/voice/turns', [VoiceCallController::class, 'turn'])
+                ->middleware('throttle:120,1')
+                ->name('roleplay.voice.turn');
             // The fast engine's guest answer (spec 0009): each call spends
             // AI, so it is throttled; the daily cap lives in the service.
             Route::post('roleplay/attempts/{attempt}/voice/reply', [VoiceCallController::class, 'reply'])
@@ -148,7 +160,11 @@ Route::middleware([
                 ->middleware('throttle:20,1')
                 ->name('messages.reply');
 
-            Route::post('recordings', [RecordingController::class, 'store'])->name('recordings.store');
+            // Uploads fill the private disk: throttled here, capped per day
+            // in the controller (SEC-04; security audit 2026-11-08).
+            Route::post('recordings', [RecordingController::class, 'store'])
+                ->middleware('throttle:20,1')
+                ->name('recordings.store');
 
             Route::get('certificate', [CertificateController::class, 'index'])->name('certificate');
         });

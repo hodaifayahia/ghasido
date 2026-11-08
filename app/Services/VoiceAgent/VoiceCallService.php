@@ -18,8 +18,10 @@ use App\Services\Learning\RoleplayService;
 use App\Services\Owner\ApiCredit;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * One live voice call = one role-play attempt (RP-05, RP-06, RP-11, RP-13,
@@ -41,6 +43,24 @@ final class VoiceCallService
 
     /** A live call with no caption for this long has lost its page. */
     public const int STALE_AFTER_MINUTES = 30;
+
+    /**
+     * The most captions one call stores, and their total length. The
+     * transcript is posted by the browser, so it is bounded on the server
+     * before it is stored and sent to the evaluator (RP-11, AIL-01;
+     * security audit 2026-11-08).
+     */
+    public const int MAX_TURNS = 200;
+
+    public const int MAX_TRANSCRIPT_CHARACTERS = 60000;
+
+    /**
+     * A call with no caption that lasted longer than this did connect (the
+     * guest greets within seconds), so it is closed and billed instead of
+     * being discarded as a connection failure (API-03; security audit
+     * 2026-11-08).
+     */
+    public const int DISCARD_SILENT_CALL_WITHIN_SECONDS = 60;
 
     public function __construct(
         private readonly UsageMeter $meter,
@@ -68,6 +88,7 @@ final class VoiceCallService
         if (! $preview) {
             $this->meter->assertWithinLimits($user, AiFeature::RoleplayTurn);
             $this->meter->assertVoicePointsAvailable($user);
+            $this->assertDailyStartsLeft($user);
         }
 
         $attempt = RoleplayAttempt::query()->create([
@@ -89,9 +110,38 @@ final class VoiceCallService
             // A call is learning activity like a lesson step (DATA-06; spec
             // 0005 §5.4); an admin's preview is not.
             $this->progress->touch($user);
+
+            // Counted at start, so a call later discarded (no caption) still
+            // counts: each start mints a billed Deepgram session.
+            RateLimiter::hit(self::startsKey($user), (int) Date::now()->diffInSeconds(Date::now()->endOfDay()) + 60);
         }
 
         return $attempt;
+    }
+
+    /**
+     * A learner may start only so many voice calls a day, whatever becomes
+     * of them (AIL-01, API-03; security audit 2026-11-08).
+     *
+     * @throws HttpResponseException a 429 with the learner-facing message
+     */
+    private function assertDailyStartsLeft(User $user): void
+    {
+        if (RateLimiter::tooManyAttempts(self::startsKey($user), self::dailyStartsPerEmployee())) {
+            throw new HttpResponseException(response()->json([
+                'message' => __('You have started many voice calls today. Your lessons, text role-plays and phrasebook are still open; try a call again tomorrow.'),
+            ], 429));
+        }
+    }
+
+    public static function dailyStartsPerEmployee(): int
+    {
+        return (int) config('guesvia.ai.limits.per_employee_daily_voice_calls', 30);
+    }
+
+    private static function startsKey(User $user): string
+    {
+        return 'voice-call-starts:'.$user->id.':'.Date::now()->toDateString();
     }
 
     /**
@@ -104,8 +154,20 @@ final class VoiceCallService
     {
         $mapped = $role === 'user' ? RoleplayAttempt::ROLE_EMPLOYEE : RoleplayAttempt::ROLE_GUEST;
         $text = trim($content);
+        $full = false;
 
-        $stored = DB::transaction(function () use ($attempt, $seq, $mapped, $text): bool {
+        // The fast engine writes both sides of every exchange itself
+        // (VoiceReplyService); the browser only posts the opening greeting.
+        // Any other caption it posts would be a forged line in the
+        // transcript the evaluator scores (RP-11, DATA-05; security audit
+        // 2026-11-08). An admin's preview is never anyone's record (RP-13).
+        if (! $attempt->is_preview
+            && $attempt->voice_engine === 'pipeline'
+            && ! $this->isPipelineGreeting($attempt, $seq, $mapped, $text)) {
+            return ['stored' => false, 'limitReached' => false];
+        }
+
+        $stored = DB::transaction(function () use ($attempt, $seq, $mapped, $text, &$full): bool {
             /** @var RoleplayAttempt $locked */
             $locked = RoleplayAttempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
 
@@ -119,6 +181,16 @@ final class VoiceCallService
                 if (($turn['seq'] ?? null) === $seq) {
                     return false;
                 }
+            }
+
+            // A bounded transcript: past the caps the call is over, and the
+            // page is told to hang up (security audit 2026-11-08).
+            $characters = array_sum(array_map(static fn (array $turn): int => mb_strlen($turn['text']), $turns));
+
+            if (count($turns) >= self::MAX_TURNS || $characters + mb_strlen($text) > self::MAX_TRANSCRIPT_CHARACTERS) {
+                $full = true;
+
+                return false;
             }
 
             $turns[] = [
@@ -157,7 +229,8 @@ final class VoiceCallService
             }
         }
 
-        $limitReached = (! $attempt->is_preview
+        $limitReached = $full
+            || (! $attempt->is_preview
             && $user !== null
             && (! $this->meter->isWithinLimits($user, AiFeature::RoleplayTurn)
                 || ! $this->meter->canContinueVoice($attempt)))
@@ -165,6 +238,22 @@ final class VoiceCallService
             || ! app(ApiCredit::class)->isAvailable(ApiAccount::Deepgram);
 
         return ['stored' => $stored, 'limitReached' => $limitReached];
+    }
+
+    /**
+     * Is this the fast engine's opening line, as the server configured it,
+     * posted once as the first caption?
+     */
+    private function isPipelineGreeting(RoleplayAttempt $attempt, int $seq, string $mapped, string $text): bool
+    {
+        if ($mapped !== RoleplayAttempt::ROLE_GUEST || $seq !== 0) {
+            return false;
+        }
+
+        $scenario = $attempt->scenario;
+        $values = $scenario !== null ? $this->settings->forScenario($scenario) : $this->settings->current();
+
+        return $text !== '' && $text === trim((string) $values['greeting']);
     }
 
     /**
@@ -179,13 +268,19 @@ final class VoiceCallService
             return $attempt->status === RoleplayStatus::Abandoned ? self::OUTCOME_ABANDONED : self::OUTCOME_EVALUATING;
         }
 
-        if ($attempt->turnsCount() === 0) {
+        $endedAt ??= Date::now();
+
+        // A call that never connected is removed so a microphone or network
+        // failure does not burn an attempt. One that ran on without a single
+        // caption did connect and was billed by Deepgram all the same: it is
+        // closed as abandoned below and metered, not discarded (API-03,
+        // AIL-01; security audit 2026-11-08).
+        if ($attempt->turnsCount() === 0
+            && abs($attempt->started_at->diffInSeconds($endedAt)) <= self::DISCARD_SILENT_CALL_WITHIN_SECONDS) {
             $attempt->delete();
 
             return self::OUTCOME_DISCARDED;
         }
-
-        $endedAt ??= Date::now();
 
         if ($attempt->employeeTurnsCount() === 0) {
             $attempt->forceFill([

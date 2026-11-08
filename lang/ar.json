@@ -4741,5 +4741,10 @@
     "Position": "الموضع",
     "Rename, move, copy or delete": "إعادة تسمية أو نقل أو نسخ أو حذف",
     "The courses could not be loaded. Please try again.": "تعذّر تحميل الدورات. حاول مرة أخرى.",
-    "This course has no unit yet. Add a unit to it first.": "لا توجد وحدة في هذه الدورة بعد. أضف وحدة أولًا."
+    "This course has no unit yet. Add a unit to it first.": "لا توجد وحدة في هذه الدورة بعد. أضف وحدة أولًا.",
+    "You have had many answers checked by AI today. This answer is saved; AI feedback opens again tomorrow.": "لقد تم تصحيح عدد كبير من إجاباتك بالذكاء الاصطناعي اليوم. تم حفظ هذه الإجابة، وسيعود تقييم الذكاء الاصطناعي غدًا.",
+    "This answer is too long.": "هذه الإجابة طويلة جدًا.",
+    "Please keep your answer under :max characters.": "يرجى أن تكون إجابتك أقل من :max حرف.",
+    "You have started many voice calls today. Your lessons, text role-plays and phrasebook are still open; try a call again tomorrow.": "لقد بدأت عددًا كبيرًا من المكالمات الصوتية اليوم. دروسك ولعب الأدوار النصي ودفتر العبارات ما زالت متاحة؛ حاول إجراء مكالمة مرة أخرى غدًا.",
+    "You have recorded a lot today. Recording opens again tomorrow.": "لقد سجلت كثيرًا اليوم. سيعود التسجيل متاحًا غدًا."
 }

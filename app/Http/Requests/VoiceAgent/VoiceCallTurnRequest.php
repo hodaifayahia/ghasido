@@ -22,7 +22,10 @@ class VoiceCallTurnRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'seq' => ['required', 'integer', 'min:0', 'max:100000'],
+            // A call stores at most VoiceCallService::MAX_TURNS captions;
+            // the bound keeps a forged sequence number sane (security audit
+            // 2026-11-08).
+            'seq' => ['required', 'integer', 'min:0', 'max:10000'],
             'role' => ['required', 'string', 'in:user,assistant,agent'],
             'content' => ['required', 'string', 'max:4000'],
         ];
