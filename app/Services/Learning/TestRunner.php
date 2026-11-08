@@ -372,7 +372,11 @@ class TestRunner
             return $out;
         }
 
-        return self::shuffleOptions($out, 'sitting:'.$attempt->id.'|question:'.$placementId.'|item:'.$itemId.'|'.$list);
+        // No "never unshuffled" rotation here: it would tell the learner the
+        // stored order (always the other one for two entries), and the
+        // stored order of ordering lines and matching targets encodes the
+        // answer (TEST-03; security audit pass 3).
+        return self::shuffleOptions($out, 'sitting:'.$attempt->id.'|question:'.$placementId.'|item:'.$itemId.'|'.$list, rotate: false);
     }
 
     /**
@@ -466,7 +470,7 @@ class TestRunner
      * @param  list<mixed>  $options
      * @return list<mixed>
      */
-    private static function shuffleOptions(array $options, string $seed): array
+    private static function shuffleOptions(array $options, string $seed, bool $rotate = true): array
     {
         $keys = array_map(
             static fn (mixed $option, int $index): string => is_array($option) && is_scalar($option['id'] ?? null) ? (string) $option['id'] : (string) $index,
@@ -480,7 +484,7 @@ class TestRunner
 
         $byKey = array_combine($keys, $options);
 
-        return array_map(static fn (string $key): mixed => $byKey[$key], self::seededOrder($keys, $seed));
+        return array_map(static fn (string $key): mixed => $byKey[$key], self::seededOrder($keys, $seed, $rotate));
     }
 
     /**
@@ -491,16 +495,21 @@ class TestRunner
      * @param  list<string>  $keys
      * @return list<string>
      */
-    private static function seededOrder(array $keys, string $seed): array
+    private static function seededOrder(array $keys, string $seed, bool $rotate = true): array
     {
         if (count(array_unique($keys)) !== count($keys) || count($keys) < 2) {
             return $keys;
         }
 
+        // Keyed with the app key: the seed is made of ids the page shows, so
+        // a plain hash would let the learner recompute the permutation
+        // (security audit pass 3).
+        $secret = (string) config('app.key');
+        $rank = static fn (string $key): string => hash_hmac('sha256', $seed.'|'.$key, $secret);
         $order = $keys;
-        usort($order, static fn (string $a, string $b): int => strcmp(hash('sha256', $seed.'|'.$a), hash('sha256', $seed.'|'.$b)));
+        usort($order, static fn (string $a, string $b): int => strcmp($rank($a), $rank($b)));
 
-        if ($order === $keys) {
+        if ($rotate && $order === $keys) {
             $order[] = array_shift($order);
         }
 

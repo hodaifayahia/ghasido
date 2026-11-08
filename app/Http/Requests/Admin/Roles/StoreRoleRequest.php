@@ -29,8 +29,10 @@ class StoreRoleRequest extends FormRequest
 
         // Security audit 2026-11-08: below the Super Admin, a role can only
         // be given permissions the actor holds themselves (ROLE-01).
+        // Roles are platform-wide, so a hotel-bound delegate creates none
+        // (ROLE-02; security audit pass 3).
         return $user->hasRole(RoleEnum::SuperAdmin->value)
-            || $this->withinCeiling($user, $this->input('permissions', []));
+            || ($user->hotel_id === null && $this->withinCeiling($user, $this->input('permissions', [])));
     }
 
     /**

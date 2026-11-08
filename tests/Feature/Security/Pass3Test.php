@@ -5,6 +5,7 @@ namespace Tests\Feature\Security;
 use App\Enums\ContentGenerationType;
 use App\Enums\GenerationStatus;
 use App\Enums\Permission;
+use App\Enums\Role;
 use App\Enums\TestAttemptStatus;
 use App\Jobs\GenerateContentImage;
 use App\Models\ContentGeneration;
@@ -149,5 +150,40 @@ class Pass3Test extends TestCase
 
         $this->assertSame(100_000, $asset->billableDurationMs(0));
         $this->assertSame(120_000, $asset->billableDurationMs(120_000));
+    }
+
+    public function test_a_hotel_bound_editor_cannot_rewrite_a_shared_translation()
+    {
+        $editor = User::factory()->admin()->create(['hotel_id' => Hotel::factory()->create()->id]);
+        $editor->givePermissionTo(Permission::LessonsManage->value);
+
+        $this->actingAs($editor)
+            ->postJson(route('translations.write'), ['text' => 'Room service', 'arabic' => 'tampered'])
+            ->assertForbidden();
+
+        $this->assertSame(0, TextTranslation::query()->count());
+
+        $staff = User::factory()->admin()->create(['hotel_id' => null]);
+        $staff->givePermissionTo(Permission::LessonsManage->value);
+
+        $this->actingAs($staff)
+            ->postJson(route('translations.write'), ['text' => 'Room service', 'arabic' => 'خدمة الغرف'])
+            ->assertOk();
+    }
+
+    public function test_a_hotel_bound_delegate_cannot_change_a_system_role()
+    {
+        $delegate = User::factory()->admin()->create(['hotel_id' => Hotel::factory()->create()->id]);
+        $delegate->givePermissionTo(Permission::RolesView->value, Permission::RolesManage->value, Permission::EmployeesView->value);
+
+        $employee = \Spatie\Permission\Models\Role::findByName(Role::Employee->value);
+
+        $this->actingAs($delegate)
+            ->put(route('roles.update', $employee), ['permissions' => [Permission::EmployeesView->value]])
+            ->assertForbidden();
+
+        $this->actingAs($delegate)
+            ->put(route('roles.update', $employee), [])
+            ->assertForbidden();
     }
 }

@@ -39,6 +39,13 @@ class UpdateRoleRequest extends FormRequest
             return false;
         }
 
+        // Roles are platform-wide: a hotel-bound delegate edits none of
+        // them, and no delegate edits a system role, whose holders sit in
+        // every hotel (ROLE-02; security audit pass 3).
+        if ($user->hotel_id !== null || RoleEnum::isSystem($role->name)) {
+            return false;
+        }
+
         $held = $user->permissionNames();
 
         if ($role->permissions()->whereNotIn('name', $held)->exists()) {

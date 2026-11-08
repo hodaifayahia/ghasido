@@ -113,4 +113,17 @@ class LearnerIntegrityLessonCompletionTest extends TestCase
 
         $this->assertTrue($this->completed($learner, $lesson));
     }
+
+    public function test_a_learner_who_used_every_allowed_attempt_is_not_locked_out_of_the_lesson()
+    {
+        $learner = $this->learner();
+        $this->submitPreTest($learner);
+        [$lesson, $placement] = $this->lessonWithPractice(['rule' => 'practice_passed', 'min_score' => 80]);
+        $placement->activity()->update(['attempts_allowed' => 1]);
+
+        $this->practise($learner, $lesson, $placement, correct: false);
+        $this->completeEveryStep($learner, $lesson);
+
+        $this->assertTrue($this->completed($learner, $lesson));
+    }
 }

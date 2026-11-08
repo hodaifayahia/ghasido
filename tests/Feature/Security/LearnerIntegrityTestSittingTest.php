@@ -10,6 +10,7 @@ use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
 use App\Services\Learning\TestRunner;
+use Database\Factories\ActivityFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Learn\BuildsLearnerFixtures;
@@ -182,5 +183,24 @@ class LearnerIntegrityTestSittingTest extends TestCase
         $this->assertIsString($json);
         $this->assertStringNotContainsString('"hint"', $json);
         $this->assertStringNotContainsString('Choose the best response.', $json);
+    }
+
+    public function test_a_test_page_carries_no_listening_script_inside_options()
+    {
+        $learner = $this->learner();
+        $test = $this->timedTest('submit', []);
+        $payload = ActivityFactory::payloadFor(ActivityType::MultipleChoice);
+        $payload['items'][0]['options'][0]['audio_text'] = 'SCRIPT-MARKER-OPTION';
+        $activity = Activity::factory()->create(['payload' => $payload]);
+        $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
+        $attempt = $this->start($learner, $test);
+
+        $response = $this->actingAs($learner)
+            ->get(route('learn.tests.question', ['test' => $test, 'attempt' => $attempt, 'number' => 1]))
+            ->assertOk();
+
+        $json = json_encode($response->viewData('page')['props']['activity']);
+        $this->assertIsString($json);
+        $this->assertStringNotContainsString('SCRIPT-MARKER-OPTION', $json);
     }
 }

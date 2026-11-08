@@ -115,7 +115,7 @@ class TranslationsController extends Controller
     /** Write or correct one meaning by hand; the AI never replaces it. */
     public function save(Request $request, MeaningTranslations $translations): RedirectResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $written = $this->writtenText($request);
         $text = TextTranslation::normalise((string) $request->input('text'));
@@ -134,7 +134,7 @@ class TranslationsController extends Controller
      */
     public function generate(Request $request, MeaningTranslations $translations): RedirectResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
         $scope = $this->scope($request);
         $locale = $this->locale($request);
 
@@ -195,7 +195,7 @@ class TranslationsController extends Controller
      */
     public function draft(Request $request): JsonResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $data = $request->validate([
             'text' => ['required', 'string', 'max:'.TextTranslation::MAX_LENGTH],
@@ -243,7 +243,7 @@ class TranslationsController extends Controller
     /** Save one field's meaning as written by hand (JSON twin of save()). */
     public function write(Request $request, MeaningTranslations $translations): JsonResponse
     {
-        $admin = $this->authorizeEditor($request);
+        $admin = $this->authorizeWriter($request);
 
         $written = $this->writtenText($request);
         $text = TextTranslation::normalise((string) $request->input('text'));
@@ -302,6 +302,25 @@ class TranslationsController extends Controller
         abort_unless(
             $user instanceof User && ($user->can(Permission::LessonsManage->value) || $user->can(Permission::TestsManage->value)),
             403,
+        );
+
+        return $user;
+    }
+
+    /**
+     * Writing a meaning changes it for every hotel that shows the same
+     * English text (rows are keyed by the text, not by a hotel), so only
+     * platform staff and the Super Admin write them; a hotel-bound editor
+     * reads (ROLE-02; security audit pass 3).
+     */
+    private function authorizeWriter(Request $request): User
+    {
+        $user = $this->authorizeEditor($request);
+
+        abort_unless(
+            $user->hotel_id === null || $user->hasRole(Role::SuperAdmin->value),
+            403,
+            __('Only platform staff can change shared translations.'),
         );
 
         return $user;

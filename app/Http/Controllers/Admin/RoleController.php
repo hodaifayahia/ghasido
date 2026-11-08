@@ -88,10 +88,22 @@ class RoleController extends Controller
 
     public function destroy(Role $role): RedirectResponse
     {
-        abort_unless(request()->user()?->can(PermissionEnum::RolesManage->value), 403);
+        $actor = request()->user('web');
+        abort_unless($actor?->can(PermissionEnum::RolesManage->value), 403);
 
         // A system role is never deletable, even for the Super Admin.
         abort_if(RoleEnum::isSystem($role->name), 403, __('System roles cannot be deleted.'));
+
+        // Below the Super Admin: only platform staff, only a role within
+        // their own permissions (ROLE-01, ROLE-02; security audit pass 3).
+        if (! $actor->hasRole(RoleEnum::SuperAdmin->value)) {
+            abort_if(
+                $actor->hotel_id !== null
+                    || $actor->hasRole($role->name)
+                    || $role->permissions()->whereNotIn('name', $actor->permissionNames())->exists(),
+                403,
+            );
+        }
 
         if ($role->users()->exists()) {
             Inertia::flash('toast', [

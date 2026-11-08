@@ -51,7 +51,13 @@ class TenancyRolesTest extends TestCase
 
         $this->assertSame(0, Role::query()->where('name', 'Escalated')->count());
 
+        // Roles are platform-wide: a hotel-bound delegate creates none
+        // (security audit pass 3); platform staff stay within their ceiling.
         $this->actingAs($this->delegate)
+            ->post(route('roles.store'), ['name' => 'Front Desk Lead', 'permissions' => [Permission::EmployeesView->value]])
+            ->assertForbidden();
+
+        $this->actingAs($this->platformDelegate())
             ->post(route('roles.store'), ['name' => 'Front Desk Lead', 'permissions' => [Permission::EmployeesView->value]])
             ->assertRedirect(route('roles'));
     }
@@ -86,12 +92,48 @@ class TenancyRolesTest extends TestCase
         $this->forgetCache();
         $this->assertFalse($manager->fresh()?->hasPermissionTo(Permission::TranscriptsView->value));
 
+        // System roles hold accounts in every hotel: no delegate edits them
+        // (security audit pass 3), not even within their ceiling.
         $this->actingAs($this->delegate)
             ->put(route('roles.update', $manager), ['permissions' => [...RoleEnum::Manager->permissionNames(), Permission::ReportsView->value]])
+            ->assertForbidden();
+
+        $employee = Role::findByName(RoleEnum::Employee->value);
+        $platform = $this->platformDelegate();
+
+        $this->actingAs($platform)
+            ->put(route('roles.update', $employee), ['permissions' => [Permission::EmployeesView->value]])
+            ->assertForbidden();
+
+        $custom = Role::create(['name' => 'Front Desk']);
+        $this->forgetCache();
+
+        $this->actingAs($platform)
+            ->put(route('roles.update', $custom), ['name' => 'Front Desk', 'permissions' => [Permission::EmployeesView->value]])
             ->assertRedirect();
 
+        $this->actingAs($platform)
+            ->put(route('roles.update', $custom), ['name' => 'Front Desk', 'permissions' => [Permission::TranscriptsView->value]])
+            ->assertForbidden();
+
         $this->forgetCache();
-        $this->assertTrue($manager->fresh()?->hasPermissionTo(Permission::ReportsView->value));
+        $this->assertTrue($custom->fresh()?->hasPermissionTo(Permission::EmployeesView->value));
+        $this->assertFalse($custom->fresh()?->hasPermissionTo(Permission::TranscriptsView->value));
+    }
+
+    private function platformDelegate(): User
+    {
+        $role = Role::create(['name' => 'Platform Staff']);
+        $role->syncPermissions([
+            Permission::RolesView->value,
+            Permission::RolesManage->value,
+            Permission::EmployeesView->value,
+        ]);
+        $user = User::factory()->withAdminProfile()->create(['hotel_id' => null]);
+        $user->syncRoles(['Platform Staff']);
+        $this->forgetCache();
+
+        return $user;
     }
 
     public function test_a_delegate_cannot_reset_the_password_of_a_more_privileged_account()

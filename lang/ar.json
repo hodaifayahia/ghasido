@@ -4747,5 +4747,6 @@
     "Please keep your answer under :max characters.": "يرجى أن تكون إجابتك أقل من :max حرف.",
     "You have started many voice calls today. Your lessons, text role-plays and phrasebook are still open; try a call again tomorrow.": "لقد بدأت عددًا كبيرًا من المكالمات الصوتية اليوم. دروسك ولعب الأدوار النصي ودفتر العبارات ما زالت متاحة؛ حاول إجراء مكالمة مرة أخرى غدًا.",
     "You have recorded a lot today. Recording opens again tomorrow.": "لقد سجلت كثيرًا اليوم. سيعود التسجيل متاحًا غدًا.",
-    "Select items shared across hotels or from this lesson’s hotel.": "اختر عناصر مشتركة بين الفنادق أو من فندق هذا الدرس."
+    "Select items shared across hotels or from this lesson’s hotel.": "اختر عناصر مشتركة بين الفنادق أو من فندق هذا الدرس.",
+    "Only platform staff can change shared translations.": "يمكن لفريق المنصة فقط تعديل الترجمات المشتركة."
 }

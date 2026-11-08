@@ -40,7 +40,9 @@ class ActivityPresenter
     private const array TEST_HIDDEN_KEYS = ['hint', 'explanation'];
 
     /**
-     * A listening question's script, stripped from a test page so only the
+     * A listening question's script, stripped from a test page (at every
+     * depth: options and matching prompts carry their own; security audit
+     * pass 3) so only the
      * stored recording can be played — never read, never spoken by browser
      * speech (CTRL-05, TEST-03). Its resolved `*_audio` sibling stays.
      *
@@ -189,7 +191,7 @@ class ActivityPresenter
         $out = [];
 
         foreach ($data as $key => $value) {
-            if (is_string($key) && (in_array($key, self::ANSWER_KEYS, true) || in_array($key, self::TEST_HIDDEN_KEYS, true) || self::isArabicKey($key))) {
+            if (is_string($key) && (in_array($key, self::ANSWER_KEYS, true) || in_array($key, self::TEST_HIDDEN_KEYS, true) || in_array($key, self::LISTENING_SCRIPT_KEYS, true) || self::isArabicKey($key))) {
                 continue;
             }
 

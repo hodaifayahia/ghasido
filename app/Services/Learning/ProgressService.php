@@ -215,9 +215,26 @@ class ProgressService
                 ->map(fn (Attempt $attempt): float => (float) $attempt->score / (float) $attempt->max_score * 100)
                 ->max();
 
-            if ($best === null || $best + 0.0001 < $minimum) {
-                return false;
+            if ($best !== null && $best + 0.0001 >= $minimum) {
+                continue;
             }
+
+            // A learner who has used every allowed attempt cannot pass any
+            // more: the activity then counts as done, so a limited activity
+            // never locks the lesson, the Post-test and the certificate for
+            // good (JOURNEY-04; security audit pass 3).
+            $allowed = (int) $placement->activity->attempts_allowed;
+            $used = Attempt::query()
+                ->where('user_id', $user->id)
+                ->where('placement_id', $placement->id)
+                ->whereNull('test_attempt_id')
+                ->count();
+
+            if ($allowed > 0 && $used >= $allowed) {
+                continue;
+            }
+
+            return false;
         }
 
         return true;
