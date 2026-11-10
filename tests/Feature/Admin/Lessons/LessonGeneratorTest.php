@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin\Lessons;
 
 use App\Contracts\AiProvider;
+use App\Enums\Accent;
 use App\Enums\ActivityType;
 use App\Enums\AiFeature;
 use App\Enums\BlockType;
@@ -15,6 +16,7 @@ use App\Jobs\GenerateContentImage;
 use App\Jobs\GenerateLessonFromPrompt;
 use App\Models\Activity;
 use App\Models\AiUsage;
+use App\Models\AudioClip;
 use App\Models\BlockCompletion;
 use App\Models\ContentGeneration;
 use App\Models\Course;
@@ -23,6 +25,7 @@ use App\Models\Lesson;
 use App\Models\LexiconItem;
 use App\Models\MediaAsset;
 use App\Models\TextTranslation;
+use App\Models\TtsSetting;
 use App\Services\Ai\UsageMeter;
 use App\Services\Content\LessonGenerator;
 use Illuminate\Filesystem\Filesystem;
@@ -367,7 +370,7 @@ class LessonGeneratorTest extends TestCase
     public function test_an_ai_lesson_is_recorded_in_a_british_voice_when_the_platform_voice_is_indian()
     {
         Queue::fake();
-        \App\Models\TtsSetting::query()->create(['voice' => 'flux-naveen-en', 'expressivity' => 50]);
+        TtsSetting::query()->create(['voice' => 'flux-naveen-en', 'expressivity' => 50]);
 
         $id = $this->actingAs($this->owner)
             ->postJson(route('lesson-generations.store'), $this->payload())
@@ -377,10 +380,10 @@ class LessonGeneratorTest extends TestCase
 
         $lesson = Lesson::query()->findOrFail(ContentGeneration::query()->findOrFail($id)->lessonIdFor(0));
 
-        $this->assertSame(\App\Enums\Accent::British, $lesson->accent);
-        $voices = \App\Models\AudioClip::query()->distinct()->pluck('voice')->all();
+        $this->assertSame(Accent::British, $lesson->accent);
+        $voices = AudioClip::query()->distinct()->pluck('voice')->all();
         $this->assertNotEmpty($voices);
         $this->assertNotContains('flux-naveen-en', $voices);
-        $this->assertSame([\App\Enums\Accent::British->defaultVoice()], $voices);
+        $this->assertSame([Accent::British->defaultVoice()], $voices);
     }
 }
