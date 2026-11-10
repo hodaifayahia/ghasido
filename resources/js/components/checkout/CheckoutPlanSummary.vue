@@ -70,7 +70,8 @@ const amount = computed(() =>
                     {{ amount }}
                 </span>
                 <span class="text-brand-200 pb-0.5 text-[12px]">
-                    {{ currency }} / {{ content.pricing.monthly_label }}
+                    {{ currency }}
+                    {{ $tc('for :count day|for :count days', plan.accessDays) }}
                 </span>
             </p>
 

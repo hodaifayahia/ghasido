@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# A new push to the same pull request cancels its older run; runs on main
+# always finish (the deploy workflow waits for them).
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   ci:
     runs-on: ubuntu-latest

@@ -38,7 +38,7 @@ final class LandingPageController extends Controller
 
     /**
      * @param  Builder<SubscriptionPlan>  $query
-     * @return list<array{id: int, name: string, slug: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int}>
+     * @return list<array{id: int, name: string, slug: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int, accessDays: int}>
      */
     private function plans(Builder $query): array
     {
@@ -50,6 +50,8 @@ final class LandingPageController extends Controller
             'priceDzd' => $plan->price_dzd,
             'priceUsd' => $plan->price_usd,
             'pointsPool' => $plan->pointsPool(),
+            // The price covers this many days (client request 2026-11-10).
+            'accessDays' => $plan->access_days,
         ])->all());
     }
 }

@@ -55,7 +55,7 @@ watch(open, (isOpen) => {
 const accept: Record<NonNullable<Props['kind']>, string> = {
     image: 'image/jpeg,image/png,image/webp',
     audio: 'audio/mpeg,audio/wav,audio/mp4,audio/webm',
-    video: 'video/mp4,video/webm',
+    video: 'video/mp4,video/webm,video/quicktime,.mp4,.m4v,.mov',
 };
 
 const limit: Record<NonNullable<Props['kind']>, string> = {

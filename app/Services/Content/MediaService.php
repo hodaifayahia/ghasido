@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * The image library: uploads with GD resizing and the pickable listing
@@ -49,6 +50,11 @@ class MediaService
         // "x.svg" must not be served from the public disk as HTML or SVG
         // (SEC-04; security audit 2026-11-08).
         $extension = self::safeExtension($mime, $file->guessExtension());
+
+        if ($kind === MediaKind::Video && $extension === 'mp4') {
+            $mime = 'video/mp4';
+        }
+
         $now = now();
         $directory = sprintf('content/%s/%s/%s', $kind->value, $now->format('Y'), $now->format('m'));
         $uuid = (string) Str::uuid();
@@ -60,9 +66,9 @@ class MediaService
         $variants = null;
         $sizeBytes = $file->getSize() ?: null;
 
-        $binary = (string) file_get_contents($file->getRealPath());
-
         if ($kind === MediaKind::Image) {
+            $binary = (string) file_get_contents($file->getRealPath());
+
             $resized = $this->resize($binary, $mime, self::MAX_WIDTH);
 
             if ($resized !== null) {
@@ -77,9 +83,19 @@ class MediaService
                 $disk->put($thumbPath, $thumb[0]);
                 $variants = ['thumb' => $thumbPath];
             }
-        }
 
-        $disk->put($path, $binary);
+            $disk->put($path, $binary);
+        } else {
+            // Audio and video are streamed to the disk, never read into
+            // memory: a video of a few tens of MB went over PHP's memory
+            // limit and the upload died with a bare server error (client
+            // report 2026-11-10).
+            $stored = $disk->putFileAs($directory, $file, $uuid.'.'.$extension);
+
+            if ($stored === false) {
+                throw new RuntimeException('The file could not be stored.');
+            }
+        }
 
         return DB::transaction(function () use ($path, $file, $mime, $kind, $data, $width, $height, $sizeBytes, $variants, $actor): MediaAsset {
             $asset = MediaAsset::query()->create([
@@ -306,6 +322,10 @@ class MediaService
             'audio/webm' => 'webm',
             'audio/ogg' => 'ogg',
             'video/mp4' => 'mp4',
+            // An MP4 written with a QuickTime brand (some AI video tools)
+            // is read as QuickTime; browsers play it as MP4.
+            'video/quicktime' => 'mp4',
+            'video/x-m4v' => 'mp4',
             'video/webm' => 'webm',
             'video/ogg' => 'ogg',
         ];

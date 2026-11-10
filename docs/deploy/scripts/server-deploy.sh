@@ -1,6 +1,7 @@
 #!/bin/bash
 # Deploy from a git clone ON the Hostinger server, over SSH only: no
-# developer PC and no GitHub Actions. Builds the frontend on the server
+# developer PC needed. Run by hand, or by the GitHub Actions `deploy`
+# workflow after the tests pass on main (docs/deploy/ci-cd.md). Builds the frontend on the server
 # (installs Node into ~/.local/node the first time), copies the release into
 # the live app, installs it and restarts the workers. Optionally moves the
 # live data from SQLite to MySQL (docs/deploy/mysql.md).

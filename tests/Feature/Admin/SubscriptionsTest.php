@@ -321,6 +321,7 @@ class SubscriptionsTest extends TestCase
             'bonus_points_per_employee' => $plan->bonus_points_per_employee,
             'voice_points_per_10_minutes' => $plan->voice_points_per_10_minutes,
             'ai_action_points' => $plan->ai_action_points,
+            'access_days' => $plan->access_days,
             'is_active' => $plan->is_active,
         ];
     }

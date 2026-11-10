@@ -35,6 +35,29 @@ type LaravelErrorBody = {
     errors?: Record<string, string[] | string>;
 };
 
+function serverFailure(status: number): string {
+    if (status === 413) {
+        return t(
+            'The file is larger than the server accepts. Use a smaller file, or raise the upload limit in the hosting panel (PHP options: upload_max_filesize and post_max_size).',
+        );
+    }
+
+    if (status === 408 || status === 504) {
+        return t(
+            'The upload took too long and the server stopped it. Try again on a faster connection, or with a smaller file.',
+        );
+    }
+
+    if (status >= 500) {
+        return t(
+            'The server stopped while saving the file (error :status). Try again; if it happens again, send this message to support.',
+            { status },
+        );
+    }
+
+    return t('The request failed. Please try again.');
+}
+
 async function toError(response: Response): Promise<JsonRequestError> {
     const errors: ValidationErrors = {};
 
@@ -45,11 +68,17 @@ async function toError(response: Response): Promise<JsonRequestError> {
             errors[key] = Array.isArray(value) ? (value[0] ?? '') : value;
         }
 
-        if (Object.keys(errors).length === 0 && body.message) {
-            errors._ = body.message;
+        if (Object.keys(errors).length === 0) {
+            // Laravel's own 500 page says only "Server Error".
+            errors._ =
+                response.status >= 500 || !body.message
+                    ? serverFailure(response.status)
+                    : body.message;
         }
     } catch {
-        errors._ = t('The request failed. Please try again.');
+        // Not a Laravel answer: the web server or PHP stopped the request
+        // before the app could reply (client report 2026-11-10). Say which.
+        errors._ = serverFailure(response.status);
     }
 
     return new JsonRequestError(response.status, errors);

@@ -35,11 +35,13 @@ class UpdateSubscriptionPlanRequest extends FormRequest
             'points_pool_override' => ['nullable', 'integer', 'min:1', 'max:1000000000'],
             'voice_points_per_10_minutes' => ['required', 'integer', 'min:0', 'max:100000000'],
             'ai_action_points' => ['required', 'integer', 'min:0', 'max:100000000'],
+            // Days of access the price buys, from approval (client request 2026-11-10).
+            'access_days' => ['required', 'integer', 'min:1', 'max:3650'],
             'is_active' => ['required', 'boolean'],
         ];
     }
 
-    /** @return array{name: string, employee_limit: int, price_dzd: int, price_usd: float, extra_points_price_dzd: int, extra_points_price_usd: float, extra_seat_price_dzd: int, extra_seat_price_usd: float, points_per_employee: int, bonus_points_per_employee: int, points_pool_override: int|null, voice_points_per_10_minutes: int, ai_action_points: int, is_active: bool} */
+    /** @return array{name: string, employee_limit: int, price_dzd: int, price_usd: float, extra_points_price_dzd: int, extra_points_price_usd: float, extra_seat_price_dzd: int, extra_seat_price_usd: float, points_per_employee: int, bonus_points_per_employee: int, points_pool_override: int|null, voice_points_per_10_minutes: int, ai_action_points: int, access_days: int, is_active: bool} */
     public function planData(): array
     {
         $data = $this->validated();
@@ -58,6 +60,7 @@ class UpdateSubscriptionPlanRequest extends FormRequest
             'points_pool_override' => isset($data['points_pool_override']) ? (int) $data['points_pool_override'] : null,
             'voice_points_per_10_minutes' => (int) $data['voice_points_per_10_minutes'],
             'ai_action_points' => (int) $data['ai_action_points'],
+            'access_days' => (int) $data['access_days'],
             'is_active' => (bool) $data['is_active'],
         ];
     }

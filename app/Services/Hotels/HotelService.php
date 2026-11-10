@@ -126,7 +126,9 @@ class HotelService
     /**
      * Approve a pending hotel: start the clock today and move the end date by
      * the same offset, so the agreed duration survives a late approval
-     * (spec 0002, AC-13).
+     * (spec 0002, AC-13). A hotel with no end date yet (a checkout request)
+     * gets its plan's access period from today (`access_days`, client request
+     * 2026-11-10).
      */
     public function approve(Hotel $hotel, User $approver): Hotel
     {
@@ -138,6 +140,12 @@ class HotelService
             if ($hotel->contract_starts_on !== null && $hotel->contract_ends_on !== null) {
                 $offset = (int) $hotel->contract_starts_on->startOfDay()->diffInDays($today, false);
                 $hotel->contract_ends_on = $hotel->contract_ends_on->copy()->addDays($offset);
+            } elseif ($hotel->contract_ends_on === null) {
+                $plan = $hotel->subscriptionPlan;
+
+                if ($plan !== null) {
+                    $hotel->contract_ends_on = $plan->accessEndsOn($today);
+                }
             }
 
             $hotel->contract_starts_on = $today;

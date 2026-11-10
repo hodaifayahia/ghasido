@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight } from '@lucide/vue';
+import { ArrowRight, ConciergeBell, UserRound } from '@lucide/vue';
 import { computed, ref, useId, watch } from 'vue';
 import AudioButton from '@/components/learning/AudioButton.vue';
 import ShowMeaningButton from '@/components/learning/ShowMeaningButton.vue';
@@ -36,6 +36,11 @@ const subtitle = computed(() => props.block.settings.subtitle ?? null);
 const caption = computed(() => props.block.settings.situation_caption ?? null);
 const image = computed(() => props.block.settings.image ?? null);
 const tip = computed(() => props.block.settings.tip ?? null);
+
+// Who is speaking, told by colour, icon and a label together, never by
+// colour alone (ACC-02; client request 2026-11-10): the staff member in the
+// brand blue with a reception bell, the guest in aqua with a person icon.
+const isGuest = computed(() => current.value?.speaker === 'guest');
 
 const meaning = useShowMeaning();
 const panelId = `dialogue-meaning-${useId()}`;
@@ -107,31 +112,61 @@ function go(to: number): void {
 
                     <div
                         v-if="current"
-                        class="bg-brand-50 flex items-start gap-3 rounded-xl p-4"
+                        :class="
+                            cn(
+                                'flex flex-col gap-2',
+                                isGuest ? 'items-end' : 'items-start',
+                            )
+                        "
+                        data-test="dialogue-line"
+                        :data-speaker="current.speaker"
                     >
-                        <img
-                            v-if="image"
-                            :src="image.url"
-                            :alt="
-                                current.speaker === 'guest'
-                                    ? $t('Guest')
-                                    : $t('Staff')
+                        <span
+                            :class="
+                                cn(
+                                    'inline-flex items-center gap-2 text-[13px] font-semibold',
+                                    isGuest ? 'text-ink' : 'text-brand-700',
+                                )
                             "
-                            loading="lazy"
-                            decoding="async"
-                            class="size-16 shrink-0 rounded-full object-cover md:size-20"
-                        />
-                        <p
-                            class="text-ink min-w-0 flex-1 text-lg leading-8 whitespace-pre-line md:text-xl"
                         >
-                            {{ current.text }}
-                        </p>
-                        <AudioButton
-                            size="sm"
-                            :src="current.text_audio?.normal ?? null"
-                            :text="current.text"
-                            class="shrink-0"
-                        />
+                            <span
+                                :class="
+                                    cn(
+                                        'grid size-9 shrink-0 place-items-center rounded-full',
+                                        isGuest
+                                            ? 'bg-aqua-tint text-aqua'
+                                            : 'bg-brand-600 text-white',
+                                    )
+                                "
+                                aria-hidden="true"
+                            >
+                                <UserRound v-if="isGuest" class="size-5" />
+                                <ConciergeBell v-else class="size-5" />
+                            </span>
+                            {{ isGuest ? $t('Guest') : $t('Staff') }}
+                        </span>
+                        <div
+                            :class="
+                                cn(
+                                    'flex w-full items-start gap-3 rounded-xl border p-4',
+                                    isGuest
+                                        ? 'bg-aqua-tint border-aqua/30 rounded-se-sm'
+                                        : 'bg-brand-50 border-brand-100 rounded-ss-sm',
+                                )
+                            "
+                        >
+                            <p
+                                class="text-ink min-w-0 flex-1 text-lg leading-8 whitespace-pre-line md:text-xl"
+                            >
+                                {{ current.text }}
+                            </p>
+                            <AudioButton
+                                size="sm"
+                                :src="current.text_audio?.normal ?? null"
+                                :text="current.text"
+                                class="shrink-0"
+                            />
+                        </div>
                     </div>
 
                     <div v-if="current" class="flex gap-3">

@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     Building2,
+    CalendarDays,
     CreditCard,
     Pencil,
     Plus,
@@ -40,6 +41,8 @@ type Plan = {
     calculatedPointPool: number;
     voicePointsPer10Minutes: number;
     aiActionPoints: number;
+    /** Days of access the price buys, from approval (client request 2026-11-10). */
+    accessDays: number;
     isActive: boolean;
     hotelCount: number;
     /** Individual subscribers on this plan. */
@@ -105,6 +108,7 @@ const form = useForm({
     points_pool_override: null as number | null,
     voice_points_per_10_minutes: 100,
     ai_action_points: 50,
+    access_days: 60,
     is_active: true,
 });
 const selectedPlan = reactive<Record<number, number>>(
@@ -176,6 +180,7 @@ function editPlan(plan: Plan): void {
     form.points_pool_override = plan.pointsPoolOverride;
     form.voice_points_per_10_minutes = plan.voicePointsPer10Minutes;
     form.ai_action_points = plan.aiActionPoints;
+    form.access_days = plan.accessDays;
     form.is_active = plan.isActive;
     form.clearErrors();
     editorOpen.value = true;
@@ -442,7 +447,10 @@ function savePaymentMethod(): void {
                                 {{ formatDzd(plan.priceDzd) }}
                             </p>
                             <span class="text-ink-muted text-[11px]">{{
-                                $t('/ month')
+                                $tc(
+                                    'for :count day|for :count days',
+                                    plan.accessDays,
+                                )
                             }}</span>
                         </div>
                         <p
@@ -454,8 +462,26 @@ function savePaymentMethod(): void {
                                 })
                             }}
                             <span class="text-ink-muted font-normal">{{
-                                $t('/ month')
+                                $tc(
+                                    'for :count day|for :count days',
+                                    plan.accessDays,
+                                )
                             }}</span>
+                        </p>
+                        <p
+                            class="text-ink-slate mt-1 flex items-center gap-1.5 text-[11px]"
+                            data-test="plan-access-days"
+                        >
+                            <CalendarDays
+                                class="size-3.5 shrink-0"
+                                aria-hidden="true"
+                            />
+                            {{
+                                $tc(
+                                    ':count day of access|:count days of access',
+                                    plan.accessDays,
+                                )
+                            }}
                         </p>
                         <div class="mt-4 grid grid-cols-2 gap-2">
                             <div class="border-line/80 rounded-md border p-2.5">
@@ -621,7 +647,10 @@ function savePaymentMethod(): void {
                                 {{ formatDzd(plan.priceDzd) }}
                             </p>
                             <span class="text-ink-muted text-[11px]">{{
-                                $t('/ month')
+                                $tc(
+                                    'for :count day|for :count days',
+                                    plan.accessDays,
+                                )
                             }}</span>
                         </div>
                         <p
@@ -633,8 +662,26 @@ function savePaymentMethod(): void {
                                 })
                             }}
                             <span class="text-ink-muted font-normal">{{
-                                $t('/ month')
+                                $tc(
+                                    'for :count day|for :count days',
+                                    plan.accessDays,
+                                )
                             }}</span>
+                        </p>
+                        <p
+                            class="text-ink-slate mt-1 flex items-center gap-1.5 text-[11px]"
+                            data-test="plan-access-days"
+                        >
+                            <CalendarDays
+                                class="size-3.5 shrink-0"
+                                aria-hidden="true"
+                            />
+                            {{
+                                $tc(
+                                    ':count day of access|:count days of access',
+                                    plan.accessDays,
+                                )
+                            }}
                         </p>
                         <div class="mt-4 grid grid-cols-2 gap-2">
                             <div class="border-line/80 rounded-md border p-2.5">
@@ -962,17 +1009,17 @@ function savePaymentMethod(): void {
         :description="
             editingIndividual
                 ? $t(
-                      'The monthly price in DZD and USD, the AI points each subscriber gets every month and the AI point costs. Existing subscribers keep their current allowance.',
+                      'The price in DZD and USD for the whole access period, how many days of access it gives, the AI points each subscriber gets every month and the AI point costs. Existing subscribers keep their current allowance.',
                   )
                 : $t(
-                      'Seat limits, DZD and USD prices (monthly, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.',
+                      'Seat limits, the days of access, DZD and USD prices (for the access period, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.',
                   )
         "
         class="sm:max-w-[620px]"
     >
         <form class="mt-2 grid gap-3" @submit.prevent="savePlan">
             <div class="grid gap-3 sm:grid-cols-2">
-                <label class="grid gap-1.5 sm:col-span-2">
+                <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
                         $t('Plan name')
                     }}</span>
@@ -981,6 +1028,22 @@ function savePaymentMethod(): void {
                         class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
                     />
                     <InputError :message="form.errors.name" />
+                </label>
+                <!-- Days of access the price buys, counted from approval
+                     (client request 2026-11-10). -->
+                <label class="grid gap-1.5">
+                    <span class="text-ink-slate text-[11px] font-semibold">{{
+                        $t('Access (days)')
+                    }}</span>
+                    <input
+                        v-model.number="form.access_days"
+                        type="number"
+                        min="1"
+                        max="3650"
+                        data-test="plan-access-days-input"
+                        class="border-line bg-surface text-ink-indigo focus:ring-brand-600/40 h-10 rounded-md border px-3 text-[13px] outline-none focus:ring-2"
+                    />
+                    <InputError :message="form.errors.access_days" />
                 </label>
                 <label v-if="!editingIndividual" class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
@@ -1013,7 +1076,7 @@ function savePaymentMethod(): void {
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
-                        $t('Monthly price (DZD)')
+                        $t('Price for the access period (DZD)')
                     }}</span>
                     <input
                         v-model.number="form.price_dzd"
@@ -1025,7 +1088,7 @@ function savePaymentMethod(): void {
                 </label>
                 <label class="grid gap-1.5">
                     <span class="text-ink-slate text-[11px] font-semibold">{{
-                        $t('Monthly price, international (USD)')
+                        $t('Price for the access period, international (USD)')
                     }}</span>
                     <input
                         v-model.number="form.price_usd"

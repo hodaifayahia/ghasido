@@ -132,7 +132,7 @@ final class CheckoutController extends Controller
         ]);
     }
 
-    /** @return array{id: int, name: string, slug: string, audience: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int} */
+    /** @return array{id: int, name: string, slug: string, audience: string, employeeLimit: int, priceDzd: int, priceUsd: float, pointsPool: int, accessDays: int} */
     private function planData(SubscriptionPlan $plan): array
     {
         return [
@@ -144,6 +144,8 @@ final class CheckoutController extends Controller
             'priceDzd' => $plan->price_dzd,
             'priceUsd' => $plan->price_usd,
             'pointsPool' => $plan->pointsPool(),
+            // The price covers this many days (client request 2026-11-10).
+            'accessDays' => $plan->access_days,
         ];
     }
 
