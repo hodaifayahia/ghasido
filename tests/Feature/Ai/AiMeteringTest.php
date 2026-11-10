@@ -251,7 +251,10 @@ class AiMeteringTest extends TestCase
         $test = Test::factory()->pre()->create(['department_id' => $this->department->id]);
         $activity = Activity::factory()->ofType(ActivityType::Speaking)->create(['show_meaning_enabled' => false]);
         $test->questions()->create(['activity_id' => $activity->id, 'position' => 1]);
-        $asset = MediaAsset::factory()->recording()->create(['uploaded_by' => $learner->id]);
+        // The real size of the stored bytes, so billing follows the 5.2 s
+        // recorded length (a random factory size could raise the size-based
+        // floor above it).
+        $asset = MediaAsset::factory()->recording()->create(['uploaded_by' => $learner->id, 'size_bytes' => 10]);
         Storage::disk(MediaAsset::DISK_LOCAL)->put($asset->path, 'webm-bytes');
 
         $attempt = Attempt::factory()->create([

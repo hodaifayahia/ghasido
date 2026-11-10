@@ -166,6 +166,8 @@ export type LandingPlan = {
     priceDzd: number;
     priceUsd: number;
     pointsPool: number;
+    /** Days of access the price buys, from approval (client request 2026-11-10). */
+    accessDays: number;
 };
 
 /** The plan on the checkout page; its audience decides the form shown. */

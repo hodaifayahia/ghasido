@@ -83,6 +83,7 @@
     ":count blocked: no consent or no email address.": "تم حظر :count: لا توجد موافقة أو لا يوجد بريد إلكتروني.",
     ":count blocked: no consent or no email.": "تم حظر :count: لا توجد موافقة أو لا يوجد بريد إلكتروني.",
     ":count day left|:count days left": "{0} لم يتبقَّ أي يوم|{1} يتبقى يوم واحد|{2} يتبقى يومان|[3,10] يتبقى :count أيام|[11,*] يتبقى :count يوماً",
+    ":count day of access|:count days of access": "{1} يوم واحد من الوصول|{2} يومان من الوصول|[3,10] :count أيام من الوصول|[11,*] :count يومًا من الوصول",
     ":count day past contract end|:count days past contract end": "{1} مضى يوم واحد على نهاية العقد|{2} مضى يومان على نهاية العقد|[3,10] مضت :count أيام على نهاية العقد|[0,*] مضى :count يوماً على نهاية العقد",
     ":count day remaining|:count days remaining": "{0} لم يتبقَّ أي يوم|{1} يتبقى يوم واحد|{2} يتبقى يومان|[3,10] يتبقى :count أيام|[11,*] يتبقى :count يوماً",
     ":count days ago": "منذ :count يوم",
@@ -415,6 +416,7 @@
     "Accepted answer": "إجابة مقبولة",
     "Accepted answers": "الإجابات المقبولة",
     "Access": "الوصول",
+    "Access (days)": "مدة الوصول (بالأيام)",
     "Access denied": "تم رفض الوصول",
     "Access is paused": "الوصول متوقف مؤقتاً",
     "Access own training (learn as an employee)": "الوصول إلى التدريب الخاص (التعلّم كموظف)",
@@ -2559,6 +2561,8 @@
     "Previous visual guide step": "الخطوة السابقة في الدليل المصوّر",
     "Price": "السعر",
     "Price :unit": "السعر :unit",
+    "Price for the access period (DZD)": "سعر مدة الوصول (DZD)",
+    "Price for the access period, international (USD)": "سعر مدة الوصول الدولي (USD)",
     "Price paid (DZD)": "المبلغ المدفوع (DZD)",
     "Price paid, international (USD)": "المبلغ المدفوع دولياً (USD)",
     "Prices": "الأسعار",
@@ -4093,6 +4097,7 @@
     "email reminder flows": "مسارات تذكير البريد الإلكتروني",
     "employee": "الموظف",
     "failed": "تعذّر",
+    "for :count day|for :count days": "{1} لمدة يوم واحد|{2} لمدة يومين|[3,10] لمدة :count أيام|[11,*] لمدة :count يومًا",
     "for the :department department": "في قسم :department",
     "has successfully completed :course": "قد أتمّ بنجاح :course",
     "has taken part in :course": "قد شارك في :course",
@@ -4755,5 +4760,7 @@
     "The image account (Alibaba Cloud) is suspended for an unpaid balance. Pay or top up in the Alibaba Cloud console (Billing), then press Try again.": "حساب الصور (Alibaba Cloud) موقوف بسبب رصيد غير مدفوع. ادفع أو اشحن الرصيد من لوحة Alibaba Cloud (الفوترة)، ثم اضغط «حاول مرة أخرى».",
     "The image model is not activated on the Alibaba account. Open Alibaba Model Studio, activate the model (or the Model Studio service), or choose another image model in Settings, AI models.": "نموذج الصور غير مفعّل في حساب Alibaba. افتح Alibaba Model Studio وفعّل النموذج (أو خدمة Model Studio)، أو اختر نموذج صور آخر من الإعدادات، نماذج الذكاء الاصطناعي.",
     "The free quota of the image model is used up and the account only allows the free quota. In Alibaba Model Studio, turn off \"use free quota only\" or choose another image model in Settings, AI models.": "نفدت الحصة المجانية لنموذج الصور والحساب يسمح بالحصة المجانية فقط. في Alibaba Model Studio أوقف خيار «استخدام الحصة المجانية فقط» أو اختر نموذج صور آخر من الإعدادات، نماذج الذكاء الاصطناعي.",
-    "The image account (Alibaba Model Studio) refused the request (403). Check in the Alibaba console that the account is paid up, the image model is activated, and the key belongs to the same region as the endpoint; or choose another image model in Settings, AI models.": "رفض حساب الصور (Alibaba Model Studio) الطلب (403). تحقّق في لوحة Alibaba أن الحساب مسدّد، وأن نموذج الصور مفعّل، وأن المفتاح من نفس منطقة العنوان المستخدم؛ أو اختر نموذج صور آخر من الإعدادات، نماذج الذكاء الاصطناعي."
+    "The image account (Alibaba Model Studio) refused the request (403). Check in the Alibaba console that the account is paid up, the image model is activated, and the key belongs to the same region as the endpoint; or choose another image model in Settings, AI models.": "رفض حساب الصور (Alibaba Model Studio) الطلب (403). تحقّق في لوحة Alibaba أن الحساب مسدّد، وأن نموذج الصور مفعّل، وأن المفتاح من نفس منطقة العنوان المستخدم؛ أو اختر نموذج صور آخر من الإعدادات، نماذج الذكاء الاصطناعي.",
+    "The price in DZD and USD for the whole access period, how many days of access it gives, the AI points each subscriber gets every month and the AI point costs. Existing subscribers keep their current allowance.": "السعر بالدينار والدولار لكامل مدة الوصول، وعدد أيام الوصول التي يمنحها، ونقاط الذكاء الاصطناعي التي يحصل عليها كل مشترك شهريًا، وتكلفة النقاط. يحتفظ المشتركون الحاليون برصيدهم الحالي.",
+    "Seat limits, the days of access, DZD and USD prices (for the access period, extra AI points and extra seats), and AI point costs apply to hotels on this plan. Existing employee allocations stay as they are.": "تنطبق حدود المقاعد وأيام الوصول وأسعار DZD وUSD (لمدة الوصول، ونقاط الذكاء الاصطناعي الإضافية، والمقاعد الإضافية) وتكاليف نقاط الذكاء الاصطناعي على الفنادق المشتركة في هذه الباقة. تبقى مخصصات الموظفين الحالية كما هي."
 }

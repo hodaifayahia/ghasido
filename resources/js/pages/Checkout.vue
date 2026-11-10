@@ -20,7 +20,7 @@ import ProofUpload from '@/components/checkout/ProofUpload.vue';
 import HelperLanguagesField from '@/components/meaning/HelperLanguagesField.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Input } from '@/components/ui/input';
-import { t } from '@/lib/i18n';
+import { t, tc } from '@/lib/i18n';
 import { home } from '@/routes';
 import { store } from '@/routes/checkout';
 import type {
@@ -172,7 +172,7 @@ const reviewRows = computed((): ReviewRow[] => {
         { label: t('Plan'), value: props.plan.name },
         {
             label: t('Amount'),
-            value: `${price} / ${props.content.pricing.monthly_label}`,
+            value: `${price} ${tc('for :count day|for :count days', props.plan.accessDays)}`,
         },
         {
             label: isIndividual.value ? t('Learner') : t('Hotel'),

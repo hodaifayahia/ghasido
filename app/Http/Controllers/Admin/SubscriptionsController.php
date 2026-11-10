@@ -63,6 +63,8 @@ final class SubscriptionsController extends Controller
                 'calculatedPointPool' => $plan->calculatedPointsPool(),
                 'voicePointsPer10Minutes' => $plan->voice_points_per_10_minutes,
                 'aiActionPoints' => $plan->ai_action_points,
+                // Days of access the price buys (client request 2026-11-10).
+                'accessDays' => $plan->access_days,
                 'isActive' => $plan->is_active,
                 'hotelCount' => $plan->hotels()->count(),
                 'subscriberCount' => (int) ($plan->individual_subscriptions_count ?? 0),

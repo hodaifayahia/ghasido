@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PlanAudience;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Algeria and in USD for international customers (client decision
  * 2026-09-26). Hotel plans are sized by employee seats; individual plans
  * give one learner a monthly AI point allowance (`points_per_employee`) and
- * have no seats (client request 2026-09-27).
+ * have no seats (client request 2026-09-27). The price buys `access_days`
+ * days of access from the day the account is approved (client request
+ * 2026-11-10); AI points stay monthly.
  *
  * @property int $id
  * @property string $name
@@ -31,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $points_pool_override the monthly total set directly; null = calculated
  * @property int $voice_points_per_10_minutes
  * @property int $ai_action_points
+ * @property int $access_days days of access the price buys, from approval
  * @property bool $is_active
  * @property-read int|null $individual_subscriptions_count
  */
@@ -50,10 +54,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'points_pool_override',
     'voice_points_per_10_minutes',
     'ai_action_points',
+    'access_days',
     'is_active',
 ])]
 class SubscriptionPlan extends Model
 {
+    /**
+     * A plan made in code gets the same 60 days as the column default.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'access_days' => 60,
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -71,6 +85,7 @@ class SubscriptionPlan extends Model
             'points_pool_override' => 'integer',
             'voice_points_per_10_minutes' => 'integer',
             'ai_action_points' => 'integer',
+            'access_days' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -103,6 +118,15 @@ class SubscriptionPlan extends Model
     public function scopeForIndividuals(Builder $query): void
     {
         $query->where('audience', PlanAudience::Individual->value);
+    }
+
+    /**
+     * The last day of access for an account approved on `$startsOn`: the
+     * start day counts, so 60 days from 1 March ends on 29 April.
+     */
+    public function accessEndsOn(CarbonInterface $startsOn): CarbonInterface
+    {
+        return $startsOn->copy()->addDays(max(1, $this->access_days) - 1);
     }
 
     public function isIndividual(): bool

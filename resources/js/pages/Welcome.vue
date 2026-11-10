@@ -609,8 +609,13 @@ function price(plan: LandingPlan): { amount: string; currency: string } {
                                             : 'text-ink-slate'
                                     "
                                     class="pb-0.5 text-[12px]"
-                                    >{{ price(plan).currency }} /
-                                    {{ content.pricing.monthly_label }}</span
+                                    >{{ price(plan).currency }}
+                                    {{
+                                        $tc(
+                                            'for :count day|for :count days',
+                                            plan.accessDays,
+                                        )
+                                    }}</span
                                 >
                             </p>
 

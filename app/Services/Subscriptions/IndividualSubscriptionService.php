@@ -110,8 +110,10 @@ class IndividualSubscriptionService
     }
 
     /**
-     * Confirm the payment: the account opens today for one month and the
-     * subscriber is told by email right away (client request 2026-09-27).
+     * Confirm the payment: the account opens today for the plan's access
+     * period (`access_days`, client request 2026-11-10; one month before) and
+     * the subscriber is told by email right away (client request 2026-09-27).
+     * Dates the Super Admin already set are kept.
      */
     public function approve(IndividualSubscription $subscription, User $approver): IndividualSubscription
     {
@@ -119,13 +121,17 @@ class IndividualSubscriptionService
 
         return DB::transaction(function () use ($subscription, $approver): IndividualSubscription {
             $today = Date::today();
+            $startsOn = $subscription->starts_on ?? $today;
+            $plan = $subscription->plan;
             $subscription->fill([
                 'approval_state' => ApprovalState::Approved,
                 'approved_at' => Date::now(),
                 'approved_by' => $approver->id,
                 'rejection_reason' => null,
-                'starts_on' => $subscription->starts_on ?? $today,
-                'ends_on' => $subscription->ends_on ?? $today->copy()->addMonthNoOverflow()->subDay(),
+                'starts_on' => $startsOn,
+                'ends_on' => $subscription->ends_on ?? ($plan !== null
+                    ? $plan->accessEndsOn($startsOn)
+                    : $startsOn->copy()->addMonthNoOverflow()->subDay()),
             ]);
             AuditLog::record($subscription, 'individual.approved');
             $subscription->save();
