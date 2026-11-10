@@ -37,7 +37,10 @@ class StoreMediaRequest extends FormRequest
             // webm / mp4 / ogg: a clip recorded in the browser (Chrome,
             // Safari, Firefox).
             'audio' => File::types(['mp3', 'wav', 'm4a', 'webm', 'mp4', 'ogg', 'oga'])->max(20 * 1024),
-            'video' => File::types(['mp4', 'webm'])->max(200 * 1024),
+            // mov / m4v: an MP4 that AI video tools (Runway, Google Flow)
+            // write with a QuickTime or M4V brand reads as that type
+            // (client report 2026-11-10); it is stored and served as MP4.
+            'video' => File::types(['mp4', 'webm', 'mov', 'm4v'])->max(200 * 1024),
             default => $this->imageFileRule(),
         };
 

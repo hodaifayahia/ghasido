@@ -5,6 +5,7 @@ namespace App\Services\Content;
 use App\Contracts\CourseOutline;
 use App\Contracts\ImageProvider;
 use App\Contracts\LessonDraft;
+use App\Enums\Accent;
 use App\Enums\ActivityType;
 use App\Enums\AiFeature;
 use App\Enums\BlockType;
@@ -31,6 +32,8 @@ use App\Services\Audio\AudioLibrary;
 use App\Services\Audio\PlayableTextCollector;
 use App\Services\Meaning\InlineMeanings;
 use App\Services\Owner\ApiCredit;
+use App\Services\Tts\DeepgramVoiceCatalog;
+use App\Services\Tts\TtsSettings;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -440,6 +443,7 @@ class LessonGenerator
                     'introduction' => $draft->situationText !== '' ? $draft->situationText : $draft->subtitle,
                     'objectives' => $draft->objectives,
                     'estimated_minutes' => $lesson->estimated_minutes ?? 15,
+                    'accent' => $lesson->accent ?? self::generatedAccent(),
                     'ai_status' => GenerationStatus::Done,
                 ])->save();
             } else {
@@ -450,6 +454,7 @@ class LessonGenerator
                     'introduction' => $draft->situationText !== '' ? $draft->situationText : $draft->subtitle,
                     'objectives' => $draft->objectives,
                     'estimated_minutes' => 15,
+                    'accent' => self::generatedAccent(),
                     'ai_status' => GenerationStatus::Done,
                 ])->save();
             }
@@ -494,8 +499,13 @@ class LessonGenerator
         if ($generation->option('audio')) {
             $texts = $this->collector->forLesson($lesson->fresh() ?? $lesson);
 
+            // In the lesson's own accent voice, the one learners hear, not
+            // the platform voice: AI lessons were recorded in the platform
+            // voice (an Indian-accent voice on the live site) while lessons
+            // written by hand used the lesson's British voice (client report
+            // 2026-11-10).
             foreach ($texts as $text) {
-                $this->audio->ensureBoth($text);
+                $this->audio->ensureBoth($text, accent: $lesson->accent);
             }
 
             $generation->recordAudioTexts($texts);
@@ -927,5 +937,17 @@ class LessonGenerator
         }
 
         return Department::query()->whereKey($generation->department_id)->value('name') ?? '';
+    }
+
+    /**
+     * The accent of a lesson the AI writes: the platform voice's when it is
+     * British or American, else clear British English (client request
+     * 2026-11-10).
+     */
+    private static function generatedAccent(): Accent
+    {
+        $platform = app(TtsSettings::class)->voice();
+
+        return Accent::fromCatalogAccent(DeepgramVoiceCatalog::accentOf($platform)) ?? Accent::British;
     }
 }

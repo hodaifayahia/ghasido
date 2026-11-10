@@ -6,6 +6,8 @@ use App\Enums\ApiAccount;
 use App\Services\Ai\AiModelSettings;
 use App\Services\Owner\ApiCredit;
 use App\Services\Owner\ApiKeyring;
+use App\Services\Tts\DeepgramVoiceCatalog;
+use App\Services\Tts\TtsSettings;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -36,6 +38,18 @@ class AiDoctor extends Command
                 $this->warn(sprintf('    %s is on the fake provider: nothing real is generated. Set it in the .env (AI_PROVIDER, ...) or Settings → AI models.', $capability));
                 $problems++;
             }
+        }
+
+        // The platform voice reads role-play replies, test audio and every
+        // lesson without its own accent (client report 2026-11-10: an
+        // Indian-accent voice was in use).
+        $voice = app(TtsSettings::class)->voice();
+        $voiceAccent = DeepgramVoiceCatalog::accentOf($voice);
+        $this->line(sprintf('  voice  %s%s', $voice, $voiceAccent !== null ? ' ('.$voiceAccent.')' : ''));
+
+        if ($voiceAccent !== null && ! in_array($voiceAccent, ['British', 'American'], true)) {
+            $this->warn(sprintf('    The platform voice has a %s accent. Choose a British or American voice in AI Scenarios → Deepgram Voice Studio if that is not intended.', $voiceAccent));
+            $problems++;
         }
 
         $this->newLine();

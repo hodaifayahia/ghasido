@@ -118,4 +118,25 @@ class MediaUploadTest extends TestCase
             ->assertJsonPath('image.alt', 'A brass bell')
             ->assertJsonPath('image.label', 'bell');
     }
+
+    public function test_an_ai_tool_mp4_read_as_quicktime_is_stored_and_served_as_mp4()
+    {
+        // Runway / Google Flow export MP4s with a QuickTime brand, which the
+        // server detects as video/quicktime (client report 2026-11-10).
+        $response = $this->actingAs($this->owner)
+            ->postJson(route('media.store'), [
+                'kind' => 'video',
+                'file' => UploadedFile::fake()->create('runway-clip.mp4', 30 * 1024, 'video/quicktime'),
+                'library' => 'guesvia_library',
+            ])
+            ->assertCreated();
+
+        $asset = MediaAsset::query()->latest('id')->firstOrFail();
+
+        $this->assertSame(MediaKind::Video, $asset->kind);
+        $this->assertSame('video/mp4', $asset->mime);
+        $this->assertStringEndsWith('.mp4', $asset->path);
+        Storage::disk('public')->assertExists($asset->path);
+        $this->assertNotNull($response->json('image.id'));
+    }
 }

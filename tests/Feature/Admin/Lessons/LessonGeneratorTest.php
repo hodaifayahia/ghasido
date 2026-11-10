@@ -363,4 +363,24 @@ class LessonGeneratorTest extends TestCase
             ->postJson(route('lessons.ai-fill', $this->lesson), ['prompt' => 'Write this lesson.'])
             ->assertForbidden();
     }
+
+    public function test_an_ai_lesson_is_recorded_in_a_british_voice_when_the_platform_voice_is_indian()
+    {
+        Queue::fake();
+        \App\Models\TtsSetting::query()->create(['voice' => 'flux-naveen-en', 'expressivity' => 50]);
+
+        $id = $this->actingAs($this->owner)
+            ->postJson(route('lesson-generations.store'), $this->payload())
+            ->json('generation.id');
+
+        $this->runLessonJob($id, 0);
+
+        $lesson = Lesson::query()->findOrFail(ContentGeneration::query()->findOrFail($id)->lessonIdFor(0));
+
+        $this->assertSame(\App\Enums\Accent::British, $lesson->accent);
+        $voices = \App\Models\AudioClip::query()->distinct()->pluck('voice')->all();
+        $this->assertNotEmpty($voices);
+        $this->assertNotContains('flux-naveen-en', $voices);
+        $this->assertSame([\App\Enums\Accent::British->defaultVoice()], $voices);
+    }
 }
