@@ -80,6 +80,11 @@ Route::middleware(Permission::LessonsManage->middleware())->group(function () {
     Route::post('audio/replace', [AudioController::class, 'replace'])->name('audio.replace');
 
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
+    // A large audio or video file sent in pieces of a few MB, joined on the
+    // server (client report 2026-11-12: whole videos were cut on the way).
+    Route::post('media/chunks', [MediaController::class, 'chunk'])
+        ->middleware('throttle:300,1')
+        ->name('media.chunk');
 
     // Generate with AI: whole lessons, whole courses and editor images
     // (GEN-01, GEN-03, GEN-04, PERF-04; spec 0004). JSON, polled by the page.

@@ -33,28 +33,48 @@ class StoreMediaRequest extends FormRequest
     {
         $kind = (string) $this->input('kind', 'image');
 
-        $file = match ($kind) {
-            // webm / mp4 / ogg: a clip recorded in the browser (Chrome,
-            // Safari, Firefox).
-            'audio' => File::types(['mp3', 'wav', 'm4a', 'webm', 'mp4', 'ogg', 'oga'])->max(20 * 1024),
-            // mov / m4v: an MP4 that AI video tools (Runway, Google Flow)
-            // write with a QuickTime or M4V brand reads as that type
-            // (client report 2026-11-10); it is stored and served as MP4.
-            'video' => File::types(['mp4', 'webm', 'mov', 'm4v'])->max(200 * 1024),
-            default => $this->imageFileRule(),
-        };
+        $file = in_array($kind, ['audio', 'video'], true)
+            ? self::mediaFileRule($kind)
+            : $this->imageFileRule();
 
         return [
             'kind' => ['sometimes', 'string', Rule::in(['image', 'audio', 'video'])],
             'file' => ['required', 'file', $file],
             'alt_text' => [$kind === 'image' ? 'required' : 'nullable', 'string', 'max:255'],
-            'library' => ['sometimes', 'string', Rule::in([
-                MediaLibrary::MyImages->value,
-                MediaLibrary::GuesviaLibrary->value,
-                MediaLibrary::IconsStickers->value,
-            ])],
+            'library' => ['sometimes', 'string', Rule::in(self::libraries())],
             'category' => ['nullable', 'string', 'max:60'],
             'label' => ['nullable', 'string', 'max:120'],
+        ];
+    }
+
+    /**
+     * The type and size rule for an audio or video upload, shared with the
+     * chunked upload that joins a large file on the server first (client
+     * report 2026-11-12).
+     */
+    public static function mediaFileRule(string $kind): File
+    {
+        return $kind === 'audio'
+            // webm / mp4 / ogg: a clip recorded in the browser (Chrome,
+            // Safari, Firefox).
+            ? File::types(['mp3', 'wav', 'm4a', 'webm', 'mp4', 'ogg', 'oga'])->max(self::MAX_AUDIO_KB)
+            // mov / m4v: an MP4 that AI video tools (Runway, Google Flow)
+            // write with a QuickTime or M4V brand reads as that type
+            // (client report 2026-11-10); it is stored and served as MP4.
+            : File::types(['mp4', 'webm', 'mov', 'm4v'])->max(self::MAX_VIDEO_KB);
+    }
+
+    public const int MAX_AUDIO_KB = 20 * 1024;
+
+    public const int MAX_VIDEO_KB = 200 * 1024;
+
+    /** @return list<string> */
+    public static function libraries(): array
+    {
+        return [
+            MediaLibrary::MyImages->value,
+            MediaLibrary::GuesviaLibrary->value,
+            MediaLibrary::IconsStickers->value,
         ];
     }
 
