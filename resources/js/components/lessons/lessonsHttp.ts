@@ -115,3 +115,80 @@ export async function postJson<T>(url: string, body: FormData): Promise<T> {
 
     return (await response.json()) as T;
 }
+
+/** The size of one piece of a chunked upload: below even a 2 MB PHP upload limit. */
+export const CHUNK_BYTES = 1.5 * 1024 * 1024;
+
+/**
+ * Raised when the browser got no answer at all: the connection was cut
+ * (by the hosting, a proxy or the network) before the server replied.
+ */
+export function connectionCutError(): JsonRequestError {
+    return new JsonRequestError(0, {
+        _: t(
+            'The connection to the server was cut during the upload. Check the internet connection and try again.',
+        ),
+    });
+}
+
+/**
+ * Send a large file in pieces of CHUNK_BYTES, one after the other, each
+ * retried up to three times (client report 2026-11-12: a whole video in
+ * one request was cut by the hosting). `fields` go with every piece; the
+ * server joins the pieces and answers the last one like a normal upload.
+ */
+export async function postInChunks<T>(
+    url: string,
+    file: File,
+    fields: Record<string, string>,
+    onProgress?: (fraction: number) => void,
+): Promise<T> {
+    const total = Math.max(1, Math.ceil(file.size / CHUNK_BYTES));
+    const uploadId =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now().toString(16).padStart(8, '0')}-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, '0')}`;
+    let last: T | null = null;
+
+    for (let index = 0; index < total; index++) {
+        const body = new FormData();
+
+        for (const [key, value] of Object.entries(fields)) {
+            body.set(key, value);
+        }
+
+        body.set('upload_id', uploadId);
+        body.set('index', String(index));
+        body.set('total', String(total));
+        body.set('name', file.name);
+        body.set(
+            'chunk',
+            file.slice(index * CHUNK_BYTES, (index + 1) * CHUNK_BYTES),
+            `${index}.part`,
+        );
+
+        last = await withRetries(() => postJson<T>(url, body));
+        onProgress?.((index + 1) / total);
+    }
+
+    return last as T;
+}
+
+async function withRetries<T>(send: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await send();
+        } catch (error) {
+            // A validation answer will not change on a retry.
+            if (error instanceof JsonRequestError) {
+                throw error;
+            }
+
+            if (attempt >= 3) {
+                throw connectionCutError();
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+        }
+    }
+}

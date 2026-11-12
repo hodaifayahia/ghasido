@@ -3,14 +3,20 @@ import { Upload } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
-import { JsonRequestError, postJson } from '@/components/lessons/lessonsHttp';
+import {
+    CHUNK_BYTES,
+    connectionCutError,
+    JsonRequestError,
+    postInChunks,
+    postJson,
+} from '@/components/lessons/lessonsHttp';
 import type { ValidationErrors } from '@/components/lessons/lessonsHttp';
 import LessonsModal from '@/components/lessons/LessonsModal.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { t, tk } from '@/lib/i18n';
-import { store } from '@/routes/media';
+import { chunk, store } from '@/routes/media';
 import type { LessonLibraryImage } from '@/types';
 
 /**
@@ -42,6 +48,8 @@ const altText = ref('');
 const category = ref('');
 const errors = ref<ValidationErrors>({});
 const processing = ref(false);
+/** 0-100 while a large file goes up in pieces; null otherwise. */
+const progress = ref<number | null>(null);
 
 watch(open, (isOpen) => {
     if (isOpen) {
@@ -82,6 +90,7 @@ async function submit(): Promise<void> {
 
     errors.value = {};
     processing.value = true;
+    progress.value = null;
 
     const body = new FormData();
     body.set('kind', props.kind);
@@ -94,7 +103,33 @@ async function submit(): Promise<void> {
     }
 
     try {
-        const response = await postJson<UploadResponse>(store.url(), body);
+        // Audio and video larger than one piece go in pieces of 1.5 MB: a
+        // whole video in one request was cut by the hosting (client report
+        // 2026-11-12).
+        const response =
+            props.kind !== 'image' &&
+            file.value !== null &&
+            file.value.size > CHUNK_BYTES
+                ? await postInChunks<UploadResponse>(
+                      chunk.url(),
+                      file.value,
+                      {
+                          kind: props.kind,
+                          library: props.library,
+                          alt_text: altText.value,
+                          category: category.value,
+                      },
+                      (fraction) => {
+                          progress.value = Math.round(fraction * 100);
+                      },
+                  )
+                : await postJson<UploadResponse>(store.url(), body).catch(
+                      (error: unknown) => {
+                          throw error instanceof JsonRequestError
+                              ? error
+                              : connectionCutError();
+                      },
+                  );
         toast.success(t(':name was uploaded.', { name: response.image.label }));
         open.value = false;
         emit('uploaded', response.image);
@@ -105,6 +140,7 @@ async function submit(): Promise<void> {
                 : { _: t('The upload failed. Please try again.') };
     } finally {
         processing.value = false;
+        progress.value = null;
     }
 }
 
@@ -177,6 +213,27 @@ const inputClass =
                     :class="inputClass"
                 />
                 <InputError :message="errors.category" />
+            </div>
+
+            <div
+                v-if="progress !== null"
+                class="grid gap-1"
+                role="progressbar"
+                :aria-valuenow="progress"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-label="$t('Upload progress')"
+                data-test="upload-progress"
+            >
+                <div class="bg-tint-track rounded-pill h-2 overflow-hidden">
+                    <div
+                        class="bg-brand-600 rounded-pill h-full transition-[width] duration-300 motion-reduce:transition-none"
+                        :style="{ width: `${progress}%` }"
+                    />
+                </div>
+                <p class="text-ink-slate text-[11.5px] tabular-nums">
+                    {{ $t('Uploading… :percent%', { percent: progress }) }}
+                </p>
             </div>
 
             <InputError :message="errors._" />

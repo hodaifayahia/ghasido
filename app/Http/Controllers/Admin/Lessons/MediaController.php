@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin\Lessons;
 use App\Enums\MediaKind;
 use App\Enums\MediaLibrary;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Lessons\StoreMediaChunkRequest;
 use App\Http\Requests\Admin\Lessons\StoreMediaRequest;
 use App\Models\Lesson;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\Content\ChunkedMediaUpload;
 use App\Services\Content\ContentTree;
 use App\Services\Content\MediaService;
 use Illuminate\Http\JsonResponse;
@@ -71,5 +73,34 @@ class MediaController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name was uploaded.', ['name' => $asset->label ?? $asset->original_name ?? 'Image'])]);
 
         return back();
+    }
+
+    /**
+     * One piece of a large audio or video upload; the last piece answers
+     * like store() (client report 2026-11-12).
+     */
+    public function chunk(StoreMediaChunkRequest $request, ChunkedMediaUpload $uploads, MediaService $media): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validated();
+
+        $asset = $uploads->receive($user, $request->chunk(), [
+            'upload_id' => (string) $data['upload_id'],
+            'index' => (int) $data['index'],
+            'total' => (int) $data['total'],
+            'name' => (string) $data['name'],
+            'kind' => (string) $data['kind'],
+            'alt_text' => isset($data['alt_text']) ? (string) $data['alt_text'] : null,
+            'library' => isset($data['library']) ? (string) $data['library'] : null,
+            'category' => isset($data['category']) ? (string) $data['category'] : null,
+            'label' => isset($data['label']) ? (string) $data['label'] : null,
+        ]);
+
+        if ($asset === null) {
+            return response()->json(['received' => (int) $data['index'] + 1], 202);
+        }
+
+        return response()->json(['image' => $media->row($asset)], 201);
     }
 }
